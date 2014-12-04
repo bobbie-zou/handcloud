@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-4 下午2:02:38  
+    $Revision: 1.0  
+    $Purpose: 合作伙伴查询
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT p.coop_partner_id,
+               p.object_type,
+               p.object_id,
+               p.object_code,
+               p.partner_type,
+               p.partner_id,
+               decode(p.partner_type,
+              'VENDOR',
+              (SELECT s.vendor_code FROM pur_vendors s WHERE s.vendor_id = p.partner_id),
+              p.partner_code) partner_code,
+               p.remark_desc,
+               p.directory_id,
+               (SELECT d.directory_desc FROM sys_coop_partner_direc d WHERE d.directory_id = p.directory_id) directory_desc,
+               p.comments
+          FROM sys_cooperative_partners p
+         WHERE p.object_type = sys_cooperative_partners_pkg.get_object_type(${/session/@user_id})
+             AND  decode(p.object_type,
+                  'VENDOR',
+                  to_char(p.object_id),
+                  p.object_code) = decode(p.object_type,
+                                          'VENDOR',
+                                          to_char(${/session/@vendor_id}),
+                                          ${/session/@client}))
+  #WHERE_CLAUSE# #ORDER_BY_CLAUSE#]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+  sys_cooperative_partners_pkg.modify_coop_partners(p_coop_partner_id => ${@coop_partner_id},
+                                                    p_remark_desc     => ${@remark_desc},
+                                                    p_directory_id    => ${@directory_id},
+                                                    p_comments        => ${@comments},
+                                                    p_user_id         => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+                BEGIN
+  sys_cooperative_partners_pkg.delete_coop_partners(p_coop_partner_id => ${@coop_partner_id},
+                                                    p_user_id         => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="coop_partner_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COOP_PARTNER_ID"/>
+        <bm:field name="object_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="OBJECT_TYPE"/>
+        <bm:field name="object_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="OBJECT_ID"/>
+        <bm:field name="object_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="OBJECT_CODE"/>
+        <bm:field name="partner_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARTNER_TYPE"/>
+        <bm:field name="partner_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PARTNER_ID"/>
+        <bm:field name="partner_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARTNER_CODE"/>
+        <bm:field name="remark_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="REMARK_DESC"/>
+        <bm:field name="directory_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="DIRECTORY_ID"/>
+        <bm:field name="directory_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DIRECTORY_DESC"/>
+        <bm:field name="comments"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="remark_desc" queryExpression="remark_desc like &apos;%&apos;||trim(${@remark_desc})||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

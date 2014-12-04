@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-8-20 上午11:03:14  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select * from (
+select v.flex_value_id,
+       v.flex_value,
+       v.flex_desc flex_desc,
+       v.parent_flex_value_id
+  from ( #value_source_sql# ) v
+   ) t
+   #WHERE_CLAUSE#
+ order by t.flex_value
+ 
+ ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="flex_value_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="FLEX_VALUE_ID"/>
+        <bm:field name="flex_value" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="FLEX_VALUE" prompt="值代码"/>
+        <bm:field name="flex_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="FLEX_DESC" prompt="值描述"/>
+        <bm:field name="parent_flex_value_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PARENT_FLEX_VALUE_ID"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="parent_flex_value_id" dataType="java.lang.Long" queryExpression="t.parent_flex_value_id = ${/parameter/@parent_flex_value_id} "/>
+        <bm:query-field name="flex_value" queryExpression="flex_value like &apos;%&apos;||${@flex_value}||&apos;%&apos;"/>
+        <bm:query-field name="flex_desc" queryExpression="flex_desc like &apos;%&apos;||${@flex_desc}||&apos;%&apos;"/>
+        <bm:query-field name="code_name" queryExpression="flex_desc like &apos;%&apos;||${@code_name}||&apos;%&apos; or flex_value like &apos;%&apos;||${@code_name}||&apos;%&apos;"/>
+    </bm:query-fields>
+    <flex-model-bm name="flex_value_set_sql" model="flex.fnd_flex_value_set_sql" parameterPath="/parameter">
+        <flex-model-replace-bm operation="query" replaceFrom="#value_source_sql#" replaceTo="value_source_sql"/>
+    </flex-model-bm>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_sql_replace_bm.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

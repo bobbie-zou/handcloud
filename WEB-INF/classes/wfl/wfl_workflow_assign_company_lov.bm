@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-6-18 上午11:44:11  
+    $Revision: 1.0  
+    $Purpose: 工作流分配公司LOV（经用户/角色权限筛选） 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="company_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="公司代码"/>
+        <bm:field name="company_name" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="公司名称"/>
+        <bm:field name="company_code_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	select v.company_id,
+				       v.company_code,
+				       v.company_name,
+				       v.company_code_name
+				  from (select wwa.company_id,
+				               (select fcv.company_code from fnd_companies_vl fcv where fcv.company_id = wwa.company_id) as company_code,
+				               (select fcv.company_short_name from fnd_companies_vl fcv where fcv.company_id = wwa.company_id) as company_name,
+				               (select fcv.company_code || '-' || fcv.company_short_name
+				                  from fnd_companies_vl fcv
+				                 where fcv.company_id = wwa.company_id) as company_code_name
+				          from wfl_workflow_assigns wwa
+				         where wwa.enabled_flag = 'Y'
+				               and exists (select 1
+				                  from fnd_auth_company_v acv
+				                 where acv.company_id = wwa.company_id
+				                       and acv.session_id = ${/session/@session_id})
+				         group by wwa.company_id) v
+  				#WHERE_CLAUSE#				                       
+             ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_code" queryExpression="v.company_code like &apos;%&apos;||${@company_code}||&apos;%&apos;"/>
+        <bm:query-field name="company_name" queryExpression="v.company_name like &apos;%&apos;||${@company_name}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-10-14 下午6:54:36  
+    $Revision: 1.0  
+    $Purpose: 业务通知单发布管理，选择供应商查询供应商BM
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT *
+				  FROM (SELECT v.vendor_id,
+				               v.display_vendor_code   AS vendor_code,
+				               v.full_name             AS vendor_name,
+				               es.external_system_name,
+				               fcv.company_id          AS coop_company_id,
+				               fcv.company_code        AS coop_company_code
+				          FROM pur_vendors_v             v,
+				               pur_vendor_sites          s,
+				               fnd_business_units        bu,
+				               pur_vendor_es             ve,
+				               fnd_bg_external_system_vl es,
+				               fnd_companies_vl          fcv
+				         WHERE v.vendor_id = s.vendor_id
+				               AND s.org_id = bu.business_unit_id
+				               AND v.vendor_id = ve.vendor_id
+				               AND ve.es_id = es.external_system_id
+				               AND v.coop_company_id = fcv.company_id(+)
+				               AND bu.company_id = ${@company_id}
+				         GROUP BY v.vendor_id,
+				                  v.display_vendor_code,
+				                  v.full_name,
+				                  es.external_system_name,
+				                  fcv.company_id,
+				                  fcv.company_code) v
+				#AUTHORIY_FROM#
+            	#WHERE_CLAUSE#
+            	#AUTHORIY_WHERE# 
+				ORDER BY v.coop_company_id
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="vendor_code" queryExpression="v.vendor_code like &apos;%&apos;||trim(${@vendor_code})||&apos;%&apos;"/>
+        <bm:query-field name="vendor_name" queryExpression="v.vendor_name like &apos;%&apos;||trim(${@vendor_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority only_user_authority="Y">
+        <authority-segment source_alias="v" source_name="vendor_id" type="VENDOR"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+      		Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+          	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

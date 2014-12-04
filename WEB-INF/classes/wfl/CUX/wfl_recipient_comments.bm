@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: FelixDru3827  
+    $Date: 2014-1-21 下午3:45:30  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select *
+  from (SELECT rcpt_record_id,
+       REPLACE(comments,
+               chr(10),
+               '\n') comments,
+       user_id
+  FROM (SELECT c.rcpt_record_id,
+               REPLACE(comments,
+                       chr(13),
+                       '\r') comments,
+               c.user_id
+          FROM wfl_recipient_comments c
+         WHERE c.rcpt_record_id = ${@record_id}
+               AND c.user_id = ${/session/@user_id}))
+             #WHERE_CLAUSE# 
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[begin
+  wfl_core_pkg.recipient_comments_save(p_rcpt_record_id => ${@record_id},
+                                       p_comments       => ${@comments},
+                                       p_user_id        => ${/session/@user_id});                                      
+end;
+]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="rcpt_record_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="RCPT_RECORD_ID"/>
+        <bm:field name="comments" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMMENTS"/>
+        <bm:field name="user_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="USER_ID"/>
+    </bm:fields>
+</bm:model>

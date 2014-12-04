@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-6-3 上午10:14:55  
+    $Revision: 1.0  
+    $Purpose: 组织架构定义，岗位定义
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t.position_id,
+                    t.unit_id,
+                    t.position_code,
+                    t.description as position_desc,
+                    t.company_id,
+                    t.parent_position_id,
+                    (SELECT pp.position_code || '-' || pp.description FROM exp_org_position_vl pp WHERE pp.position_id = t.parent_position_id) AS parent_position_display,
+                    t.employee_job_id,
+                    t.enabled_flag,
+                    t.sequence,
+                    'Y' as expand_flag,
+                    nvl(t.primary_position_flag,'N')as primary_position_flag,
+                    t.creation_date,
+                    t.created_by,
+                    t.last_update_date,
+                    t.last_updated_by,
+                    t.client,
+                    t.data_source,
+                    t.data_source_id,
+                    t.data_source_code,
+                    t.data_source_name
+                FROM
+                    exp_org_position_vl t
+                #AUTHORIY_FROM# 
+ 				#WHERE_CLAUSE# 
+ 				#AUTHORIY_WHERE# 
+ 			   ORDER BY t.sequence
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="position_id" input="false" output="true" outputPath="@position_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+    		BEGIN
+			  exp_org_position_pkg.create_org_position(p_unit_id       			=> ${@unit_id},
+			                                           p_position_code      	=> ${@position_code},
+			                                           p_description 			=> ${@position_desc},
+			                                           p_parent_position_id		=> ${@parent_position_id},
+			                                           p_company_id    			=> ${@company_id},
+			                                           p_enabled_flag   		=> nvl(${@enabled_flag},'Y'),
+			                                           p_employee_job_id  		=> ${@employee_job_id},
+			                                           p_sequence           	=> ${@sequence},
+			                                           p_primary_position_flag	=> ${@primary_position_flag},
+			                                           p_position_id  			=> ${@position_id},
+			                                           p_created_by         	=> ${/session/@user_id});
+			END;
+    	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+    		BEGIN
+			  exp_org_position_pkg.modify_org_position(p_unit_id       		=> ${@unit_id},
+			                                           p_position_id  		=> ${@position_id},
+			                                           p_description 		=> ${@position_desc},
+			                                           p_parent_position_id	=> ${@parent_position_id},
+			                                           p_company_id    		=> ${@company_id},
+			                                           p_enabled_flag   	=> nvl(${@enabled_flag},'Y'),
+			                                           p_employee_job_id  	=> ${@employee_job_id},
+			                                           p_sequence           => ${@sequence},
+			                                           p_created_by         => ${/session/@user_id});
+			END;
+    	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+    		BEGIN
+			  exp_org_position_pkg.disable_org_postion(p_position_id	=> ${@position_id},
+		                                       		   p_user_id   		=> ${/session/@user_id});
+			END;
+    	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+    		BEGIN
+			  exp_org_position_pkg.enable_org_postion(p_position_id	=> ${@position_id},
+		                                       		  p_user_id   	=> ${/session/@user_id});
+			END;
+    	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="position_id" queryExpression="t.position_id = ${@position_id}"/>
+        <bm:query-field name="position_code_name" queryExpression="(t.position_code like &apos;%&apos;||trim(${@position_code_name})||&apos;%&apos; or t.description like &apos;%&apos;||trim(${@position_code_name})||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+        <bm:data-filter expression="t.company_id = ${@company_id}"/>
+        <bm:data-filter expression="t.unit_id = ${@unit_id}"/>
+    </bm:data-filters>
+    <authority client_alias="t" client_name="client"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

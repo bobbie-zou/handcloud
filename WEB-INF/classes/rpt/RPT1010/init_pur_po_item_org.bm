@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-9-28 下午2:17:46  
+    $Revision: 1.0  
+    $Purpose: pur_po_rp调用过程 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+            begin 
+                     
+                   pur_po_rp_analyze_pkg.init_pur_po_category_rp(p_session_id        =>${/session/@session_id},
+                                                                 p_summary_method    =>${@summary_method},
+                                                                 p_business_group    =>'BG00000001',
+                                                         		 p_company_id        =>${@fnd_companies},
+                                                         		 p_business_unit_id  =>${@business_unit},
+                                                         		 p_report_type       =>${@report_type_value},
+                                                         		 p_year_from         =>${@base_period_year_from_value},
+                                                         		 p_year_to           =>${@base_period_year_to_value},
+                                                         		 p_year_period_from  =>${@base_year_period_from},
+                                                         		 p_year_period_to    =>${@base_year_period_to},
+                                                         		 p_season_from       =>${@base_season_from},
+                                                         		 p_season_to         =>${@base_season_to},
+                                                         		 p_month_from        =>to_number(${@base_month_from}),
+                                                         		 p_month_to          =>to_number(${@base_month_to}),
+                                                         		 p_user_id           =>${/session/@user_id},
+                                                         		 p_rp_hearder_id     =>${@rp_hearder_id});
+           end;
+            ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="rp_hearder_id" dataType="java.lang.Long" output="true" outputPath="@rp_hearder_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    DELETE
+                        pur_po_rp_tmp
+                    WHERE
+                        RP_CODE    = 'RPT5050' AND
+                        CREATED_BY = ${/session/@user_id};
+                        
+                    FOR ex        IN
+                    (SELECT DISTINCT item_category_id FROM pur_po_vendor_rp_details
+                    )
+                    LOOP
+                        INSERT
+                        INTO
+                            pur_po_rp_tmp
+                            (
+                                session_id,
+                                ITEM_CATEGORY_ID,
+                                RP_CODE,
+                                CREATED_BY
+                            )
+                            VALUES
+                            (
+                                ${/session/@session_id},
+                                ex.item_category_id,
+                                'RPT5050',
+                                ${/session/@user_id}
+                            );
+                    END LOOP;
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+            begin 
+                   delete pur_po_rp_tmp
+                   where RP_CODE = 'RPT5050'
+                    and  CREATED_BY = ${/session/@user_id};
+           end;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <!--     <bm:fields>
+        <bm:field name="item_category_id"/>
+    </bm:fields> -->
+</bm:model>

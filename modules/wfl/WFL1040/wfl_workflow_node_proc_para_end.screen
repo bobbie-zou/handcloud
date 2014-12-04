@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+            function onUpdateNodeProcPara(ds, record, name, value, oldvalue) {
+                //如果"参数类型"的值发生改变，则将"参数值","类型参数代码"的值清空
+                /* if (name == "parameter_type_desc") {
+                 record.set('parameter_value', null);
+                 record.set('workflow_type_para_id', null);
+                 record.set('workflow_type_para_code', null);
+                 record.set('workflow_type_para_desc', null);
+                 } */
+                if (name == "parameter_type_desc") {
+                    record.set('parameter_value', null);
+                    record.set('parameter_value_desc', null);
+                    record.set('workflow_type_para_id', null);
+                    record.set('workflow_type_para_code', null);
+                    record.set('workflow_type_para_desc', null);
+                } else if (name == 'parameter_value_desc') {
+                    if (record.get('parameter_type') == 'DEFAULT') {
+                        record.set('parameter_value', value);
+                    }
+                }
+            }
+            
+            
+            function editorFunction_procPara(record, name) {
+                /* var parameter_type = record.get('parameter_type');
+                 var parameter_value = record.getMeta().getField('parameter_value');
+                 var workflow_type_para_code = record.getMeta().getField('workflow_type_para_code');
+                 var workflow_id = ${/parameter/@workflow_id};
+                 if (name == 'parameter_value') {
+                 if (parameter_type == 'DEFAULT') {
+                 parameter_value.setRequired(true);
+                 return 'textField_pt';
+                 } else if (parameter_type == 'WFL_TYPE_PARA') {
+                 parameter_value.setRequired(false);
+                 return '';
+                 }
+                 }
+                 if (name == 'workflow_type_para_code') {
+                 if (parameter_type == 'DEFAULT') {
+                 workflow_type_para_code.setRequired(false);
+                 workflow_type_para_code.setLovPara('workflow_id', null);
+                 return '';
+                 } else if (parameter_type == 'WFL_TYPE_PARA') {
+                 workflow_type_para_code.setRequired(true);
+                 workflow_type_para_code.setLovPara('workflow_id', workflow_id);
+                 return 'lov_pv';
+                 }
+                 }
+                 return ''; */
+                var parameter_type = record.get('parameter_type');
+                var parameter_value_desc = record.getMeta().getField('parameter_value_desc');
+                var workflow_type_para_code = record.getMeta().getField('workflow_type_para_code');
+                var workflow_id = ${/parameter/@workflow_id};
+                if (name == 'parameter_value_desc') {
+                    if (parameter_type == 'DEFAULT') {
+                        parameter_value_desc.setRequired(true);
+                        return 'textField_pt';
+                    } else if (parameter_type == 'WFL_TYPE_PARA') {
+                        parameter_value_desc.setRequired(false);
+                        return '';
+                    } else if (parameter_type == 'WFL_INSTANCE_PARA') {
+                        parameter_value_desc.setRequired(true);
+                        return 'comboBox_pt';
+                    }
+                }
+                if (name == 'workflow_type_para_code') {
+                    if (parameter_type == 'DEFAULT' || parameter_type == 'WFL_INSTANCE_PARA') {
+                        workflow_type_para_code.setRequired(false);
+                        workflow_type_para_code.setLovPara('workflow_id', null);
+                        return '';
+                    } else if (parameter_type == 'WFL_TYPE_PARA') {
+                        workflow_type_para_code.setRequired(true);
+                        workflow_type_para_code.setLovPara('workflow_id', workflow_id);
+                        return 'lov_pv';
+                    }
+                }
+                return '';
+            }
+            
+            
+            function onCloseNodeProcPara() {
+                $('wfl_workflow_node_proc_para_window').close();
+            }
+            
+            function onSaveNodeProcPara() {
+                var result_ds = $('wfl_workflow_node_procedure_para_result_ds');
+                if (result_ds.validate) {
+                    var records = result_ds.getAll();
+                    if (records.length < 1) {
+                        Aurora.showMessage('提示', '请添加一条数据!');
+                    } else {
+                        var workflow_procedure_id = ${/parameter/@workflow_procedure_id};
+                        if (!workflow_procedure_id) {
+                            Aurora.showMessage('提示', '工作流节点动作信息ID缺失，请查看源程序!');
+                        } else {
+                            for (var i = 0;i < records.length;i++) {
+                                var record = records[i];
+                                record.set('workflow_procedure_id', workflow_procedure_id);
+                            }
+                            result_ds.submit();
+                        }
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl_instance_para_values_ds">
+                <a:datas>
+                    <a:record code_value="INSTANCE_ID" code_value_name="实例ID"/>
+                    <a:record code_value="INSTANCE_WORKFLOW_ID" code_value_name="工作流ID"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="wfl_parameter_type_ds" loadData="true" model="wfl.WFL1040.wfl_workflow_para_type_combox"/>
+            <a:dataSet id="wfl_workflow_node_procedure_one_ds" loadData="true" model="wfl.WFL1040.wfl_workflow_end_procedure">
+                <a:fields>
+                    <a:field name="sequence_num" readOnly="true"/>
+                    <a:field name="procedure_code" readOnly="true"/>
+                    <a:field name="procedure_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl_workflow_node_procedure_para_result_ds" autoPageSize="true" autoQuery="true" model="wfl.WFL1040.wfl_workflow_end_proc_para" queryUrl="${/request/@context_path}/autocrud/wfl.WFL1040.wfl_workflow_end_proc_para/query?workflow_procedure_id=${/parameter/@workflow_procedure_id}&amp;procedure_id=${/parameter/@procedure_id}" selectable="false">
+                <a:fields>
+                    <!-- <a:field name="parameter_value" maxLength="1000"/> -->
+                    <a:field name="parameter_value_desc" displayField="code_value_name" maxLength="1000" options="wfl_instance_para_values_ds" returnField="parameter_value" valueField="code_value"/>
+                    <a:field name="parameter_type_desc" displayField="code_value_name" options="wfl_parameter_type_ds" required="true" returnField="parameter_type" valueField="code_value"/>
+                    <a:field name="workflow_type_para_code" autoComplete="true" autoCompleteField="workflow_type_para_code" lovGridHeight="350" lovHeight="500" lovService="wfl.WFL1040.wfl_workflow_type_parameter_lov?workflow_id=${/parameter/@workflow_id}" lovWidth="500" title="类型参数代码">
+                        <a:mapping>
+                            <a:map from="workflow_type_para_id" to="wfl_type_para_id"/>
+                            <a:map from="workflow_type_para_code" to="workflow_type_para_code"/>
+                            <a:map from="workflow_type_para_desc" to="workflow_type_para_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="onUpdateNodeProcPara"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="onSaveNodeProcPara" text="HAP_SAVE" width="100"/>
+            <a:toolbarButton click="onCloseNodeProcPara" text="返回" width="100"/>
+        </a:screenTopToolbar>
+        <a:form column="4" labelWidth="100" marginWidth="40">
+            <a:textField name="sequence_num" bindTarget="wfl_workflow_node_procedure_one_ds" prompt="结束过程序号"/>
+            <a:textField name="procedure_code" bindTarget="wfl_workflow_node_procedure_one_ds" prompt="过程代码"/>
+            <a:textField name="procedure_desc" bindTarget="wfl_workflow_node_procedure_one_ds" prompt="过程描述"/>
+        </a:form>
+        <a:grid id="wfl_workflow_node_procedure_para_result_grid" bindTarget="wfl_workflow_node_procedure_para_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="sequence_num" align="center" prompt="参数序号" width="50"/>
+                <a:column name="parameter_code" prompt="参数代码" width="80"/>
+                <a:column name="parameter_desc" prompt="参数描述" width="100"/>
+                <a:column name="parameter_type_desc" editor="comboBox_pt" prompt="参数类型" width="80"/>
+                <!-- <a:column name="parameter_value" editorFunction="editorFunction_procPara" prompt="参数值" width="100"/> -->
+                <a:column name="parameter_value_desc" editorFunction="editorFunction_procPara" prompt="参数值" width="200"/>
+                <a:column name="workflow_type_para_code" editorFunction="editorFunction_procPara" prompt="类型参数代码" width="80"/>
+                <a:column name="workflow_type_para_desc" prompt="类型参数描述" width="100"/>
+            </a:columns>
+            <a:editors>
+                <a:lov id="lov_pv"/>
+                <a:textField id="textField_pt"/>
+                <a:comboBox id="comboBox_pt"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

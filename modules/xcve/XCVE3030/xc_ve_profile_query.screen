@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-5 下午2:58:55  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="xc_ve_profile_mc_score_query_link" url="${/request/@context_path}/modules/xcve/XCVE3030/xc_ve_profile_mc_score_query.screen"/>
+        <script><![CDATA[
+            function updateQueryDs(dataSet, record, name, value, oldValue) {
+                if (name=='ve_template_id'){
+                    if (record.get('period_name') != ''){
+                		record.set('period_name', '');
+                    }
+                    $('period_ds').setQueryParameter('ve_template_id', value);
+                	$('period_ds').query();
+                	
+                    if (record.get('ve_profile_id') != ''){
+                		record.set('ve_profile_num', '');
+                    }
+                    $('profile_ds').setQueryParameter('ve_template_id', value);
+                	$('profile_ds').query();
+                	
+                    if (record.get('item_group_id') !== undefined){
+                		record.set('item_group_code', '');
+                		record.set('item_group_id', '');
+                    }
+                } else if (name=='period_name'){
+                    if (record.get('ve_profile_id') != ''){
+                		record.set('ve_profile_num', '');
+                    }
+                    $('profile_ds').setQueryParameter('period_name', value);
+                	$('profile_ds').query();
+                } else if (name=='ve_profile_id'){
+                    $('mc_ds').setQueryParameter('ve_profile_id', value);
+                	$('mc_ds').query();
+                	
+                    if (record.get('item_group_id') != ''){
+                		record.set('item_group_code', '');
+                    }
+                    record.getField('item_group_code').setLovPara('ve_profile_id', value);
+                }
+            }
+            
+            function setLovParas(lov) {
+                var veProfileId = $('ve_profiles_for_query').getCurrentRecord().get('ve_profile_id');
+                var item_group_id = $('ve_profiles_for_query').getCurrentRecord().get('item_group_id');
+                $('vendor_ds').getCurrentRecord().getField('vendor_srm_code').setLovPara('ve_profile_id', veProfileId);
+                $('vendor_ds').getCurrentRecord().getField('vendor_srm_code').setLovPara('item_group_id', item_group_id);
+            }
+            
+            function addRow() {
+                if (!$('ve_profiles_for_query').validate()) {
+                    return;
+                }
+                var records = $('vendor_ds').getAll();
+                if (records.length == 10) {
+                    return;
+                }
+                $('vendor_ds').create();
+            }
+            
+        	function showChart(){
+                if (!$('ve_profiles_for_query').validate()) {
+                    return;
+                }
+                if (!$('vendor_ds').validate()) {
+                    return;
+                }
+                
+                var records = $('vendor_ds').getAll();
+                for (var i = 0;i < records.length;i++) {
+                    $('chart_ds').setQueryParameter('vendor_' + (i + 1), records[i].get('vendor_id'));
+                }
+                for (var j = records.length;j < 10;j++) {
+                    $('chart_ds').setQueryParameter('vendor_' + (j + 1), 0);
+                }
+                
+                var mcRecords = $('mc_ds').getAll();
+                for (i = 0;i < mcRecords.length;i++) {
+                    $('chart_ds').setQueryParameter('mc_id_' + (i + 1), mcRecords[i].get('main_criterion_id'));
+                    //$('chart_ds').setQueryParameter('mc_code_' + (i + 1), mcRecords[i].get('main_criterion_code'));
+                }
+                for (j = mcRecords.length;j < 10;j++) {
+                    $('chart_ds').setQueryParameter('mc_id_' + (j + 1), 0);
+                    //$('chart_ds').setQueryParameter('mc_code_' + (j + 1), ' ');
+                }
+            
+                $('chart_ds').query();
+        	}
+            
+        	function resetQueryDs(){
+        	    $('ve_profiles_for_query').reset();
+        	}
+            
+            function detailRenderer(value, record, name) {
+                if (value !== undefined){
+	                var queryRecord = $('ve_profiles_for_query').getCurrentRecord();
+	                var profileId = queryRecord.get('ve_profile_id');
+	                var itemGroupId = queryRecord.get('item_group_id');
+	                var vendorId = record.get('vendor_id');
+	                return '<a href="javascript:showDetail(' + profileId + ',' + itemGroupId + ',' + vendorId + ')">' + value + '</a>';
+                }
+            }
+            
+            function showDetail(profileId, itemGroupId, vendorId) {
+                new Aurora.Window({
+                    id: 'xc_ve_profile_mc_score_query',
+                    url: $('xc_ve_profile_mc_score_query_link').getUrl() + '?ve_profile_id=' + profileId + '&item_group_id=' + itemGroupId + '&vendor_id=' + vendorId,
+                    title: '初级指标得分',
+                    height: 560,
+                    width: 760
+                });
+            }
+        	
+            function renderer2() {
+                    return '<b>'+ this.x +'</b><br/>'+
+					this.series.name +': '+ this.y +'<br/>'+
+					'Total: '+ this.point.stackTotal;
+
+            }
+            
+            function renderer(){
+            	if(this.y == 0){
+            	    return '';
+            	} else {
+            	    return this.y;
+            	}
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="ve_template_ds" autoQuery="true" fetchAll="true" model="xcve.XCVE1030.xc_ve_template" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE1030.xc_ve_template/query?company_id=${/session/@company_id}">
+                <a:fields>
+                    <a:field name="description"/>
+                    <a:field name="ve_template_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="period_ds" autoQuery="false" fetchAll="true" model="xcve.XCVE3030.xc_ve_profile_period_combo"/>
+            <a:dataSet id="profile_ds" autoQuery="false" fetchAll="true" model="xcve.XCVE3030.xc_ve_profile_number_combo"/>
+            <a:dataSet id="mc_ds" autoQuery="false" fetchAll="false" model="xcve.XCVE3030.xc_ve_profile_mc" pageSize="10"/>
+            <a:dataSet id="ve_profiles_for_query" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@company_id}"/>
+                    <a:field name="ve_template_id_desc" displayField="description" options="ve_template_ds" required="true" returnField="ve_template_id" valueField="ve_template_id"/>
+                    <a:field name="ve_template_id"/>
+                    <a:field name="period_name" displayField="period_name" options="period_ds" required="true" returnField="period_name" valueField="period_name"/>
+                    <a:field name="ve_profile_num" displayField="ve_profile_num" options="profile_ds" required="true" returnField="ve_profile_id" valueField="ve_profile_id"/>
+                    <a:field name="ve_profile_id"/>
+                    <a:field name="item_group_code" autoComplete="true" lovHeight="500" lovLabelWidth="110" lovService="xcve.XCVE3030.xc_ve_profile_item_group_lov" lovWidth="600" required="true" title="物料组信息">
+                        <a:mapping>
+                            <a:map from="item_group_id" to="item_group_id"/>
+                            <a:map from="item_group_code" to="item_group_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_group_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="updateQueryDs"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="vendor_ds" pageSize="10" selectable="true">
+                <a:fields>
+                    <a:field name="vendor_id"/>
+                    <a:field name="vendor_srm_code" autoComplete="true" lovHeight="500" lovLabelWidth="110" lovService="xcve.XCVE3030.xc_ve_profile_vendor_lov" lovWidth="600" required="true" title="供应商信息">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_srm_code" to="vendor_srm_code"/>
+                            <a:map from="vendor_erp_code" to="vendor_erp_code"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                            <a:map from="vendor_type_name" to="vendor_type_name"/>
+                            <a:map from="score" to="score"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_erp_code" readOnly="true"/>
+                    <a:field name="vendor_name" readOnly="true"/>
+                    <a:field name="vendor_type_name" readOnly="true"/>
+                    <a:field name="score" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="chart_ds" autoQuery="false" fetchAll="true" model="xcve.XCVE3030.xc_ve_profile_score_chart" queryDataSet="ve_profiles_for_query">
+                <a:fields>
+                    <a:field name="vender_erp_code"/>
+                    <a:field name="score1" prompt="1"/>
+                    <a:field name="score2" prompt="2"/>
+                    <a:field name="score3" prompt="3"/>
+                    <a:field name="score4" prompt="4"/>
+                    <a:field name="score5" prompt="5"/>
+                    <a:field name="score6" prompt="6"/>
+                    <a:field name="score7" prompt="7"/>
+                    <a:field name="score8" prompt="8"/>
+                    <a:field name="score9" prompt="9"/>
+                    <a:field name="score10" prompt="10"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="4" title="考评档案基本参数" width="950">
+                <a:comboBox name="ve_template_id_desc" bindTarget="ve_profiles_for_query" prompt="考评模板"/>
+                <a:comboBox name="period_name" bindTarget="ve_profiles_for_query" prompt="考评月度"/>
+                <a:comboBox name="ve_profile_num" bindTarget="ve_profiles_for_query" prompt="考评档案"/>
+                <a:lov name="item_group_code" bindTarget="ve_profiles_for_query" prompt="物料组"/>
+            </a:form>
+            <a:grid bindTarget="vendor_ds" height="330" showRowNumber="true" width="950">
+                <a:toolBar>
+                    <a:button click="addRow" icon="../../../images/add.gif" text="新增"/>
+                    <a:button type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="vendor_code" prompt="供应商编码">
+                        <a:column name="vendor_srm_code" editor="vendor_lov" prompt="SRM编码" sortable="true" width="150"/>
+                        <a:column name="vendor_erp_code" prompt="ERP编码" sortable="true" width="100"/>
+                    </a:column>
+                    <a:column name="vendor_name" prompt="供应商描述" sortable="true" width="330"/>
+                    <a:column name="vendor_type_name" prompt="供应商类型" sortable="true" width="200"/>
+                    <a:column name="score" prompt="基础总分" renderer="detailRenderer" sortable="true" width="80"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="vendor_lov">
+                        <a:events>
+                            <a:event name="beforetriggerclick" handler="setLovParas"/>
+                        </a:events>
+                    </a:lov>
+                </a:editors>
+            </a:grid>
+            <a:hBox>
+                <a:button click="showChart" text="查询"/>
+                <a:button click="resetQueryDs" text="重置"/>
+            </a:hBox>
+            <a:chart bindTarget="chart_ds" marginBottom="65" marginRight="35" style="width: 940px; height: 360px; margin:10px" type="column">
+                <a:title text="堆积条形图" x="0"/>
+                <a:xAxis>
+                    <a:xAxi name="vender_erp_code"><![CDATA[
+                       
+                    ]]></a:xAxi>
+                </a:xAxis>
+                <a:yAxis>
+                    <a:yAxi name="score1,score2,score3,score4,score5,score6,score7,score8,score9,score10" allowDecimals="false" min="-100" opposite="false">
+                        <a:title text="分数"/>
+                        <a:stackLabels enabled="true"/>
+                    </a:yAxi>
+                </a:yAxis>
+                <a:legend align="right" borderColor="#CCC" borderWidth="1" floating="true" shadow="false" verticalAlign="top" width="360" x="-280" y="315"/>
+                <a:tooltip formatter="renderer2"/>
+                <a:plotOptions>
+                    <a:column stacking="normal">
+                        <a:dataLabels backGroundColor="none" color="white" enabled="true" formatter="renderer"/>
+                    </a:column>
+                </a:plotOptions>
+            </a:chart>
+        </a:screenBody>
+    </a:view>
+</a:screen>

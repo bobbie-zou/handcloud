@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang3816 $
+    $Date: 2013/06/18 08:42:14 $
+    $Revision: 1.3 $
+    $Purpose: 编码规则定义 - 明细
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <script><![CDATA[
+        
+        	function fnd1910_returnback(){
+        	    var s= $('fnd1910_fnd_coding_rule_details_ds');
+        	    if($('fnd1910_fnd_coding_rule_details_ds').isModified()){
+        	     	Aurora.showConfirm('${l:PROMPT_MESSAGE}','${l:SYS_PROMPT.MODIFIED_WINDOW_CLOSE_CONFIRM}',function(){
+    	         		$('fnd1910_fnd_coding_rule_details_window').close();
+    	        	});   
+        	    }else{
+        	    	$('fnd1910_fnd_coding_rule_details_window').close(); 
+        	    }
+        	}
+        	
+            function fnd1910_segmentValueEdit(record, name) {
+                if (record.get('segment_type') == '50') {
+                    record.getField('segment_value').setRequired(true);
+                    return 'fnd1910_segment_value_display_lov';
+                }
+                if (record.get('segment_type') == '10') {
+                    record.getField('segment_value').setRequired(true);
+                    return 'fnd1910_segment_value_grid_tf';
+                } else {
+                    record.getField('segment_value').setRequired(false);
+                    //record.set('segment_value',null);
+                    return '';
+                }
+            }
+            
+            function fnd1910_sgementValueDispalyEditor(record, name) {
+                if (record.get('segment_type') == '50') {
+                    record.getField('segment_value_display').setRequired(true);
+                    return 'fnd1910_segment_value_display_lov';
+                } else {
+                    record.getField('segment_value_display').setRequired(false);
+                    return '';
+                }
+            }
+            
+            function fnd1910_dateFormatEdit(record, name) {
+                if (record.get('segment_type') == '20') {
+                    record.getField('date_format_display').setRequired(true);
+                    return 'fnd1910_comboBox_grid_cmb';
+                } else {
+                    record.getField('date_format_display').setRequired(false);
+                    return '';
+                }
+            }
+            
+            function fnd1910_edit(record, name) {
+                if (record.get('segment_type') == '30') {
+                    record.getField('length').setRequired(true);
+                    record.getField('incremental').setRequired(true);
+                    record.getField('start_value').setRequired(true);
+                    if (name == 'length') {
+                        return 'fnd1910_incremental_grid_num';
+                    }
+                    if (name == 'incremental') {
+                        return 'fnd1910_incremental_grid_num';
+                    }
+                    if (name == 'start_value') {
+                        return 'fnd1910_start_value_grid_num';
+                    }
+                }
+                if (record.get('segment_type') == '40') {
+                    record.getField('length').setRequired(true);
+                    if (name == 'length') {
+                        return 'fnd1910_incremental_grid_num';
+                    }
+                    if (name == 'start_value') {
+                        return 'fnd1910_start_value_grid_num';
+                    }
+                    if (name == 'end_value') {
+                        return 'fnd1910_end_value_grid_num';
+                    }
+                } else {
+                    record.getField('length').setRequired(false);
+                    record.getField('incremental').setRequired(false);
+                    record.getField('start_value').setRequired(false);
+                    return '';
+                }
+            }
+            
+            function fnd1090_codingRuleDetailsOnUpdate(ds, record, name, value, oldvalue) {
+                if (name == 'segment_type_display') {
+                    record.set('segment_value', null);
+                    record.set('date_format_display', null);
+                    record.set('length', null);
+                    record.set('incremental', null);
+                    record.set('start_value', null);
+                    record.set('end_value', null);
+                }
+            }
+            
+            function fnd1090_codingRuleDetailsOnAdd(ds, record, index) {
+                var records = ds.getAll();
+                var max_line_num = 0;
+                for (var i = 0;i < records.length;i++) {
+                    max_line_num = records[i].get('sequence') > max_line_num ? records[i].get('sequence') : max_line_num;
+                }
+                max_line_num++;
+                record.set('sequence', max_line_num);
+            }
+            
+            function fnd1910_lengthValidator(record,name,value){
+                var length=record.get('length');
+                if(record.get('segment_type') == '40'){
+                    if(length<3){
+                        return '${l:FND1910.LENGTH_LESS_THAN_THREE}';
+                    }
+                }
+                return true;
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <!-- <a:dataSet id="fnd1090_company_ds" autoQuery="true" queryUrl="${/request/@context_path}/autocrud/fnd.FND1910.fnd_coding_rule_companies/query?coding_rule_id=${/parameter/@coding_rule_id}"/> -->
+            <a:dataSet id="fnd1910_segment_type_ds" lookupCode="CODING_RULE_SEGMENT"/>
+            <a:dataSet id="fnd1910_date_format_ds" lookupCode="FND_DATE_FORMAT"/>
+            <a:dataSet id="fnd1910_fnd_coding_rules_query_ds" autoQuery="true" model="fnd.FND1910.fnd_coding_rules" queryUrl="${/request/@context_path}/autocrud/fnd.FND1910.fnd_coding_rules/query?coding_rule_id=${/parameter/@coding_rule_id}">
+                <a:fields>
+                    <!-- <a:field name="reset_frequency_display" displayField="code_value_name" options="fnd1910_coding_rule_reset_frequency_ds" readOnly="true" returnField="reset_frequence" valueField="code_value"/> -->
+                    <a:field name="rule_object_code"/>
+                    <a:field name="rule_object_name"/>
+                    <a:field name="coding_rule_code"/>
+                    <a:field name="description"/>
+                    <a:field name="note"/>
+                    <!-- <a:field name="reset_frequence"/> -->
+                    <a:field name="reset_frequence_display" displayField="code_value_name" options="fnd1910_coding_rule_reset_frequency_ds" required="true" returnField="reset_frequence" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd1910_fnd_coding_rule_details_ds" autoQuery="true" model="fnd.FND1910.fnd_coding_rule_details" queryUrl="${/request/@context_path}/autocrud/fnd.FND1910.fnd_coding_rule_details/query?ORDER_FIELD=sequence&amp;coding_rule_id=${/parameter/@coding_rule_id}" selectable="true" submitUrl="${/request/@context_path}/autocrud/fnd.FND1910.fnd_coding_rule_details/batch_update">
+                <a:fields>
+                    <a:field name="coding_rule_id" defaultValue="${/parameter/@coding_rule_id}"/>
+                    <a:field name="coding_rule_detail_id"/>
+                    <!-- <a:field name="coding_rule_object_id" defaultValue="${/parameter/@coding_rule_object_id}"/> -->
+                    <!-- <a:field name="coding_rule_id" defaultValue="${/parameter/@coding_rule_id}"/> -->
+                    <a:field name="sequence" required="true"/>
+                    <!-- <a:field name="segment_type"/> -->
+                    <!-- <a:field name="segment_value"/> -->
+                    <a:field name="segment_value" lovGridHeight="300" lovHeight="430" lovService="fnd.FND1910.fnd_coding_rule_companies?coding_rule_id=${/parameter/@coding_rule_id}" lovWidth="500" title="FND1910.SELECT_COMPANY">
+                        <a:mapping>
+                            <a:map from="company_code" to="segment_value"/>
+                        </a:mapping>
+                    </a:field>
+                    <!-- <a:field name="segment_value_display" lovGridHeight="300" lovHeight="430" lovService="fnd.FND1910.fnd_coding_rule_companies?coding_rule_id=${/parameter/@coding_rule_id}" lovWidth="500" title="选择公司代码">
+                    	<a:mapping>
+                    		<a:map from="company_code" to="segment_value_display"/>
+                    	</a:mapping>
+                    </a:field> -->
+                    <!-- <a:field name="company_code" lovGridHeight="300" lovHeight="430" lovService="fnd.FND1910.fnd_coding_rule_objects_company_lov?ORDER_FIELD=company_code" lovWidth="500" title="FND_CODING_RULE_OBJECTS.COMPANY_SELECT"> -->
+                    <!-- <a:field name="date_format"/> -->
+                    <a:field name="length" validator="fnd1910_lengthValidator"/>
+                    <a:field name="incremental"/>
+                    <a:field name="start_value"/>
+                    <a:field name="end_value"/>
+                    <a:field name="segment_type_display" displayField="code_value_name" options="fnd1910_segment_type_ds" returnField="segment_type" valueField="code_value"/>
+                    <a:field name="date_format_display" displayField="code_value_name" options="fnd1910_date_format_ds" returnField="date_format" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="fnd1090_codingRuleDetailsOnAdd"/>
+                    <a:event name="update" handler="fnd1090_codingRuleDetailsOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="fnd1912_grid" style="margin-left:20px;" type="add" width="100"/>
+            <a:gridButton bind="fnd1912_grid" type="save" width="100"/>
+            <!-- <a:gridButton bind="fnd1912_grid" type="delete" width="100"/> -->
+            <a:gridButton bind="fnd1912_grid" type="clear" width="100"/>
+            <!-- <a:gridButton bind="fnd1912_grid" type="delete" width="100"/> -->
+            <a:gridButton text="FND1910.CONFIRM" width="100"/>
+            <a:gridButton click="fnd1910_returnback" text="HAP_BACK" width="100"/>
+        </a:screenTopToolbar>
+        <a:hBox labelWidth="120">
+            <a:textField name="rule_object_code" bindTarget="fnd1910_fnd_coding_rules_query_ds" readOnly="true"/>
+            <a:textField name="rule_object_name" bindTarget="fnd1910_fnd_coding_rules_query_ds" readOnly="true"/>
+            <a:textField name="coding_rule_code" bindTarget="fnd1910_fnd_coding_rules_query_ds" readOnly="true"/>
+        </a:hBox>
+        <a:hBox labelWidth="120">
+            <a:textField name="description" bindTarget="fnd1910_fnd_coding_rules_query_ds" readOnly="true"/>
+            <a:textField name="note" bindTarget="fnd1910_fnd_coding_rules_query_ds" readOnly="true"/>
+            <a:comboBox name="reset_frequence_display" bindTarget="fnd1910_fnd_coding_rules_query_ds" prompt="FND_CODING_RULES.RESET_FREQUENCE" readOnly="true"/>
+        </a:hBox>
+        <a:grid id="fnd1912_grid" bindTarget="fnd1910_fnd_coding_rule_details_ds" height="400" navBar="true" width="860">
+            <a:columns>
+                <a:column name="sequence" width="100"/>
+                <a:column name="segment_type_display" editor="fnd1910_comboBox_grid_cmb" prompt="FND_CODING_RULE_DETAILS.SEGMENT_TYPE"/>
+                <a:column name="segment_value" editorFunction="fnd1910_segmentValueEdit"/>
+                <a:column name="date_format_display" editorFunction="fnd1910_dateFormatEdit" prompt="FND_CODING_RULE_DETAILS.DATE_FORMAT"/>
+                <a:column name="length" align="right" editorFunction="fnd1910_edit" width="100"/>
+                <a:column name="incremental" align="right" editorFunction="fnd1910_edit" width="100"/>
+                <a:column name="start_value" align="right" editorFunction="fnd1910_edit" width="100"/>
+                <a:column name="end_value" align="right" editorFunction="fnd1910_edit" width="100"/>
+            </a:columns>
+            <a:editors>
+                <a:numberField id="fnd1910_sequence_grid_num" allowDecimals="false" allowNegative="false"/>
+                <a:comboBox id="fnd1910_comboBox_grid_cmb"/>
+                <a:textField id="fnd1910_segment_value_grid_tf" typeCase="upper"/>
+                <a:lov id="fnd1910_segment_value_display_lov"/>
+                <a:numberField id="fnd1910_length_grid_num" allowDecimals="false" allowNegative="false"/>
+                <a:numberField id="fnd1910_incremental_grid_num" allowDecimals="false" allowNegative="false"/>
+                <a:numberField id="fnd1910_start_value_grid_num" allowDecimals="false" allowNegative="false"/>
+                <a:numberField id="fnd1910_end_value_grid_num" allowDecimals="false" allowNegative="false"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-6-1 下午4:18:06  
+    $Revision: 1.0  
+    $Purpose: 系统组织机构，岗位定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="fnd1010_position_disable_link" model="fnd.FND1010.hr_position" modelaction="delete"/>
+        <a:link id="fnd1010_position_enable_link" model="fnd.FND1010.hr_position" modelaction="execute"/>
+        <script><![CDATA[
+            function fnd1010_backPosition() {
+                $('fnd1010_hr_position_define_link_window').close();
+            }
+            
+            function fnd1010_positionResultDsSubmitSuccess(ds) {
+                ds.query();
+            }
+            
+            function fnd1010_positionResultDsIndexChage(ds, record) {
+                if (record.get('enabled_flag') == 'Y') {
+                    $('fnd1010_positionModifyEdit_btn').enable();
+                    $('fnd1010_positionModifySave_btn').disable();
+                } else {
+                    $('fnd1010_positionModifyEdit_btn').disable();
+                    $('fnd1010_positionModifySave_btn').disable();
+                }
+                $('fnd1010_position_modify_ds').setQueryParameter('position_id', record.get('position_id'));
+                $('fnd1010_position_modify_ds').query();
+            }
+            
+            function fnd1010_createRootPosition() {
+                var ds = $('fnd1010_position_result_ds');
+                var records = ds.getAll();
+                var count = 0;
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].get('enabled_flag') == 'Y') {
+                        count++;
+                    }
+                }
+                if (count == 0) {
+                    var new_record = ds.create({
+                        'position_id': '',
+                        'position_code': '',
+                        'position_desc': '',
+                        'company_id': '${/parameter/@company_id}',
+                        'unit_id': '${/parameter/@unit_id}',
+                        'parent_position_id': '',
+                        'sequence': '',
+                        'primary_position_flag':'Y',
+                        'enabled_flag':'Y'
+                    });
+            
+                } else {
+                    Aurora.showMessage('${l:PROMPT}', '${l:HR_POSITION.ONLY_ONE_PRIMARY_POSITION_IN_UNIT}!');
+                }
+            }
+            
+            function fnd1010_savePosition() {
+                var ds = $('fnd1010_position_result_ds');
+                var records = ds.getAll();
+                var count = 0;
+                for (var i = 0;i < records.length;i++) {
+                    if (Aurora.isEmpty(records[i].get('parent_position_id')) && records[i].get('enabled_flag') == 'Y') {
+                        count++;
+                    }
+                }
+                if (count == 1) {
+                    ds.submit();
+                } else {
+                    Aurora.showMessage('${l:PROMPT}', '${l:HR_POSITION.ONLY_ONE_PRIMARY_POSITION_IN_UNIT}!');
+                }
+            }
+            
+            function fnd1010_positionResultDsGridEditorFunction(record, name) {
+                if (name == 'position_code') {
+                    if (record.isNew) {
+                        return 'fnd1010_position_result_ds_grid_textField2';
+                    } else {
+                        return '';
+                    }
+                }
+                if (name == 'position_desc') {
+                    if (record.isNew) {
+                        return 'fnd1010_position_result_ds_grid_textField';
+                    } else {
+                        return '';
+                    }
+                }
+                if (name == 'sequence') {
+                    if (record.isNew) {
+                        return 'fnd1010_position_result_ds_grid_numberField';
+                    } else {
+                        return '';
+                    }
+                }
+            }
+            
+            function fnd1010_positionResultDsGridRenderer(value, record, name) {
+                var position_id = record.get('position_id');
+                var enabled_flag = record.get('enabled_flag');
+                var parent_position_id = record.get('parent_position_id');
+                var records = $('fnd1010_position_result_ds').getAll();
+                if (name == 'addChird') {
+                    if (!Aurora.isEmpty(position_id) && enabled_flag == 'Y') {
+                        return '<a href="javascript:fnd1010_positionResultDsGridRendererAddChird(' + position_id + ')">${l:PROMPT.NEW}</a>';
+                    } else if (enabled_flag == 'N') {
+                        return '<div style="background:red">${l:PROMPT.DISABLED_FLAG}</div>';
+                    }
+                }
+                if (name == 'removePosition') {
+                    if (!Aurora.isEmpty(position_id) && enabled_flag == 'Y') {
+                        return '<a href="javascript:fnd1010_positionResultDsGridRendererDisablePosition(' + position_id + ')">${l:PROMPT.DISABLED_FLAG}</a>';
+                    } else if (record.isNew) {
+                        return '<a href="javascript:fnd1010_positionResultDsGridRendererClearLine()">${l:PROMPT.CLEAR}</a>';
+                    } else if(enabled_flag == 'N'){
+                        if(Aurora.isEmpty(parent_position_id)){ //根级岗位
+	                        return '<a href="javascript:fnd1010_positionResultDsGridRendererEnablePosition(' + position_id + ')">${l:PROMPT.ENABLED_FLAG}</a>';
+                        }else{
+                            for (var i = 0;i < records.length;i++) { //判断上级岗位是否启用，启用则显示，禁用则不显示
+                                if (parent_position_id == records[i].get('position_id') && records[i].get('enabled_flag') == 'Y') {
+                                    return '<a href="javascript:fnd1010_positionResultDsGridRendererEnablePosition(' + position_id + ')">${l:PROMPT.ENABLED_FLAG}</a>';
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+            }
+            
+            function fnd1010_positionResultDsGridRendererAddChird(position_id) {
+                var ds = $('fnd1010_position_result_ds');
+                var new_record = ds.create({
+                    'position_id': '',
+                    'position_code': '',
+                    'position_desc': '',
+                    'company_id': '${/parameter/@company_id}',
+                    'unit_id': '${/parameter/@unit_id}',
+                    'parent_position_id': position_id,
+                    'sequence': '',
+                    'enabled_flag':'Y'
+                });
+            }
+            
+            function fnd1010_positionResultDsGridRendererDisablePosition(position_id) {
+                //提交AjAX请求
+                Aurora.showConfirm('${l:PROMPT}', '${l:HR_POSITION.SURE_TO_DISABLE_POSITION}', function() {
+                    Aurora.request({
+                        url: $('fnd1010_position_disable_link').getUrl(),
+                        para: {
+                            position_id: position_id
+                        },
+                        success: function() {
+                            $('fnd1010_position_result_ds').query();
+                        },
+                        failure: function() {},
+                        error: function() {},
+                        scope: this
+                    });
+                },null,360,120);
+            }
+            
+            function fnd1010_positionResultDsGridRendererEnablePosition(position_id) {
+                //提交AjAX请求
+                Aurora.showConfirm('${l:PROMPT}', '${l:HR_POSITION.SURE_TO_ENABLE_POSITION}', function() {
+                    Aurora.request({
+                        url: $('fnd1010_position_enable_link').getUrl(),
+                        para: {
+                            position_id: position_id
+                        },
+                        success: function() {
+                            $('fnd1010_position_result_ds').query();
+                        },
+                        failure: function() {},
+                        error: function() {},
+                        scope: this
+                    });
+                },null,360,120);
+            }
+            
+            function fnd1010_positionResultDsGridRendererClearLine() {
+                var ds = $('fnd1010_position_result_ds');
+                var record = ds.getCurrentRecord();
+                ds.remove(record);
+            }
+            
+            function fnd1010_positionModifyEdit() {
+                $('fnd1010_positionModifySave_btn').enable();
+                $('fnd1010_positionModifyEdit_btn').disable();
+                var record = $('fnd1010_position_modify_ds').getCurrentRecord();
+                record.getField('position_desc').setReadOnly(false);
+                record.getField('sequence').setReadOnly(false);
+                record.getField('parent_position_display').setReadOnly(false);
+                record.getField('parent_position_display').setLovPara('current_position_id', record.get('position_id'));
+                record.getField('parent_position_display').setLovPara('unit_id', '${/parameter/@unit_id}');
+                record.getField('parent_position_display').setLovPara('company_id', '${/parameter/@company_id}');
+            
+                record.getField('position_code').setRequired(true);
+                record.getField('position_desc').setRequired(true);
+            }
+            
+            function fnd1010_positionModifySave() {
+                if ($('fnd1010_position_modify_ds').validate()) {
+                    $('fnd1010_position_modify_ds').submit();
+                }
+            }
+            
+            function fnd1010_positionModifyDsSubmitSuccess(ds) {
+                $('fnd1010_positionModifyEdit_btn').enable();
+                $('fnd1010_positionModifySave_btn').disable();
+                var record = $('fnd1010_position_modify_ds').getCurrentRecord();
+                record.getField('position_desc').setReadOnly(true);
+                record.getField('sequence').setReadOnly(true);
+                record.getField('parent_position_display').setReadOnly(true);
+                record.getField('primary_position_flag').setReadOnly(true);
+            
+                record.getField('position_code').setRequired(false);
+                record.getField('position_desc').setRequired(false);
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd1010_position_query_ds" autoCreate="true"/>
+            <a:dataSet id="fnd1010_position_result_ds" autoQuery="true" fetchAll="true" model="fnd.FND1010.hr_position" queryDataSet="fnd1010_position_query_ds" queryUrl="${/request/@context_path}/autocrud/fnd.FND1010.hr_position/query?unit_id=${/parameter/@unit_id}&amp;company_id=${/parameter/@company_id}">
+                <a:fields>
+                    <a:field name="position_code" required="true" requiredMessage="${l:HR_POSITION.POSITION_CODE_NOT_NULL}"/>
+                    <a:field name="position_desc" required="true" requiredMessage="${l:HR_POSITION.POSITION_DESC_NOT_NULL}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="fnd1010_positionResultDsSubmitSuccess"/>
+                    <a:event name="indexchange" handler="fnd1010_positionResultDsIndexChage"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd1010_position_modify_ds" model="fnd.FND1010.hr_position" queryUrl="${/request/@context_path}/autocrud/fnd.FND1010.hr_position/query?unit_id=${/parameter/@unit_id}&amp;company_id=${/parameter/@company_id}">
+                <a:fields>
+                    <a:field name="sequence" prompt="SORT_NUM" readOnly="true"/>
+                    <a:field name="position_code" readOnly="true"/>
+                    <a:field name="position_desc" readOnly="true"/>
+                    <a:field name="parent_position_display" lovHeight="500" lovService="fnd.FND1010.hr_parent_position_lov" lovWidth="700" readOnly="true" title="EXP_ORG_UNIT.UNIT">
+                        <a:mapping>
+                            <a:map from="position_id" to="parent_position_id"/>
+                            <a:map from="position_code" to="parent_position_code"/>
+                            <a:map from="position_desc" to="parent_position_desc"/>
+                            <a:map from="position_code_desc" to="parent_position_display"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="primary_position_flag" checkedValue="Y" readOnly="true" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="fnd1010_positionModifyDsSubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="fnd1010_createRootPosition" style="margin-left:20px;" text="HR_POSITION.CREATE_POSITION" width="100"/>
+            <a:toolbarButton click="fnd1010_savePosition" style="margin-left:20px;" text="HAP_SAVE" width="100"/>
+            <a:toolbarButton click="fnd1010_backPosition" style="margin-left:20px;" text="HAP_BACK" width="100"/>
+        </a:screenTopToolbar>
+        <a:hBox>
+            <a:label name="unit_code" bindTarget="fnd1010_unit_result_ds" prompt="EXP_ORG_UNIT.UNIT_CODE" width="200"/>
+            <a:label name="unit_desc" bindTarget="fnd1010_unit_result_ds" prompt="EXP_ORG_UNIT.ORG_UNIT_DESCRIPTION" width="300"/>
+        </a:hBox>
+        <a:hBox>
+            <a:treeGrid id="fnd1010_position_result_ds_grid" bindTarget="fnd1010_position_result_ds" expandField="expand_flag" height="650" idField="position_id" navBar="false" parentField="parent_position_id" width="700">
+                <a:columns>
+                    <a:column name="position_code" align="center" editorFunction="fnd1010_positionResultDsGridEditorFunction" prompt="EXP_ORG_POSITION.POSITION_CODE" width="240"/>
+                    <a:column name="sequence" align="center" editorFunction="fnd1010_positionResultDsGridEditorFunction" prompt="SORT_NUM" width="50"/>
+                    <a:column name="position_desc" align="left" editorFunction="fnd1010_positionResultDsGridEditorFunction" prompt="EXP_ORG_POSITION.POSITION_NAME" width="300"/>
+                    <a:column name="operation" prompt="HAP_OPERATION">
+                        <a:column name="addChird" align="center" renderer="fnd1010_positionResultDsGridRenderer" width="50"/>
+                        <a:column name="removePosition" align="center" renderer="fnd1010_positionResultDsGridRenderer" width="40"/>
+                    </a:column>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd1010_position_result_ds_grid_textField"/>
+                    <a:textField id="fnd1010_position_result_ds_grid_textField2" typeCase="upper"/>
+                    <a:numberField id="fnd1010_position_result_ds_grid_numberField" allowDecimals="false" allowFormat="false" allowNegative="false" decimalPrecision="0"/>
+                </a:editors>
+            </a:treeGrid>
+            <a:form column="1" height="300" title="EXP_ORG_POSITION.POSITIONS" width="250">
+                <a:hBox>
+                    <a:toolbarButton id="fnd1010_positionModifyEdit_btn" click="fnd1010_positionModifyEdit" disabled="true" style="margin-left:10px;" text="HAP_EDIT" width="80"/>
+                    <a:toolbarButton id="fnd1010_positionModifySave_btn" click="fnd1010_positionModifySave" disabled="true" style="margin-left:20px;" text="HAP_SAVE" width="80"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:textField name="position_code" bindTarget="fnd1010_position_modify_ds" prompt="EXP_ORG_POSITION.POSITION_CODE"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:numberField name="sequence" allowDecimals="false" allowNegative="false" bindTarget="fnd1010_position_modify_ds" prompt="SORT_NUM"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:textField name="position_desc" bindTarget="fnd1010_position_modify_ds" prompt="EXP_ORG_POSITION.POSITION_NAME"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:lov name="parent_position_display" bindTarget="fnd1010_position_modify_ds" prompt="EXP_ORG_POSITION.PARENT_POSITION"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:checkBox name="primary_position_flag" bindTarget="fnd1010_position_modify_ds" prompt="FND_COMPANIES.MAIN_POSITION"/>
+                </a:hBox>
+            </a:form>
+        </a:hBox>
+    </a:view>
+</a:screen>

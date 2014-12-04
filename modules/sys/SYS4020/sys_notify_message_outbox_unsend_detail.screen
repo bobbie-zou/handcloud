@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: PineYang3324  
+    $Date: 2011-09-03 下午12:06:00  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+            function sys4020_sysNotifyMessageOutBoxUnsendDetailReturn() {
+                $('sys4020_sys_notify_message_outbox_unsend_detail_window').close();
+                $('sys4020_sys_notify_message_outbox_result_ds').query();
+            }
+            
+            function sys4020_sysNotifyMessageOutboxUnsendUpload() {	
+                var msg_ds = $('sys4020_sys_notify_message_outbox_unsend_detail_ds');
+                var msg_record = msg_ds.getCurrentRecord();
+                var url = "${/request/@context_path}/uploadFile.screen?table_name=SYS_NOTIFY_MESSAGE&header_id=" + msg_record.get('message_id');
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                    id: 'sys4020_sys_notify_outbox_unsend_upload_file_window',
+                    width: 400,
+                    height: 200
+                });
+            }
+            
+            function sys4020_sysNotifyMessageOutboxUnsendSend() {
+                var msg_ds = $('sys4020_sys_notify_message_outbox_unsend_detail_ds');
+                var user_ds = $('sys4020_sys_notify_message_outbox_unsend_users_ds');
+                var msg_record = msg_ds.getCurrentRecord();
+                var user_records = user_ds.getAll();
+                
+                if (user_records.length==0){
+                	Aurora.showMessage('${l:PROMPT}','${l:SYS_NOTIFY_OUTBOX_UNSEND_DETAIL.ADD_RECIPIENTS}！');
+                	return;
+                }
+            
+                Aurora.Masker.mask($('sys4020_sys_notify_message_outbox_unsend_detail_window').wrap, '${l:LOADING}');
+            
+                var data = {
+                    message_id: msg_record.get('message_id'),
+                    message_title: msg_record.get('message_title'),
+                    message_content: msg_record.get('message_content')
+                };
+            
+                var users = [];
+                for (var i = 0;i < user_records.length;i++) {
+                    users.push(user_records[i].data);
+                }
+                data['users'] = users;
+            
+            
+                Aurora.request({
+                    url: 'sys_notify_message_outbox_unsend_save.svc',
+                    para: data,
+                    success: function() {
+                        Aurora.request({
+                            url: '${/request/@context_path}/autocrud/sys.SYS4030.sys_notify_message_send_msg_rec/insert',
+                            para: {
+                                message_id: msg_record.get('message_id')
+                            },
+                            success: function() {
+                                $('sys4020_send_btn').disable();
+                                $('sys4020_save_btn').disable();
+                                $('sys4020_upload_btn').disable();
+            
+                                Aurora.showMessage('${l:PROMPT}', '${l:SYS_NOTIFY_OUTBOX_UNSEND_DETAIL.SENT_SUCCESS}！');
+                            },
+                            scope: this
+                        });
+                    },
+                    scope: this
+                });
+            
+                Aurora.Masker.unmask($('sys4020_sys_notify_message_outbox_unsend_detail_window').wrap);
+            }
+            
+            function sys4020_sysNotifyMessageOutboxUnsendSave() {
+                var msg_ds = $('sys4020_sys_notify_message_outbox_unsend_detail_ds');
+                var user_ds = $('sys4020_sys_notify_message_outbox_unsend_users_ds');
+                var msg_record = msg_ds.getCurrentRecord();
+                var user_records = user_ds.getAll();
+            
+                Aurora.Masker.mask($('sys4020_sys_notify_message_outbox_unsend_detail_window').wrap, '${l:LOADING}');
+            
+                var data = {
+                    message_id: msg_record.get('message_id'),
+                    message_title: msg_record.get('message_title'),
+                    message_content: msg_record.get('message_content')
+                };
+            
+                var users = [];
+                for (var i = 0;i < user_records.length;i++) {
+                    users.push(user_records[i].data);
+                }
+                data['users'] = users;
+            
+            
+                Aurora.request({
+                    url: 'sys_notify_message_outbox_unsend_save.svc',
+                    para: data,
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '${l:SYS_NOTIFY_OUTBOX_UNSEND_DETAIL.SAVE_DRAFT}！');
+                    },
+                    scope: this
+                });
+            
+                Aurora.Masker.unmask($('sys4020_sys_notify_message_outbox_unsend_detail_window').wrap);
+            }
+            
+            function sys4020_deleteUser(id) {
+                var ds = $('sys4020_sys_notify_message_outbox_unsend_users_ds');
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].get('recipient_user_id') == id) {
+                        ds.remove(records[i]);
+                    }
+                }
+            }
+            
+            function sys4020_setUserShow() {
+                var user_show_record = $('sys4020_sys_notify_message_outbox_unsend_user_show_ds').getCurrentRecord();
+                var users_records = $('sys4020_sys_notify_message_outbox_unsend_users_ds').getAll();
+                var user_show = '';
+                for (var i = 0;i < users_records.length;i++) {
+                    user_show = user_show + users_records[i].get('recipient_name') + '<a href="javascript:sys4020_deleteUser(' + users_records[i].get('recipient_user_id') + ')">删除</a>' + '&nbsp;&nbsp;&nbsp;&nbsp;';
+                }
+                user_show_record.set('user_show', user_show);
+            }
+            
+            function sys4020_outboxUnsendOnLoad(ds) {
+                debugger;
+                sys4020_setUserShow();
+            }
+            
+            function sys4020_outboxUnsendOnAdd(ds, record, index) {
+                sys4020_setUserShow();
+            }
+            
+            function outboxUnsendOnRemove(ds, record, index) {
+                sys4020_setUserShow();
+            }
+            
+            function sys4020_sysNotifyMessageOutboxUnsendAddUsers() {
+                new Aurora.Window({
+                    url: 'sys_notify_message_outbox_unsend_users.screen',
+                    title: '${l:HAP_ADDUSER}',
+                    id: 'sys4020_sys_notify_message_outbox_unsend_users_window',
+                    width: 450,
+                    height: 500
+                });
+            }
+            
+            function sys4020_outboxUnsendOnBeforeCreate(ds, obj) {
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].get('recipient_user_id') == obj.recipient_user_id) {
+                        //alert(obj.user_name);
+                        return false;
+                    }
+                }
+            }]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys4020_sys_notify_message_outbox_unsend_user_show_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="user_show"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys4020_sys_notify_message_outbox_unsend_users_ds" autoQuery="true" model="sys.SYS4020.sys_notify_message_outbox_unsend_rcpt" queryUrl="${/request/@context_path}/autocrud/sys.SYS4020.sys_notify_message_outbox_unsend_rcpt/query?message_id=${/parameter/@message_id}">
+                <a:events>
+                    <a:event name="load" handler="sys4020_outboxUnsendOnLoad"/>
+                    <a:event name="beforecreate" handler="sys4020_outboxUnsendOnBeforeCreate"/>
+                    <a:event name="add" handler="sys4020_outboxUnsendOnAdd"/>
+                    <a:event name="remove" handler="sys4020_outboxUnsendOnRemove"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys4020_sys_notify_message_outbox_unsend_detail_ds" autoQuery="true" model="sys.SYS4020.sys_notify_message_outbox_unsend_detail" queryUrl="${/request/@context_path}/autocrud/sys.SYS4020.sys_notify_message_outbox_unsend_detail/query?message_id=${/parameter/@message_id}"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet column="1" marginWidth="65" title="SYS_NOTIFY_MESSAGE_OUTBOX_UNSEND_DETAIL" width="1000">
+                <a:textField name="message_title" bindTarget="sys4020_sys_notify_message_outbox_unsend_detail_ds" prompt="PUR_RFX_HEADERS_HIST.TITLE" width="800"/>
+                <a:label name="user_show" bindTarget="sys4020_sys_notify_message_outbox_unsend_user_show_ds" prompt="SYS_NOTIFY_MESSAGE_REC.RECIPIENT_USER_ID" width="800"/>
+                <a:button click="sys4020_sysNotifyMessageOutboxUnsendAddUsers" text="HAP_ADDUSER"/>
+                <a:textArea name="message_content" bindTarget="sys4020_sys_notify_message_outbox_unsend_detail_ds" height="400" prompt="FND_ATM_ATTACHMENT.CONTENT" width="800"/>
+            </a:fieldSet>
+            <a:hBox>
+                <a:button id="sys4020_upload_btn" click="sys4020_sysNotifyMessageOutboxUnsendUpload" text="HAP_UPLOAD_TITLE"/>
+                <a:button id="sys4020_send_btn" click="sys4020_sysNotifyMessageOutboxUnsendSend" text="FND_MESSAGE.SEND"/>
+                <a:button id="sys4020_save_btn" click="sys4020_sysNotifyMessageOutboxUnsendSave" text="SYS_NOTIFY_MESSAGE_OUTBOX_UNSEND_SAVE"/>
+                <a:button click="sys4020_sysNotifyMessageOutBoxUnsendDetailReturn" text="PROMPT.RETURN"/>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

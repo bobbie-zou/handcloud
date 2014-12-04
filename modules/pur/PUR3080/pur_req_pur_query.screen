@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: likun  
+    $Date: 2013-1-17 下午07:05:19  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="pur_3080_req_header_link" url="${/request/@context_path}/modules/pur/PUR3080/pur_req_pur_header.screen"/>
+        <a:link id="pur_3080_req_header_create_link" url="${/request/@context_path}/modules/pur/PUR3080/pur_req_pur_header.svc"/>
+        <script><![CDATA[
+
+            function pur_req_3080_query() {
+            
+                $('pur_3080_req_selected_list_ds').removeAll();
+                $('pur_3080_req_result_ds').query();
+            
+            
+            }
+            
+            
+            
+            // 勾选时所做的操作
+            
+            function pur_3080_req_result_select(ds, record) {
+                var list_ds = $('pur_3080_req_selected_list_ds');
+                var pur_requisition_dists_id = record.get('pur_requisition_dists_id');
+                var result_record = list_ds.find('pur_requisition_dists_id', pur_requisition_dists_id);
+                if (Aurora.isEmpty(result_record)) {
+                    $('pur_3080_req_selected_list_ds').create();
+                    var list_record = $('pur_3080_req_selected_list_ds').getCurrentRecord();
+                    list_record.set('pur_requisition_dists_id', pur_requisition_dists_id);
+                }
+            
+            
+            }
+            // 勾选去掉时所做的操作
+            
+            function inv_3080_req_result_unselect(ds, record) {
+                var list_ds = $('pur_3080_req_selected_list_ds');
+                var location_id = record.get('pur_requisition_dists_id');
+                var result_record = list_ds.find('pur_requisition_dists_id', location_id);
+                if (!Aurora.isEmpty(result_record)) {
+                    list_ds.remove(result_record);
+                }
+            }
+            
+            // 页面执行重新查询时所做的操作
+            
+            function pur_3080_req_grid_render(grid) {
+                var ds = $('pur_3080_req_result_ds');
+                var list_ds = $('pur_3080_req_selected_list_ds');
+                var records = list_ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var pur_requisition_dists_id = records[i].get('pur_requisition_dists_id');
+                    var result_record = ds.find('pur_requisition_dists_id', pur_requisition_dists_id);
+                    if (!Aurora.isEmpty(result_record)) {
+                        ds.select(result_record);
+                    }
+                }
+            }
+            
+            
+            // 申请单重置
+            
+            function pur_3080_req_query_reset() {
+                $('pur_3080_req_selected_list_ds').removeAll();
+                $('pur_3080_req_result_ds').query();
+            
+            }
+            
+            
+            function pur_3080_req_header_create() {
+                var list_ds = $('pur_3080_req_selected_list_ds');
+            
+                var datas = [];
+                var records = list_ds.getAll();
+                if (records.length == 0) {
+                    Aurora.showMessage('提示', '请至少选择一条数据!');
+                    return;
+                }
+                for (var i = 0;i < records.length;i++) {
+                    datas.push(records[i].data);
+                }
+                Aurora.request({
+                    url: $('pur_3080_req_header_create_link').getUrl(),
+                    para: datas,
+                    success: function(res) {
+                        new Aurora.Window({
+                            id: 'pur_3080__req_header_window',
+                            url: $('pur_3080_req_header_link').getUrl(),
+                            fullScreen: true
+                        });
+                    },
+                    scope: this
+                });
+            }
+            
+            
+            
+            //订单从和订单至校验
+            
+            function segment1Validator(record, name, value) {
+                if (name == 'pur_requisition_num_from' || name == 'pur_requisition_num_to') {
+                    var start_seg = record.get('pur_requisition_num_from');
+                    var end_seg = record.get('pur_requisition_num_to');
+            
+                    if ( !! end_seg) { //由于订单至非必填，只有在订单至填了才进行比较
+                        if (start_seg > end_seg) {
+                            return '采购申请从不能大于采购申请至'; //校验不通过
+                        }
+                    }
+                    return true;
+            
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="company_ds" fetchAll="true" loadData="true" model="public.fnd_companies_lov"/>
+            <a:dataSet id="data_source_ds">
+                <a:datas>
+                    <a:record name="ERP" code="ERP"/>
+                    <a:record name="SRM" code="SRM"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="pur_3080_req_selected_list_ds">
+                <a:fields>
+                    <a:field name="pur_requisition_dists_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur_3080_req_query_ds">
+                <a:fields>
+                    <a:field name="pur_requisition_num_from" validator="segment1Validator"/>
+                    <a:field name="pur_requisition_num_to" validator="segment1Validator"/>
+                    <a:field name="company_name" displayField="company_short_name" options="company_ds" returnField="company_id" valueField="company_id"/>
+                    <a:field name="vendor_name" autoComplete="true" autoCompleteField="vendor_code" lovGridHeight="320" lovHeight="480" lovService="public.pur_vendors_v_lov" lovWidth="500">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pur_requisition_typ_desc" autoComplete="true" autoCompleteField="pur_requisition_typ_desc" lovGridHeight="320" lovHeight="480" lovService="pur.public.pur_req_type" lovWidth="500">
+                        <a:mapping>
+                            <a:map from="requisition_type_id" to="pur_requisition_type_id"/>
+                            <a:map from="pur_requisition_typ_desc" to="pur_requisition_typ_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="created_user_name" autoComplete="true" autoCompleteField="created_user_name" lovGridHeight="320" lovHeight="480" lovService="public.sys_internal_user_lov" lovWidth="500">
+                        <a:mapping>
+                            <a:map from="user_id" to="created_user_id"/>
+                            <a:map from="user_desc" to="created_user_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_desc" autoComplete="true" autoCompleteField="item_code" lovGridHeight="320" lovHeight="480" lovService="public.inv_system_items_lov" lovWidth="500">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_desc" to="item_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_category_desc" autoComplete="true" autoCompleteField="item_category_code" lovGridHeight="320" lovHeight="480" lovService="public.inv_item_categories_lov" lovWidth="500">
+                        <a:mapping>
+                            <a:map from="item_category_id" to="item_category_id"/>
+                            <a:map from="item_category_code" to="item_category_code"/>
+                            <a:map from="item_category_desc" to="item_category_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="inv_org_desc" displayField="company_short_name" options="company_ds" returnField="company_id" valueField="inv_org_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur_3080_req_result_ds" autoCount="true" autoPageSize="true" autoQuery="false" model="pur.PUR3080.pur_requisition_query" queryDataSet="pur_3080_req_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="pur_requisition_dists_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="select" handler="pur_3080_req_result_select"/>
+                    <a:event name="unselect" handler="inv_3080_req_result_unselect"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="pur_3080_req_header_create" text="生成订单概览" width="100"/>
+            <a:gridButton bind="pur_3080_req_grid" className="item-rbtn-blue button-excel" type="excel" width="100"/>
+            <a:gridButton bind="pur_3080_req_grid" className="item-rbtn-blue button-clear" type="clear" width="100"/>
+            <a:toolbarButton click="pur_3080_req_query_reset" style="margin-left:10px;" text="重置" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="pur_3080_req_query_ds" resultTarget="pur_3080_req_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:textField name="pur_requisition_num_from" bindTarget="pur_3080_req_query_ds" prompt="采购申请号从">
+                    <a:events>
+                        <a:event name="enterdown" handler="pur_req_3080_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="pur_requisition_num_to" bindTarget="pur_3080_req_query_ds" prompt="采购申请号至">
+                    <a:events>
+                        <a:event name="enterdown" handler="pur_req_3080_query"/>
+                    </a:events>
+                </a:textField>
+                <a:comboBox name="company_name" bindTarget="pur_3080_req_query_ds" prompt="公司">
+                    <a:events>
+                        <a:event name="enterdown" handler="pur_req_3080_query"/>
+                    </a:events>
+                </a:comboBox>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox>
+                    <a:lov name="vendor_name" bindTarget="pur_3080_req_query_ds" prompt="供应商">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_req_3080_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:comboBox name="inv_org_desc" bindTarget="pur_3080_req_query_ds" prompt="发货组织">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_req_3080_query"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:lov name="pur_requisition_typ_desc" bindTarget="pur_3080_req_query_ds" prompt="申请单类型">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_req_3080_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="created_user_name" bindTarget="pur_3080_req_query_ds" prompt="创建人">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_req_3080_query"/>
+                        </a:events>
+                    </a:lov>
+                </a:hBox>
+                <a:hBox>
+                    <a:datePicker name="creation_date_from" bindTarget="pur_3080_req_query_ds" prompt="创建日期从">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_req_3080_query"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="creation_date_to" bindTarget="pur_3080_req_query_ds" prompt="创建日期至">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_req_3080_query"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="need_by_date_from" bindTarget="pur_3080_req_query_ds" prompt="需求日期从">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_req_3080_query"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="need_by_date_to" bindTarget="pur_3080_req_query_ds" prompt="需求日期自">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_req_3080_query"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:hBox>
+                <a:hBox>
+                    <a:lov name="item_desc" bindTarget="pur_3080_req_query_ds" prompt="物料">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_req_3080_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="item_category_desc" bindTarget="pur_3080_req_query_ds" prompt="物料分类">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_req_3080_query"/>
+                        </a:events>
+                    </a:lov>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="pur_3080_req_grid" bindTarget="pur_3080_req_result_ds" height="350" marginHeight="130" marginWidth="40" navBar="true" width="1209">
+            <a:columns>
+                <a:column name="pur_requisition_num" align="center" lock="true" prompt="采购申请单号" sortable="true" width="100"/>
+                <a:column name="line_number" align="left" lock="true" prompt="行号" width="80"/>
+                <a:column name="pur_requisition_type_desc" align="left" lock="true" prompt="申请单类型" width="80"/>
+                <a:column name="company_full_name" align="left" lock="true" prompt="公司" sortable="true" width="100"/>
+                <a:column name="vendor_code" prompt="供应商编码" sortable="true" width="80"/>
+                <a:column name="vendor_full_name" prompt="供应商名称" sortable="true" width="80"/>
+                <a:column name="item_code" prompt="物料编码" sortable="true" width="80"/>
+                <a:column name="item_desc" prompt="物料描述" sortable="true" width="80"/>
+                <a:column name="item_category_code" prompt="物料分类代码" sortable="true" width="80"/>
+                <a:column name="item_category_desc" prompt="物料分类描述" sortable="true" width="80"/>
+                <a:column name="primary_quantity" align="right" prompt="需求数量" sortable="true" width="80"/>
+                <a:column name="primary_uom" prompt="单位" sortable="true" width="80"/>
+                <a:column name="inv_org_desc" prompt="收货组织" sortable="true" width="80"/>
+                <a:column name="need_by_date_desc" prompt="需求日期" sortable="true" width="80"/>
+                <a:column name="price" align="right" prompt="单价" sortable="true" width="80"/>
+                <a:column name="currency_code" prompt="币种" sortable="true" width="80"/>
+                <a:column name="quotation_tax_flag_desc" prompt="是否含税" sortable="true" width="80"/>
+                <a:column name="tax_rate" align="right" prompt="税率" sortable="true" width="80"/>
+                <a:column name="net_amount" align="right" prompt="税前总额" sortable="true" width="80"/>
+                <a:column name="tax_amount" align="right" prompt="税额" sortable="true" width="80"/>
+                <a:column name="sum_amount" align="right" prompt="总额" sortable="true" width="80"/>
+                <a:column name="functional_amount" align="right" prompt="本币总额" sortable="true" width="80"/>
+                <a:column name="exchange_rate" align="right" prompt="汇率" sortable="true" width="80"/>
+                <a:column name="create_user" prompt="创建人" sortable="true" width="80"/>
+                <a:column name="creation_date_desc" prompt="创建日期" sortable="true" width="80"/>
+                <a:column name="note" prompt="备注" sortable="true" width="80"/>
+            </a:columns>
+            <a:events>
+                <a:event name="render" handler="pur_3080_req_grid_render"/>
+            </a:events>
+        </a:grid>
+        <script><![CDATA[
+        	
+        ]]></script>
+    </a:view>
+</a:screen>

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: huyijun  
+    $Date: 2013-6-18 上午09:33:51  
+    $Revision: 1.0  
+    $Purpose: 供应商分类选择
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <script><![CDATA[
+        
+            //记录首位置
+            var local_index = 0;
+            
+            //数组记录查询到的结果在dataset中的row
+            var row_list = [];
+            
+            //是否初始化定位数组
+            var local_flag = false;
+            
+            //初始化定位数组
+            function initRowList(para) {
+                //获取dataset数据
+                var records = $('pur2010_pur_vendor_category_tree_ds').getAll();
+                //对dataset进行遍历
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    //判断是否包含当前查询字符，且当前index不等于全局变量local_index
+                    if (record.get('vendor_category_code').indexOf(para) != -1 || record.get('vendor_category_name').indexOf(para) != -1) {
+                        //记录当前指针
+                        local_index = $('pur2010_pur_vendor_category_tree_ds').indexOf(record) + 1;
+                        //定位行
+                        row_list.push(local_index);
+                    }
+                }
+                local_flag = true;
+            }
+            
+            //查询dataset更新事件
+            function pur2010_vendorCategoryUpdateQueryHandler(ds, record, name, value, oldvalue) {
+                $('pur2010_pur_vendor_category_tree_query_ds').getCurrentRecord().dirty = false;
+                if (name == 'category_code_name') {
+                    //查询条件改变，重置全局定位变量
+                    local_index = 0;
+                    row_list = [];
+                    local_flag = false;
+                }
+            }
+            
+            //采购品类tree查询按钮执行方法
+            function pur2010_vendorCategoryTreeQuery() {
+                //获取查询字符串
+                var para = $('pur2010_pur_vendor_category_tree_query_ds').getCurrentRecord().get('category_code_name');
+                if (para != undefined && !Ext.isEmpty(para)) {
+                    //判断是否初始化定位数组
+                    if (!local_flag) {
+                        initRowList(para);
+                    }
+                    if (row_list.length > 0) {
+                        //定位至当前数组位置
+                        $('pur2010_pur_vendor_category_tree_ds').locate(row_list[local_index]);
+                        //数组当前指针+1
+                        if (local_index < row_list.length - 1) {
+                            local_index++;
+                        } else {
+                            //若当前指针超过数组长度，从0开始
+                            local_index = 0;
+                        }
+                    }
+                }
+            }
+            
+            //供应商分类tree关闭按钮执行方法
+            function pur2010_vendorCategoryTreeClose() {
+                $('pur2010_vendorCategoryLovWin').close();
+            }
+            
+            //检查是否已经添加到grid
+            function check_grid_by_purchase_category_id(grid_ds, vendor_category_id) {
+                var records = grid_ds.getAll();
+                //循环校验右边的DS，如果已经添加过了，则不会在进行添加动作
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].get('vendor_category_id') == vendor_category_id) {
+                        //不通过校验
+                        return false; 
+                    }
+                }
+            
+                //通过校验
+                return true;
+            }
+            
+            //采购品类tree新增按钮执行方法
+            function pur2010_vendorCategoryTreeAdd() {
+                //获取2个数据DATASET
+                var tree_ds = $('pur2010_pur_vendor_category_tree_ds');
+                var grid_ds = $('pur2010_pur_vendor_category_grid_ds');
+            	
+                var tree_records = tree_ds.getAll();
+                for (var i = 0;i < tree_records.length;i++) {
+                    var record = tree_records[i];
+                    //判断，只有被勾选且没有子节点的品类才会被添加到右边的数据源
+                    if (record.get('checked') == "Y" && record.get('extend_flag') == "N") {
+                        if (check_grid_by_purchase_category_id(grid_ds, record.get('vendor_category_id'))) {
+                            record.set('vendor_id', '${/parameter/@vendor_id}');
+                            grid_ds.add(record);
+                        }
+                    }
+                }
+            }
+            
+            //采购品类tree移除按钮执行方法
+            function pur2010_vendorCategoryTreeRemove() {
+                $('pur2010_pur_vendor_category_autogrid_grid').clear();
+            }
+                       
+           function pur2010_vendorCategoryTreeSave() {
+            	$('pur2010_pur_vendor_category_grid_ds').submit();
+           }
+           
+           function pur2010_vendorCategoryTmpSubmitHandler(){
+               Aurora.showMessage('${l:PROMPT}', '${l:EBS_SAVE_SUCCESS}');
+               return;
+           }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur2010_pur_vendor_category_tree_query_ds">
+                <a:events>
+                    <a:event name="update" handler="pur2010_vendorCategoryUpdateQueryHandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur2010_pur_vendor_category_tree_ds" fetchAll="true" loadData="true" model="pur.PUR1060.pur_vendor_category_tree_query"/>
+            <a:dataSet id="pur2010_pur_vendor_category_grid_ds" model="pur.PUR2010.pur_sys_vendor_category_insert" selectable="true">
+                <a:fields>
+                    <a:field name="vendor_category_id"/>
+                    <a:field name="vendor_id" defaultValue="${/parameter/@vendor_id}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="pur2010_vendorCategoryTmpSubmitHandler"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:hBox>
+                <a:vBox>
+                    <a:form row="1">
+                        <a:textField name="category_code_name" bindTarget="pur2010_pur_vendor_category_tree_query_ds" emptyText="PLEASE_ENTER_PURCHASE_CATEGORY_CODE_OR_NAME" width="270"/>
+                        <a:toolbarButton click="pur2010_vendorCategoryTreeQuery" style="margin-left:20px;" text="HAP_QUERY" width="100"/>
+                    </a:form>
+                    <a:treeGrid id="pur2010_pur_vendor_category_tree_grid" bindTarget="pur2010_pur_vendor_category_tree_ds" height="600" idField="vendor_category_id" parentField="parent_category_id" showCheckBox="true" width="425">
+                        <a:columns>
+                            <a:column name="vendor_category_code" width="280"/>
+                            <a:column name="vendor_category_name" width="144"/>
+                        </a:columns>
+                    </a:treeGrid>
+                </a:vBox>
+                <a:vBox height="650" width="50">
+                    <div style="vertical-align:middle">
+                        <a:toolbarButton click="pur2010_vendorCategoryTreeAdd" text="PROMPT.NEW" width="80"/>
+                        <br/>
+                        <a:toolbarButton click="pur2010_vendorCategoryTreeRemove" text="PROMPT.REMOVE" width="80"/>
+                    </div>
+                </a:vBox>
+                <a:vBox>
+                    <a:form row="1">
+                        <a:toolbarButton click="pur2010_vendorCategoryTreeSave" text="HAP_SAVE" width="100"/>
+                        <a:toolbarButton click="pur2010_vendorCategoryTreeClose" style="margin-left:10px;" text="HAP_CLOSE" width="100"/>
+                    </a:form>
+                    <a:grid id="pur2010_pur_vendor_category_autogrid_grid" bindTarget="pur2010_pur_vendor_category_grid_ds" height="600" width="420">
+                        <a:columns>
+                            <a:column name="vendor_category_code" prompt="PUR_VENDOR_CATEGORIES.VENDOR_CATEGORY_CODE" width="150"/>
+                            <a:column name="vendor_category_name" prompt="PUR_VENDOR_CATEGORIES.VENDOR_CATEGORY_NAME" width="235"/>
+                        </a:columns>
+                    </a:grid>
+                </a:vBox>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-6-7 下午1:54:47  
+    $Revision: 1.0  
+    $Purpose: 收件人选择页面 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="fnd7010_fnd_message_user_group_save_link" url="${/request/@context_path}/modules/fnd/FND7010/fnd_message_user_group_save.svc"/>
+        <script><![CDATA[
+            function fnd7010_backFndMessageTo() {
+                $('fnd7010_fnd_message_to_select_link_window').close();
+            }
+            
+            function fnd7010_fndMessageToCompanyUnitPositionTreeResultDsIndexChange(ds, record) {
+                var data_type = record.get('data_type');
+                var data_id = record.get('data_id');
+                var employee_ds = $('fnd7010_fnd_message_to_employee_list_ds');
+                if (data_type == 'COMPANY') {
+                    employee_ds.setQueryParameter('company_id', data_id);
+                    employee_ds.setQueryParameter('unit_id', null);
+                    employee_ds.setQueryParameter('position_id', null);
+                } else if (data_type == 'UNIT' || data_type == 'COMPANY_UNIT') {
+                    employee_ds.setQueryParameter('company_id', null);
+                    employee_ds.setQueryParameter('unit_id', data_id);
+                    employee_ds.setQueryParameter('position_id', null);
+                } else if (data_type == 'POSITION' || data_type == 'UNIT_POSITION') {
+                    employee_ds.setQueryParameter('company_id', null);
+                    employee_ds.setQueryParameter('unit_id', null);
+                    employee_ds.setQueryParameter('position_id', data_id);
+                }
+                employee_ds.query();
+            }
+            
+            /**************************************************************
+             * 树形数据查询开始
+             **************************************************************/
+            
+            /**************************************************************
+             * tree型数据查询说明：（静态全局参数）
+             * 	每组树形数据查询所需多个全局变量(多个tree多组变量，分别以_01,_02...表示)
+             *	参数1：显示位置（初始为0）
+             *	参数2：匹配结果数组
+             *	参数3：是否初始化匹配结果数组标识
+             **************************************************************/
+            var show_index_02 = 0; //显示位置
+            var row_list_02 = []; //匹配结果数组
+            var init_flag_02 = false; //初始化标识
+            /**************************************************************
+             * tree型数据查询说明：（动态全局参数）
+             * 	每组树形数据查询所需多个全局变量(多个tree多组变量，分别以_01,_02...表示)
+             *	参数1：treegrid绑定的DS对象
+             *	参数2：查询条件绑定的DS对象
+             *	参数3：treegrid对象
+             *	参数4：查询条件的参数名称
+             *	参数5：查询匹配的参数名称（可以有多个，用_1,_2表示）
+             **************************************************************/
+            var treegrid_ds_02 = 'fnd7010_fnd_message_to_friend_list_result_ds'; //treegrid绑定的DS
+            var query_ds_02 = 'fnd7010_fnd_message_to_friend_list_query_ds'; //查询条件绑定的DS
+            var treegrid_02 = 'fnd7010_fnd_message_to_friend_list_result_ds_grid'; //treegrid对象
+            var query_name_02 = 'friend_name'; //查询条件的参数名称
+            var indexof_02_1 = 'name'; //匹配参数1
+            var indexof_02_2 = 'nickname'; //匹配参数2
+            //初始全局变量
+            
+            function initGlobalPara_02() {
+                show_index_02 = 0;
+                row_list_02 = [];
+                init_flag_02 = false;
+            }
+            
+            //初始化定位数组
+            
+            function initRowList_02(para) {
+            
+                //获取树形结果数据
+                var records = $(treegrid_ds_02).getAll();
+            
+                //对数据进行遍历
+                for (var i = 0;i < records.length;i++) {
+            
+                    //判断是否包含当前查询字符，包含则将其位置放入匹配结果数组
+                    if ((!Aurora.isEmpty(records[i].get(indexof_02_1)) && records[i].get(indexof_02_1).indexOf(para) != -1) || (!Aurora.isEmpty(records[i].get(indexof_02_2)) && records[i].get(indexof_02_2).indexOf(para) != -1)) {
+                        row_list_02.push($(treegrid_ds_02).indexOf(records[i]));
+                    }
+                }
+            
+                //改变初始化标识
+                init_flag_02 = true;
+            }
+            
+            //采购品类tree查询按钮执行方法
+            
+            function fnd7010_fndMessageToFriendListQuery() {
+            
+                //获取查询条件字符串
+                var record = $(query_ds_02).getCurrentRecord();
+            
+                //判断查询条件的值是否为空，为空不做查询操作
+                if (!Ext.isEmpty(record.get(query_name_02))) {
+            
+                    //判断是否初始化定位数组
+                    if (!init_flag_02) {
+                        initRowList_02(record.get(query_name_02));
+                    }
+            
+                    //结果匹配数组有值时
+                    if (row_list_02.length > 0) {
+            
+                        //显示匹配数组里的位置
+                        $(treegrid_02).selectRow(row_list_02[show_index_02]);
+            
+                        //判断显示位置是否越界,没有则++，有责回到初始0
+                        if (show_index_02 < row_list_02.length - 1) {
+                            show_index_02++;
+                        } else {
+                            show_index_02 = 0;
+                        }
+                    }
+                }
+            }
+            
+            //查询dataset更新事件
+            
+            function fnd7010_fndMessageToFriendListQueryDsUpdate(ds, record, name, value, oldvalue) {
+                $(query_ds_02).getCurrentRecord().dirty = false;
+                if (name == query_name_02) {
+                    //查询条件改变，重置全局定位变量
+                    initGlobalPara_02();
+                }
+            }
+            /**************************************************************
+             * 树形数据查询结束
+             **************************************************************/
+            
+            function fnd7010_fndMessageToCheckUserExists(user_id) {
+                var select_records = $('fnd7010_fnd_message_to_user_selected_ds').getAll();
+                for (var i = 0;i < select_records.length;i++) {
+                    if (!Aurora.isEmpty(user_id) && select_records[i].get('user_id') == user_id) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            function fnd7010_fndMessageToFriendListResultDsGridDblClick(grid, record, row, name) {
+                var select_ds = $('fnd7010_fnd_message_to_user_selected_ds');
+                if (!Aurora.isEmpty(record.get('type')) && record.get('type') == 'USER') {
+                    if (fnd7010_fndMessageToCheckUserExists(record.get('friend_user_id'))) {
+                        select_ds.create({
+                            'user_id': record.get('friend_user_id'),
+                            'user_name': record.get('user_name'),
+                            'user_desc': record.get('name')
+                        });
+                    }
+                }
+            }
+            
+            function fnd7010_fndMessageEmployeeListDsGridDblClick(grid, record, row, name) {
+                var select_ds = $('fnd7010_fnd_message_to_user_selected_ds');
+                if (fnd7010_fndMessageToCheckUserExists(record.get('user_id'))) {
+                    select_ds.create({
+                        'user_id': record.get('user_id'),
+                        'user_name': record.get('user_name'),
+                        'user_desc': record.get('user_desc')
+                    });
+                }
+            }
+            
+            function fnd7010_fndMessageToUserAdd() {
+                var frd_result_ds = $('fnd7010_fnd_message_to_friend_list_result_ds');
+                var emp_result_ds = $('fnd7010_fnd_message_to_employee_list_ds');
+                var select_ds = $('fnd7010_fnd_message_to_user_selected_ds');
+                //好友列表
+                var frd_result_records = frd_result_ds.getAll();
+                for (var i = 0;i < frd_result_records.length;i++) {
+                    if (!Aurora.isEmpty(frd_result_records[i].get('type')) && frd_result_records[i].get('type') == 'USER' && frd_result_records[i].get('checked') == 'Y') {
+                        if (fnd7010_fndMessageToCheckUserExists(frd_result_records[i].get('friend_user_id'))) {
+                            select_ds.create({
+                                'user_id': frd_result_records[i].get('friend_user_id'),
+                                'user_name': frd_result_records[i].get('user_name'),
+                                'user_desc': frd_result_records[i].get('name')
+                            });
+                        }
+                    }
+                }
+                //组织架构
+                var emp_result_records = emp_result_ds.getSelected();
+                for (var j = 0;j < emp_result_records.length;j++) {
+                    if (fnd7010_fndMessageToCheckUserExists(emp_result_records[j].get('user_id'))) {
+                        select_ds.create({
+                            'user_id': emp_result_records[j].get('user_id'),
+                            'user_name': emp_result_records[j].get('user_name'),
+                            'user_desc': emp_result_records[j].get('user_desc')
+                        });
+                    }
+                }
+            }
+            
+            function fnd7010_fndMessageToUserRemove() {
+                $('fnd7010_fnd_message_to_user_selected_ds_grid').clear();
+            }
+            
+            function fnd7010_fndMessageToUserSelectedDsGridDblClick(grid, record, row, name) {
+                $('fnd7010_fnd_message_to_user_selected_ds').remove(record);
+            }
+            
+            function fnd7010_fndMessageToUserOK() {
+            
+                var select_records = $('fnd7010_fnd_message_to_user_selected_ds').getAll();
+                if (select_records.length == 0) {
+                    return false;
+                }
+            
+                for (var i = 0;i < select_records.length;i++) {
+                    var user_id = select_records[i].get('user_id');
+                    var user_desc = select_records[i].get('user_desc');
+                    var message_to;
+                    if (Aurora.isEmpty($('fnd_message_ds').getCurrentRecord().get('message_to'))) {
+                        message_to = '';
+                    } else {
+                        message_to = $('fnd_message_ds').getCurrentRecord().get('message_to') + '';
+                    }
+                    var message_to_name = $('fnd_message_ds').getCurrentRecord().get('message_to_name');
+                    if (Aurora.isEmpty(message_to)) {
+                        $('fnd_message_ds').getCurrentRecord().set('message_to', user_id);
+                        $('fnd_message_ds').getCurrentRecord().set('message_to_name', user_desc);
+                    } else {
+                        var message_to_array = [];
+                        if (message_to.indexOf(';') == -1) {
+                            message_to_array.push(message_to);
+                        } else {
+                            message_to_array = message_to.split(';');
+                        }
+                        var exists_flag = false;
+                        for (var j = 0;j < message_to_array.length;j++) {
+                            if (message_to_array[j] == user_id) {
+                                exists_flag = true;
+                                continue;
+                            }
+                        }
+                        if (!exists_flag) {
+                            $('fnd_message_ds').getCurrentRecord().set('message_to', message_to + ';' + user_id);
+                            $('fnd_message_ds').getCurrentRecord().set('message_to_name', message_to_name + ';' + user_desc);
+                        }
+                    }
+                }
+            
+                //关闭当前选人页面
+                fnd7010_backFndMessageTo();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd7010_fnd_message_to_user_selected_ds" selectable="true"/>
+            <a:dataSet id="fnd7010_fnd_message_to_friend_list_query_ds" autoCreate="true">
+                <a:events>
+                    <a:event name="update" handler="fnd7010_fndMessageToFriendListQueryDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd7010_fnd_message_to_friend_list_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="fnd.FND7010.fnd_message_friend_list">
+                <a:fields>
+                    <a:field name="name" prompt="组/好友名称"/>
+                    <a:field name="nickname" prompt="昵称"/>
+                    <a:field name="sequence_number" prompt="序号"/>
+                    <a:field name="note" prompt="备注"/>
+                    <a:field name="show_nickname_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd7010_fnd_message_to_company_unit_position_tree_query_ds"/>
+            <a:dataSet id="fnd7010_fnd_message_to_company_unit_position_tree_result_ds" autoQuery="true" fetchAll="true" model="public.hr_company_unit_position_tree" queryDataSet="fnd7010_fnd_message_to_company_unit_position_tree_query_ds">
+                <a:events>
+                    <a:event name="indexChange" handler="fnd7010_fndMessageToCompanyUnitPositionTreeResultDsIndexChange"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd7010_fnd_message_to_employee_list_ds" autoCount="true" autoPageSize="true" model="fnd.FND7010.fnd_message_employee_list" selectable="true"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:hBox padding="0">
+                <a:tabPanel height="600" width="550">
+                    <a:tabs>
+                        <a:tab prompt="好友列表" width="100">
+                            <a:hBox style="margin-top:10px;margin-left:10px;">
+                                <a:vBox padding="0">
+                                    <a:hBox>
+                                        <a:textField name="friend_name" bindTarget="fnd7010_fnd_message_to_friend_list_query_ds" emptyText="好友组名/好友名称/昵称" height="30" style="margin-top:10px;margin-left:5px;" width="410"/>
+                                        <a:button click="fnd7010_fndMessageToFriendListQuery" style="margin-top:10px;margin-left:5px;" text="查询" width="80"/>
+                                    </a:hBox>
+                                    <a:hBox padding="0">
+                                        <a:treeGrid id="fnd7010_fnd_message_to_friend_list_result_ds_grid" bindTarget="fnd7010_fnd_message_to_friend_list_result_ds" expandField="expanded" height="492" idField="id" navBar="false" parentField="parent_id" sequenceField="sequence_number" showCheckBox="true" style="margin-top:15px;margin-left:5px;margin-right:5px;" width="513">
+                                            <a:columns>
+                                                <a:column name="name" align="left" width="180"/>
+                                                <a:column name="nickname" align="center" width="100"/>
+                                                <a:column name="sequence_number" align="center" width="60"/>
+                                                <a:column name="note" align="left" width="150"/>
+                                            </a:columns>
+                                            <a:events>
+                                                <a:event name="dblclick" handler="fnd7010_fndMessageToFriendListResultDsGridDblClick"/>
+                                            </a:events>
+                                        </a:treeGrid>
+                                    </a:hBox>
+                                </a:vBox>
+                            </a:hBox>
+                        </a:tab>
+                        <!-- 组织结构预留、不可删除 -->
+                        <!-- <a:tab prompt="组织架构" width="100">
+                            <a:hBox style="margin-top:10px;margin-left:10px;">
+                                <a:vBox padding="0">
+                                    <a:hBox padding="0">
+                                        <a:queryForm id="fnd7010_fnd_message_to_tree_query_ds_form" bindTarget="fnd7010_fnd_message_to_company_unit_position_tree_query_ds" defaultQueryField="company_unit_position" defaultQueryHint="公司名称/部门描述/岗位描述" resultTarget="fnd7010_fnd_message_to_company_unit_position_tree_result_ds" style="margin-left:5px;" width="510"/>
+                                    </a:hBox>
+                                    <a:hBox padding="0">
+                                        <a:treeGrid id="fnd7010_fnd_message_to_tree_result_ds_grid" bindTarget="fnd7010_fnd_message_to_company_unit_position_tree_result_ds" expandField="expand_flag" height="490" idField="data_id" navBar="false" parentField="data_parent_id" sequenceField="sequence" showCheckBox="false" style="margin:5px;" width="300">
+                                            <a:columns>
+                                                <a:column name="data_desc" prompt="FND.HR_COMPANY_UNIT_POSITION" width="280"/>
+                                            </a:columns>
+                                        </a:treeGrid>
+                                        <a:grid id="fnd7010_fnd_message_to_employee_list_ds_grid" autoAppend="false" bindTarget="fnd7010_fnd_message_to_employee_list_ds" height="490" maxPageCount="2" style="margin:5px;" width="200">
+                                            <a:columns>
+                                                <a:column name="employee_code" align="center" prompt="EXP_EMPLOYEE.EMPLOYEE_CODE" width="65"/>
+                                                <a:column name="employee_name" align="center" prompt="EXP_EMPLOYEE.EMPLOYEE_NAME" width="85"/>
+                                            </a:columns>
+                                            <a:events>
+                                                <a:event name="dblclick" handler="fnd7010_fndMessageEmployeeListDsGridDblClick"/>
+                                            </a:events>
+                                        </a:grid>
+                                    </a:hBox>
+                                </a:vBox>
+                            </a:hBox>
+                        </a:tab> -->
+                    </a:tabs>
+                </a:tabPanel>
+                <a:vBox height="600" style="margin-left:10px;" width="60">
+                    <div style="vertical-align:middle">
+                        <a:button click="fnd7010_fndMessageToUserAdd" text="&gt;&gt;" width="50"/>
+                        <br/>
+                        <a:button click="fnd7010_fndMessageToUserRemove" text="&lt;&lt;" width="50"/>
+                    </div>
+                </a:vBox>
+                <a:vBox padding="0">
+                    <a:hBox padding="0">
+                        <a:button click="fnd7010_fndMessageToUserOK" height="35" style="margin-top:5px;" text="点击这里，确定收件人" width="220"/>
+                    </a:hBox>
+                    <a:grid id="fnd7010_fnd_message_to_user_selected_ds_grid" autoAppend="false" bindTarget="fnd7010_fnd_message_to_user_selected_ds" height="545" navBar="false" style="margin-top:15px;" width="220">
+                        <a:columns>
+                            <a:column name="user_name" align="center" prompt="帐号" width="90"/>
+                            <a:column name="user_desc" align="center" prompt="用户描述" width="80"/>
+                        </a:columns>
+                        <a:events>
+                            <a:event name="dblclick" handler="fnd7010_fndMessageToUserSelectedDsGridDblClick"/>
+                        </a:events>
+                    </a:grid>
+                </a:vBox>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

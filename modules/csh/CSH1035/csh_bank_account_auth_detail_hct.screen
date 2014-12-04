@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <!--
+    $Author: tangrunyu3837 $
+    $Date: 2013/06/20 06:26:41 $
+    $Revision: 1.2 $
+    $Purpose: 银行账户授权.授权页面
+-->
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="false" model="csh.CSH1035.csh_bank_account_auth_hct" rootPath="csh1035_bank_account_model"/>
+    </a:init-procedure>
+    <a:view>
+        <!--javascript-->
+        <script><![CDATA[
+        //返回主页面
+        function csh1035_goBack(){
+        $('csh1035_csh_bank_account_auth_hct_window').close();
+        }
+        //编辑器获取校验
+        function csh1035_companyCodeEditor(record,name){
+          if(record.isNew){
+            return 'csh1035_company_code_editor';
+          }else{
+            return '';
+          }    
+        }
+        
+        function csh1035_positionCodeEditor(record,name){
+          if(record.isNew){
+             return 'csh1035_position_code_editor';
+          }else{
+            return '';
+          }
+        }
+     
+        
+        //校验日期起始不能大于终止
+         function csh1035_dateValidator(record, name, value){ 
+                if(name == 'authorize_date_from' || name == 'authorize_date_to'){
+                    var start_date = record.get('authorize_date_from');
+                    var end_date = record.get('authorize_date_to');            
+                    if(typeof(end_date) != 'undefined' && !Ext.isEmpty(end_date)){
+                        if(!csh1035_compareDate(start_date, end_date)){
+                            return '${l:START_GREATER_THAN_END}';
+                        }
+                    }
+                    return true;
+                }
+            }
+           function csh1035_compareDate(start, end){
+                if(start.getTime() > end.getTime()){
+                    return false;
+                }
+                return true;
+            }
+            //添加账户id
+            function csh1035_addAccountId( dataSet,record,index ){
+               record.set("bank_account_id",'${/parameter/@bank_account_id}');
+            }
+            
+            function csh1035_dataSetUpdate(ds,record,field,value){
+	            
+	            var position_code = record.getMeta().getField('position_code');
+	            
+	            position_code.setLovPara('company_id',record.get('company_id'));
+	            
+	           
+            } 
+            
+            function csh1035_doSave(){
+            	var ds=$('csh1035_csh_bank_account_auth_detail_hct_result_ds');
+            	var records=ds.getAll();            	         	
+            	for(var i=0;i<records.length;i++){
+            		for(j=i+1;j<records.length;j++){
+            			if(records[i].get('company_code')==records[j].get('company_code')&&records[i].get('position_code')==records[j].get('position_code')){
+            				Aurora.showMessage('${l:PROMPT}','${l:CSH_BANK_ACCOUNT_AUTH.MESSAGE_INFO}');
+            				return;
+            			}
+            		}
+            	}            	
+            	ds.submit();
+            }           
+            
+         ]]></script>
+        <!--dataSets-->
+        <a:dataSets>
+            <!--绑定form-->
+            <a:dataSet id="csh1035_csh_bank_account_auth_detail_hct_query_ds" model="csh.CSH1035.csh_bank_account_auth_hct">
+                <a:datas dataSource="/model/csh1035_bank_account_model"/>
+                <a:fields>
+                    <!--银行编码-->
+                    <a:field name="bank_code" readOnly="true"/>
+                    <!--账户编码-->
+                    <a:field name="bank_account_code" readOnly="true"/>
+                    <!--银行简称-->
+                    <a:field name="bank_alt_name" readOnly="true"/>
+                    <!--银行帐号-->
+                    <a:field name="bank_account_num" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <!--绑定grid-->
+            <a:dataSet id="csh1035_csh_bank_account_auth_detail_hct_result_ds" autoQuery="true" model="csh.CSH1035.csh_bank_account_auth_detail_hct" pageSize="6" queryDataSet="csh1035_csh_bank_account_auth_detail_hct_query_ds" selectable="true" submitUrl="${/request/@context_path}/autocrud/csh.CSH1035.csh_bank_account_auth_detail_submit/batch_update">
+                <a:fields>
+                    <!--被授权公司-->
+                    <a:field name="company_code" lovGridHeight="320" lovHeight="450" lovLabelWidth="120" lovService="csh.CSH1035.csh_bank_account_auth_detail_company_lov" lovWidth="540" required="true" title="COMPANY_SELECTED">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_code" to="company_code"/>
+                            <a:map from="company_short_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <!--被授权岗位-->
+                    <a:field name="position_code" lovGridHeight="320" lovHeight="440" lovLabelWidth="120" lovService="csh.CSH1035.csh_bank_account_auth_detail_position_lov" lovWidth="640" required="true" title="BGT_BUDGET_ITEM_MAPPING.POSITION_SELECT">
+                        <a:mapping>
+                            <a:map from="position_id" to="position_id"/>
+                            <a:map from="position_code" to="position_code"/>
+                            <a:map from="position_name" to="position_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <!--启用-->
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <!--起始日期-->
+                    <a:field name="authorize_date_from" required="true" validator="csh1035_dateValidator"/>
+                    <!--终止日期-->
+                    <a:field name="authorize_date_to" validator="csh1035_dateValidator"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="csh1035_addAccountId"/>
+                    <a:event name="update" handler="csh1035_dataSetUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <!--页面显示-->
+        <a:screenBody>
+            <a:form column="2" labelWidth="120" title="CSH_BANK_ACCOUNT_AUTH_HCT.TITLE" width="600">
+                <!--银行编码-->
+                <a:textField name="bank_code" bindTarget="csh1035_csh_bank_account_auth_detail_hct_query_ds" prompt="CSH_BANK_ACCOUNT_AUTH_DETAIL_HCT.BANK_CODE"/>
+                <!--账户编码-->
+                <a:textField name="bank_account_code" bindTarget="csh1035_csh_bank_account_auth_detail_hct_query_ds" prompt="CSH_BANK_ACCOUNT_AUTH_DETAIL_HCT.BANK_ACCOUNT_CODE"/>
+                <!--银行简称-->
+                <a:textField name="bank_alt_name" bindTarget="csh1035_csh_bank_account_auth_detail_hct_query_ds" prompt="CSH_BANKS.BANK_ALT_NAME"/>
+                <!--银行帐号-->
+                <a:textField name="bank_account_num" bindTarget="csh1035_csh_bank_account_auth_detail_hct_query_ds" prompt="CSH_BANK_ACCOUNT_AUTH_DETAIL_HCT.BANK_ACCOUNT_NUM"/>
+            </a:form>
+            <a:hBox>
+                <!--返回按钮-->
+                <a:button click="csh1035_goBack" text="HAP_BACK"/>
+            </a:hBox>
+            <a:grid bindTarget="csh1035_csh_bank_account_auth_detail_hct_result_ds" height="250" navBar="true" width="780">
+                <a:toolBar>
+                    <!--新增按钮-->
+                    <a:button type="add"/>
+                    <!--保存按钮-->
+                    <a:button click="csh1035_doSave" icon="${/request/@context_path}/images/save.gif" text="HAP_SAVE"/>
+                    <!--清除按钮-->
+                    <a:button type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <!--被授权公司-->
+                    <a:column name="company_code" align="center" editorFunction="csh1035_companyCodeEditor" prompt="ON_COMMISSION_COMPANY" width="145"/>
+                    <!--公司简称-->
+                    <a:column name="company_name" align="center" prompt="FND_COMPANIES_VL.COMPANY_SHORT_NAME" width="135"/>
+                    <!--被授权岗位-->
+                    <a:column name="position_code" align="center" editorFunction="csh1035_positionCodeEditor" prompt="ON_COMMISSION_POSITION" width="145"/>
+                    <!--岗位名称-->
+                    <a:column name="position_name" align="center" prompt="EXP_EMPLOYEE_ASSIGN.POSITION_NAME" width="90"/>
+                    <!--起始日期-->
+                    <a:column name="authorize_date_from" align="center" editor="csh1035_datePickerEditor" prompt="CSH_CASH_PLAN_INTERFACE.DATE_FROM" renderer="Aurora.formatDate" width="80"/>
+                    <!--终止日期-->
+                    <a:column name="authorize_date_to" align="center" editor="csh1035_datePickerEditor" prompt="CON_CONTRACT_HEADERS.END_DATE" renderer="Aurora.formatDate" width="80"/>
+                    <!--启用-->
+                    <a:column name="enabled_flag" align="center" editor="checkBox" prompt="CSH_BANKS.ENABLED_FLAG" width="75"/>
+                </a:columns>
+                <a:editors>
+                    <a:datePicker id="csh1035_datePickerEditor"/>
+                    <a:textField id="csh1035_textFieldEditor"/>
+                    <a:lov id="csh1035_company_code_editor"/>
+                    <a:lov id="csh1035_position_code_editor"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-8-25 下午1:36:38  
+    $Revision: 1.0  
+    $Purpose: 基础模块定义，维护入口页面 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+    		
+    		function sys9000_moduleResultDsGridEditorFunction(record, name){
+    		    if(name == 'module_code'){
+    		        if(record.isNew){
+    		            return 'sys9000_module_result_ds_grid_textfield_upper';
+    		        }
+    		    }
+    		}
+    		
+    		function sys9000_moduleResultDsBeforeSubmit(dataset){
+    		    var records = dataset.getAll();
+    		    for(var i=0;i<records.length;i++){
+    		        if(records[i].isNew){
+    		            if(sys9000_getLength(records[i].get('module_code')) >= 30){
+    		                Aurora.showMessage('${l:PROMPT}','${l:SYS9000.MODULE_CODE_OVERLENGTH}');
+    		                return false;
+    		            }
+    		            if(sys9000_getLength(records[i].get('module_name')) >= 1000){
+    		                Aurora.showMessage('${l:PROMPT}','${l:SYS9000.MODULE_NAME_OVERLENGTH}');
+    		                return false;
+    		            }
+    		        }
+    		    }
+    		}
+    		
+    		function sys9000_getLength(str) {
+			    var realLength = 0, len = str.length, charCode = -1;
+			    for (var i = 0; i < len; i++) {
+			        charCode = str.charCodeAt(i);
+			        if (charCode >= 0 && charCode <= 128){
+			            realLength += 1;
+			        }else{
+			            realLength += 3;
+			        }
+			    }
+			    return realLength;
+			}
+			
+			function sys9000_moduleResultDsSubmitSuccess(dataset, response){
+			    dataset.query();
+			}
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys9000_module_query_ds" autoCreate="true"/>
+            <a:dataSet id="sys9000_module_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="sys.SYS9000.sys_module_maintain" queryDataSet="sys9000_module_query_ds" selectable="true" submitUrl="${/request/@context_path}/autocrud/sys.SYS9000.sys_module_maintain/batch_update">
+                <a:fields>
+                    <a:field name="module_code" required="true" requiredMessage="${l:SYS9000.MODULE_CODE_NOT_NULL}"/>
+                    <a:field name="module_name" required="true" requiredMessage="${l:SYS9000.MODULE_NAME_NOT_NULL}"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="beforesubmit" handler="sys9000_moduleResultDsBeforeSubmit"/>
+                    <a:event name="submitsuccess" handler="sys9000_moduleResultDsSubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="sys9000_module_result_ds_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="sys9000_module_result_ds_grid" style="margin-left:20px;" type="save" width="100"/>
+                <a:gridButton bind="sys9000_module_result_ds_grid" style="margin-left:20px;" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="sys9000_module_query_ds" defaultQueryField="module_code_name" defaultQueryHint="SYS_MODULES.MODULE_CODE_NAME" resultTarget="sys9000_module_result_ds" style="width:100%;border:none"/>
+            <a:grid id="sys9000_module_result_ds_grid" bindTarget="sys9000_module_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="module_code" align="left" editorFunction="sys9000_moduleResultDsGridEditorFunction" sortable="true" width="100"/>
+                    <a:column name="module_name" align="left" editor="sys9000_module_result_ds_grid_textfield" sortable="true" width="150"/>
+                    <a:column name="enabled_flag" align="center" editor="sys9000_module_result_ds_grid_checkbox" sortable="true" width="50"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="sys9000_module_result_ds_grid_textfield_upper" typeCase="UPPER"/>
+                    <a:textField id="sys9000_module_result_ds_grid_textfield"/>
+                    <a:checkBox id="sys9000_module_result_ds_grid_checkbox"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

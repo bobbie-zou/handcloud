@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query model="csh.CSH5240.payment_header_detail_return_post" rootPath="payment_header_detail"/>
+        <a:model-query model="csh.responsibility_center_list" rootPath="responsibility_center_list"/>
+        <a:model-query model="csh.company_accounts_list" rootPath="company_accounts_list"/>
+        <a:model-query model="csh.payment_methods_list" rootPath="payment_methods_list"/>
+        <a:model-query model="csh.employee_list" rootPath="employee_list"/>
+        <a:model-query model="csh.exchange_rate_type_list" rootPath="exchange_rate_type_list"/>
+        <a:model-query model="csh.payment_id_return_post" rootPath="payment_id_return_post"/>
+        <a:model-query model="csh.csh_payment_return_post_record" rootPath="csh_payment_return_post_record"/>
+        <a:model-query model="csh.CSH5240.default_exchange_rate_type" rootPath="default_exchange_rate_type"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="con_contract_headers_add_link" url="${/request/@context_path}/modules/cont/public/con_contract_headers_add.screen"/>
+        <a:link id="csh_pay_req_query_detail_link_4" url="${/request/@context_path}/modules/csh/public/csh_pay_req_query_detail.screen"/>
+        <a:link id="exp_report_maintain_read_only_link_1" url="${/request/@context_path}/modules/expm/public/exp_report_maintain_read_only.screen"/>
+        <a:link id="csh_payment_transaction_detail_link" url="${/request/@context_path}/modules/csh/public/csh_payment_transaction_detail.screen"/>
+        <a:link id="csh_payment_return_post_control_link" url="${/request/@context_path}/modules/csh/CSH5240/csh_payment_return_post_control.svc"/>
+        <script><![CDATA[
+            function validateReturnAmount() {
+                if ('${/model/payment_header_detail/record/@transaction_category}' == 'BUSINESS') {
+                    if (checkWOReturnAmount()) saveds();
+                    else return;
+                } else {
+                    $('csh_payment_return_get_return_amount_query_query_ds').query();
+                }
+            }
+            
+            function mcValidate(ds) {
+            
+                var returnedAmount = ds.getAll();
+                if (returnedAmount[0]) {
+                    if (checkSMReturnAmount(returnedAmount[0].get('returned_amount'))) saveds();
+                } else {
+                    if (checkSMReturnAmount(0)) saveds();
+                }
+            }
+            
+            function checkSMReturnAmount(returnedAmount) {
+            
+                if ('${/model/payment_header_detail/record/@transaction_category}' != 'BUSINESS') {
+                    var returnAmount = 0;
+                    var woAmount = 0;
+                    var distributeRecords = $('csh_payment_distribute_query_result_ds').getAll();
+                    for (var i = 0;i < distributeRecords.length;i++) {
+                        if (distributeRecords[i].get('return_amount') != '') {
+                            if (distributeRecords[i].get('debit_flag') == 'CR') {
+                                returnAmount = returnAmount + distributeRecords[i].get('return_amount');
+                                woAmount = woAmount + distributeRecords[i].get('amount');
+                            } else {
+                                returnAmount = returnAmount - distributeRecords[i].get('return_amount');
+                                woAmount = woAmount - distributeRecords[i].get('amount');
+                            }
+                        }
+                    }
+            
+                    if (returnAmount > woAmount - returnedAmount) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:CSH.CANNOTEXCEED}');
+                        return false;
+                    }
+                    var amount = $('payment_header_detail_id').getAt(0);
+                    if (returnAmount != amount.get('transaction_amount') || returnAmount <= 0) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:CSH.MUST_BE_EQUAL}');
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            function saveds() {
+                if (!$('payment_header_detail_id_form').validate() || !$('payment_header_detail_id').validate()) {
+                    return false;
+                }
+                var datas = [];
+                var wodata = [];
+                var drdata = [];
+                var rrdate = [];
+                var crdate = [];
+                var fidate = [];
+                var formdom = $('payment_header_detail_id_form').getAt(0);
+                var financedom = $('payment_header_detail_id').getAt(0);
+                var worecords = $('csh_payment_return_writeoffhistory_query_result_ds').getAll();
+                var drrecords = $('csh_payment_distribute_query_result_ds').getAll();
+                var firecords = $('csh_payment_financeInfor_query_result_ds').getAll();
+            
+                for (var i = 0;i < worecords.length;i++)
+                if (worecords[i].get('return_amount') != '') wodata.push(worecords[i].data);
+            
+                for (var i = 0;i < drrecords.length;i++)
+                if (drrecords[i].get('return_amount') != '') drdata.push(drrecords[i].data);
+                for (var i = 0;i < firecords.length;i++)
+                fidate.push(firecords[i].data);
+                var data = financedom.data;
+                data['drdetails'] = drdata;
+                data['wodetails'] = wodata;
+                data['fidetails'] = fidate;
+                datas.push(formdom.data);
+                datas.push(data);
+                var financeParams = new Object();
+                financeParams['line'] = datas;
+                Aurora.request({
+                    url: /*csh_payment_return_post_control.svc*/$('csh_payment_return_post_control_link').getUrl(),
+                    para: financeParams,
+                    success: dispatch,
+                    scope: this
+                });
+            }
+            
+            function dispatch() {
+                new Aurora.Window({
+                    id: 'csh_payment_transaction_detail_window',
+                    url: /*csh_payment_transaction_detail.screen*/$('csh_payment_transaction_detail_link').getUrl()+'?transaction_header_id=' + '${/model/payment_id_return_post/record/@payment_header_id}',
+                    title: '${l:CSH_PAYMENT_TRANSACTION_DETAIL.TITLE}',
+                    height: 550,
+                    width: 950
+                });
+                $('csh_payment_return_post_id').close();
+                $('csh_payment_return_query_result_ds').query();
+            } 
+            
+            function checkWOReturnAmount() {
+                if ('${/model/payment_header_detail/record/@transaction_category}' == 'BUSINESS') {
+                    var returnAmount = 0;
+                    wohRecords = $('csh_payment_return_writeoffhistory_query_result_ds').getAll();
+                    for (var i = 0;i < wohRecords.length;i++) {
+                        if (wohRecords[i].get('return_amount') != '') {
+                            returnAmount = returnAmount + wohRecords[i].get('return_amount');
+                        }
+                    }
+                    var amount = $('payment_header_detail_id').getAt(0);
+                    if (returnAmount != amount.get('transaction_amount') || returnAmount <= 0) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:CSH.WRITEOFF_MUST_BE_EQUAL}');
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            function afterload(ds) {
+                var records = ds.getAll();
+                var url = /*csh_payment_transaction_detail.screen*/$('csh_payment_transaction_detail_link').getUrl()+'?transaction_header_id=' + records[0].get('transaction_header_id');
+                new Aurora.Window({
+                    id: 'csh_payment_transaction_detail_window',
+                    url: url,
+                    title: '${l:CSH_PAYMENT_TRANSACTION_DETAIL.TITLE}',
+                    height: 550,
+                    width: 950
+                });
+            }
+            
+            function doQuery() {
+                var para = '${/model/payment_header_detail/record/@transaction_line_id}';
+                $('csh_payment_financeInfor_query_result_ds').setQueryParameter('transaction_line_id', para);
+                $('csh_payment_financeInfor_query_result_ds').query();
+                if ('${/model/payment_header_detail/record/@transaction_category}' != 'MISCELLANEOUS') {
+                    $('tabs_id').setDisabled(3);
+                } else {
+                    $('tabs_id').setDisabled(2);
+                }
+                var records = $('payment_header_detail_id_form').getAll();
+                var p_date = new Date();
+                p_date = p_date.format('yyyy-mm-dd');
+                records[0].set('transaction_date', p_date);
+            }
+            
+            function back() {
+                $('csh_payment_return_post_id').close();
+            }
+            
+            function docdetail(value, record, name) {
+                if (name == 'exp_report_number') {
+                    if (value) {
+                        var url = /*${/request/@context_path}/modules/expm/exp_report_maintain_read_only.screen*/$('exp_report_maintain_read_only_link_1').getUrl()+'?exp_report_header_id=' + record.get('document_header_id') + '&canUploadFlag=false';
+                        return '<a href="javascript:openwindow(\'' + url + '\')">' + value + '</a>';
+                    }
+                }
+                if (name == 'requisition_number') {
+                    if (value) {
+                        var url = /*csh_pay_req_query_detail.screen*/$('csh_pay_req_query_detail_link_4').getUrl()+'?payment_requisition_header_id=' + record.get('payment_requisition_header_id');
+                        return '<a href="javascript:openwindow(\'' + url + '\');">' + value + '</a>';
+                    }
+                }
+                if (name == 'contract_number') {
+                    if (value) {
+                        var url = /*${/request/@context_path}/modules/cont/con_contract_headers_add.screen*/$('con_contract_headers_add_link').getUrl()+'?contract_header_id=' + record.get('contract_header_id');
+                        return '<a href="javascript:openwindow(\'' + url + '\');">' + value + '</a>';
+                    }
+                } else return '';
+            }
+            
+            function openwindow(url) {
+                //new Aurora.Window({id:id,url:url,title:'',height:500,width:800});
+                window.open(url, '', 'fullscreen=no,resizable=yes,width=1000,height=500');
+            }
+            
+            function setnum(ds) {
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    records[i].set('num', i + 1, true);
+                }
+            }
+            
+            function onUpdate(ds, record, name, value, oldvalue) {
+                if (name == 'transaction_date') {
+        //            
+                    var p_date = record.get('p_transaction_date');
+                    if (value < p_date) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:CSH.CAN_NOT_BE_EARLIER}');
+                        record.set('transaction_date', '');
+                    }
+                }
+            }
+           
+           function datapickerselect(dp,date){
+	          var rd= Aurora.formatDate(date);
+	          $('exp_report_period_ds').setQueryParameter('company_id','${/session/@company_id}');
+	          $('exp_report_period_ds').setQueryParameter('date',rd);
+	          $('exp_report_period_ds').query();
+	          
+           } 
+          
+          function afterperiodds(ds){
+	           var record =ds.getAt(0);	
+		          if(record){  
+				        if(record.get('period_name')){       
+				           $('payment_header_detail_id_form').getAt(0).set('period_name',record.get('period_name')); 
+				           }
+			        }
+			     else{
+			             Aurora.showMessage('${l:PROMPT}', '${l:CSH.PERIOD_NAME_OF_THIS_DATE_NOT_EXISTS}');
+			         }   
+        } 
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="csh_payment_return_get_return_amount_query_query_ds" model="csh.CSH5240.csh_payment_return_get_return_amount_query" queryUrl="${/request/@context_path}/autocrud/csh.CSH5240.csh_payment_return_get_return_amount_query/query?transaction_header_id=${/parameter/@transaction_header_id}">
+                <a:events>
+                    <a:event name="load" handler="mcValidate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="payment_id_return_post_ds" loadData="true">
+                <a:datas dataSource="/model/payment_id_return_post"/>
+            </a:dataSet>
+            <a:dataSet id="payment_header_detail_tmp_ds" model="csh.payment_header_detail_tmp">
+                <a:events>
+                    <a:event name="load" handler="afterload"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="payment_methods_list_ds" loadData="true">
+                <a:datas dataSource="/model/payment_methods_list"/>
+            </a:dataSet>
+            <a:dataSet id="employee_list_ds" loadData="true">
+                <a:datas dataSource="/model/employee_list"/>
+            </a:dataSet>
+            <a:dataSet id="responsibility_center_list_ds" loadData="true">
+                <a:datas dataSource="/model/responsibility_center_list"/>
+            </a:dataSet>
+            <a:dataSet id="company_accounts_list_ds" loadData="true">
+                <a:datas dataSource="/model/company_accounts_list"/>
+            </a:dataSet>
+            <a:dataSet id="exchange_rate_type_list_ds" loadData="true">
+                <a:datas dataSource="/model/exchange_rate_type_list"/>
+            </a:dataSet>
+            <a:dataSet id="csh_payment_return_post_record_ds" loadData="true">
+                <a:datas dataSource="/model/csh_payment_return_post_record"/>
+            </a:dataSet>
+            <a:dataSet id="cr_dr_list_ds" lookupCode="CR_DR_LIST"/>
+            <a:dataSet id="default_exchange_rate_type_ds" loadData="true">
+                <a:datas dataSource="/model/default_exchange_rate_type"/>
+            </a:dataSet>
+            <a:dataSet id="exp_report_period_ds" model="gld.gld_periods">
+                <a:events>
+                    <a:event name="load" handler="afterperiodds"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="payment_header_detail_id_form" autoCreate="true">
+                <a:fields>
+                    <a:field name="transaction_num" defaultValue="${/model/payment_header_detail/record/@transaction_num}" readOnly="true"/>
+                    <a:field name="transaction_date" required="true"/>
+                    <a:field name="p_transaction_date" defaultValue="${/model/payment_header_detail/record/@transaction_date}"/>
+                    <a:field name="period_name" defaultValue="${/model/payment_header_detail/record/@period_name}" readOnly="true"/>
+                    <a:field name="p_transaction_category" defaultValue="${/model/payment_header_detail/record/@p_transaction_category}" readOnly="true"/>
+                    <a:field name="payment_method" defaultValue="${/model/payment_header_detail/record/@payment_method}" displayField="description" options="payment_methods_list_ds" returnField="payment_methods" valueField="payment_method_id"/>
+                    <a:field name="contact_number" defaultValue="${/model/payment_header_detail/record/@contact_number}" readOnly="true"/>
+                    <a:field name="save_status" defaultValue="save_header"/>
+                    <a:field name="payment_header_id" defaultValue="${/model/payment_id_return_post/record/@payment_header_id}"/>
+                    <a:field name="transaction_category" defaultValue="${/model/payment_header_detail/record/@transaction_category}"/>
+                    <a:field name="transaction_header_id" defaultValue="${/parameter/@transaction_header_id}"/>
+                    <a:field name="contract_header_id" defaultValue="${/model/payment_header_detail/record/@contract_header_id}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="onUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="payment_header_detail_id" autoCreate="true">
+                <a:fields>
+                    <a:field name="save_status" defaultValue="save_line"/>
+                    <a:field name="partner_category" defaultValue="${/model/payment_header_detail/record/@partner_category}" readOnly="true"/>
+                    <a:field name="partner" defaultValue="${/model/payment_header_detail/record/@partner}" readOnly="true"/>
+                    <a:field name="partner_id" defaultValue="${/model/payment_header_detail/record/@partner_id}"/>
+                    <a:field name="currency_code" defaultValue="${/model/payment_header_detail/record/@currency_code}" readOnly="true"/>
+                    <a:field name="exchange_rate_type" defaultValue="${/model/payment_header_detail/record/@exchange_rate_type}" readOnly="true"/>
+                    <a:field name="transaction_amount" defaultValue="${/model/payment_header_detail/record/@unreturned_amount}" required="true"/>
+                    <a:field name="document_num" defaultValue="${/model/payment_header_detail/record/@document_num}"/>
+                    <a:field name="exchange_rate_quotation" defaultValue="${/model/payment_header_detail/record/@exchange_rate_quotation}" readOnly="true"/>
+                    <a:field name="exchange_rate" defaultValue="${/model/payment_header_detail/record/@exchange_rate}" readOnly="true"/>
+                    <a:field name="bank_account" defaultValue="${/model/payment_header_detail/record/@name_code}" lovGridHeight="310" lovHeight="450" lovService="csh.CSH5240.csh_payment_return_bank_account_lov?transaction_header_id=${/parameter/@transaction_header_id}" lovWidth="600" required="true">
+                        <a:mapping>
+                            <a:map from="name_code" to="bank_account"/>
+                            <a:map from="bank_account_id" to="bank_account_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bank_account_id" defaultValue="${/model/payment_header_detail/record/@bank_account_id}"/>
+                    <a:field name="bank_account_name" defaultValue="${/model/payment_header_detail/record/@bank_account_name}" readOnly="true"/>
+                    <a:field name="partner_bank_account" defaultValue="${/model/payment_header_detail/record/@partner_bank_account}" readOnly="true"/>
+                    <a:field name="description" defaultValue="${/model/payment_header_detail/record/@description}"/>
+                    <a:field name="agent_employee" defaultValue="${/model/payment_header_detail/record/@agent_employee}" displayField="name" options="employee_list_ds" returnField="employee_id" valueField="employee_id"/>
+                    <a:field name="unreturned_amount" defaultValue="${/model/payment_header_detail/record/@unreturned_amount}" readOnly="true"/>
+                    <a:field name="cash_flow_line_number" lovGridHeight="310" lovHeight="450" lovService="exp.exp_report_payment_cash_flow_items_lov" lovWidth="500" required="true">
+                        <a:mapping>
+                            <a:map from="cash_flow_line_number" to="cash_flow_line_number"/>
+                            <a:map from="cash_flow_item_id" to="cash_flow_item_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="functional_currency_code" defaultValue="${/model/csh_payment_return_post_record/record/@}functional_currency_code"/>
+                    <a:field name="exchange_rate_type_code_104" defaultValue="${/model/default_exchange_rate_type/record/@value_code}"/>
+                    <a:field name="payment_header_id" defaultValue="${/model/payment_id_return_post/record/@payment_header_id}"/>
+                    <a:field name="transaction_line_id" defaultValue="${/model/payment_id_return_post/record/@transaction_line_id}"/>
+                    <a:field name="transaction_header_id" defaultValue="${/parameter/@transaction_header_id}"/>
+                    <a:field name="transaction_category" defaultValue="${/model/payment_header_detail/record/@transaction_category}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh_payment_financeInfor_query_result_ds" model="csh.csh_payment_financeInfor_query"/>
+            <a:dataSet id="csh_payment_return_writeoffhistory_query_result_ds" autoQuery="true" model="csh.CSH5240.csh_payment_return_writeoffhistory_query" queryUrl="${/request/@context_path}/autocrud/csh.CSH5240.csh_payment_return_writeoffhistory_query/query?transaction_header_id=${/parameter/@transaction_header_id}">
+                <a:fields>
+                    <a:field name="return_amount" required="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh_payment_return_distribute_query_query_ds" model="csh.CSH5240.csh_payment_return_distribute_query">
+                <a:fields>
+                    <a:field name="payment_header_id" defaultValue="${/model/payment_id_return_post/record/@payment_header_id}"/>
+                    <a:field name="transaction_line_id" defaultValue="${/model/payment_id_return_post/record/@transaction_line_id}"/>
+                    <a:field name="transaction_header_id" defaultValue="${/parameter/@transaction_header_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh_payment_distribute_query_result_ds" autoQuery="true" model="csh.CSH5240.csh_payment_return_distribute_query" queryDataSet="csh_payment_return_distribute_query_query_ds">
+                <a:fields>
+                    <a:field name="responsibility_center_id_display" displayField="responsibility_center_name" options="responsibility_center_list_ds" returnField="responsibility_center_id" valueField="responsibility_center_id"/>
+                    <a:field name="account_id_display" displayField="account_code" options="company_accounts_list_ds" returnField="account_id" valueField="account_id"/>
+                    <a:field name="debit_flag_display" displayField="code_value_name" options="cr_dr_list_ds" returnField="debit_flag" valueField="code_value"/>
+                    <a:field name="num"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="setnum"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form title="CSH_PAYMENT_TRANSACTION_DETAIL.TITLE">
+                <a:hBox>
+                    <a:textField name="transaction_num" bindTarget="payment_header_detail_id_form" prompt="CSH_PREPAYMENT_WRITE_OFF.TRANSACTION_NUM"/>
+                    <a:datePicker name="transaction_date" bindTarget="payment_header_detail_id_form" prompt="CSH_TRANSACTION_HEADERS.TRANSACTION_DATE">
+                        <a:events>
+                            <a:event name="select" handler="datapickerselect"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:textField name="period_name" bindTarget="payment_header_detail_id_form" prompt="CSH_TRANSACTION_HEADERS.PERIOD_NAME"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:textField name="p_transaction_category" bindTarget="payment_header_detail_id_form" prompt="CSH_PAYMENT_RETURN.TRANSACTION_CATEGORY"/>
+                    <a:comboBox name="payment_method" bindTarget="payment_header_detail_id_form" prompt="CSH_TRANSACTION_HEADERS.PAYMENT_METHOD_ID"/>
+                    <a:textField name="contact_number" bindTarget="payment_header_detail_id_form" prompt="CSH_PREPAYMENT_WRITE_OFF.CONTACT_NUMBER"/>
+                </a:hBox>
+            </a:form>
+            <a:hBox>
+                <a:button click="validateReturnAmount" text="PROMPT.POST"/>
+                <a:button click="back" text="PROMPT.RETURN"/>
+            </a:hBox>
+            <a:tabPanel id="tabs_id" height="350" width="920">
+                <a:tabs>
+                    <a:tab prompt="CSH_PAYMENT_RETURN_POST.PAYMENTTAB" width="150">
+                        <a:fieldSet width="900">
+                            <a:box column="4" row="4">
+                                <a:textField name="partner_category" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.PARTNER_CATEGORY"/>
+                                <a:textField name="partner" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.PARTNER_ID"/>
+                                <a:textField name="currency_code" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.CURRENCY_CODE"/>
+                                <a:textField name="exchange_rate_type" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.EXCHANGE_RATE_TYPE"/>
+                                <a:numberField name="transaction_amount" allowFormat="true" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.TRANSACTION_AMOUNT"/>
+                                <a:textField name="document_num" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.DOCUMENT_NUM"/>
+                                <a:textField name="exchange_rate_quotation" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.EXCHANGE_RATE_QUOTATION"/>
+                                <a:textField name="exchange_rate" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.EXCHANGE_RATE"/>
+                                <a:lov name="bank_account" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.BANK_ACCOUNT_ID"/>
+                                <a:textField name="bank_account_name" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.BANK_ACCOUNT_NAME"/>
+                                <a:textField name="partner_bank_account" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.PARTNER_BANK_ACCOUNT"/>
+                                <a:textArea name="description" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.DESCRIPTION"/>
+                                <a:comboBox name="agent_employee" bindTarget="payment_header_detail_id" prompt="CSH_TRANSACTION_LINES.AGENT_EMPLOYEE_ID"/>
+                                <a:numberField name="unreturned_amount" allowFormat="true" bindTarget="payment_header_detail_id" prompt="CSH_PAYMENT_RETURN.UNRETURNED_AMOUNT"/>
+                                <a:lov name="cash_flow_line_number" bindTarget="payment_header_detail_id" prompt="CSH_PAYMENT_RETURN_POST.CASH_FLOW_LINE_NUMBER"/>
+                            </a:box>
+                        </a:fieldSet>
+                    </a:tab>
+                    <a:tab prompt="CSH_PAYMENT_DETAIL.FINANCETAB" width="150">
+                        <a:grid id="grid1_id" bindTarget="csh_payment_financeInfor_query_result_ds" height="310" width="900">
+                            <a:columns>
+                                <a:column name="description" prompt="CSH_WRITE_OFF_ACCOUNTS.DESCRIPTION" width="120"/>
+                                <a:column name="company_short_name" prompt="CSH_WRITE_OFF_ACCOUNTS.COMPANY_ID" width="100"/>
+                                <a:column name="responsibility_center_name" prompt="CSH_WRITE_OFF_ACCOUNTS.RESPONSIBILITY_CENTER_ID" width="100"/>
+                                <a:column name="account_code" prompt="CSH_WRITE_OFF_ACCOUNTS.ACCOUNT_ID" width="100"/>
+                                <a:column name="account_name" prompt="CSH_WRITE_OFF_ACCOUNTS.ACCOUNT_NAME" width="150"/>
+                                <a:column name="entered_amount_dr" prompt="CSH_WRITE_OFF_ACCOUNTS.ENTERED_AMOUNT_DR" renderer="Aurora.formatMoney" width="80"/>
+                                <a:column name="entered_amount_cr" prompt="CSH_WRITE_OFF_ACCOUNTS.ENTERED_AMOUNT_CR" renderer="Aurora.formatMoney" width="80"/>
+                                <a:column name="functional_amount_dr" prompt="CSH_WRITE_OFF_ACCOUNTS.FUNCTIONAL_AMOUNT_DR" renderer="Aurora.formatMoney" width="80"/>
+                                <a:column name="functional_amount_cr" prompt="CSH_WRITE_OFF_ACCOUNTS.FUNCTIONAL_AMOUNT_CR" renderer="Aurora.formatMoney" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="CSH_PAYMENT_DETAIL.WRITEOFFHISTORYTAB" width="150">
+                        <a:grid bindTarget="csh_payment_return_writeoffhistory_query_result_ds" height="310" navBar="true" width="900">
+                            <a:columns>
+                                <a:column name="write_off_date" prompt="CSH_TRANSACTION_HEADERS.WRITE_OFF_COMPLETED_DATE" width="90"/>
+                                <a:column name="period_name" prompt="CSH_TRANSACTION_HEADERS.PERIOD_NAME" width="80"/>
+                                <a:column name="write_off_type" prompt="EXP_PREPAYMENT_POST.WRITE_OFF_TYPE" width="125"/>
+                                <a:column name="transaction_class" prompt="CSH_PREPAYMENT_POST.TRANSACTION_CLASS" width="80"/>
+                                <a:column name="exp_report_number" prompt="EXP_REPORT_HEADERS.EXP_REPORT_NUMBER" renderer="docdetail" width="125"/>
+                                <a:column name="transaction_num" prompt="CSH_PREPAYMENT_WRITE_OFF.TRANSACTION_NUM" width="125"/>
+                                <a:column name="csh_write_off_amount" prompt="CSH_WRITE_OFF.CSH_WRITE_OFF_AMOUNT" renderer="Aurora.formatMoney" width="70"/>
+                                <a:column name="return_amount9" prompt="CSH_PAYMENT_RETURN_POST.RETURN_AMOUNT9" renderer="Aurora.formatMoney" width="80"/>
+                                <a:column name="return_amount" editor="numf" prompt="CSH_PAYMENT_RETURN_POST.RETURN_AMOUNT" renderer="Aurora.formatMoney" width="100"/>
+                                <a:column name="requisition_number" prompt="CSH_PAYMENT_REQUISITION_HDS.REQUISITION_NUMBER" renderer="docdetail"/>
+                                <a:column name="contract_number" prompt="CSH_PREPAYMENT_WRITE_OFF.CONTACT_NUMBER" renderer="docdetail"/>
+                                <a:column name="line_number" prompt="CSH_PREPAYMENT_WRITE_OFF.LINE_NUMBER" width="70"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:numberField id="numf"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="CSH_PAYMENT_DETAIL.DISTRIBUTETAB" width="150">
+                        <a:grid bindTarget="csh_payment_distribute_query_result_ds" height="310" navBar="true" width="900">
+                            <a:columns>
+                                <a:column name="num" prompt="BGT_PERIODS.PERIOD_NUM" width="30"/>
+                                <a:column name="description" prompt="EXP_PRE_POST_RO.DESCRIPTION" width="125"/>
+                                <a:column name="responsibility_center_id_display" prompt="CSH_BANK_ACCOUNTS.RESPONSIBILITY" width="125"/>
+                                <a:column name="account_id_display" prompt="GLD_ACCOUNTS.ACCOUNT_CODE" width="100"/>
+                                <a:column name="account_description" prompt="GLD_ACCOUNTS.ACCOUNT_NAME" width="200"/>
+                                <a:column name="debit_flag_display" prompt="CSH_RECEIVABLE_AGING_QUERY.DEBIT_FLAG" width="60"/>
+                                <a:column name="amount" prompt="CSH_CASH_PLAN_LINE_ASSIGN.ASSIGN_AMOUNT" width="70"/>
+                                <a:column name="allowamount" prompt="CSH_PAYMENT_RETURN.UNRETURNED_AMOUNT" width="60"/>
+                                <a:column name="return_amount" editor="numf2" prompt="CSH_PAYMENT_RETURN.REFUND_AMOUNT" width="60"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:numberField id="numf2"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+        <script><![CDATA[
+        	doQuery();
+        ]]></script>
+    </a:view>
+</a:screen>

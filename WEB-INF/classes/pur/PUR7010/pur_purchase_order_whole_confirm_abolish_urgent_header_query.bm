@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-23 下午2:00:33  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT h.pur_header_id,
+               h.segment1,
+               h.display_po_number,
+               h.type_lookup_code,
+               h.type_lookup_desc,
+               h.agent_id,
+               h.agent_name,
+               h.release_id,
+               h.release_num,
+               h.display_release_num,
+               h.revision_num,
+               h.company_id,
+               h.company_name,
+               h.comments,
+               h.currency_code,
+               (SELECT SUM(l.unit_price * pll.quantity)
+                  FROM pur_lines_all          l,
+                       pur_line_locations_all pll
+                 WHERE l.pur_line_id = pll.pur_line_id
+                       AND l.pur_header_id = h.pur_header_id) AS sum_amount,
+               to_char(h.creation_date,
+                       'yyyy-mm-dd hh24:mi:ss') AS creation_date,
+               h.ship_to_location_name,
+               h.bill_to_location_name,
+               h.vendor_site_name,
+               to_char(h.release_date,
+                       'yyyy-mm-dd hh24:mi:ss') AS release_date_desc,
+               to_char(h.reply_date,
+                       'yyyy-mm-dd hh24:mi:ss') AS reply_date_desc,
+               h.reply_date,
+               h.data_source,
+               h.pur_organization_id,
+               h.vendor_id
+          FROM pur_headers_all h
+         WHERE h.last_version = 'Y'
+               AND EXISTS (SELECT 1
+          FROM sys_user_messages     SUM,
+               sys_user_message_list suml
+         WHERE sum.message_id = suml.message_id
+               AND sum.source_table = 'PUR_HEADER_ALL_URGENT'
+               AND sum.source_id = h.pur_header_id
+               AND suml.push_user_id = ${/session/@user_id})
+               AND h.pur_header_id = ${@pur_header_id}) v
+       #WHERE_CLAUSE# ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[BEGIN
+  pur_po_urgent_pkg.confirm_abolish_whole_order(p_pur_header_id => ${@pur_header_id},
+                                      p_user_id              => ${/session/@user_id});
+END;
+]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

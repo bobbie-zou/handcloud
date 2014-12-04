@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-4-28 下午3:22:58  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.function_id,
+                    v.function_code,
+                    v.function_name,
+                    v.function_level,
+                    v.parent_function_id,
+                    v.parent_function_name,
+                    v.checked,
+                    v.sequence,
+                    v.expanded,
+                    v.role_type,
+                    v.role_type_display
+                FROM
+                    (SELECT
+                        sf.function_id,
+                        sf.function_code,
+                        sf.description AS function_name,
+                        sf.function_level,
+                        sf.parent_function_id,
+                        (SELECT
+                            fv.description
+                        FROM
+                            sys_function_vl fv
+                        WHERE
+                            fv.function_id = sf.parent_function_id
+                        ) AS parent_function_name,
+                        DECODE(rf.role_id, NULL, 'N', 'Y') AS checked,
+                        NVL(rf.sequence,sf.sequence) AS sequence,
+                        NVL(rf.expanded,'N') AS expanded,
+                        rf.role_type,
+                        (SELECT
+                            fvv.flex_desc
+                        FROM
+                            fnd_flex_values_v fvv
+                        WHERE
+                            fvv.flex_value_set_code = 'ROLE_TYPE' AND
+                            fvv.flex_value          = rf.role_type
+                        )AS role_type_display
+                    FROM
+                        sys_function_vl sf,
+                        sys_role_function rf
+                    WHERE
+                        rf.function_id = sf.function_id AND
+                        rf.role_id     = ${/parameter/@role_id}
+                    ) v
+                ORDER BY
+                    v.sequence
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Mouse Chow  
+    $Date: 2012-2-21 下午02:47:01  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query autoCount="false" model="sys.sys_system_config_plan" rootPath="config_plans"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="SYS2860_sys_system_config_plan_node_link" url="${/request/@context_path}/modules/sys/SYS2860/sys_system_config_plan_node.screen"/>
+        <a:link id="SYS2860_sys_system_config_plan_insert_link" model="sys.sys_system_config_plan" modelaction="insert"/>
+        <script><![CDATA[
+			
+				function EXP2860_addSysConfigPlan(){
+				    
+				    Ext.get('EXP2860_add_plan_div').show();
+				}	
+				
+				function EXP2860_addSysConfigPlanDetail(){
+				    if(!$('EXP2860_add_plan_ds').validate()){
+				        return ;
+				    }
+				    Aurora.request({
+				        url:$('SYS2860_sys_system_config_plan_insert_link').getUrl(),
+				        para:$('EXP2860_add_plan_ds').getAt(0).data,
+				        success:function(res){
+				        	
+				        	if(res && res.result && res.result.plan_id){
+				        	    $('EXP2860_plan_result_ds').query();
+				        	    EXP2860_openPlanNodeWindow(res.result.plan_id);
+				        	    EXP2860_cancelAddPlan();
+				        	}
+				        },
+						scope:this				        
+				    });
+				}
+				
+				function EXP2860_openPlanNodeWindow(plan_id){
+				    new Aurora.Window({
+				        url:$('SYS2860_sys_system_config_plan_node_link').getUrl() + '?plan_id=' + plan_id,
+				        id:'sys_system_config_plan_node_screen',
+				        width:830,
+				        height:480				        
+				    });
+				}
+				
+				function EXP2860_cancelAddPlan(){
+				    $('EXP2860_add_plan_ds').reset();
+				    Ext.get('EXP2860_add_plan_div').setStyle('display','none');
+				}
+			
+				function EXP2860_planNameRenderer(value,record,name){
+				    return '<a href="javascript:EXP2860_openPlanNodeWindow(' + record.get('plan_id') + ');">' + value + '</a>';
+				}
+				
+				function EXP2860_addPlanDateValidate(record,name,value){
+				    if(record.get('end_date') && record.get('start_date') > record.get('end_date')){
+						return '${l:ENDDATE_LARGE_STARTDATE}';				        
+				    }
+				    return true;
+				}
+			
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="EXP2860_add_plan_ds" autoCreate="true" model="sys.sys_system_config_plan">
+                <a:fields>
+                    <a:field name="plan_name" required="true"/>
+                    <a:field name="start_date" validator="EXP2860_addPlanDateValidate"/>
+                    <a:field name="end_date" validator="EXP2860_addPlanDateValidate"/>
+                    <a:field name="plan_desc" required="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="EXP2860_plan_result_ds" autoQuery="true" model="sys.sys_system_config_plan" selectable="true">
+                <a:fields>
+                    <a:field name="plan_name" required="true"/>
+                    <a:field name="start_date"/>
+                    <a:field name="end_date"/>
+                    <a:field name="plan_desc" required="true"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:button click="EXP2860_addSysConfigPlan" text="PROMPT.NEW"/>
+            <div id="EXP2860_add_plan_div" style="display:none;">
+                <a:fieldSet id="EXP2860_add_plan_fieldset" column="1" height="400" title="EXP2860.ADD_PLAN" width="800">
+                    <a:hBox labelWidth="100">
+                        <a:textField name="plan_name" bindTarget="EXP2860_add_plan_ds"/>
+                        <a:datePicker name="start_date" id="EXP2860_add_start_date_picker" bindTarget="EXP2860_add_plan_ds"/>
+                        <a:datePicker name="end_date" id="EXP2860_add_end_date_picker" bindTarget="EXP2860_add_plan_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="100">
+                        <a:textArea name="plan_desc" bindTarget="EXP2860_add_plan_ds" height="290" width="650"/>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:button click="EXP2860_addSysConfigPlanDetail" text="PROMPT.OK"/>
+                        <a:button click="EXP2860_cancelAddPlan" text="PROMPT.CANCEL"/>
+                    </a:hBox>
+                </a:fieldSet>
+            </div>
+            <a:grid bindTarget="EXP2860_plan_result_ds" height="400" navBar="true" width="800">
+                <a:toolBar>
+                    <a:button type="delete"/>
+                    <a:button type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="plan_name" align="center" renderer="EXP2860_planNameRenderer" width="200"/>
+                    <a:column name="plan_desc" align="center" width="200"/>
+                    <a:column name="start_date" align="center" renderer="Aurora.formatDate" width="180"/>
+                    <a:column name="end_date" align="center" renderer="Aurora.formatDate" width="180"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

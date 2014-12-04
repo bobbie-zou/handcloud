@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WHT  
+    $Date: 2011-7-6 下午05:59:11  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="WFL_WORKFLOW_START">
+    <bm:fields>
+        <bm:field name="workflow_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="WORKFLOW_ID" prompt="WFL_WORKFLOW_START.WORKFLOW_ID"/>
+        <bm:field name="workflow_code" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="100" forDisplay="true" forQuery="true" prompt="工作流代码" queryWidth="100"/>
+        <bm:field name="workflow_desc" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="100" forDisplay="true" forQuery="true" prompt="工作流描述" queryWidth="100"/>
+        <bm:field name="inv_org_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="INV_ORG_ID" prompt="WFL_WORKFLOW_START.INV_ORG_ID"/>
+        <bm:field name="inv_org_desc" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="150" forDisplay="true" prompt="库存组织"/>
+        <bm:field name="company_short_name" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="150" forDisplay="true" prompt="公司"/>
+        <bm:field name="period_name" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="80" forDisplay="true" physicalName="PERIOD_NAME" prompt="期间"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID" prompt="WFL_WORKFLOW_START.COMPANY_ID"/>
+        <bm:field name="workflow_start_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="WORKFLOW_START_ID" prompt="WFL_WORKFLOW_START.WORKFLOW_START_ID"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t1.workflow_id,
+                    t1.workflow_code,
+                    t1.workflow_desc,
+                    t1.inv_org_id,
+                    t1.inv_org_desc,
+                    t1.period_name,
+                    t1.company_id,
+                    t1.company_short_name,
+                    t1.workflow_start_id
+                FROM
+                    (SELECT
+                        ws.workflow_id,
+                        (SELECT
+                            ww.workflow_code
+                        FROM
+                            wfl_workflow ww
+                        WHERE
+                            ww.workflow_id = ws.workflow_id
+                        ) AS workflow_code,
+                        (SELECT
+                            ww.workflow_desc
+                        FROM
+                            wfl_workflow ww
+                        WHERE
+                            ww.workflow_id = ws.workflow_id
+                        ) AS workflow_desc,
+                        ws.inv_org_id,
+                        (SELECT
+                            v.description
+                        FROM
+                            inv_inventory_organizations_vl v
+                        WHERE
+                            ws.inv_org_id = v.inventory_organization_id
+                        ) AS inv_org_desc,
+                        ws.period_name,
+                        ws.company_id,
+                        (SELECT
+                            cv.company_short_name
+                        FROM
+                            wfl_workflow_companies_vl cv
+                        WHERE
+                            cv.company_id = ws.company_id
+                        ) AS company_short_name,
+                        ws.workflow_start_id
+                    FROM
+                        wfl_workflow_start ws
+                    ) t1 #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="workflow_code" queryExpression="t1.workflow_code like &apos;%&apos; || ${@workflow_code} || &apos;%&apos;"/>
+        <bm:query-field name="workflow_desc" queryExpression="t1.workflow_desc like &apos;%&apos; || ${@workflow_desc} || &apos;%&apos;"/>
+        <bm:query-field name="company_id" queryExpression="t1.company_id = ${@company_id}"/>
+    </bm:query-fields>
+</bm:model>

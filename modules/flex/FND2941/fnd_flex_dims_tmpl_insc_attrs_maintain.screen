@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-12-13 下午1:21:39  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query model="flex.FND2941.fnd_flex_tmpl_instances" rootPath="fnd29412_tmpl_instance_source"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd29412_upgrade_link" model="flex.FND2930.fnd_flex_instance_upgrade" modelaction="execute"/>
+        <a:link id="fnd29412_release_link" model="flex.FND2930.fnd_flex_instance_release" modelaction="execute"/>
+        <script><![CDATA[
+        	function fnd29412_queryHook(value, ds) {
+               var record = ds.getCurrentRecord();
+               record.set('function_code', null);
+               record.set('function_desc', null);
+               record.set('quick_value',value);
+         	}
+         	
+         	function fnd29412_grid_ds_update(ds, record, name, value, oldvalue){
+	             if(name == 'data_source'){
+	                 
+	                 record.set('flex_value_set_id','');
+	                 record.set('flex_value_set_desc','');
+	                 record.set('flex_format_id','');
+	                 record.set('display_example','');
+	                 record.set('group_attribute_id','');
+	                 record.set('group_attribute_code','');
+	                 record.set('group_attribute_desc','');
+	                
+	                 if(value == 'ATTRIBUTE_GROUP'){
+	                     var tmpl_group_id = $('fnd29412_tmpl_instance_ds').getCurrentRecord().get('tmpl_group_id');
+	                     record.getMeta().getField('group_attribute_code').setRequired(true);
+	                     record.getField('group_attribute_code').setLovPara('tmpl_group_id', tmpl_group_id);
+	                 }else if(value == 'MANUAL'){
+	                     record.getMeta().getField('group_attribute_code').setRequired(false);   
+	                 }
+	                 
+	             }
+	         }
+	         
+	         function is_extended_attr(record){
+	          	var extend_instance_id =  record.get('extend_instance_id');
+	          	if(!Aurora.isEmpty(extend_instance_id)){
+	          	 	return true;   
+	          	}
+	          	return false;
+	         }
+	         
+	         function fnd29412_attribute_code_edited(record, name){
+	               if(record.isNew&&!is_extended_attr(record)){
+	                    return 'fnd29412_attribute_code_tf';
+	                }
+	                return '';
+	         }
+         	
+         	function fnd29412_group_attribute_code_edited(record, name){
+         	    var data_source = record.get("data_source");
+         	    if(data_source=="ATTRIBUTE_GROUP"&&!is_extended_attr(record)){
+         	   		return "fnd29412_group_attribute_code_lov";
+         	    }
+         	    return;
+         	}
+         	
+         	function fnd29412_format_category_desc_edited(record, name){
+         	    var data_source = record.get("data_source");
+         	    if(data_source=="MANUAL"&&!is_extended_attr(record)){
+         	   		return "fnd29412_format_category_desc_lov";
+         	    }
+         	    return;
+         	}
+
+         	function fnd29412_grid_editerfunction(record,name){
+         		if(name == 'attribute_code'){
+         		 	if(record.isNew&&!is_extended_attr(record)){
+	                    return 'fnd29412_attribute_code_tf';
+	                }
+	                return; 
+         		}else if(name == 'group_attribute_code'){
+         		    var data_source = record.get("data_source");
+	         	    if(data_source=="ATTRIBUTE_GROUP"&&!is_extended_attr(record)){
+	         	   		return "fnd29412_group_attribute_code_lov";
+	         	    }
+	         	    return;
+         		}else if(name == 'display_sequence'){
+         		    if(!is_extended_attr(record)){
+	         	   		return "fnd29412_display_sequence_nf";
+	         	    }
+	         	    return;
+         		}else if(name == 'appl_attribute'){
+         		    if(!is_extended_attr(record)){
+	         	   		return "fnd29412_combobox_cb";
+	         	    }
+	         	    return;
+         		}else if(name == 'data_source_desc'){
+         		    if(!is_extended_attr(record)){
+	         	   		return "fnd29412_combobox_cb";
+	         	    }
+	         	    return;
+         		}else if(name == 'attribute_desc'){
+         		    if(!is_extended_attr(record)){
+	         	   		return "fnd29412_attribute_desc_tf";
+	         	    }
+	         	    return;
+         		}else if(name == 'format_category_desc'){
+         		    var data_source = record.get("data_source");
+	         	    if(data_source=="MANUAL"&&!is_extended_attr(record)){
+	         	   		return "fnd29412_format_category_desc_lov";
+	         	    }
+	         	    return;
+         		}else if(name == 'nullable_flag'){
+         		    if(!is_extended_attr(record)){
+	         	   		return "fnd29412_enabled_flag_tf";
+	         	    }
+	         	    return '';
+         		}else if(name == 'enabled_flag'){
+         		    if(!is_extended_attr(record)){
+	         	   		return "fnd29412_enabled_flag_tf";
+	         	    }
+	         	    return '';
+         		}
+         	}
+         	
+         	function fnd29412_upgrade(){
+         	    var ds = $('fnd29412_tmpl_insc_attrs_ds');
+                if(!ds.validate()){
+                    return;
+                }
+                
+                var instance_record = $('fnd29412_tmpl_instance_ds').getCurrentRecord();
+                var tmpl_instance_id = instance_record.get('tmpl_instance_id');
+                var version	= instance_record.get('version');
+                
+                Aurora.showConfirm('提示','是否升级此模版？',function(){
+	             	Aurora.request({
+	                	url: $('fnd29412_upgrade_link').getUrl(),
+	                    para: {tmpl_instance_id:tmpl_instance_id,
+	                    	   version:version},
+	                    success: function(rec) {
+	                        Aurora.showMessage('提示','升级成功！',function(){
+	                            fnd29412_reback();
+	                        });
+	                    },
+	                    scope: this
+	                });   
+                });  
+         	}
+         	
+         	function fnd29412_release(){
+         	    var ds = $('fnd29412_tmpl_insc_attrs_ds');
+                if(!ds.validate()){
+                    return;
+                }
+                
+                var instance_record = $('fnd29412_tmpl_instance_ds').getCurrentRecord();
+                var tmpl_instance_id = instance_record.get('tmpl_instance_id');
+                var version	= instance_record.get('version');
+                
+                Aurora.showConfirm('提示','是否发布此模版？',function(){
+	             	Aurora.request({
+	                	url: $('fnd29412_release_link').getUrl(),
+	                    para: {tmpl_instance_id:tmpl_instance_id,
+	                    	   version:version},
+	                    success: function(rec) {
+	                        Aurora.showMessage('提示','发布成功！',function(){
+	                            fnd29412_reback();
+	                        });
+	                    },
+	                    scope: this
+	                });   
+                });  
+         	}
+         	
+         	function fnd29412_grid_ds_load(dataSet){
+         	    var records = dataSet.getAll();
+                if (Aurora.isEmpty(records) || records.length == 0) {
+                    return;
+                }
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    var value = record.get('data_source');
+                    if (value == 'ATTRIBUTE_GROUP') {
+                        var tmpl_group_id = $('fnd29412_tmpl_instance_ds').getCurrentRecord().get('tmpl_group_id');
+                        record.getMeta().getField('group_attribute_code').setRequired(true);
+                        record.getField('group_attribute_code').setLovPara('tmpl_group_id', tmpl_group_id);
+                    } else if (value == 'MANUAL') {
+                        record.getMeta().getField('group_attribute_code').setRequired(false);
+                    }
+            
+                }
+         	    
+         	}
+         	
+         	function fnd29412_tmpl_insc_attrs_ds_add(ds,record,index){
+         	    var instance_record = $('fnd29412_tmpl_instance_ds').getCurrentRecord();
+        	    record.set('display_sequence',index+1);
+        	    record.set('tmpl_instance_id',instance_record.get('tmpl_instance_id'));
+        	    record.set('tmpl_instance_version',instance_record.get('version'));
+        	}    
+        	
+        	function fnd29412_reback(){
+        	 	$('fnd29412_flex_tmpl_insc_attrs_window').close();   
+        	}
+        	
+        	function fnd29412_tmpl_insc_attrs_ds_submitsuccess(ds,result){
+        	 	fnd29412_reback();
+        	}
+         	
+         	function fnd29412_window_reload(){
+	         	var url = $('fnd29311_flex_tmpl_insc_attrs_link').getUrl();
+	         	var instance_record = $('fnd29412_tmpl_instance_ds').getCurrentRecord();
+	         	var tmpl_instance_id = instance_record.get('tmpl_instance_id');
+	         	var version = instance_record.get('version');
+	         	url += '?tmpl_instance_id='+tmpl_instance_id;
+	         	url += '&version='+version;
+	         	$('fnd29412_flex_tmpl_insc_attrs_window').load(url);
+	        }
+	        
+	        
+         	
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd29412_level_type_ds" lookupCode="FLEX_INSC_ATTR_LEVEL_TYPE"/>
+            <a:dataSet id="fnd29412_data_source_ds" lookupCode="FLEX_INSC_ATTR_DATA_SOURCE"/>
+            <a:dataSet id="fnd29412_appl_attributes_ds" autoQuery="true" fetchAll="true" loadData="true" queryUrl="${/request/@context_path}/autocrud/flex.fnd_flex_select_attribute_list/query?maxnum=31"/>
+            <a:dataSet id="fnd29412_tmpl_instance_ds" loadData="true">
+                <a:datas dataSource="/model/fnd29412_tmpl_instance_source"/>
+            </a:dataSet>
+            <a:dataSet id="fnd29412_tmpl_insc_attrs_ds" autoPageSize="true" autoQuery="true" fetchAll="false" model="flex.FND2941.fnd_flex_tmpl_insc_attrs" queryUrl="${/request/@context_path}/autocrud/flex.FND2941.fnd_flex_tmpl_insc_attrs/query?tmpl_instance_id=${/parameter/@tmpl_instance_id}&amp;version=${/parameter/@version}" selectable="true">
+                <a:fields>
+                    <a:field name="display_sequence"/>
+                    <a:field name="tmpl_insc_attr_id"/>
+                    <a:field name="tmpl_instance_id" defaultValue="${/parameter/@tmpl_instance_id}"/>
+                    <a:field name="data_source"/>
+                    <a:field name="data_source_desc" displayField="code_value_name" options="fnd29412_data_source_ds" required="true" returnField="data_source" valueField="code_value"/>
+                    <a:field name="appl_attribute" displayField="seqs" options="fnd29412_appl_attributes_ds" required="true" returnField="appl_attribute" valueField="seqs"/>
+                    <a:field name="attribute_code" required="true"/>
+                    <a:field name="attribute_desc" required="true"/>
+                    <a:field name="level_type" defaultValue="TEMPLATE"/>
+                    <a:field name="level_type_desc" displayField="code_value_name" options="fnd29412_level_type_ds" returnField="level_type" valueField="code_value"/>
+                    <a:field name="flex_value_set_id"/>
+                    <a:field name="flex_value_set_desc"/>
+                    <a:field name="flex_format_id"/>
+                    <a:field name="format_category_desc" autoComplete="false" lovHeight="200" lovUrl="${/request/@context_path}/modules/flex/fnd_flex_format_lov.screen" lovWidth="540" required="true" title="选择格式">
+                        <a:mapping>
+                            <a:map from="flex_format_id" to="flex_format_id"/>
+                            <a:map from="flex_format_category_desc" to="format_category_desc"/>
+                            <a:map from="display_example" to="display_example"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="display_example"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="nullable_flag" checkedValue="N" defaultValue="N" uncheckedValue="Y"/>
+                    <a:field name="group_attribute_id"/>
+                    <a:field name="group_attribute_code" autoComplete="true" autoCompleteField="quick_value" lovGridHeight="320" lovHeight="450" lovService="public.fnd_flex_tmpl_group_attrs_lov" lovWidth="500" title="属性集">
+                        <a:mapping>
+                            <a:map from="flex_format_id" to="flex_format_id"/>
+                            <a:map from="format_category_desc" to="format_category_desc"/>
+                            <a:map from="display_example" to="display_example"/>
+                            <a:map from="group_attribute_id" to="group_attribute_id"/>
+                            <a:map from="attribute_code" to="group_attribute_code"/>
+                            <a:map from="attribute_desc" to="group_attribute_desc"/>
+                            <a:map from="attribute_code" to="attribute_code"/>
+                            <a:map from="attribute_desc" to="attribute_desc"/>
+                            <a:map from="nullable_flag" to="nullable_flag"/>
+                            <a:map from="flex_value_set_id" to="flex_value_set_id"/>
+                            <a:map from="flex_value_set_desc" to="flex_value_set_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="group_attribute_desc"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd29412_grid_ds_update"/>
+                    <a:event name="load" handler="fnd29412_grid_ds_load"/>
+                    <a:event name="add" handler="fnd29412_tmpl_insc_attrs_ds_add"/>
+                    <a:event name="submitsuccess" handler="fnd29412_tmpl_insc_attrs_ds_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar id="fnd29412_screenTopToolbar">
+                <a:screenTitle/>
+                <a:gridButton bind="fnd29412_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="fnd29412_grid" type="save" width="100"/>
+                <a:gridButton bind="fnd29412_grid" type="clear" width="100"/>
+                <a:toolbarButton click="fnd29412_release" text="发布" width="100"/>
+                <a:toolbarButton click="fnd29412_upgrade" text="升级版本" width="100"/>
+                <a:toolbarButton click="fnd29412_reback" text="返回" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100" padding="0">
+                <a:label name="template_code" bindTarget="fnd29412_tmpl_instance_ds" prompt="模板代码" width="200"/>
+                <a:label name="template_desc" bindTarget="fnd29412_tmpl_instance_ds" prompt="模板描述" width="300"/>
+                <a:label name="version" bindTarget="fnd29412_tmpl_instance_ds" prompt="版本" width="100"/>
+            </a:hBox>
+            <a:hBox labelWidth="100" padding="0">
+                <a:label name="appl_table_name" bindTarget="fnd29412_tmpl_instance_ds" prompt="应用表名" width="200"/>
+                <a:label name="appl_table_desc" bindTarget="fnd29412_tmpl_instance_ds" prompt="应用表描述" width="300"/>
+            </a:hBox>
+            <a:grid id="fnd29412_grid" bindTarget="fnd29412_tmpl_insc_attrs_ds" marginHeight="120" marginWidth="40" navBar="true">
+                <a:columns>
+                    <a:column name="display_sequence" align="center" editorFunction="fnd29412_grid_editerfunction" prompt="编号" width="30"/>
+                    <a:column name="appl_attribute" align="center" editorFunction="fnd29412_grid_editerfunction" prompt="业务段" width="80"/>
+                    <a:column name="data_source_desc" align="center" editorFunction="fnd29412_grid_editerfunction" prompt="数据来源" width="50"/>
+                    <a:column name="group_attribute_code" align="center" editorFunction="fnd29412_grid_editerfunction" prompt="属性集代码" width="50"/>
+                    <a:column name="group_attribute_desc" align="center" prompt="属性集描述" width="80"/>
+                    <a:column name="attribute_code" align="center" editorFunction="fnd29412_grid_editerfunction" prompt="段代码" width="50"/>
+                    <a:column name="attribute_desc" align="center" editorFunction="fnd29412_grid_editerfunction" prompt="段名称" width="100"/>
+                    <a:column name="flex_value_set_desc" align="center" prompt="值集" width="80"/>
+                    <a:column name="format_category_desc" align="center" editorFunction="fnd29412_grid_editerfunction" prompt="数据格式类型" width="50"/>
+                    <a:column name="display_example" align="center" prompt="数据格式示例" width="100"/>
+                    <a:column name="nullable_flag" align="center" editorFunction="fnd29412_grid_editerfunction" prompt="必输" width="40"/>
+                    <a:column name="enabled_flag" align="center" editorFunction="fnd29412_grid_editerfunction" prompt="启用" width="40"/>
+                </a:columns>
+                <a:editors>
+                    <a:numberField id="fnd29412_display_sequence_nf" allowDecimals="false" allowNegative="false"/>
+                    <a:textField id="fnd29412_attribute_code_tf" typeCase="upper"/>
+                    <a:textField id="fnd29412_attribute_desc_tf"/>
+                    <a:lov id="fnd29412_format_category_desc_lov"/>
+                    <a:lov id="fnd29412_group_attribute_code_lov"/>
+                    <a:checkBox id="fnd29412_enabled_flag_tf" checkedValue="Y" uncheckedValue="N"/>
+                    <a:checkBox id="fnd29412_nullable_flag_tf" checkedValue="N" uncheckedValue="Y"/>
+                    <a:comboBox id="fnd29412_combobox_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

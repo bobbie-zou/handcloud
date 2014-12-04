@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-9-12 下午8:14:38  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="pur5610_register_vendor_finance_update_link" model="pur.PUR5610.pur_register_vendor_finance" modelaction="update"/>
+        <style type="text/css"><![CDATA[
+
+.tr {
+    margin-top:5px;
+    margin-bottom:5px;
+}			
+		]]></style>
+        <script><![CDATA[
+            //总资产必须大于从负债
+            
+            function pur5610_compare_liabilities(a, b) {
+                if (a < b) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+            
+            function pur5610_asset_debt_validator(record, name, value) {
+                if (name == 'total_assets' || name == 'total_liabilities') {
+                    var asset = record.get('total_assets');
+                    var liabilities = record.get('total_liabilities');
+            
+                    if ( !! liabilities) {
+                        if (!pur5610_compare_liabilities(asset, liabilities)) {
+                            return '${l:PUR5610.ASSETS_SHOULD_MORE_THAN_LIABILITIES}';
+                        }
+                    }
+                }
+                return true;
+            }
+            
+            //保存
+            
+            function pur5610_finance_edit_save() {
+                var ds = $('pur5610_vendor_finance_edit_ds');
+                var record = ds.getCurrentRecord();
+            
+                if (ds.validate()) {
+                    Aurora.request({
+                        url: $('pur5610_register_vendor_finance_update_link').getUrl(),
+                        para: record.data,
+                        success: function(res) {
+                            var vendor_finance_id = res.result.vendor_finance_id;
+            
+                            var year_period = record.get('year_period');
+                            var total_assets = record.get('total_assets');
+                            if (total_assets == null) {
+                                total_assets = ' ';
+                            }
+                            var total_liabilities = record.get('total_liabilities');
+                            if (total_liabilities == null) {
+                                total_liabilities = ' ';
+                            }
+                            var current_assets = record.get('current_assets');
+                            if (current_assets == null) {
+                                current_assets = ' ';
+                            }
+                            var current_liabilities = record.get('current_liabilities');
+                            if (current_liabilities == null) {
+                                current_liabilities = ' ';
+                            }
+                            var revenue = record.get('revenue');
+                            if (revenue == null) {
+                                revenue = ' ';
+                            }
+                            var net_profit = record.get('net_profit');
+                            if (net_profit == null) {
+                                net_profit = ' ';
+                            }
+                            $('pur5610_finance_edit_win').close();
+                            $('pur5610_vendor_finance_ds').query();
+                            pur5610_finance_init();
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function pur5610_finance_edit_close() {
+                $('pur5610_finance_edit_win').close();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5610_vendor_finance_edit_ds" autoQuery="true" model="pur.PUR5610.pur_register_vendor_finance" queryUrl="${/request/@context_path}/autocrud/pur.PUR5610.pur_register_vendor_finance/query?vendor_finance_id=${/parameter/@vendor_finance_id}">
+                <a:fields>
+                    <a:field name="vendor_id" defaultValue="${/parameter/@vendor_id}"/>
+                    <a:field name="year_period" readOnly="true"/>
+                    <a:field name="total_assets" required="false" validator="pur5610_asset_debt_validator"/>
+                    <a:field name="total_liabilities" required="false" validator="pur5610_asset_debt_validator"/>
+                    <a:field name="current_assets" required="false"/>
+                    <a:field name="current_liabilities" required="false"/>
+                    <a:field name="revenue" required="false"/>
+                    <a:field name="net_profit" required="false"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <div style="margin-top:20px;">
+            <a:vBox labelWidth="110">
+                <a:textField name="year_period" bindTarget="pur5610_vendor_finance_edit_ds" className="tr" prompt="PUR_REGISTER_VENDOR_FINANCE.YEAR_PERIOD"/>
+                <a:numberField name="total_assets" allowDecimals="true" allowFormat="true" bindTarget="pur5610_vendor_finance_edit_ds" className="tr" decimalPrecision="2" prompt="PUR_REGISTER_VENDOR_FINANCE.TOTAL_ASSETS"/>
+                <a:numberField name="total_liabilities" allowDecimals="true" allowFormat="true" bindTarget="pur5610_vendor_finance_edit_ds" className="tr" decimalPrecision="2" prompt="PUR_REGISTER_VENDOR_FINANCE.TOTAL_LIABILITIES"/>
+                <a:numberField name="current_assets" allowDecimals="true" allowFormat="true" bindTarget="pur5610_vendor_finance_edit_ds" className="tr" decimalPrecision="2" prompt="PUR_REGISTER_VENDOR_FINANCE.TOTAL_LIABILITIES"/>
+                <a:numberField name="current_liabilities" allowDecimals="true" allowFormat="true" bindTarget="pur5610_vendor_finance_edit_ds" className="tr" decimalPrecision="2" prompt="PUR_REGISTER_VENDOR_FINANCE.CURRENT_LIABILITIES"/>
+                <a:numberField name="revenue" allowDecimals="true" allowFormat="true" bindTarget="pur5610_vendor_finance_edit_ds" className="tr" decimalPrecision="2" prompt="PUR_REGISTER_VENDOR_FINANCE.REVENUE"/>
+                <a:numberField name="net_profit" allowDecimals="true" allowFormat="true" bindTarget="pur5610_vendor_finance_edit_ds" className="tr" decimalPrecision="2" prompt="PUR_REGISTER_VENDOR_FINANCE.NET_PROFIT"/>
+            </a:vBox>
+            <a:hBox style="margin-top:15px;">
+                <a:button click="pur5610_finance_edit_save" style="float:left;margin-left:50px;" text="PUR5610.ADD" width="60"/>
+                <a:button click="pur5610_finance_edit_close" style="float:left;margin-left:100px;" text="PUR5610.ABANDON" width="60"/>
+            </a:hBox>
+        </div>
+    </a:view>
+</a:screen>

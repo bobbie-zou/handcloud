@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-4-18 下午3:01:28  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="line_expert_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="LINE_EXPERT_ID" prompt="BID_ENTRUSTMENT_LN_EXPERTS.LINE_EXPERT_ID"/>
+        <bm:field name="expert_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="EXPERT_ID" prompt="BID_ENTRUSTMENT_LN_EXPERTS.EXPERT_ID"/>
+        <bm:field name="entrustment_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ENTRUSTMENT_HEADER_ID" prompt="BID_ENTRUSTMENT_LN_EXPERTS.ENTRUSTMENT_HEADER_ID"/>
+        <bm:field name="leader_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="LEADER_FLAG" prompt="BID_ENTRUSTMENT_LN_EXPERTS.LEADER_FLAG"/>
+        <bm:field name="start_date" databaseType="DATE" datatype="java.util.Date" physicalName="START_DATE" prompt="BID_ENTRUSTMENT_LN_EXPERTS.START_DATE"/>
+        <bm:field name="end_date" databaseType="DATE" datatype="java.util.Date" physicalName="END_DATE" prompt="BID_ENTRUSTMENT_LN_EXPERTS.END_DATE"/>
+        <bm:field name="participate_time" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PARTICIPATE_TIME" prompt="BID_ENTRUSTMENT_LN_EXPERTS.PARTICIPATE_TIME"/>
+        <bm:field name="suspend_start_date" databaseType="DATE" datatype="java.util.Date" physicalName="SUSPEND_FROM" prompt="BID_ENTRUSTMENT_LN_EXPERTS.SUSPEND_FROM"/>
+        <bm:field name="suspend_end_date" databaseType="DATE" datatype="java.util.Date" physicalName="SUSPEND_TO" prompt="BID_ENTRUSTMENT_LN_EXPERTS.SUSPEND_TO"/>
+        <bm:field name="suspend_time" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SUSPEND_TIME" prompt="BID_ENTRUSTMENT_LN_EXPERTS.SUSPEND_TIME"/>
+        <bm:field name="source_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="SOURCE_TYPE" prompt="BID_ENTRUSTMENT_LN_EXPERTS.SOURCE_TYPE"/>
+        <bm:field name="employee_code" databaseType="VARHCAR2" datatype="java.lang.String"/>
+        <bm:field name="name" databaseType="VARHCAR2" datatype="java.lang.String"/>
+        <bm:field name="source_type_desc" databaseType="VARHCAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="entrustment_header_id" queryOperator="="/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    le.line_expert_id,
+                    le.entrustment_header_id,
+                    le.expert_id,
+                    le.leader_flag,
+                    le.start_date,
+                    le.end_date,
+                    le.participate_time,
+                    le.suspend_start_date,
+                    le.suspend_end_date,
+                    le.suspend_time,
+                    le.source_type,
+                    (SELECT
+                        e.employee_code
+                    FROM
+                        bid_experts b,
+                        exp_employees e
+                    WHERE
+                        e.employee_id = b.employee_id AND
+                        b.expert_id   = le.expert_id
+                    ) AS employee_code,
+                    (SELECT
+                        e.name
+                    FROM
+                        bid_experts b,
+                        exp_employees e
+                    WHERE
+                        e.employee_id = b.employee_id AND
+                        b.expert_id   = le.expert_id
+                    ) AS name,
+                    (SELECT
+                        v.code_value_name
+                    FROM
+                        sys_code_values_v v
+                    WHERE
+                        v.code       = 'BID_EXPERT_SOURCE_TYPES' AND
+                        v.code_value = le.source_type
+                    ) AS source_type_desc
+                FROM
+                    bid_entrustment_ln_experts le #WHERE_CLAUSE#
+                ORDER BY
+                    leader_flag DESC,
+                    employee_code ASC
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="line_expert_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@line_expert_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+				BEGIN
+				  -- Call the procedure
+				  bid_entrustment_pkg.create_entrustment_expert(o_line_expert_id        => ${@line_expert_id},
+				                                                p_entrustment_header_id => ${@entrustment_header_id},
+				                                                p_expert_id             => ${@expert_id},
+				                                                p_leader_flag           => ${@leader_flag},
+				                                                p_source_type           => ${@source_type},
+				                                                p_user_id               => ${/session/@user_id});
+				END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                  bid_entrustment_pkg.modify_entrustment_expert(p_line_expert_id 		=> ${@line_expert_id},
+                                             				    p_entrustment_header_id => ${@entrustment_header_id},
+                                             				    p_expert_id 			=> ${@expert_id},
+                                             				    p_leader_flag 			=> ${@leader_flag},
+                                             				    p_source_type 			=> ${@source_type},
+                                             				    p_user_id 				=> ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+                BEGIN
+         		  bid_entrustment_pkg.delete_entrustment_expert(p_line_expert_id 		=> ${@line_expert_id},
+                                             				    p_user_id 				=> ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

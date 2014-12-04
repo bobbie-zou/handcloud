@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-1-10 下午07:48:37  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="description_id = ${/parameter/@primary_uom_description_id} and language = ${/session/@lang}" model="fnd.fnd_descriptions" rootPath="primary_uom_description"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link model="fnd.FND1040.fnd_check_repeat_conversion_rate" modelaction="execute"/>
+        <script><![CDATA[
+            var fnd_1040_cvn_rate_repeat_flag = 'N';
+            
+            function fnd_1040_uom_cnv_ef(record, name) {
+                if (record.isNew) {
+                    return 'fnd_1040_uom_cnv_lov';
+                } else {
+                    return '';
+                }
+            }
+            
+            function fnd_1040_uom_cnv_description_ef(record, name) {
+                if (record.get('uom_code') == '${/parameter/@primary_uom_code}') {
+                    return '';
+                } else {
+                    return 'fnd_1040_uom_cnv_ft';
+                }
+            }
+            
+            function fnd_1040_uom_cnv_conversion_rate_ef(record, name) {
+                if (record.get('uom_code') == '${/parameter/@primary_uom_code}') {
+                    return '';
+                } else {
+                    return 'fnd_1040_uom_cnv_nf';
+                }
+            }
+            
+            function fnd_1040_uom_cnv_enabled_flag_ef(record, name) {
+                if (record.get('uom_code') == '${/parameter/@primary_uom_code}') {
+                    return '';
+                } else {
+                    return 'fnd_1040_uom_cnv_chb';
+                }
+            }
+            
+            function fnd_1040_uom_cnv_multiply_rd(value, record, name) {
+                return '×';
+            }
+            
+            function fnd_1040_uom_cnv_equal_rd(value, record, name) {
+                return '=';
+            }
+            
+            function fnd_1040_uom_cnv_add(ds, record, index) {
+                var uom_class_ds = $('fnd_1040_uom_classed_result_ds');
+                var uom_class_record = uom_class_ds.getCurrentRecord();
+                record.set('class_code', uom_class_record.get('class_code'));
+                record.set('class_description_id', uom_class_record.get('description_id'));
+                record.set('primary_uom_code', '${/parameter/@primary_uom_code}');
+                record.set('primary_uom_description', '${/model/primary_uom_description/record/@description_text}');
+                record.set('primary_uom_description_id', '${/parameter/@primary_uom_description_id}');
+            }
+            
+            function fnd_1040_conversion_rate_vld(record, name, value) {
+                var ds = $('fnd_1040_uom_cnv_result_ds');
+                fnd_1040_cvn_rate_repeat_flag = 'N';
+                var result_record = ds.find('conversion_rate', value);
+                if (!Aurora.isEmpty(result_record)) {
+                    if (ds.indexOf(record) !== ds.indexOf(result_record)) {
+                        fnd_1040_cvn_rate_repeat_flag = 'Y';
+                    }
+                }
+                return true;
+            }
+            
+            function fnd_1040_uom_cnv_save() {
+                var ds = $('fnd_1040_uom_cnv_result_ds');
+                if (fnd_1040_cvn_rate_repeat_flag == 'Y') {
+                    Aurora.showConfirm('${l:PROMPT}', '${l:FND_UOM_CONVERSIONS.CONVERSIONS_DEFINE_CONFIRM}', function() {
+                        ds.submit();
+                    });
+                } else {
+                    ds.submit();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd_1040_uom_cnv_query_ds"/>
+            <a:dataSet id="fnd_1040_uom_cnv_result_ds" autoQuery="true" fetchAll="true" model="fnd.FND1042.fnd_uom_conversions" queryDataSet="fnd_1040_uom_cnv_query_ds" queryUrl="${/request/@context_path}/autocrud/fnd.FND1042.fnd_uom_conversions/query?class_code=${/parameter/@class_code}&amp;order_byprimary_flag=Y" selectable="true">
+                <a:fields>
+                    <a:field name="uom_code" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovLabelWidth="120" lovService="fnd.FND1041.fnd_uom_codes_lov?enabled_flag=Y&amp;filter_primary_uom_code=${/parameter/@primary_uom_code}" lovWidth="540" required="true" title="单位编码">
+                        <a:mapping>
+                            <a:map from="uom_code" to="uom_code"/>
+                            <a:map from="description" to="description"/>
+                            <a:map from="description_id" to="description_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="description" required="true"/>
+                    <a:field name="description_id"/>
+                    <a:field name="conversion_rate" required="true" validator="fnd_1040_conversion_rate_vld"/>
+                    <a:field name="primary_uom_code"/>
+                    <a:field name="primary_uom_description"/>
+                    <a:field name="primary_uom_description_id"/>
+                    <a:field name="class_code"/>
+                    <a:field name="class_description_id"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="fnd_1040_uom_cnv_add"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="fnd_1040_uom_cnv_grid" className="item-rbtn-blue button-add" type="add" width="100"/>
+            <a:toolbarButton id="fnd_1040_uom_cnv_save_btn" click="fnd_1040_uom_cnv_save" text="PROMPT.SAVE" width="100"/>
+            <!-- <a:gridButton bind="fnd_1040_uom_cnv_grid" className="item-rbtn-blue button-save" type="save" width="100"/> -->
+            <a:gridButton bind="fnd_1040_uom_cnv_grid" className="item-rbtn-blue button-clear" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:defaultScreen>
+            <a:hBox labelWidth="85">
+                <a:textField name="class_code" bindTarget="fnd_1040_uom_classed_result_ds" prompt="FND_UOM_CLASSES.CLASS_CODE" readOnly="true"/>
+                <a:textField name="class_description" bindTarget="fnd_1040_uom_classed_result_ds" prompt="FND_UOM_CLASSES.CLASS_NAME" readOnly="true"/>
+            </a:hBox>
+            <a:grid id="fnd_1040_uom_cnv_grid" bindTarget="fnd_1040_uom_cnv_result_ds" height="350" marginHeight="130" marginWidth="40" navBar="true" width="1209">
+                <a:columns>
+                    <a:column name="uom_code" align="left" editorFunction="fnd_1040_uom_cnv_ef" prompt="FND_UOM_CODES.UOM_CODE" sortable="true" width="200"/>
+                    <a:column name="description" align="left" editorFunction="fnd_1040_uom_cnv_description_ef" prompt="FND_UOM_CODES.UOM_NAME" sortable="true" width="200"/>
+                    <a:column name="multiply" align="left" prompt="×" renderer="fnd_1040_uom_cnv_multiply_rd" sortable="true" width="50"/>
+                    <a:column name="conversion_rate" align="left" editorFunction="fnd_1040_uom_cnv_conversion_rate_ef" prompt="FND_UOM_CONVERSIONS.CONVERSION_RATE" sortable="true" width="200"/>
+                    <a:column name="equal" align="left" prompt="=" renderer="fnd_1040_uom_cnv_equal_rd" sortable="true" width="50"/>
+                    <a:column name="primary_uom_code" align="left" prompt="FND_UOM_CLASSES.PRIMARY_UOM_CODE" sortable="true" width="200"/>
+                    <a:column name="primary_uom_description" align="left" prompt="FND_UOM_CLASSES.PRIMARY_UOM_NAME" sortable="true" width="200"/>
+                    <a:column name="enabled_flag" align="center" editorFunction="fnd_1040_uom_cnv_enabled_flag_ef" prompt="FND_UOM_CONVERSIONS.ENABLED_FLAG" sortable="true" width="50"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="fnd_1040_uom_cnv_lov"/>
+                    <a:numberField id="fnd_1040_uom_cnv_nf"/>
+                    <a:textField id="fnd_1040_uom_cnv_ft"/>
+                    <a:textField id="fnd_1040_uom_cnv_uppercase_ft"/>
+                    <a:checkBox id="fnd_1040_uom_cnv_chb"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

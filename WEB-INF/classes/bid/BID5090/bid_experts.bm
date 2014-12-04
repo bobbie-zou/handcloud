@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-7 下午03:39:42  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="expert_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="BID_EXPERTS.EXPERT_ID"/>
+        <bm:field name="employee_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="EXP_EMPLOYEES.EMPLOYEE_ID"/>
+        <bm:field name="employee_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="EXP_EMPLOYEES.EMPLOYEE_CODE"/>
+        <bm:field name="name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="EXP_EMPLOYEES.NAME"/>
+        <bm:field name="email" databaseType="VARCHAR2" datatype="java.lang.String" prompt="EXP_EMPLOYEES.EMAIL"/>
+        <bm:field name="mobil" databaseType="VARCHAR2" datatype="java.lang.String" prompt="EXP_EMPLOYEES.MOBIL"/>
+        <bm:field name="phone" databaseType="VARCHAR2" datatype="java.lang.String" prompt="EXP_EMPLOYEES.PHONE"/>
+        <bm:field name="id_type" databaseType="VARCHAR2" datatype="java.lang.String" prompt="EXP_EMPLOYEES.ID_TYPE"/>
+        <bm:field name="id_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="EXP_EMPLOYEES.ID_CODE"/>
+        <bm:field name="date_of_birth" databaseType="DATE" datatype="java.util.Date" prompt="EXP_EMPLOYEES.DATE_OF_BIRTH"/>
+        <bm:field name="original_date_of_hair" databaseType="DATE" datatype="java.util.Date" prompt="EXP_EMPLOYEES.ORIGINAL_DATE_OF_HAIR"/>
+        <bm:field name="sex" databaseType="VARCHAR2" datatype="java.lang.String" prompt="EXP_EMPLOYEES.SEX"/>
+        <bm:field name="expert_level_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="expert_level_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="BID_EXPERTS.EXPERT_LEVEL_ID"/>
+        <bm:field name="expert_type" databaseType="VARCHAR2" datatype="java.lang.String" prompt="BID_EXPERTS.EXPERT_TYPE"/>
+        <bm:field name="registration_date" databaseType="DATE" datatype="java.util.Date" prompt="BID_EXPERTS.REGISTRATION_DATE"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+    			begin
+    				bid_expert_pkg.modify_expert(p_employee_id	 =>${@employee_id},
+					                          	 p_date_of_birth =>to_date(${@date_of_birth},'yyyy-mm-dd'),
+					                          	 p_id_type       =>${@id_type},
+					                          	 p_id_code       =>${@id_code},
+					                          	 p_mobil         =>${@mobil},
+					                          	 p_email         =>${@email},
+					                          	 p_phone         =>${@phone},
+					                          	 p_user_id       =>${/session/@user_id});
+    			end;
+    		]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    be.expert_id,
+                    ee.employee_id,
+                    ee.name,
+                    ee.sex,
+                    ee.date_of_birth,
+                    (SELECT
+                        fv.flex_desc
+                    FROM
+                        fnd_flex_value_sets fvs,
+                        fnd_flex_values_vl fv
+                    WHERE
+                        fvs.flex_value_set_code = 'BID_EXPERT_LEVEL_CODES' AND
+                        fvs.flex_value_set_id   = fv.flex_value_set_id AND
+                        fv.flex_value_id        = be.expert_level_id
+                    ) AS expert_level_desc,
+                    be.expert_level_id,
+                    be.expert_type,
+                    be.registration_date,
+                    ee.employee_code,
+                    ee.original_date_of_hair,
+                    ee.id_type,
+                    ee.id_code,
+                    ee.email,
+                    ee.mobil,
+                    ee.phone
+                FROM
+                    bid_experts be,
+                    exp_employees ee,
+                    sys_user su
+                WHERE
+                    be.employee_id = ee.employee_id AND
+                    ee.employee_id = su.employee_id AND
+                    su.user_id     = ${/session/@user_id}
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

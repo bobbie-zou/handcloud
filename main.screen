@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:c="aurora.application.action" xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc" trace="true">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="sys.sys_main_menu" rootPath="main_menu"/>
+        <a:model-query fetchAll="true" model="sys.sys_modules" rootPath="modules"/>
+        <a:model-query fetchAll="true" model="sys.sys_functions" rootPath="functions"/>
+        <a:model-query fetchAll="true" model="sys.sys_user_last_login_info" rootPath="login_role"/>
+        <a:model-query fetchAll="true" model="sys.sys_user_role_groups" rootPath="role_list"/>
+        <a:model-query fetchAll="true" model="sys.sys_role_service" rootPath="default_role_service"/>
+    </a:init-procedure>
+    <a:view template="main">
+        <a:link id="main_get_info_mess_link_1" url="${/request/@context_path}/get_info_mess.svc"/>
+        <a:link id="main_sys_customization_setup_link" url="${/request/@context_path}/modules/sys/sys_customization_setup.screen"/>
+        <a:link id="main_theme_select_link" url="${/request/@context_path}/theme_select.screen"/>
+        <a:link id="main_update_self_password_link" url="${/request/@context_path}/update_self_password.screen"/>
+        <a:link id="main_role_select_link_1" url="${/request/@context_path}/role_select.svc"/>
+        <a:link id="main_main_link_1" url="${/request/@context_path}/main.screen"/>
+        <a:link id="main_current_function_code_in_session_link" url="${/request/@context_path}/current_function_code_in_session.svc"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/boostrapv3/css/bootstrap.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/font-awesome/css/font-awesome.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/css/responsive.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/css/custom-icon-set.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/jqueryui/css/ui-lightness/jquery-ui-1.10.4.custom.min.css" rel="stylesheet"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/fullcalendar/fullcalendar.css" rel="stylesheet"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/fullcalendar/fullcalendar.print.css" media="print" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/style.css" rel="stylesheet"/>
+        <link href="${/request/@context_path}/index/css/main.css" rel="stylesheet"/>
+        <script><![CDATA[
+            var main_urls = document.cookie.match(new RegExp("(^| )" + "TARGETURL" + "=([^;]*)(;|$)"));
+            var main_timeOuts = document.cookie.match(new RegExp("(^| )" + "ISTIMEOUT" + "=([^;]*)(;|$)"));
+            var main_targetUrl = (!main_urls) ? '' : ((!main_urls[2]) ? '' : main_urls[2]);
+            var main_isTimeOut = (!main_timeOuts) ? false : (main_timeOuts[2] != 'true') ? false : true;
+            
+            //取过main_isTimeOut的值之后清除timeout的cookie
+            Aurora.setCookie('ISTIMEOUT', 'false');
+            
+            //加急订单标志，用于首页快捷入口进入
+            var main_urgent_flag = 'N';
+            
+            function showSessionMessage() {
+                var jid = Aurora.getCookie('JSID');
+                var html = '<TABLE width="380" style="margin-left:10px;text-align:center;" border=1 cellSpacing=0><TBODY><TR><TD>JSID</TD><TD>SessionId</TD><TD>UserId</TD><TD>CompanyId</TD><TD>SystemMode</TD></TR>';
+                html = html + '<TR><TD>' + jid + '</TD><TD>${/session/@session_id}</TD><TD>${/session/@user_id}</TD><TD>${/session/@company_id}</TD><TD>${/session/@system_mode}</TD></TR></TBODY></TABLE>';
+                Aurora.showInfoMessage('LoginInfo', html, null, 480, 140);
+            
+            }
+            
+            function customization() {
+                new Aurora.Window({
+                    id: 'sys_customization_window',
+                    url: /*${/request/@context_path}/modules/sys/sys_customization_setup.screen*/
+                    $('main_sys_customization_setup_link').getUrl(),
+                    title: '个性化设置',
+                    height: 200,
+                    width: 400
+                });
+            }
+            
+            function showLogWindow() {
+                new Aurora.Window({
+                    id: 'log_window',
+                    url: /*log_window.screen*/
+                    $('log_window_link').getUrl(),
+                    title: '${l:L.LOG}',
+                    height: 300,
+                    width: 500
+                });
+            }
+            
+            function showTheme() {
+                var url = /*theme_select.screen*/
+                $('main_theme_select_link').getUrl();
+                var themeWindow = new Aurora.Window({
+                    id: 'theme_window',
+                    url: url,
+                    title: '${l:CHOOSE_SKIN}',
+                    height: 340,
+                    width: 580
+                });
+            }
+            
+            function updatePassword() {
+            
+                var url = /*update_self_password.screen*/
+                $('main_update_self_password_link').getUrl();
+                new Aurora.Window({
+                    id: 'update_password_window',
+                    url: url,
+                    title: '${l:FND_PRV_LOGIN_ACC.CHA_PWD}',
+                    closeable: true,
+                    draggable: false,
+                    height: 200,
+                    width: 400
+                });
+            
+            }
+            
+            function roleSelectUpdateFunction(dataSet, record, name, value, oldValue) {
+                if (name == 'role_id') {
+                    Aurora.request({
+                        url: /*role_select.svc*/
+                        $('main_role_select_link_1').getUrl(),
+                        para: record.data,
+                        success: refreshMainScreen,
+                        scope: this
+                    });
+                }
+            }
+            
+            function refreshMainScreen() {
+                Aurora.setCookie('RECHOOSEROLE', 'true');
+                window.location.href = $('main_main_link_1').getUrl();
+            }
+            
+            function alertSession() {
+                var current_session = '<p>session_id:${/session/@session_id}</p><p>client:${/session/@client}</p><p>user_id:${/session/@user_id}</p><p>user_type:${/session/@user_type}</p><p>role_id:${/session/@role_id}</p><p>company_id:${/session/@company_id}</p><p>vendor_id:${/session/@vendor_id}</p><p>default_company_id:${/session/@default_company_id}</p><p>default_company_code:${/session/@default_company_code}</p><p>default_company_desc:${/session/@default_company_desc}</p><p>default_inv_organization_id:${/session/@default_inv_organization_id}</p><p>default_inv_organization_code:${/session/@default_inv_organization_code}</p><p>default_inv_organization_desc:${/session/@default_inv_organization_desc}</p>';
+                current_session = current_session + '<p>页面标题:' + document.getElementById('main_screen_title').value + '</p>';
+                current_session = current_session + '<p>页面名称:' + document.getElementById('main_screen_name').value + '</p>';
+                Aurora.showInfoMessage('提示', current_session, null, 550, 550);
+            }
+            
+            function main_onTabSelect(tab, index) {
+                var item = $('mainTab').items[index];
+                document.getElementById('main_screen_title').value = item.prompt;
+                document.getElementById('main_screen_name').value = item.ref;
+                getCurrentFunctionCode(item.ref);
+            }
+            
+            function getCurrentFunctionCode(function_ref) {
+                var arr = function_ref.split("function_code=");
+                if (arr.length > 1) {
+                    var current_function_code = arr[1];
+                    Aurora.request({
+                        url: $('main_current_function_code_in_session_link').getUrl(),
+                        para: {
+                            current_function_code: current_function_code
+                        },
+                        sync: false,
+                        //同步请求
+                        success: function() {},
+                        failure: function() {},
+                        error: function() {},
+                        scope: this
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="role_list_ds">
+                <a:datas dataSource="/model/role_list"/>
+            </a:dataSet>
+            <a:dataSet id="role_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="role_id" defaultValue="${/model/login_role/record/@role_id}"/>
+                    <a:field name="role_code" defaultValue="${/model/login_role/record/@role_code}"/>
+                    <a:field name="role_name" defaultValue="${/model/login_role/record/@role_name}" displayField="role_name" options="role_list_ds">
+                        <a:mapping>
+                            <a:map from="role_id" to="role_id"/>
+                            <a:map from="role_code" to="role_code"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="roleSelectUpdateFunction"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <input id="main_screen_title" type="hidden" value=""/>
+        <input id="main_screen_name" type="hidden" value=""/>
+        <div>
+            <table id="main" border="0" cellPadding="0" cellSpacing="0" style="width:100%;height:100%;">
+                <tbody>
+                    <tr>
+                        <td>
+                            <ul id="main_menu" class="main-menu">
+                                <div id="item">
+                                    <div id="logo">
+                                        <img src="${/request/@context_path}/index/images/HandIcon.png" style="height: 50px;"/>
+                                    </div>
+                                    <a:freeMarker><![CDATA[
+                                    <#if model.getObject("/model/main_menu").getChilds()??>
+                                        <#list model.getObject("/model/main_menu").getChilds() as item>
+                                            <#if item_index == 0>
+                                                <li id="model_${item.getString('function_code')}">
+                                            <#else>
+                                                <li id="model_${item.getString('function_code')}">
+                                            </#if>
+                                            <#if item.getString('parent_function_id')??>
+                                                <a hidefocus="true" href="#" >${item.getString('function_name')}</a>
+                                            <#else>
+                                                <a hidefocus="true" onclick="javascript:mainSetTargeturl('${item.getString('function_code')}');" href="javascript:void(0)">${item.getString('function_name')}</a>
+                                            </#if>
+                                           </li> 
+                                        </#list>         
+                                    </#if>
+                                    ]]></a:freeMarker>
+                                    <!-- <div class="middle">
+                                        <a href="javascript:alertSession();"><![CDATA[查看session]]></a>
+                                    </div> -->
+                                    <a:comboBox name="role_name" bindTarget="role_ds" style="position:absolute; top: 16px; right: 10px; font-size: 12px;"/>
+                                </div>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id="sub_menu" class="sub-menu">
+                            <div style="position:relative;z-index:10000">
+                                <a:freeMarker><![CDATA[
+                                <#list model.getObject("/model/main_menu").getChilds() as main_menu>
+                                    <div class="menu" id="submenu_${main_menu.getString('function_code')}">
+                                        <#list model.getObject("/model/modules").getChilds() as sm>
+                                            <#if sm.getString('parent_function_id')??>
+                                                <#if sm.getString('parent_function_id') == main_menu.getString('function_id')>
+                                                    <ul>
+                                                        <li class="head">${sm.getString('function_name')}</li>
+                                                        <#if model.getObject("/model/functions").getChilds()??>
+                                                            <#list model.getObject("/model/functions").getChilds() as function>
+                                                                <#if function.getString('parent_function_id') ??>
+                                                                    <#if function.getString('parent_function_id') == sm.getString('function_id') >
+                                                                        <#if function.getString('service_name')??>
+                                                                            <#if function.getString('function_code')??>
+                                                                                <li class="line">
+                                                                                    <a hidefocus="true" href="javascript:hideSubmenu('${main_menu.getString('function_code')}','${function.getString('service_name')}?function_code=${function.getString('function_code')}');openFunction('${function.getString('service_name')}?function_code=${function.getString('function_code')}','${function.getString('function_name')}')" >${function.getString('function_name')}</a>
+                                                                                </li>
+                                                                            </#if>
+                                                                        </#if>
+                                                                    </#if>
+                                                                </#if>
+                                                            </#list>
+                                                        </#if>
+                                                    </ul>  
+                                                </#if>
+                                            </#if>
+                                        </#list> 
+                                    </div>
+                                </#list>
+                            ]]></a:freeMarker>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <a:tabPanel id="mainTab">
+            <a:tabs>
+                <a:tab prompt="首页"/>
+            </a:tabs>
+            <a:events>
+                <a:event name="select" handler="main_onTabSelect"/>
+            </a:events>
+        </a:tabPanel>
+        <script><![CDATA[
+            var role_service = '${/model/default_role_service/record/@service_name}';
+            if (!Ext.isEmpty(role_service)) {
+                $('mainTab').load(role_service, $('mainTab').getTab(0).body, 0);
+            } else {
+                $('mainTab').load('modules/wfl/WFL1001/sys_favorite_function_view.screen', $('mainTab').getTab(0).body, 0);
+            }
+            
+            var mt = document.getElementById('mainTab');
+            
+            mt.className="main-tab";
+            
+            function initSideMenu() {
+                var sm = Ext.get('sidemenu');
+                var div = Ext.get();
+                if (!Ext.isEmpty(sm)) {
+                    sm.on('mouseover', function() {
+                        sm.setStyle('left', '0px');
+                    });
+                    sm.on('mouseout', function() {
+                        sm.setStyle('left', '-100px');
+                    });
+                }
+            }
+            
+            function openMainScreen() {
+                // document.getElementById('main_screen_title').value = '首页';
+                // document.getElementById('main_screen_name').value = 'modules/wfl/WFL1001/sys_favorite_function_view.screen';
+                hideCurrentMenu();
+                $('mainTab').selectTab(0);
+                Ext.get('sidemenu').setStyle('left', '-100px');
+            }
+            
+            function onSideMenuClick(screen, prompt) {
+                hideCurrentMenu();
+                $('mainTab').openTab('${/request/@context_path}/' + screen, prompt);
+                Ext.get('sidemenu').setStyle('left', '-100px');
+            }
+            
+            var jsid = Aurora.getCookie('JSID');
+            
+            function hideCurrentMenu() {
+                if (window.subModel) {
+                    hideSubmenu(window.subModel);
+                }
+            }
+            
+            function hideSubmenu(code, url) {
+                document.getElementById('submenu_' + code).style.display = 'none';
+                window.subModel = null;
+                Aurora.setCookie('TARGETURL', url, 0.5);
+                main_targetUrl = url;
+            }
+            
+            function openFunction(url, prompt) {
+                // document.getElementById('main_screen_title').value = prompt;
+                // document.getElementById('main_screen_name').value = url;
+                getCurrentFunctionCode(url);
+            
+                //加急订单的话，则需要进行一些判断
+                if (main_urgent_flag && main_urgent_flag == 'Y') {
+                    var items = $('mainTab').items;
+                    for (i = 0;i < items.length;i++) {
+                        //CLIENT用户点击的“加急订单”，打开的是PUR7010
+                        if (items[i].ref && items[i].ref.indexOf('function_code=PUR7010&_queryFlag=Y') != -1 && url.indexOf('function_code=PUR7010') != -1) {
+                            $('mainTab').reloadTab(i, url);
+                            return;
+            
+                            //VENDOR用户点击的“加急订单”，打开的是PUR7030
+                        } else if (items[i].ref && items[i].ref.indexOf('function_code=PUR7030&_queryFlag=Y') != -1 && url.indexOf('function_code=PUR7030') != -1) {
+                            $('mainTab').reloadTab(i, url);
+                            return;
+                        }
+                    }
+                }
+                $('mainTab').openTab(url, prompt);
+            }
+            
+            function mainSetTargeturl(code) {
+                if (window.currentModel && window.currentModel != code) {
+                    window.subModel = null;
+                    Ext.get('model_' + window.currentModel).child('a').removeClass('active');
+                    document.getElementById('submenu_' + window.currentModel).style.display = 'none';
+                }
+                window.currentModel = code;
+                Ext.get('model_' + code).child('a').addClass('active');
+            
+                if (window.subModel) {
+                    hideSubmenu(code);
+                } else {
+                    window.subModel = code;
+                    var x = Ext.get('model_' + code).child('a').getXY()[0];
+                    Ext.get('submenu_' + code).setLeft(x);
+                    Ext.get('submenu_' + code).fadeIn();
+                }
+            }
+            
+            function exitSystem() {
+                Aurora.showConfirm('提示', '确认退出系统吗?', function(cmp) {
+                    Aurora.request({
+                        url: 'logout.svc',
+                        para: {},
+                        success: function() {
+                            try {
+                                if (window.opener) {
+                                    opener.location.href = 'login.screen';
+                                    window.close();
+                                } else {
+                                    location.href = 'login.screen';
+                                }
+                            } catch (e) {
+                                window.close();
+                            }
+                        },
+                        scope: this
+                    });
+                }, null, null, 85);
+            
+            }
+            
+            //此处进行修改在确定系统超时的时候设置istimeout标记到cookie中
+            
+            function showlogin() {
+                Aurora.showMessage('提示', '系统已超时锁定,请重新登录!', function(cmp) {
+                    try {
+                        Aurora.setCookie('ISTIMEOUT', true, 0.05);
+                        new Aurora.Window({
+                            id: 'login_timeout_screen',
+                            url: 'login_timeout.screen',
+                            title: '系统已超时锁定，请解锁',
+                            height: 280,
+                            width: 400,
+                            draggable: false,
+                            closeable: false
+                        });
+                    } catch (e) {
+            
+                       }
+                }, null, null, 85);
+            }
+            
+            function initMainSize() {
+                var topBarHeight = 51;
+                var screenWidth = Aurora.getViewportWidth();
+                var screenHeight = Aurora.getViewportHeight();
+                var bottomHeight = screenHeight - topBarHeight;
+                document.cookie = "vh=" + (bottomHeight);
+                document.cookie = "vw=" + (screenWidth);
+                $('mainTab').setHeight(bottomHeight);
+                $('mainTab').setWidth(screenWidth);
+                initSideMenu();
+            }
+            
+            window.scannJSID = {
+                run: function() {
+                    var jid = Aurora.getCookie('JSID');
+                    if (jid != window.jsid) {
+                        Ext.TaskMgr.stop(window.scannJSID);
+                        var reloginWindow = new Aurora.Window({
+                            id: 'relogin_window',
+                            url: 'error_repeatlogin.screen',
+                            title: '${l:PROMPT}',
+                            closeable: false,
+                            draggable: false,
+                            height: 120,
+                            width: 350
+                        });
+                    }
+                },
+                interval: 1000
+            };
+            Ext.TaskMgr.start(window.scannJSID);
+            
+            initMainSize();
+            
+            Ext.lib.Event.on(window, "resize", function() {
+                initMainSize();
+            }, this);
+            
+            Ext.onReady(function() {
+                Ext.getBody().on('click', function(el) {
+                    var main_menu = Ext.get('main_menu');
+                    var sub_menu = Ext.get('sub_menu');
+                    if (main_menu.contains(el.target) || main_menu.dom === el.target) {
+                        return;
+                    }
+                    if (sub_menu.contains(el.target) || sub_menu.dom === el.target) {
+                        return;
+                    }
+                    hideCurrentMenu();
+                });
+            });
+        ]]></script>
+        <script src="${/request/@context_path}/mainpage_facility/plugins/jquery-1.8.3.min.js" type="text/javascript"/>
+        <script src="${/request/@context_path}/mainpage_facility/plugins/jquery-ui/jquery-ui-1.10.1.custom.min.js" type="text/javascript"/>
+        <script><![CDATA[jQuery.noConflict();]]></script>
+        <script src="${/request/@context_path}/mainpage_facility/plugins/boostrapv3/js/bootstrap.min.js" type="text/javascript"/>
+        <script src="${/request/@context_path}/mainpage_facility/plugins/jquery-slimscroll/jquery.slimscroll.min.js" type="text/javascript"/>
+        <script src="${/request/@context_path}/mainpage_facility/js/mainpage_tab.js" type="text/javascript"/>
+        <script src="${/request/@context_path}/mainpage_facility/plugins/jqueryui/js/jquery-ui-1.10.4.custom.min.js"/>
+        <script src="${/request/@context_path}/mainpage_facility/plugins/touch-punch/jquery.ui.touch-punch.min.js"/>
+        <script src="${/request/@context_path}/mainpage_facility/plugins/moment/min/moment.min.js"/>
+        <script src="${/request/@context_path}/mainpage_facility/plugins/fullcalendar/fullcalendar.min.js"/>
+        <!-- <script src="${/request/@context_path}/mainpage_facility/js/calender.js" type="text/javascript"/> -->
+    </a:view>
+</a:screen>

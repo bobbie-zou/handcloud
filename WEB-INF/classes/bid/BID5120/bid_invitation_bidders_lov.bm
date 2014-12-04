@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-8-27 上午10:54:44  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="bidder_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="bidder_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="投标方代码"/>
+        <bm:field name="bidder_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="投标方名称"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        lb.bidder_id,
+                        b.bidder_code,
+                        b.bidder_desc
+                    FROM
+                        bid_entrustment_ln_bidders lb,
+                        bid_bidders_v b
+                    WHERE
+                        lb.bidder_id             = b.bidder_id(+) AND
+                        lb.entrustment_header_id = ${@entrustment_header_id}
+                    ) t #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field field="bidder_id" queryOperator="="/>
+        <bm:query-field field="bidder_code" queryExpression="bidder_code like &apos;%&apos; || ${@bidder_code} || &apos;%&apos;"/>
+        <bm:query-field field="bidder_desc" queryExpression="bidder_desc like &apos;%&apos; || ${@bidder_desc} || &apos;%&apos;"/>
+        <bm:query-field name="not_exists_created_bidder" queryExpression="NOT EXISTS (SELECT 1 FROM bid_bidding_docm_headers dh, bid_entrustment_headers  eh WHERE eh.entrustment_header_id = ${@not_exists_created_bidder} AND dh.entrustment_header_id = eh.entrustment_header_id AND dh.round = eh.round AND dh.status NOT IN (&apos;CANCELLED&apos;) AND b.bidder_id = dh.bidder_id)"/>
+    </bm:query-fields>
+</bm:model>

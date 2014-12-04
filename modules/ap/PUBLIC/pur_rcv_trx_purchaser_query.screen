@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui6743
+    $Date: 2014-10-9 20:42:56  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure><![CDATA[
+    ]]></a:init-procedure>
+    <a:view>
+        <a:link id="pur_rcv_trx_details_link" url="${/request/@context_path}/modules/pur/PUR/pur_rcv_trx_details.screen"/>
+        <a:link id="pur_rcv_trx_asn_details_link" url="${/request/@context_path}/modules/pur/PUR/pur_rcv_trx_asn_details.screen"/>
+        <script><![CDATA[
+            
+            //执行查询操作
+            
+            function pur_rcv_trx_query() {
+                $('pur_rcv_trx_result_ds').query();
+            }
+            
+            
+            function pur_rcv_trx_query_ds_onUpdate(ds, record, name, value, oldvalue) {
+                if (name == 'vendor_id') {
+                    record.set('vendor_site_id', null);
+                    record.set('vendor_site_name', null);
+                    var field = record.getMeta().getField('vendor_site_name');
+                    if (!Aurora.isEmpty(value)) {
+                        field.setLovPara('vendor_id', value);
+                    } else {
+                        field.setLovPara('vendor_id', null);
+                    }
+                }
+            }
+            
+            function pur_rcv_trx_renderer(value, record, name) {
+                if (name == 'details') {
+                    return '<a href="javascript:pur_rcv_trx_details(' + record.get('rcv_trx_line_id') + ')">${l:PUR_RCV_TRX_DETAILS.DETAILS}</a>';
+                } else if (name == 'asn_details') {
+                    return '<a href="javascript:pur_rcv_trx_asn_details(' + record.get('rcv_trx_line_id') + ')">${l:PUR_RCV_TRX_DETAILS.ASN_DETAILS}</a>';
+                }
+            }
+            
+            function pur_rcv_trx_details(rcv_trx_line_id) {
+                new Aurora.Window({
+                    id: 'pur_rcv_trx_details_window',
+                    url: $('pur_rcv_trx_details_link').getUrl() + '?rcv_trx_line_id=' + rcv_trx_line_id,
+                    title: '${l:PUR_RCV_TRX_DETAILS.DETAILS}',
+                    height: 450,
+                    width: 700
+                });
+            }
+            
+            function pur_rcv_trx_asn_details(rcv_trx_line_id) {
+                new Aurora.Window({
+                    id: 'pur_rcv_trx_asn_details_window',
+                    url: $('pur_rcv_trx_asn_details_link').getUrl() + '?rcv_trx_line_id=' + rcv_trx_line_id,
+                    title: '${l:PUR_RCV_TRX_DETAILS.ASN_DETAILS}',
+                    height: 450,
+                    width: 700
+                });
+            }
+            
+            /*
+             function pur_rcv_trx_openRecord(id) {
+             new Aurora.Window({
+             id: 'pur_purchase_order_record_window',
+             url: $('pur_rcv_trx_puchase_order_verify_record_link').getUrl() + '?transaction_object=PUR_LINE_LOCATIONS_ALL'+ '&pur_line_location_id=' + id,
+             title: '${l:PUR_HEADERS_ALL.OPERATION_RECORD}',
+             height: 450,
+             width: 700
+             });
+             } */
+        ]]></script>
+        <a:dataSets>
+            <!-- <a:dataSet id="pur_rcv_trx_type_ds" autoQuery="true" model="public.pur_rcv_trx_types_lov"/> -->
+            <a:dataSet id="pur_rcv_trx_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="invoice_id" defaultValue="${/parameter/@invoice_id}"/>
+                    <a:field name="rcv_trx_line_id" defaultValue="${/parameter/@rcv_trx_line_id}"/>
+                    <a:field name="owner_business_unit_id"/>
+                    <a:field name="owner_business_unit_name" autoComplete="true" autoCompleteField="owner_business_unit_name" lovHeight="490" lovService="public.fnd_business_unit_lov" lovWidth="540" lovlabelWidth="150" title="PUR_RCV_TRX_HEADERS.OWNER_BUSINESS_UNIT_ID">
+                        <a:mapping>
+                            <a:map from="business_unit_id" to="owner_business_unit_id"/>
+                            <a:map from="business_unit_name" to="owner_business_unit_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_id"/>
+                    <a:field name="vendor_name" autoComplete="true" autoCompleteField="vendor_name" lovHeight="490" lovService="public.pur_vendors_lov" lovWidth="540" lovlabelWidth="150" title="PUR_RCV_TRX_HEADERS.VENDOR_ID">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_site_id"/>
+                    <a:field name="vendor_site_name" autoComplete="true" autoCompleteField="vendor_site_name" lovHeight="490" lovService="public.pur_vendor_sites_lov?business_group=${/session/@business_group}" lovWidth="540" lovlabelWidth="150" title="PUR_RCV_TRX_HEADERS.VENDOR_SITE_ID">
+                        <a:mapping>
+                            <a:map from="vendor_site_id" to="vendor_site_id"/>
+                            <a:map from="site_name" to="vendor_site_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="trx_number"/>
+                    <a:field name="line_number"/>
+                    <a:field name="pur_organization_id"/>
+                    <a:field name="pur_organization_name" autoComplete="true" autoCompleteField="pur_organization_name" lovHeight="490" lovService="public.inv_organizations_lov" lovWidth="540" lovlabelWidth="150" title="PUR_RCV_TRX_LINES.PUR_ORGANIZATION_ID">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="pur_organization_id"/>
+                            <a:map from="inv_organization_name" to="pur_organization_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="rcv_trx_type_desc" autoComplete="true" autoCompleteField="rcv_trx_type_desc" lovHeight="490" lovService="public.pur_rcv_trx_types_lov" lovWidth="540" lovlabelWidth="150" title="PUR_RCV_TRX_LINES.RCV_TRX_TYPE">
+                        <a:mapping>
+                            <a:map from="rcv_trx_type" to="rcv_trx_type"/>
+                            <a:map from="rcv_trx_type_desc" to="rcv_trx_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <!-- <a:field name="rcv_trx_type"/>
+                    <a:field name="rcv_trx_type_desc" displayField="rcv_trx_type_desc" options="pur_rcv_trx_type_ds" returnField="rcv_trx_type" valueField="rcv_trx_type">
+                        <a:mapping>
+                            <a:map from="rcv_trx_type" to="rcv_trx_type"/>
+                            <a:map from="rcv_trx_type_desc" to="rcv_trx_type_desc"/>
+                        </a:mapping>
+                    </a:field> -->
+                    <a:field name="trx_date_from"/>
+                    <a:field name="trx_date_to"/>
+                    <a:field name="trx_quantity"/>
+                    <a:field name="currency_code"/>
+                    <a:field name="trx_amount"/>
+                    <a:field name="period_name"/>
+                    <a:field name="item_id"/>
+                    <a:field name="item_name" autoComplete="true" autoCompleteField="item_name" lovHeight="490" lovService="public.mtl_system_items_lov?business_group=${/session/@business_group}" lovWidth="540" lovlabelWidth="150" title="PUR_RCV_TRX_LINES.ITEM_ID">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_name" to="item_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="inv_organization_id"/>
+                    <a:field name="inv_organization_name" autoComplete="true" autoCompleteField="inv_organization_name" lovHeight="490" lovService="public.inv_organizations_lov" lovWidth="540" lovlabelWidth="150" title="PUR_RCV_TRX_LINES.INV_ORGANIZATION_ID">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="inv_organization_id"/>
+                            <a:map from="inv_organization_name" to="inv_organization_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="uom_code"/>
+                    <a:field name="uom_name" autoComplete="true" autoCompleteField="uom_name" lovHeight="490" lovService="public.fnd_uom_codes_lov" lovWidth="540" lovlabelWidth="150" title="PUR_RCV_TRX_LINES.UOM_CODE">
+                        <a:mapping>
+                            <a:map from="uom_code" to="uom_code"/>
+                            <a:map from="uom_desc" to="uom_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="warehouse_id"/>
+                    <a:field name="warehouse_name" autoComplete="true" autoCompleteField="warehouse_name" lovHeight="490" lovService="public.inv_warehouse_lov" lovWidth="540" lovlabelWidth="150" title="PUR_RCV_TRX_LINES.WAREHOUSE_ID">
+                        <a:mapping>
+                            <a:map from="warehouse_id" to="warehouse_id"/>
+                            <a:map from="warehouse_name" to="warehouse_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="inv_location_id"/>
+                    <a:field name="inv_location_name" autoComplete="true" autoCompleteField="inv_location_name" lovHeight="490" lovService="public.inv_location_lov" lovWidth="540" lovlabelWidth="150" title="PUR_RCV_TRX_LINES.INV_LOCATION_ID">
+                        <a:mapping>
+                            <a:map from="location_id" to="inv_location_id"/>
+                            <a:map from="location_name" to="inv_location_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="stock_type"/>
+                    <a:field name="lot_num"/>
+                    <a:field name="serial_num"/>
+                    <a:field name="functional_trx_price"/>
+                    <a:field name="functional_trx_amount"/>
+                    <a:field name="bill_closed_flag"/>
+                    <a:field name="bill_matching_status"/>
+                    <a:field name="quant_of_bill_matching"/>
+                    <a:field name="invoice_closed_flag"/>
+                    <a:field name="invoice_matching_status"/>
+                    <a:field name="quant_of_invoice_matching"/>
+                    <a:field name="terms_code"/>
+                    <a:field name="terms_name"/>
+                    <a:field name="from_po_number"/>
+                    <a:field name="from_po_line_num"/>
+                    <a:field name="from_po_line_location_num"/>
+                    <a:field name="from_asn_number"/>
+                    <a:field name="from_asn_line_num"/>
+                    <a:field name="comments"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur_rcv_trx_query_ds_onUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur_rcv_trx_result_ds" autoCount="true" autoPageSize="true" model="pur.PUR.pur_rcv_trx_query" queryDataSet="pur_rcv_trx_query_ds" selectable="false"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="pur_rcv_trx_query_ds" resultTarget="pur_rcv_trx_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="120">
+                        <a:lov name="owner_business_unit_name" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_HEADERS.OWNER_BUSINESS_UNIT_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="vendor_name" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_HEADERS.VENDOR_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="vendor_site_name" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_HEADERS.VENDOR_SITE_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="trx_number" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_HEADERS.TRX_NUMBER">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:textField>
+                        <!-- 
+                        <a:comboBox name="rcv_trx_type_desc" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_LINES.RCV_TRX_TYPE">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:comboBox> -->
+                        <a:lov name="rcv_trx_type_desc" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_LINES.RCV_TRX_TYPE">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:datePicker name="trx_date_from" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_LINES.TRX_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:datePicker name="trx_date_to" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_LINES.TRX_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:lov name="item_name" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_LINES.ITEM_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="inv_organization_name" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_LINES.INV_ORGANIZATION_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:lov name="warehouse_name" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_LINES.WAREHOUSE_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="inv_location_name" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_LINES.INV_LOCATION_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:textField name="stock_type" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_LINES.STOCK_TYPE">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="from_po_number" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_LINES.FROM_PO_NUMBER">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="from_asn_number" bindTarget="pur_rcv_trx_query_ds" prompt="PUR_RCV_TRX_LINES.FROM_ASN_NUMBER">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_rcv_trx_query"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="pur_rcv_trx_query_grid" bindTarget="pur_rcv_trx_result_ds" marginHeight="180" marginWidth="65" navBar="true">
+                <a:columns>
+                    <a:column name="owner_business_unit_name" align="left" prompt="PUR_RCV_TRX_HEADERS.OWNER_BUSINESS_UNIT_ID" width="100"/>
+                    <a:column name="vendor_name" align="left" prompt="PUR_RCV_TRX_HEADERS.VENDOR_ID" width="100"/>
+                    <a:column name="vendor_site_name" align="left" prompt="PUR_RCV_TRX_HEADERS.VENDOR_SITE_ID" width="100"/>
+                    <a:column name="trx_number" align="left" prompt="PUR_RCV_TRX_HEADERS.TRX_NUMBER" width="100"/>
+                    <a:column name="header_comments" align="left" prompt="PUR_RCV_TRX_HEADERS.COMMENTS" width="100"/>
+                    <a:column name="line_number" align="left" prompt="PUR_RCV_TRX_LINES.LINE_NUMBER" width="100"/>
+                    <a:column name="pur_organization_name" align="left" prompt="PUR_RCV_TRX_LINES.PUR_ORGANIZATION_ID" width="100"/>
+                    <a:column name="rcv_trx_type_desc" align="left" prompt="PUR_RCV_TRX_LINES.RCV_TRX_TYPE" width="100"/>
+                    <a:column name="trx_date" align="left" prompt="PUR_RCV_TRX_LINES.TRX_DATE" width="100"/>
+                    <a:column name="trx_quantity" align="left" prompt="PUR_RCV_TRX_LINES.TRX_QUANTITY" width="100"/>
+                    <a:column name="currency_code" align="left" prompt="PUR_RCV_TRX_LINES.CURRENCY_CODE" width="100"/>
+                    <a:column name="trx_amount" align="left" prompt="PUR_RCV_TRX_LINES.TRX_AMOUNT" width="100"/>
+                    <a:column name="period_name" align="left" prompt="PUR_RCV_TRX_LINES.PERIOD_NAME" width="100"/>
+                    <a:column name="item_name" align="left" prompt="PUR_RCV_TRX_LINES.ITEM_ID" width="100"/>
+                    <a:column name="inv_organization_name" align="left" prompt="PUR_RCV_TRX_LINES.INV_ORGANIZATION_ID" width="100"/>
+                    <a:column name="uom_name" align="left" prompt="PUR_RCV_TRX_LINES.UOM_CODE" width="100"/>
+                    <a:column name="warehouse_name" align="left" prompt="PUR_RCV_TRX_LINES.WAREHOUSE_ID" width="100"/>
+                    <a:column name="inv_location_name" align="left" prompt="PUR_RCV_TRX_LINES.INV_LOCATION_ID" width="100"/>
+                    <a:column name="stock_type" align="left" prompt="PUR_RCV_TRX_LINES.STOCK_TYPE" width="100"/>
+                    <a:column name="lot_num" align="left" prompt="PUR_RCV_TRX_LINES.LOT_NUM" width="100"/>
+                    <a:column name="serial_num" align="left" prompt="PUR_RCV_TRX_LINES.SERIAL_NUM" width="100"/>
+                    <a:column name="functional_trx_price" align="left" prompt="PUR_RCV_TRX_LINES.FUNCTIONAL_TRX_PRICE" width="100"/>
+                    <a:column name="functional_trx_amount" align="left" prompt="PUR_RCV_TRX_LINES.FUNCTIONAL_TRX_AMOUNT" width="100"/>
+                    <a:column name="functional_currency_code" align="left" prompt="PUR_RCV_TRX_LINES.FUNCTIONAL_CURRENCY_CODE" width="100"/>
+                    <a:column name="exchange_rate_type" align="left" prompt="PUR_RCV_TRX_LINES.EXCHANGE_RATE_TYPE" width="100"/>
+                    <a:column name="exchange_rate" align="left" prompt="PUR_RCV_TRX_LINES.EXCHANGE_RATE" width="100"/>
+                    <a:column name="bill_closed_flag" align="left" prompt="PUR_RCV_TRX_LINES.BILL_CLOSED_FLAG" width="100"/>
+                    <a:column name="bill_matching_status" align="left" prompt="PUR_RCV_TRX_LINES.BILL_MATCHING_STATUS" width="100"/>
+                    <a:column name="quant_of_bill_matching" align="left" prompt="PUR_RCV_TRX_LINES.QUANT_OF_BILL_MATCHING" width="100"/>
+                    <a:column name="invoice_closed_flag" align="left" prompt="PUR_RCV_TRX_LINES.INVOICE_CLOSED_FLAG" width="100"/>
+                    <a:column name="invoice_matching_status" align="left" prompt="PUR_RCV_TRX_LINES.INVOICE_MATCHING_STATUS" width="100"/>
+                    <a:column name="quant_of_invoice_matching" align="left" prompt="PUR_RCV_TRX_LINES.QUANT_OF_INVOICE_MATCHING" width="100"/>
+                    <a:column name="terms_code" align="left" prompt="PUR_RCV_TRX_LINES.TERMS_CODE" width="100"/>
+                    <a:column name="terms_name" align="left" prompt="PUR_RCV_TRX_LINES.TERMS_NAME" width="100"/>
+                    <a:column name="reverse_flag" align="left" prompt="PUR_RCV_TRX_LINES.REVERSE_FLAG" width="100"/>
+                    <a:column name="from_po_number" align="left" prompt="PUR_RCV_TRX_LINES.FROM_PO_NUMBER" width="100"/>
+                    <a:column name="from_po_line_num" align="left" prompt="PUR_RCV_TRX_LINES.FROM_PO_LINE_NUM" width="100"/>
+                    <a:column name="from_po_line_location_num" align="left" prompt="PUR_RCV_TRX_LINES.FROM_PO_LINE_LOCATION_NUM" width="100"/>
+                    <a:column name="from_asn_number" align="left" prompt="PUR_RCV_TRX_LINES.FROM_ASN_NUMBER" width="100"/>
+                    <a:column name="from_asn_line_num" align="left" prompt="PUR_RCV_TRX_LINES.FROM_ASN_LINE_NUM" width="100"/>
+                    <a:column name="line_comments" align="left" prompt="PUR_RCV_TRX_LINES.COMMENTS" width="100"/>
+                    <a:column name="details" align="left" prompt="PUR_RCV_TRX_DETAILS.DETAILS" renderer="pur_rcv_trx_renderer" width="100"/>
+                    <a:column name="asn_details" align="left" prompt="PUR_RCV_TRX_DETAILS.ASN_DETAILS" renderer="pur_rcv_trx_renderer" width="100"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-1-14 下午01:47:43  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="warehouse_code">
+    <bm:fields>
+        <bm:field name="warehouse_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="warehouse_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="warehouse_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="inv_organization_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="inv_organization_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="business_unit_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="business_unit_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="storage_attribute_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="valuation_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="planning_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="address_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="business_group" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="data_source" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="warehouse_id" queryOperator="warehouse_id = ${@warehouse_id}"/>
+        <bm:query-field name="data_source" queryExpression="i.data_source = ${@data_source}"/>
+        <bm:query-field name="business_unit_id" queryExpression="i.business_unit_id = ${@business_unit_id}"/>
+        <bm:query-field name="inv_organization_id" queryExpression="i.inv_organization_id = ${@inv_organization_id}"/>
+        <bm:query-field name="warehouse_code_name" queryExpression="i.warehouse_code like &apos;%&apos;||${@warehouse_code_name}||&apos;%&apos; or i.warehouse_name like &apos;%&apos;||${@warehouse_name}||&apos;%&apos;"/>
+        <bm:query-field name="warehouse_name" queryExpression="i.warehouse_name like &apos;%&apos;||${@warehouse_name}||&apos;%&apos;"/>
+        <bm:query-field name="warehouse_code" queryExpression="i.warehouse_code like &apos;%&apos;||${@warehouse_code}||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        iw.warehouse_id,
+                        iw.inv_organization_id,
+                        io.description inv_organization_name,
+                        iw.warehouse_code,
+                        iw.description warehouse_name,
+                        io.business_unit_id,
+                        (SELECT
+                            f.business_unit_name
+                        FROM
+                            fnd_business_units_vl f
+                        WHERE
+                            f.business_unit_id=io.business_unit_id
+                        ) business_unit_name,
+                        iw.storage_attribute_code,
+                        iw.valuation_flag,
+                        iw.planning_flag,
+                        iw.address_id,
+                        iw.enabled_flag,
+                        iw.business_group,
+                        iw.data_source
+                    FROM
+                        inv_warehouses_vl iw,
+                        inv_organizations_vl io
+                    WHERE
+                        iw.inv_organization_id=io.inv_organization_id
+                    ) i #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="warehouse_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@warehouse_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              BEGIN
+                inv_warehouse_pkg.insert_inv_warehouses
+                (
+                  p_warehouse_id=>${@warehouse_id},
+                  p_inv_organization_id=>${@inv_organization_id},
+                  p_warehouse_code=>${@warehouse_code},
+                  p_description=>${@warehouse_name},
+                  p_storage_attribute_code=>${@storage_attribute_code},
+                  p_valuation_flag=>${@valuation_flag},
+                  p_planning_flag=>${@planning_flag},
+                  p_address_id=>${@address_id},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_business_group=>${/session/@business_group},
+                  p_data_source=>${@data_source},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                inv_warehouse_pkg.update_inv_warehouses
+                (
+                  p_warehouse_id=>${@warehouse_id},
+                  p_inv_organization_id=>${@inv_organization_id},
+                  p_warehouse_code=>${@warehouse_code},
+                  p_description=>${@warehouse_name},
+                  p_storage_attribute_code=>${@storage_attribute_code},
+                  p_valuation_flag=>${@valuation_flag},
+                  p_planning_flag=>${@planning_flag},
+                  p_address_id=>${@address_id},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="i.business_group=${/session/@business_group}"/>
+    </bm:data-filters>
+    <!-- 
+    <authority client_alias="i" client_name="client"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features> -->
+</bm:model>

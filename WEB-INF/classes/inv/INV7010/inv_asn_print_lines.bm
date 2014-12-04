@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-10 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 送货单查询-采购方，送货单打印查询BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="item_code,l.segment1 asc,l.line_num asc,l.shipment_num asc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT v.*,rownum AS line_sequence
+				  FROM (SELECT 
+				               (SELECT nvl(ph.display_po_number,
+				                           ph.segment1)
+				                  FROM pur_line_locations_all pll,
+				                       pur_headers_all_v      ph
+				                 WHERE pll.pur_header_id = ph.pur_header_id
+				                       AND pll.pur_line_location_id = l.line_location_id) AS segment,
+				               (SELECT nvl(ph.display_release_num,'')
+				                  FROM pur_line_locations_all pll,
+				                       pur_headers_all_v      ph
+				                 WHERE pll.pur_header_id = ph.pur_header_id
+				                       AND pll.pur_line_location_id = l.line_location_id) AS release_num,
+				               (SELECT nvl(ph.display_po_number,
+				                           ph.segment1)|| nvl2(ph.display_release_num,'-'||ph.display_release_num,'')
+				                  FROM pur_line_locations_all pll,
+				                       pur_headers_all_v      ph
+				                 WHERE pll.pur_header_id = ph.pur_header_id
+				                       AND pll.pur_line_location_id = l.line_location_id) AS segment1,
+				               (SELECT pla.line_num
+				                  FROM pur_line_locations_all pll,
+				                       pur_lines_all          pla
+				                 WHERE pll.pur_line_id = pla.pur_line_id
+				                       AND pll.pur_line_location_id = l.line_location_id) AS line_num,
+				               l.shipment_num,
+				               l.erp_asn_ship_num,
+				               (SELECT nvl(siv.display_item_code,
+				                           l.item_code)
+				                  FROM mtl_system_items_vl siv
+				                 WHERE siv.item_id = l.item_id) AS item_code,
+				               substr(l.item_name,1,10) item_name,
+				               l.uom_code AS unit_meas_lookup_code,
+				               l.unit_price,
+				               to_char(l.need_by_date,
+				                       'yyyy-mm-dd') AS need_by_date,
+				               l.comments AS line_desc,
+				               l.ship_quantity,
+				               nvl2(l.lots_num,'批次号：'||l.lots_num,'') lots_num,
+				               nvl2(l.lots_validity_date,'有效期：'||TO_CHAR(l.lots_validity_date, 'yyyy-mm-dd'),'') lots_validity_date,
+				               nvl2(l.serial_num,'序列号：'||l.serial_num,'') serial_num,
+				               nvl2(l.invoice_num,'发票号：'||l.invoice_num,'') invoice_num,
+				               (SELECT '库房-'||iwv.warehouse_code FROM inv_warehouses_vl iwv WHERE iwv.warehouse_id = l.inv_warehouse_id) AS inv_warehouse_desc,
+				               (SELECT '库位-'||ilv.location_code FROM inv_locations_vl ilv WHERE ilv.location_id = l.inv_location_id) AS inv_location_desc
+				          FROM inv_asn_lines l,
+				               inv_asn_print p
+				         WHERE l.asn_line_id = p.asn_line_id
+				         	   AND nvl(l.cancel_flag,
+				                       'N') = 'N'
+				               AND nvl(l.close_flag,
+				                       'N') = 'N'
+				               AND p.session_id = ${/session/@session_id}
+				               AND l.asn_header_id = ${/parameter/@asn_header_id}
+				         ORDER BY item_code,segment ,release_num ,l.asn_line_num ASC,l.shipment_num) v
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

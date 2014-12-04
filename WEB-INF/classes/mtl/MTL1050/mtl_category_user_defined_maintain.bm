@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-7-2 下午3:32:40  
+    $Revision: 1.0  
+    $Purpose: 自主品类定义，品类tree查询
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="category_udf_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="expanded" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="category_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="MTL_CATEGORIES_USER_DEFINED.CATEGORY_CODE"/>
+        <bm:field name="category_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="MTL_CATEGORIES_USER_DEFINED.CATEGORY_NAME_ID"/>
+        <bm:field name="uom_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="MTL_CATEGORIES_USER_DEFINED.UOM_CODE"/>
+        <bm:field name="uom_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="MTL_CATEGORIES_USER_DEFINED.UOM_CODE"/>
+        <bm:field name="category_level" databaseType="NUMBER" datatype="java.lang.Long" prompt="MTL_CATEGORIES_USER_DEFINED.CATEGORY_LEVEL"/>
+        <bm:field name="parent_category_udf_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="MTL_CATEGORIES_USER_DEFINED.PARENT_CATEGORY_UDF_ID"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:data-filters>
+        <bm:data-filter name="f1" expression="t.business_group = ${/session/@business_group} "/>
+    </bm:data-filters>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t.category_udf_id,
+                    'N' AS expanded,
+                    t.category_code,
+                    t.category_name,
+                    t.uom_code,
+                    (SELECT
+                        ucv.uom_desc
+                    FROM
+                        fnd_uom_codes_vl ucv
+                    WHERE
+                        ucv.uom_code = t.uom_code
+                        and ucv.business_group=${/session/@business_group}
+                    ) AS uom_name,
+                    t.category_level,
+                    t.parent_category_udf_id,
+                    t.enabled_flag
+                FROM
+                    mtl_categories_user_defined_vl t #WHERE_CLAUSE#
+                ORDER BY
+                    category_code
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="category_udf_id" input="false" output="true" outputpath="@category_udf_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+    			BEGIN
+                mtl_category_pkg.create_category_user_defined
+                (
+                  o_category_udf_id=>${@category_udf_id},
+                  p_category_code=>${@category_code},
+                  p_category_name=>${@category_name},
+                  p_uom_code=>${@uom_code},
+                  p_category_level=>${@category_level},
+                  p_parent_category_udf_id=>${@parent_category_udf_id},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_business_group=>${/session/@business_group},
+                  p_language_code=>${@language_code},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+    		]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+    			BEGIN
+                mtl_category_pkg.modify_category_user_defined
+                (
+                  p_category_udf_id=>${@category_udf_id},
+                  p_category_code=>${@category_code},
+                  p_category_name=>${@category_name},
+                  p_uom_code=>${@uom_code},
+                  p_category_level=>${@category_level},
+                  p_parent_category_udf_id=>${@parent_category_udf_id},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_business_group=>${/session/@business_group},
+                  p_language_code=>${@language_code},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+    		]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

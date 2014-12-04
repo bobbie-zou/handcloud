@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen3207  
+    $Date: 2011-6-2 下午04:18:57  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="exp_req_items_type_link" url="${/request/@context_path}/modules/expm/EXP2020/exp_req_items_type.screen"/>
+        <div/>
+        <script><![CDATA[
+        
+        	function queryExpCompanyReqItems(){
+				$('exp_company_req_items_result_ds').query();
+        	}
+        	
+        	function resetExpCompanyReqItems(){
+        		$('exp_company_req_items_query_ds').reset();
+        	}
+        	
+        	function expenseTypesRenderer(value,record,name){
+        		if (!record.isNew){
+        			var reqItemId=record.get('req_item_id');
+        			return '<a href="javascript:expenseTypesRendererWindow('+reqItemId+')">${l:EXP_REQUISITION_LINES.EXPENSE_TYPE_ID}</a>';
+        		}
+        	}
+        	
+        	function expenseTypesRendererWindow(reqItemId){
+        		new Aurora.Window({id:'exp_req_items_type_renderer_window', 
+        						   url:/*exp_req_items_type.screen*/$('exp_req_items_type_link').getUrl()+'?req_item_id='+reqItemId,
+        						   title:'${l:EXP_REQUISITION_LINES.EXPENSE_TYPE_ID}', 
+        						   height:440,
+        						   width:530});
+        	}
+        	
+        	function exp_company_req_items_result_ds_load(ds){
+        	   var records=ds.getAll();
+        	   for(var i=0;i<records.length;i++){
+        	       var record=records[i];
+        	       var sys_enabled_flag=record.get("sys_enabled_flag");
+        	       if(sys_enabled_flag=="N"){
+        	           record.getMeta().getField("enabled_flag").setReadOnly(true);
+        	       }
+        	   }
+        	}
+        	
+        	function exp_company_req_items_result_ds_cellclick(grid,row,name,record){
+        	   if(name=="enabled_flag"){
+    	           var sys_enabled_flag=record.get("sys_enabled_flag");
+                   if(sys_enabled_flag=="N"){
+                       Aurora.showInfoMessage("${l:PROMPT_MESSAGE}","${l:EXP_COMPANY_REQ_ITEMS.INFOMESSAGE}");
+                   }
+        	   }
+        	}
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="exp_company_req_items_query_ds" model="expm.EXP2020.exp_company_req_items">
+                <a:fields>
+                    <a:field name="req_item_code"/>
+                    <a:field name="description"/>
+                    <a:field name="budget_item_code"/>
+                    <a:field name="budget_item_desc"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="exp_company_req_items_result_ds" autoQuery="true" model="expm.EXP2020.exp_company_req_items" queryDataSet="exp_company_req_items_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="req_item_id"/>
+                    <a:field name="req_item_code" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="budget_item_code"/>
+                    <a:field name="budget_item_desc"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="sys_enabled_flag"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="exp_company_req_items_result_ds_load"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" row="2" title="EXP_COMPANY_REQ_ITEM.COMP_ITEM_DEF" width="600">
+                <a:textField name="req_item_code" bindTarget="exp_company_req_items_query_ds"/>
+                <a:textField name="description" bindTarget="exp_company_req_items_query_ds"/>
+                <a:textField name="budget_item_code" bindTarget="exp_company_req_items_query_ds"/>
+                <a:textField name="budget_item_desc" bindTarget="exp_company_req_items_query_ds"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="queryExpCompanyReqItems" text="HAP_QUERY"/>
+                <a:button click="resetExpCompanyReqItems" text="HAP_RESET"/>
+            </a:hBox>
+            <a:grid bindTarget="exp_company_req_items_result_ds" height="350" navBar="true" width="680">
+                <a:toolBar>
+                    <a:button type="save"/>
+                    <a:button type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="req_item_code" align="center" width="80"/>
+                    <a:column name="description" width="180"/>
+                    <a:column name="budget_item_code" align="center" width="80"/>
+                    <a:column name="budget_item_desc" width="180"/>
+                    <a:column name="enabled_flag" editor="enabled_flag_cb" width="50"/>
+                    <a:column name="expenseTypesRenderer" align="center" renderer="expenseTypesRenderer" width="60"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="enabled_flag_cb"/>
+                </a:editors>
+                <a:events>
+                    <a:event name="cellclick" handler="exp_company_req_items_result_ds_cellclick"/>
+                </a:events>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

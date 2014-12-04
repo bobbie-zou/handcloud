@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-8-2 上午9:27:42  
+    $Revision: 1.0  
+    $Purpose: 物品基础信息TAB页
+-->
+<a:screen xmlns:c="aurora.application.action" xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="inv.INV5050.inv_item_application_basic_info" rootPath="item_info"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="inv2010_link_sys_item_basic_info_save" url="${/request/@context_path}/modules/inv/INV5050/inv_item_application_basic_info_save.svc"/>
+        <script><![CDATA[
+			//页面确定按钮执行的方法
+			function inv2010_saveSysItemBasicInfo(){
+			    
+			    //校验DS
+			    if($('inv2010_sys_item_basic_info_ds').validate()){
+			        
+				    //获取动态值绑定的DS的记录（多个会汇总到一个DS下，形成一条数据）
+				    var value_record = $('inv2010_sys_item_basic_info_ds').getCurrentRecord();
+				    
+				    //制作请求参数头信息，包括“模板实例ID”，“物品类型ID”
+				    var datas = {
+				        temp_instance_id: '${/parameter/@temp_instance_id}',
+				        item_type_id: '${/parameter/@item_type_id}',
+				        item_application_header_id:'${/parameter/@item_application_header_id}'
+				    };
+				    
+				    //为方便制作请求参数行，获取同一数据源查询的DS记录集，制作请求参数行信息
+				    var records = $('inv2010_sys_item_config_ds').getAll();
+				    var config_values = [];
+				    for(var i=0;i<records.length;i++){
+				        //因为是全字符，所以value_id为空，value_code,value_descrition为所填的值
+				        var config_info = {
+				            temp_insc_attr_id: records[i].get('temp_insc_attr_id'),
+				            value_id: null,
+				            value_code: value_record.get(records[i].get('attribute_code')),
+				            value_description: value_record.get(records[i].get('attribute_code'))
+				        };
+				        config_values.push(config_info);
+				    }
+				    
+				    datas['config_values'] = config_values;
+				    
+				    //提交AjAX请求
+				    Aurora.showConfirm('${l:PROMPT}', '确定后不可修改，是否确定？', function() {
+				        $('inv2010_saveSysItemBasicInfo_btn').disable();
+		                Aurora.request({
+		                    url: $('inv2010_link_sys_item_basic_info_save').getUrl(),
+		                    para: datas,
+		                    success: function(res){
+		                        $('inv2010_saveSysItemBasicInfo_btn').enable();
+		                    	setItemAttributeReadOnly(res);//执行完成后，进行页面的调整操作
+		                    }, 
+		                    failure: function(){
+		                        $('inv2010_saveSysItemBasicInfo_btn').enable();
+		                    },
+		                    error: function(){
+		                        $('inv2010_saveSysItemBasicInfo_btn').enable();
+		                    },
+		                    scope: this
+		                });
+		            });
+			    }
+			}
+			
+			function setItemAttributeReadOnly(response){
+			    //将物品属性置为只读
+			    var value_record = $('inv2010_sys_item_basic_info_ds').getCurrentRecord();
+			    var config_records = $('inv2010_sys_item_config_ds').getAll();
+			    for(var i=0;i<config_records.length;i++){
+			        value_record.getMeta().getField(config_records[i].get('attribute_code')).setReadOnly(true);
+			    }
+			    //确定按钮只读
+			    $('inv2010_saveSysItemBasicInfo_btn').disable();
+			    
+			    //调用前一页面物品主数据保存成功后执行的方法
+			    inv5050_inv_item_config_submit_success_handler(response);
+			}
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv2010_sys_item_config_ds">
+                <a:datas dataSource="/model/item_info"/>
+            </a:dataSet>
+            <a:dataSet id="inv2010_sys_item_basic_info_ds" autoCreate="true">
+                <a:fields>
+                    <a:placeHolder id="dynamicItemAttributeFields"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:fieldSet column="3" labelWidth="90" style="margin:5px;" title="物品属性">
+            <a:placeHolder id="dynamicItemAttribute"/>
+        </a:fieldSet>
+        <a:hBox>
+            <a:toolbarButton id="inv2010_saveSysItemBasicInfo_btn" click="inv2010_saveSysItemBasicInfo" text="HAP_OK" width="100"/>
+        </a:hBox>
+    </a:view>
+    <a:view-config>
+        <c:create-config targetId="dynamicItemAttributeFields">
+            <p:loop source="/model/item_info">
+                <c:process-config>
+                    <a:field name="${@attribute_code}" required="${@required_flag}"/>
+                </c:process-config>
+            </p:loop>
+        </c:create-config>
+        <c:create-config targetId="dynamicItemAttribute">
+            <p:loop source="/model/item_info">
+                <p:switch test="@format_category">
+                    <p:case value="STRING">
+                        <c:process-config>
+                            <a:textField name="${@attribute_code}" bindTarget="inv2010_sys_item_basic_info_ds" prompt="${@attribute_desc}" typeCase="${@typecase_flag}"/>
+                        </c:process-config>
+                    </p:case>
+                    <p:case value="NUMBER">
+                        <c:process-config>
+                            <a:numberField name="${@attribute_code}" allowDecimals="${@allowdecimals_flag}" allowNegative="${@allownegative_flag}" bindTarget="inv2010_sys_item_basic_info_ds" decimalPrecision="${@decimal_number}" prompt="${@attribute_desc}"/>
+                        </c:process-config>
+                    </p:case>
+                    <p:case value="DATE">
+                        <c:process-config>
+                            <a:datePicker name="${@attribute_code}" bindTarget="inv2010_sys_item_basic_info_ds" prompt="${@attribute_desc}"/>
+                        </c:process-config>
+                    </p:case>
+                </p:switch>
+            </p:loop>
+        </c:create-config>
+    </a:view-config>
+</a:screen>

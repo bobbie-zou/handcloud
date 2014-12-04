@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-2-25 下午3:55:03  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select *
+  from (select ft.template_id,
+               ti.tmpl_instance_id,
+               ft.template_code,
+               ft.template_desc,
+               ti.version,
+               fg.tmpl_group_id,
+               fg.tmpl_group_code,
+               fg.tmpl_group_desc,
+               fc.tmpl_category_id,
+               fc.tmpl_category_code,
+               fc.tmpl_category_desc,
+               fc.framework_type,
+               fc.framework_type_desc,
+               ft.compiled_flag,
+               (select scv.code_value_name
+                  from sys_code_values_vl scv, sys_codes_vl sc
+                 where sc.code_id = scv.code_id
+                   and scv.code_value = ft.compiled_flag
+                   and sc.code = 'YES_NO') compiled_flag_desc,
+               ft.sys_flag,
+               (select scv.code_value_name
+                  from sys_code_values_vl scv, sys_codes_vl sc
+                 where sc.code_id = scv.code_id
+                   and scv.code_value = ft.sys_flag
+                   and sc.code = 'FND_FLEX_SYS_FLAG') sys_flag_desc,
+               ti.released_flag,
+               (select scv.code_value_name
+                  from sys_code_values_vl scv, sys_codes_vl sc
+                 where sc.code_id = scv.code_id
+                   and scv.code_value = ti.released_flag
+                   and sc.code = 'YES_NO') released_flag_desc,
+               ft.enabled_flag
+          from fnd_flex_templates_t_vl ft,
+               fnd_flex_tmpl_instances ti,
+               (select c.tmpl_category_id,
+                       c.tmpl_category_code,
+                       c.tmpl_category_desc,
+                       c.framework_type,
+                       (select scv.code_value_name
+                          from sys_code_values_vl scv, sys_codes_vl sc
+                         where sc.code_id = scv.code_id
+                           and scv.code_value = c.framework_type
+                           and sc.code = 'FND_FLEX_FRAMEWORK_TYPE') framework_type_desc,
+                       c.sys_flag
+                  from fnd_flex_tmpl_categories_vl c) fc,
+               fnd_flex_tmpl_groups_vl fg
+         where 1 = 1
+           and ft.tmpl_group_id = fg.tmpl_group_id
+           and fg.tmpl_category_id = fc.tmpl_category_id
+           and ft.template_id = ti.template_id
+           and ti.level_type = 'TEMPLATE'
+           and ti.lasted_version_flag = 'Y') t
+   #WHERE_CLAUSE# 
+ order by t.tmpl_category_code, tmpl_group_code, template_code
+ ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    fnd_flex_template_pkg.create_flex_template(x_template_id      => ${@template_id},
+                                 x_tmpl_instance_id => ${@tmpl_instance_id},
+                                 x_version          => ${@version},
+                                 p_template_code    => ${@template_code},
+                                 p_description      => ${@template_desc},
+                                 p_tmpl_group_id    => ${@tmpl_group_id},
+                                 p_enabled_flag     => ${@enabled_flag},
+                                 p_user_id          => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="template_id" input="false" output="true"/>
+                <bm:parameter name="tmpl_instance_id" input="false" output="true"/>
+                <bm:parameter name="version" input="false" output="true"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    fnd_flex_template_pkg.modify_flex_template(p_template_id   => ${@template_id},
+                                 p_description   => ${@template_desc},
+                                 p_enabled_flag  => ${@enabled_flag},
+                                 p_user_id       => ${/session/@user_id});
+                    
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="template_id" queryExpression="template_id=${@template_id}"/>
+        <bm:query-field name="tmpl_instance_id" queryExpression="tmpl_instance_id=${@tmpl_instance_id}"/>
+        <bm:query-field name="version" queryExpression="version=${@version}"/>
+        <bm:query-field name="tmpl_group_id" queryExpression="tmpl_group_id=${@tmpl_group_id}"/>
+        <bm:query-field name="tmpl_category_id" queryExpression="tmpl_category_id=${@tmpl_category_id}"/>
+        <bm:query-field name="framework_type" queryExpression="framework_type=${@framework_type}"/>
+        <bm:query-field name="template_code" queryExpression="template_code like &apos;%&apos;||${@template_code}||&apos;%&apos;"/>
+        <bm:query-field name="template_desc" queryExpression="template_desc like &apos;%&apos;||${@template_desc}||&apos;%&apos;"/>
+        <bm:query-field name="quick_value" queryExpression="(template_code like &apos;%&apos;||upper(${@quick_value})||&apos;%&apos; or template_desc like &apos;%&apos;||${@quick_value}||&apos;%&apos;)"/>
+    </bm:query-fields>
+</bm:model>

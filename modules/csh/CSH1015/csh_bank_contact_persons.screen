@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	$author:huangshengbo
+	$date:2011/07/08
+	$purpose:银行定义-分行联系人Bank Definition-Branch Contact 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="csh.CSH1015.csh_get_csh_bank" rootPath="csh1015_csh_bank"/>
+        <a:model-query fetchAll="true" model="csh.CSH1015.csh_bank_contact_person_type" rootPath="csh1015_csh_bank_contact_person_type"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function csh1015_backFunction() {
+                window.close();
+            }
+            
+            function csh1015_editFunction(record, name) {
+                if (record.isNew) {
+                    if (name == 'contact_person_type_display') {
+                        return 'csh1015_editor_cb';
+                    }
+                    if (name == 'employee_code') {
+                        return 'csh1015_editor_lov';
+                    }
+                }
+                return '';
+            }
+            
+            function csh1015_addFunction(ds, record, index) {
+                record.set('bank_branch_id', ${/parameter/@bank_branch_id});
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="csh1015_contact_person_type_ds">
+                <a:datas dataSource="/model/csh1015_csh_bank_contact_person_type"/>
+            </a:dataSet>
+            <a:dataSet id="csh1015_csh_bank_contact_persons_header_ds">
+                <a:datas dataSource="/model/csh1015_csh_bank"/>
+                <a:fields>
+                    <a:field name="bank_name" readOnly="true"/>
+                    <a:field name="branch_name" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh1015_csh_bank_contact_persons_line_ds" autoQuery="true" model="csh.CSH1015.csh_bank_contact_persons" queryUrl="${/request/@context_path}/autocrud/csh.CSH1015.csh_bank_contact_persons/query?bank_branch_id=${/parameter/@bank_branch_id}" selectable="true">
+                <a:fields>
+                    <a:field name="contact_person_type_display" displayField="code_value_name" options="csh1015_contact_person_type_ds" required="true" returnField="contact_person_type" valueField="code_value"/>
+                    <a:field name="employee_code" lovGridHeight="320" lovHeight="440" lovService="exp.CSH1015.exp_employees_lov_query" lovWidth="500" required="true" title="CSH_BANK_CONTACT_PERSONS.EMPLOYEE_ID">
+                        <a:mapping>
+                            <a:map from="employee_code" to="employee_code"/>
+                            <a:map from="employee_id" to="employee_id"/>
+                            <a:map from="code_name" to="code_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="start_date_active" required="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="csh1015_addFunction"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" labelWidth="120" title="CSH_BANKS.BANK_NAME_ID" width="600">
+                <a:textField name="bank_name" bindTarget="csh1015_csh_bank_contact_persons_header_ds" prompt="CSH_BANKS.BANK_NAME"/>
+                <a:textField name="branch_name" bindTarget="csh1015_csh_bank_contact_persons_header_ds" prompt="CSH_BANK_BRANCHES.BRANCH_NAME"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="csh1015_backFunction" text="HAP_BACK"/>
+            </a:hBox>
+            <a:grid bindTarget="csh1015_csh_bank_contact_persons_line_ds" height="350" navBar="true" width="800">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="clear"/>
+                    <a:button type="save"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="contact_person_type_display" align="center" editorFunction="csh1015_editFunction" prompt="CSH_BANK_CONTACT_PERSONS.CONTACT_PERSON_TYPE" width="120"/>
+                    <a:column name="employee_code" align="center" editorFunction="csh1015_editFunction" prompt="CSH_BANK_CONTACT_PERSONS.EMPLOYEE_ID" width="80"/>
+                    <a:column name="employee_name" align="center" prompt="EXP_EMPLOYEES.NAME" width="80"/>
+                    <a:column name="start_date_active" align="center" editor="csh1015_editor_dpk" prompt="FND_COMPANIES.START_DATE_ACTIVE" renderer="Aurora.formatDate" width="120"/>
+                    <a:column name="end_date_active" align="center" editor="csh1015_editor_dpk" prompt="FND_COMPANIES.END_DATE_ACTIVE" renderer="Aurora.formatDate" width="120"/>
+                </a:columns>
+                <a:editors>
+                    <a:comboBox id="csh1015_editor_cb"/>
+                    <a:lov id="csh1015_editor_lov"/>
+                    <a:datePicker id="csh1015_editor_dpk"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

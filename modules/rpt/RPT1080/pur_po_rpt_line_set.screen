@@ -1,0 +1,455 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-10-14 下午7:58:55  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+            var rpt1080_ds_record = new Array();
+            var rpt1080_rpt1080_ds_record_time = 0;
+            var rpt1080_enable_flag_num = 0;
+            
+            function rpt1080_line_details_back() {
+                $('rpt1080_line_details_window').close();
+            }
+            
+            function rpt1080_line_pre() {
+                $('${/parameter/@parent_result}').pre();
+                rpt1080_line_detail_query();
+            }
+            
+            function rpt1080_line_next() {
+                $('${/parameter/@parent_result}').next();
+                rpt1080_line_detail_query();
+            }
+            
+            function rpt1080_line_detail_query() {
+                var record_obj = $('${/parameter/@parent_result}').getCurrentObject();
+                var rpt_header_id = record_obj.rpt_header_id;
+                var header_ds = $('rpt1080_header_ds');
+                var line_ds = $('rpt1080_line_result_ds');
+                var detail_ds = $('rpt1080_detail_result_ds');
+                header_ds.setQueryParameter('rpt_header_id', rpt_header_id);
+                line_ds.setQueryParameter('rpt_header_id', rpt_header_id);
+                header_ds.query();
+                line_ds.query();
+            }
+            
+            function rpt1080_details_rpt_type_time_validate(rpt_type) {
+                var details_ds = $('rpt1080_detail_result_ds').getAll();
+                var time_from = '';
+                var time_to = '';
+                var return_message = 'true';
+                //找到报表类型对应的时间设置值得行
+                for (i = 0;i < details_ds.length;i++) {
+                    if (details_ds[i].get('flex_value_set_code') == '1_' + rpt_type) {
+                        time_from = parseInt(details_ds[i].get('flex_value_code'));
+                    } else if (details_ds[i].get('flex_value_set_code') == '2_' + rpt_type) {
+                        time_to = parseInt(details_ds[i].get('flex_value_code'));
+                    }
+                }
+                if (time_from > time_to && time_from != '' && time_to != '') {
+                    switch (rpt_type) {
+                    case 'HALF_YEAR':
+                        return_message = '${l:RPT.START_HALFYEAR_GRATER_THEN_END_HALFYEAR}';
+                        break;
+                    case 'QUARTER':
+                        return_message = '${l:RPT.START_QUARTER_GRATER_THEN_END_QUARTER}';
+                        break;
+                    case 'MONTH':
+                        return_message = '${l:RPT.START_MONTH_GRATER_THEN_END_MONTH}';
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                return return_message;
+            }
+            
+            function rpt1080_details_validate(record, name, value) {
+                var details_ds = $('rpt1080_detail_result_ds').getAll();
+                if (name == 'flex_value_desc') {
+                    var rpt_type;
+                    var year_from;
+                    var year_to;
+                    var message;
+                    var i;
+                    for (i = 0;i < details_ds.length;i++) {
+                        if (details_ds[i].get('flex_value_set_code') == '1_REPORT_TYPES') {
+                            rpt_type = details_ds[i].get('flex_value_code');
+                        } else if (details_ds[i].get('flex_value_set_code') == '1_YEAR') {
+                            year_from = details_ds[i].get('flex_value_code');
+                        } else if (details_ds[i].get('flex_value_set_code') == '2_YEAR') {
+                            year_to = details_ds[i].get('flex_value_code');
+                        }
+                    }
+                    //报表设置里的年度从和年度至的校验，默认年度从和年度至是一定要有的字段
+                    if (record.get('flex_value_set_code') == '1_YEAR' || record.get('flex_value_set_code') == '2_YEAR') {
+                        if (year_from > year_to) {
+                            return '${l:RPT.START_YEAR_GRATER_THEN_END_YEAR}';
+                        }
+                    }
+                    //校验半年度，季度，月度的数据大小
+                    if (year_from == year_to) {
+                        if (record.get('flex_value_set_code') == '1_HALF_YEAR' || record.get('flex_value_set_code') == '2_HALF_YEAR') {
+                            message = rpt1080_details_rpt_type_time_validate(rpt_type);
+                            if (message != 'true') {
+                                return message;
+                            }
+                        } else if (record.get('flex_value_set_code') == '1_QUARTER' || record.get('flex_value_set_code') == '2_QUARTER') {
+                            message = rpt1080_details_rpt_type_time_validate(rpt_type);
+                            if (message != 'true') {
+                                return message;
+                            }
+                        } else if (record.get('flex_value_set_code') == '1_MONTH' || record.get('flex_value_set_code') == '2_MONTH') {
+                            message = rpt1080_details_rpt_type_time_validate(rpt_type);
+                            if (message != 'true') {
+                                return message;
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+            
+            function rpt1080_line_update(ds, record, name, value) {
+                if (name == 'enable_flag') {
+                    if (value && value == 'Y') {
+                        rpt1080_enable_flag_num++;
+                    } else if (value && value == 'N') {
+                        rpt1080_enable_flag_num--;
+                    }
+                }
+            }
+            
+            function rpt1080_details_update(ds, record, name, value) {
+                var i;
+                if (name == 'flex_value_set_code' && value != '1_CREATION_DATE') {
+                    //同行的lov连动
+                    value = value.substr(2);
+                    record.getField('flex_value_desc').setLovPara('flex_value_set_code', value);
+                    record.getField('flex_value_desc').setLovService('rpt.RPT1080.fnd_flex_value_v_lov_2');
+                    record.set('flex_value_desc', '');
+                } else if (name == 'flex_value_desc' && record.get('flex_value_set_code') == '1_CREATION_DATE') {
+                    record.set('flex_value_code', Aurora.formatDateTime(Aurora.formatDate(value)));
+                } else if (name == 'flex_value_code') {
+                    //不同行的lov连动
+                    if (record.get('flex_value_set_code') == '1_REPORT_TYPES' && value != 'YEAR') {
+                        var desc_list = $('rpt1080_set_from_desc_ds');
+                        var analyse_method = '';
+                        var from_order = '';
+                        var to_order = '';
+                        var link_order = '';
+                        //找到连动的目标行（2行或3行）
+                        for (i = 0;i < ds.getAll().length;i++) {
+                            if (ds.getAll()[i].get('flex_value_set_code') == '1_ANALYTICAL_METHOD') {
+                                analyse_method = ds.getAll()[i].get('flex_value_code');
+                            } else if (ds.getAll()[i].get('flex_value_set_code') == '1_HALF_YEAR' || ds.getAll()[i].get('flex_value_set_code') == '1_QUARTER' || ds.getAll()[i].get('flex_value_set_code') == '1_MONTH') {
+                                from_order = i;
+                            } else if (ds.getAll()[i].get('flex_value_set_code') == '2_HALF_YEAR' || ds.getAll()[i].get('flex_value_set_code') == '2_QUARTER' || ds.getAll()[i].get('flex_value_set_code') == '2_MONTH') {
+                                to_order = i;
+                            } else if (ds.getAll()[i].get('flex_value_set_code') == '3_HALF_YEAR' || ds.getAll()[i].get('flex_value_set_code') == '3_QUARTER' || ds.getAll()[i].get('flex_value_set_code') == '3_MONTH') {
+                                link_order = i;
+                            }
+                        }
+                        //3行连动
+                        ds.getAll()[from_order].set('flex_value_set_code', '1_' + value);
+                        ds.getAll()[to_order].set('flex_value_set_code', '2_' + value);
+                        if (analyse_method == 'BASE_PERIOD') {
+                            ds.getAll()[link_order].set('flex_value_set_code', '3_' + value);
+                        }
+                        desc_list.setQueryParameter('flex_value_set_code', 'RPT_DEFAULT_SETTING');
+                        desc_list.setQueryParameter('flex_value', '1_' + value);
+                        desc_list.query();
+                    } else {
+                        var details_ds = ds.getAll();
+                        var target_name;
+                        switch (record.get('flex_value_set_code').substr(2)) {
+                        case 'YEAR':
+                            target_name = (record.get('flex_value_set_code') == '1_YEAR') ? '2_YEAR' : '1_YEAR';
+                            break;
+                        case 'HALF_YEAR':
+                            target_name = (record.get('flex_value_set_code') == '1_HALF_YEAR') ? '2_HALF_YEAR' : '1_HALF_YEAR';
+                            break;
+                        case 'QUARTER':
+                            target_name = (record.get('flex_value_set_code') == '1_QUARTER') ? '2_QUARTER' : '1_QUARTER';
+                            break;
+                        case 'MONTH':
+                            target_name = (record.get('flex_value_set_code') == '1_MONTH') ? '2_MONTH' : '1_MONTH';
+                            break;
+                        default:
+                            target_name = '';
+                            break;
+                        }
+                        for (i = 0;i < details_ds.length;i++) {
+                            if (details_ds[i].get('flex_value_set_code') == target_name) {
+                                details_ds[i].validate('flex_value_desc');
+                            }
+                        }
+                    }
+                }
+            }
+            
+            function rpt1080_set_from_desc_load() {
+                var desc_list = $('rpt1080_set_from_desc_ds').getAll()[0];
+                var desc = $('rpt1080_set_from_desc_ds');
+                var details_ds = $('rpt1080_detail_result_ds').getAll();
+                for (var i = 0;i < details_ds.length;i++) {
+                    if (details_ds[i].get('flex_value_set_code') == desc_list.get('flex_value')) {
+                        details_ds[i].set('flex_value_set_desc', desc_list.get('flex_desc'));
+                    }
+                }
+                //依次将时间从和时间至的描述赋值到对应的框内
+                if (desc_list.get('flex_value').substr(0, 1) == '1') {
+                    desc.setQueryParameter('flex_value_set_code', 'RPT_DEFAULT_SETTING');
+                    desc.setQueryParameter('flex_value', '2_' + desc_list.get('flex_value').substr(2));
+                    desc.query();
+                } else if (desc_list.get('flex_value').substr(0, 1) == '2') {
+                    desc.setQueryParameter('flex_value_set_code', 'RPT_DEFAULT_SETTING');
+                    desc.setQueryParameter('flex_value', '3_' + desc_list.get('flex_value').substr(2));
+                    desc.query();
+                }
+            }
+            
+            function rpt1080_line_load() {
+                var copy_ds = $('rpt1080_details_copy_ds');
+                var line_ds = $('rpt1080_line_result_ds').getAll();
+                if (line_ds.length > 0) {
+                    copy_ds.setQueryParameter('rpt_line_id', line_ds[0].get('rpt_line_id'));
+                    copy_ds.query();
+                }
+            }
+            
+            function rpt1080_copy_load() {
+                //行新增时，明细的内容从行内的第一行里复制
+                var copy_ds = $('rpt1080_details_copy_ds').getAll();
+                if (rpt1080_rpt1080_ds_record_time < 1) {
+                    for (var i = 0;i < copy_ds.length;i++) {
+                        rpt1080_ds_record[i] = copy_ds[i].data;
+                    }
+                    rpt1080_rpt1080_ds_record_time++;
+                }
+            }
+            
+            function rpt1080_details_load() {
+                //明细行加载时设置同行lov连动
+                var details_ds = $('rpt1080_detail_result_ds').getAll();
+                for (var i = 0;i < details_ds.length;i++) {
+                    if (details_ds[i].get('flex_value_set_code') != '1_CREATION_DATE') {
+                        details_ds[i].getField('flex_value_desc').setLovPara('flex_value_set_code', details_ds[i].get('flex_value_set_code').substr(2));
+                        details_ds[i].getField('flex_value_desc').setLovService('rpt.RPT1080.fnd_flex_value_v_lov_2');
+                    }
+                    if (details_ds[i].get('rpt_required_flag') == 'Y') {
+                        details_ds[i].getField('flex_value_set_desc').setRequired(true);
+                        details_ds[i].getField('flex_value_desc').setRequired(true);
+                    } else {
+                        details_ds[i].getField('flex_value_set_desc').setRequired(false);
+                        details_ds[i].getField('flex_value_desc').setRequired(false);
+                    }
+                }
+            }
+            
+            function rpt_1080_detail_add(ds, record, name, value) {
+                record.getField('flex_value_desc').setLovPara('flex_value_set_code', '');
+                record.getField('flex_value_desc').setLovService('rpt.RPT1080.fnd_flex_value_v_lov_2');
+            }
+            
+            function rpt1080_line_indexchange(ds, record) {
+                //根据index判断是否新增，将第一行对应的明细信息复制过来
+                var details_ds = $('rpt1080_detail_result_ds');
+                var line_ds = $('rpt1080_line_result_ds').getAll();
+                var detail_length = details_ds.getAll().length;
+                record.set('rpt_line_name', record.get('rpt_setting_desc'));
+                /*                 if (record.isNew && ds.getAll().length > 1 && detail_length == 0) {
+                 for (var i = 0;i < rpt1080_ds_record.length;i++) {
+                 details_ds.create(rpt1080_ds_record[i]);
+                 }
+                 } */
+            }
+            
+            function rpt1080_line_detail_save() {
+                var line_ds = $('rpt1080_line_result_ds').getAll();
+                for (var i = 0;i < line_ds.length;i++) {
+                    if (line_ds[i].isNew) {
+                        line_ds[i].set('_status', 'insert');
+                    } else {
+                        line_ds[i].set('_status', 'update');
+                    }
+                }
+                //启用标志只能启用一个
+/*                 if (rpt1080_enable_flag_num > 0 && line_ds.length > 1) {
+                    Aurora.showMessage('${l:RPT_ERROR_PROMPT}', '${l:RPT.RPT1080_ENABLE_FLAG_REPEAT}');
+                } else if (rpt1080_enable_flag_num < 0) {
+                    Aurora.showMessage('${l:RPT_ERROR_PROMPT}', '${l:RPT.RPT1080_ENABLE_FLAG_NULL}');
+                } else {
+                    $('rpt1080_line_result_ds').submit();
+                } */
+                
+                $('rpt1080_line_result_ds').submit();
+            }
+            
+            function rpt1080_line_submitsucess(ds) {
+                /*                 Aurora.SideBar.enable = true;
+                 Aurora.SideBar.show({
+                 msg: '${l:PROMPT.OPERATION_SUCCESS}',
+                 duration: 600
+                 }); */
+                $('rpt1080_line_result_ds').query();
+            }
+            
+            function rpt1080_line_select(record) {
+                if (record.get('line_default_setting_flag') == 'Y') {
+                    return false;
+                }
+                return true;
+            }
+            
+            //编辑器
+            
+            function rpt1080_line_grid_code_edit(record, name) {
+                if (record.isNew) {
+                    return 'rpt1080_line_grid_edit_tf';
+                } else {
+                    return '';
+                }
+            }
+            
+            function rpt1080_detail_grid_edit(record, name) {
+                if (record.get('flex_value_set_code') == '1_CREATION_DATE') {
+                    return 'rpt1080_details_grid_edit_dp';
+                } else {
+                    return 'rpt1080_details_grid_edit_lov';
+                }
+            }
+            
+            function rpt1080_detail_grid_renderer(value, record, name) {
+                if (record.get('flex_value_set_code') == '1_CREATION_DATE') {
+                    return Aurora.formatDateTime(Aurora.formatDate(value));
+                } else {
+                    return value;
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="rpt1080_set_from_desc_ds" fetchAll="true" model="rpt.RPT1080.fnd_flex_value_v_lov_2">
+                <a:events>
+                    <a:event name="load" handler="rpt1080_set_from_desc_load"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="rpt1080_set_to_desc_ds" fetchAll="true" model="rpt.RPT1080.fnd_flex_value_v_lov_2">
+                <a:events>
+                    <a:event name="load" handler="rpt1080_set_to_desc_load"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="rpt1080_header_ds" autoQuery="true" model="rpt.RPT1080.rpt_setting_headers" queryUrl="${/request/@context_path}/autocrud/rpt.RPT1080.rpt_setting_headers/query?rpt_header_id=${/parameter/@rpt_header_id}">
+                <a:fields>
+                    <a:field name="rpt_code" readOnly="true"/>
+                    <a:field name="rpt_name" readOnly="true"/>
+                    <a:field name="rpt_header_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="rpt1080_line_result_ds" autoQuery="true" fetchAll="true" model="rpt.RPT1080.rpt_setting_lines" queryUrl="${/request/@context_path}/autocrud/rpt.RPT1080.rpt_setting_lines/query?rpt_header_id=${/parameter/@rpt_header_id}" selectFunction="rpt1080_line_select" selectable="true" submitUrl="${/request/@context_path}/modules/rpt/RPT1080/pur_po_rpt_set.svc">
+                <a:fields>
+                    <a:field name="enable_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="rpt_setting_code" required="true"/>
+                    <a:field name="rpt_setting_desc" required="true"/>
+                    <a:field name="rpt_header_id" defaultValue="${/parameter/@rpt_header_id}"/>
+                    <a:field name="rpt_line_name"/>
+                    <a:field name="_status"/>
+                </a:fields>
+                <a:events>
+                    <!-- <a:event name="add" handler="rpt1080_line_add"/> -->
+                    <a:event name="indexchange" handler="rpt1080_line_indexchange"/>
+                    <!-- <a:event name="load" handler="rpt1080_line_load"/> -->
+                    <a:event name="submitsuccess" handler="rpt1080_line_submitsucess"/>
+                    <a:event name="update" handler="rpt1080_line_update"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="rpt1080_details_copy_ds" fetchAll="true" model="rpt.RPT1080.rpt_setting_details" selectable="true">
+                <!--                 <a:events>
+                    <a:event name="load" handler="rpt1080_copy_load"/>
+                </a:events> --><![CDATA[
+                
+                
+                
+                
+            ]]></a:dataSet>
+            <a:dataSet id="rpt1080_detail_result_ds" bindName="details_ds" bindTarget="rpt1080_line_result_ds" fetchAll="true" model="rpt.RPT1080.rpt_setting_details" sortType="local">
+                <a:fields>
+                    <a:field name="flex_value_set_code" readOnly="true"/>
+                    <a:field name="flex_value_code" readOnly="true"/>
+                    <a:field name="rpt_line_id"/>
+                    <a:field name="flex_value_set_desc" autoComplete="true" autoCompleteField="flex_desc" lovHeight="490" lovService="rpt.RPT1080.fnd_flex_value_v_lov_2?flex_value_set_code=RPT_DEFAULT_SETTING" lovWidth="490" title="字段">
+                        <a:mapping>
+                            <a:map from="flex_desc" to="flex_value_set_desc"/>
+                            <a:map from="flex_value" to="flex_value_set_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="flex_value_desc" autoComplete="true" autoCompleteField="flex_desc" lovHeight="490" lovService="rpt.RPT1080.fnd_flex_value_v_lov_2" lovWidth="490" title="字段值">
+                        <a:mapping>
+                            <a:map from="flex_desc" to="flex_value_desc"/>
+                            <a:map from="flex_value" to="flex_value_code"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="rpt1080_details_update"/>
+                    <a:event name="load" handler="rpt1080_details_load"/>
+                    <a:event name="add" handler="rpt_1080_detail_add"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton className="item-rbtn-blue save" click="rpt1080_line_detail_save" style="margin-left:5px;" text="RPT_SAVING" width="100"/>
+                <!-- <a:toolbarButton id="rpt1080_line_pre_button" className="item-rbtn-blue prev" click="rpt1080_line_pre" style="margin-left:5px;" text="前一条" width="100"/>
+                <a:toolbarButton id="rpt1080_line_next_button" className="item-rbtn-blue next" click="rpt1080_line_next" style="margin-left:5px;" text="后一条" width="100"/> -->
+                <a:toolbarButton className="item-rbtn-blue back" click="rpt1080_line_details_back" style="margin-left:5px;" text="RPT_RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:form bindTarget="rpt1080_header_ds" marginWidth="30" row="1" title="RPT.RPT1080_RPT_HEADER_INFO">
+                <a:textField name="rpt_code" bindTarget="rpt1080_header_ds" prompt="RPT.RPT1080_RPT_HEADER_CODE" width="200"/>
+                <a:textField name="rpt_name" bindTarget="rpt1080_header_ds" prompt="RPT.RPT1080_RPT_HEADER_NAME" width="200"/>
+            </a:form>
+            <a:hBox>
+                <a:grid id="rpt1080_lind_result_grid" bindTarget="rpt1080_line_result_ds" marginHeight="175" marginWidth="730">
+                    <a:toolBar>
+                        <a:button type="add"/>
+                        <a:button type="clear"/>
+                    </a:toolBar>
+                    <a:columns>
+                        <a:column name="rpt_setting_code" editorFunction="rpt1080_line_grid_code_edit" prompt="RPT.RPT1080_RPT_LINE_SETTING_CODE" width="250"/>
+                        <a:column name="rpt_setting_desc" editor="rpt1080_line_grid_edit_tf" prompt="RPT.RPT1080_RPT_LINE_SETTING_NAME" width="250"/>
+                        <a:column name="enable_flag" editor="rpt1080_line_grid_edit_ckb" prompt="RPT.RPT1080_RPT_LINE_SETTING_ENABLE_FLAG" width="100"/>
+                    </a:columns>
+                    <a:editors>
+                        <a:textField id="rpt1080_line_grid_edit_tf" emptyText="UPPER"/>
+                        <a:checkBox id="rpt1080_line_grid_edit_ckb"/>
+                    </a:editors>
+                </a:grid>
+                <a:grid id="rpt1080_details_result_grid" bindTarget="rpt1080_detail_result_ds" marginHeight="175" marginWidth="680">
+                    <a:toolBar>
+                        <a:label name="rpt_line_name" bindTarget="rpt1080_line_result_ds" prompt="RPT.RPT1080_RPT_DETAIL_SETTING_DESC"/>
+                        <!--                         <a:button type="add"/>
+                             <a:button type="delete"/>  -->
+                    </a:toolBar>
+                    <a:columns>
+                        <a:column name="flex_value_set_desc" prompt="RPT.RPT1080_RPT_DETAIL_SETTING_DESC" width="200"/>
+                        <a:column name="flex_value_desc" editorFunction="rpt1080_detail_grid_edit" prompt="RPT.RPT1080_RPT_DETAIL_SETTING_VALUE_DESC" renderer="rpt1080_detail_grid_renderer" width="300"/>
+                        <!-- <a:column name="rpt_order_no" align="right" editor="rpt1080_details_grid_edit_nf" prompt="RPT.RPT1080_RPT_DETAIL_ORDER_NO" sortable="true" width="100"/> -->
+                        <!-- <a:column name="rpt_required_flag" editor="rpt1080_details_grid_edit_tf" prompt="RPT.RPT1080_RPT_DETAIL_REQUIRED_OR_NOT" width="200"/> -->
+                    </a:columns>
+                    <a:editors>
+                        <a:textField id="rpt1080_details_grid_edit_tf"/>
+                        <a:lov id="rpt1080_details_grid_edit_lov"/>
+                        <a:datePicker id="rpt1080_details_grid_edit_dp"/>
+                        <a:numberField id="rpt1080_details_grid_edit_nf" allowDecimals="false" allowNegative="false"/>
+                    </a:editors>
+                </a:grid>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

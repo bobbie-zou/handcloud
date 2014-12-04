@@ -1,0 +1,964 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua  
+    $Date: 2013-7-27 上午10:58:30  
+    $Revision: 1.0  
+    $Purpose: 供应商信息维护
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="pur6020_vendor_save_link" url="${/request/@context_path}/modules/pur/PUR6020/pur_vendor_maintain_save.svc"/>
+        <a:link id="pur6020_vendor_submit_link" url="${/request/@context_path}/modules/pur/PUR6020/pur_vendor_submit.svc"/>
+        <a:link id="pur6020_vendor_assign_purchase_category_link" url="${/request/@context_path}/modules/pur/PUR6020/pur_vendor_purchase_category_assign.screen"/>
+        <a:link id="pur6020_vendor_upload_link" url="${/request/@context_path}/uploadFile.screen"/>
+        <a:link id="pur6020_vendor_site_company_link" url="${/request/@context_path}/modules/pur/PUR6020/pur_vendor_site_company_assign.screen"/>
+        <a:link id="pur6020_vendor_contact_link" url="${/request/@context_path}/modules/pur/PUR6020/pur_vendor_contacts_batch_save.svc"/>
+        <a:link id="pur6020_vendor_account_link" url="${/request/@context_path}/modules/pur/PUR6020/pur_vendor_accounts_batch_save.svc"/>
+        <script><![CDATA[
+            //全局变量
+            //var vendor_id;
+            //供应商ID
+            var save_flag = false;
+            
+            //全局变量，当前页面是否有未保存的数据
+            var modified_flag = false;
+            
+            //初始化函数
+            
+            function pur6020_vendor_loadHandler(ds) {
+                var record = ds.getCurrentRecord();
+                if (record.get('maintain_flag') == 'Y') {
+                    record.getField('full_name').setReadOnly(true);
+                    record.getField('national_organization_code').setReadOnly(true);
+                    record.getField('tax_id_number').setReadOnly(true);
+                    record.getField('business_license_number').setReadOnly(true);
+                    $('pur6020_submitBtn').disable();
+                }
+                if (record.get('registered_country_code') == 'CHN') {
+                    record.getField("national_organization_code").setRequired(true);
+                } else {
+                    record.getField("national_organization_code").setRequired(false);
+                }
+                //根据用户营业执照类型标识设置到期日
+                if (record.get('business_license_type') == 'Y') {
+                    record.set('business_license_end_date', '');
+                    record.getField('business_license_end_date').setRequired(false);
+                    record.getField('business_license_end_date').setReadOnly(true);
+                } else {
+                    record.getField('business_license_end_date').setReadOnly(false);
+                    record.getField('business_license_end_date').setRequired(true);
+                }
+            
+                //国家、地区、城市级联更新
+                if (Ext.isEmpty(record.get('registered_country_code')) || record.get('registered_country_code') == undefined) {
+                    record.set('registered_province_id', '');
+                    record.set('registered_province_desc','');
+                    record.getField("registered_province_desc").setReadOnly(true);
+                    record.getField("registered_province_desc").setRequired(false);
+                    record.getField("registered_province_desc").setLovPara('country_code', -1);
+            
+                    record.set('registered_city_id', '');
+                    record.set('registered_city_desc');
+                    record.getField("registered_city_desc").setReadOnly(true);
+                    record.getField("registered_city_desc").setRequired(false);
+                    record.getField("registered_city_desc").setLovPara('registered_province_id', -1);
+                } else {
+                    record.getField("registered_province_desc").setReadOnly(false);
+                    record.getField("registered_province_desc").setRequired(true);
+                    record.getField("registered_province_desc").setLovPara('country_code', record.get('registered_country_code'));
+                }
+            
+                if (Ext.isEmpty(record.get('registered_province_id')) || record.get('registered_province_id') == undefined) {
+                    record.set('registered_city_id', '');
+                    record.set('registered_city_desc','');
+                    record.getField("registered_city_desc").setReadOnly(true);
+                    record.getField("registered_city_desc").setRequired(false);
+                    record.getField("registered_city_desc").setLovPara('province_id', -1);
+                } else {
+                    record.getField("registered_city_desc").setReadOnly(false);
+                    record.getField("registered_city_desc").setRequired(true);
+                    record.getField("registered_city_desc").setLovPara('province_id', record.get('registered_province_id'));
+                }
+            }
+            
+            //供应商主数据更新
+            
+            function pur6020_vendor_updateHandler(ds, record, name, value, oldvalue) {
+                modified_flag = true;
+                //注册国家和组织机构代码级联更新
+                if (name == 'registered_country_name') {
+                    if (record.get('registered_country_code') == 'CHN') {
+                        record.getField("national_organization_code").setRequired(true);
+                    } else {
+                        record.getField("national_organization_code").setRequired(false);
+                    }
+                } else if (name == 'business_license_type') {
+                    //根据用户营业执照类型标识设置到期日
+                    if (record.get('business_license_type') == 'Y') {
+                        record.set('business_license_end_date', '');
+                        record.getField('business_license_end_date').setRequired(false);
+                        record.getField('business_license_end_date').setReadOnly(true);
+                    } else {
+                        record.getField('business_license_end_date').setReadOnly(false);
+                        record.getField('business_license_end_date').setRequired(true);
+                    }
+                } else if (name == 'registered_country_code') {
+                    if (Ext.isEmpty(record.get('registered_country_code')) || record.get('registered_country_code') == undefined) {
+                        record.set('registered_province_id', '');
+                        record.set('registered_province_desc','');
+                        record.getField("registered_province_desc").setReadOnly(true);
+                        record.getField("registered_province_desc").setRequired(false);
+                        record.getField("registered_province_desc").setLovPara('country_code', -1);
+            
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc');
+                        record.getField("registered_city_desc").setReadOnly(true);
+                        record.getField("registered_city_desc").setRequired(false);
+                        record.getField("registered_city_desc").setLovPara('province_id', -1);
+                    } else {
+                        record.getField("registered_province_desc").setReadOnly(false);
+                        record.getField("registered_province_desc").setRequired(true);
+                        record.getField("registered_province_desc").setLovPara('country_code', record.get('registered_country_code'));
+                    }
+                } else if (name == 'registered_province_id') {
+                    if (Ext.isEmpty(record.get('registered_province_id')) || record.get('registered_province_id') == undefined) {
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc','');
+                        record.getField("registered_city_desc").setReadOnly(true);
+                        record.getField("registered_city_desc").setRequired(false);
+                        record.getField("registered_city_desc").setLovPara('province_id', -1);
+                    } else {
+                        record.getField("registered_city_desc").setReadOnly(false);
+                        record.getField("registered_city_desc").setRequired(true);
+                        record.getField("registered_city_desc").setLovPara('province_id', record.get('registered_province_id'));
+                    }
+                }
+            }
+            
+            //供应商联系人更新
+            
+            function pur6020_purSysVendorContactUpdateHandler(ds, record, name, value, oldvalue) {
+                modified_flag = true;
+            }
+            
+            //财务状况更新
+            
+            
+            function pur6020_finance_updateHandler(ds, record, name, value, oldvalue) {
+                modified_flag = true;
+            }
+            
+            
+            
+            //供应商相关附件更新
+            
+            function pur6020_attachment_updateHandler(ds, record, name, value, oldvalue) {
+                modified_flag = true;
+            }
+            
+            
+            //邮箱格式校验
+            
+            function pur6020_email_Validator(record, name, value) {
+                if ( !! value) {
+            
+                    var myReg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,4})+$/;
+                    if (myReg.test(value)) {
+                        return true;
+                    }
+                    return '${l:PUR6020_VENDOR.MAIL_FORMAT_IS_INCORRECT}！';
+                }
+                return true;
+            
+            }
+            
+            //供应商主数据保存
+            
+            //保存
+            
+            function pur6020_vendor_save() {
+                $('pur6020_saveBtn').disable();
+                var vendor_ds = $('pur6020_pur_vendors_ds');
+                var contact_ds = $('pur6020_contact_ds');
+                var account_ds = $('pur6020_account_ds');
+                var site_ds = $('pur6020_site_ds');
+                var finance_ds = $('pur6020_finance_ds');
+                var pur_ctg_ds = $('pur6020_purchase_category_ds');
+                var attachment_ds = $('pur6020_attachment_ds');
+                var vendor_record = vendor_ds.getCurrentRecord();
+                if (!vendor_ds.validate() || !contact_ds.validate() || !account_ds.validate() || !site_ds.validate() || !finance_ds.validate() || !pur_ctg_ds.validate() || !attachment_ds.validate()) {
+                    $('pur6020_saveBtn').enable();
+                    return;
+                }
+            
+                var data = vendor_record.data;
+                data['contacts'] = contact_ds.getJsonData();
+                data['accounts'] = account_ds.getJsonData();
+                data['sites'] = site_ds.getJsonData();
+                data['finance'] = finance_ds.getJsonData();
+                data['pur_ctg'] = pur_ctg_ds.getJsonData();
+                data['attachments'] = attachment_ds.getJsonData();
+            
+            
+                Aurora.request({
+                    url: $('pur6020_vendor_save_link').getUrl(),
+                    para: data,
+                    success: function(result) {
+                        pur6020_vendor_save_success();
+                    },
+                    failure: function() {
+                        $('pur6020_saveBtn').enable();
+                    },
+                    error: function() {
+                        $('pur6020_saveBtn').enable();
+                    },
+                    scope: this
+                });
+            
+            }
+            
+            //供应商保存成功
+            
+            function pur6020_vendor_save_success() {
+                modified_flag = false;
+                $('pur6020_saveBtn').enable();
+                Aurora.showMessage('${l:PROMPT}', '${l:EBS_SAVE_SUCCESS}!', function() {
+                    $('pur6020_pur_vendors_ds').query();
+                    pur6020_contact_submitSuccess();
+                    pur6020_finance_submitSuccess();
+                    pur6020_purchaseCategory_submitSuccess();
+                    pur6020_account_submitSuccess();
+                    pur6020_site_submitSuccess();
+                    pur6020_attachment_submitSuccess();
+                });
+            }
+            //联系人保存成功
+            
+            
+            function pur6020_contact_submitSuccess(ds, res) {
+                $('pur6020_contact_ds').query();
+            }
+            
+            //财务状况保存成功
+            
+            
+            function pur6020_finance_submitSuccess(ds, res) {
+                $('pur6020_finance_ds').query();
+            }
+            
+            //采购品类
+            
+            
+            function pur6020_purchaseCategory_submitSuccess() {
+                $('pur6020_purchase_category_ds').query();
+            }
+            
+            //账户
+            
+            
+            function pur6020_account_submitSuccess() {
+                $('pur6020_account_ds').query();
+            }
+            
+            //地点
+            
+            
+            function pur6020_site_submitSuccess() {
+                $('pur6020_site_ds').query();
+            }
+            //附件保存成功
+            
+            
+            function pur6020_attachment_submitSuccess(ds, res) {
+                $('pur6020_attachment_ds').query();
+            }
+            
+            //供应商信息提交
+            
+            
+            function pur6020_vendor_submit() {
+                if (modified_flag) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SAVE}');
+                }
+                if (!modified_flag) {
+            
+                    Aurora.showConfirm('${l:DOCUMNET_SUBMIT_CONFIRM}', '${l:PUR6020_VENDOR.VENDOR_SUBMIT}', function() {
+                        $('pur6020_submitBtn').disable();
+                        var vendor_id = $('pur6020_pur_vendors_ds').getCurrentRecord().get('vendor_id');
+                        var ds = $('pur6020_submit_ds');
+                        var record = ds.getCurrentRecord();
+                        record.set('vendor_id', vendor_id);
+                        Aurora.request({
+                            url: $('pur6020_vendor_submit_link').getUrl(),
+                            para: record.data,
+                            success: function(res) {
+                                Aurora.showMessage('${l:PROMPT}', '${l:PUR6020_VENDOR.SUBMITTED_SUCCESSFULLY}', function() {
+                                    $('pur6020_submitBtn').enable();
+                                    var ds1 = $('pur6020_pur_vendors_ds');
+                                    ds1.query();
+                                    pur6020_vendor_loadHandler(ds1);
+                                });
+                            },
+                            scope: this
+                        });
+                    });
+            
+                }
+            }
+            
+            //附件上传和下载
+            
+            function pur6020_upload_renderer(value, record, name) {
+                var atm_line_id = record.get('atm_line_id');
+                if (!record.isNew && atm_line_id) {
+                    return '<a href="javascript:pur6020_upload_file(' + atm_line_id + ')">${l:PUR5610_VENDOR_REG.UPLOAD_DOWNLOAD}</a>';
+                }
+            }
+            
+            function pur6020_upload_file(id) {
+                var url = $('pur6020_vendor_upload_link').getUrl() + "?table_name=FND_ATM_LINES&header_id=" + id;
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                    id: 'pur6020_upload_window',
+                    width: 850,
+                    height: 500
+                }).on('beforeclose', function() {
+                    $('pur6020_attachment_ds').query();
+                });
+            
+            }
+            
+            
+            //年份不可编辑
+            
+            function pur6020_year_period_ef(record, name) {
+                if (record.isNew) {
+                    return 'pur6020_year_period_nf';
+                }
+                return;
+            }
+            
+            
+            //日期校验
+            
+            function pur5610_compareDate(start, end) {
+            
+                if (typeof(start) == 'string') {
+                    start = new Date(start.replace(/-/g, "/"));
+                }
+            
+                if (typeof(end) == 'string') {
+                    end = new Date(end.replace(/-/g, "/"));
+                }
+            
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function business_license_validate(record, name, value) {
+                if (name == 'business_license_end_date') {
+                    var end = record.get('business_license_end_date');
+                    var sysdate = new Date();
+                    sysdate.toLocaleDateString();
+                    if ( !! end) {
+                        if (!pur5610_compareDate(sysdate, end)) {
+                            return '${l:PUR5610_VENDOR_REG.LICENSE_EXPIRATION_DATE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function operating_license_validate(record, name, value) {
+                if (name == 'operating_license_end_date') {
+                    var end = record.get('operating_license_end_date');
+                    var sysdate = new Date();
+                    sysdate.toLocaleDateString();
+                    if ( !! end) {
+                        if (!pur5610_compareDate(sysdate, end)) {
+                            return '${l:PUR6020_VENDOR.PROMPT}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            //地点tab事件
+            
+            
+            function pur6020_site_cellclick_handler(grid, row, name, record) {
+                //国家、地区、城市级联更新
+                if (Ext.isEmpty(record.get('country_name')) || record.get('country_name') == undefined) {
+                    record.set('country_code', '');
+                    record.getField("province_name").setLovService('');
+                    record.getField("city_name").setLovService('');
+                } else {
+                    var temp_string = record.get('country_code');
+                    record.getField("city_name").setLovService('');
+                    record.getField("province_name").setLovService('public.fnd_region_province_lov');
+                    record.getField("province_name").setLovPara('country_code', temp_string);
+                }
+                if (Ext.isEmpty(record.get('province_name')) || record.get('province_name') == undefined) {
+                    record.set('province_id', '');
+                    record.getField("city_name").setLovService('');
+                } else {
+                    record.getField("city_name").setLovService('public.fnd_region_city_lov');
+                    record.getField("city_name").setLovPara('province_id', record.get('province_id'));
+                }
+            }
+            
+            //供应商采购品类分配
+            
+            function pur6020_purchase_category_add() {
+                new Aurora.Window({
+                    id: 'pur6020_vendor_assign_purchase_category_win',
+                    url: $('pur6020_vendor_assign_purchase_category_link').getUrl() + '?vendor_id=${/session/@vendor_id}',
+                    title: '${l:PUBLIC.SELECT_PURCHASE_CATEGORY}',
+                    width: 1000,
+                    height: 500
+                });
+            }
+            
+            //供应商地点分配公司
+            
+            function pur6020_siteCompanyAssign_renderer(value, record, name) {
+                var vendor_site_id = record.get('vendor_site_id');
+                if (!record.isNew && vendor_site_id) {
+                    return '<a href="javascript:pur6020_siteCompanyAssign_open(' + vendor_site_id + ')">${l:PUR_VENDOR_SITE_COMPANY.ASSIGN_COMPANY}</a>';
+                }
+            }
+            
+            //打开页面
+            
+            function pur6020_siteCompanyAssign_open(vendor_site_id) {
+                new Aurora.Window({
+                    url: $('pur6020_vendor_site_company_link').getUrl() + '?vendor_site_id=' + vendor_site_id,
+                    title: '${l:PUR_VENDOR_SITE_COMPANY.ASSIGN_COMPANY}',
+                    id: 'pur_vendor_site_company_assign_window',
+                    width: 820,
+                    height: 480
+                });
+            }
+            
+            //附件新增
+            
+            
+            function pur6020_attachment_add_fun() {
+                $('pur6020_attachment_ds').create();
+                $('pur6020_attachment_ds').submit();
+            }
+            
+            //联系人
+            function pur6020_contactSaveFun(){
+                var contact_ds = $('pur6020_contact_ds');
+                if (!contact_ds.validate() ) {
+                    return;
+                }
+            
+                var data = $('pur6020_pur_vendors_ds').getCurrentRecord().data;
+                data['contacts'] = contact_ds.getJsonData();
+            
+            
+                Aurora.request({
+                    url: $('pur6020_vendor_contact_link').getUrl(),
+                    para: data,
+                    success: function(result) {
+                        pur6020_contact_submitSuccess();
+                    },
+                    failure: function() {
+                    },
+                    error: function() {
+                    },
+                    scope: this
+                });
+            }
+            
+            
+            //账户
+            function pur6020_accountSaveFun(){
+                var account_ds = $('pur6020_account_ds');
+                if (!account_ds.validate() ) {
+                    return;
+                }
+            
+                var data = $('pur6020_pur_vendors_ds').getCurrentRecord().data;
+                data['accounts'] = account_ds.getJsonData();
+            
+            
+                Aurora.request({
+                    url: $('pur6020_vendor_account_link').getUrl(),
+                    para: data,
+                    success: function(result) {
+                        pur6020_account_submitSuccess();
+                    },
+                    failure: function() {
+                    },
+                    error: function() {
+                    },
+                    scope: this
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur6020_submit_ds" autoCreate="true"/>
+            <a:dataSet id="pur6020_pur_vendor_status_ds" lookupCode="PUR_VENDOR_STATUS"/>
+            <a:dataSet id="pur6020_vendor_type_ds" loadData="true" model="public.pur_sys_vendor_type_lov"/>
+            <a:dataSet id="pur6020_vendor_category_ds" lookupCode="PUR_VENDOR_CATEGORY"/>
+            <a:dataSet id="pur6020_enterprise_nature_ds" lookupCode="PUR_ENTERPRISE_NATURE"/>
+            <a:dataSet id="pur6020_taxpayer_type_ds" lookupCode="PUR_TAXPAY_IDENTIFIED"/>
+            <a:dataSet id="pur6020_factory_nature_ds" lookupCode="PUR_FACTORY_NATURE"/>
+            <a:dataSet id="pur6020_certificate_ds" lookupCode="PUR_REGISTER_VENDOR_CERTIFICATE"/>
+            <a:dataSet id="pur6020_pur_vendors_ds" autoQuery="true" model="pur.PUR6020.pur_vendor_maintain" submitUrl="${/request/@context_path}/modules/pur/PUR6020/pur_sys_vendor_maintain_save.svc">
+                <a:fields>
+                    <a:field name="vendor_id" defaultValue="${/session/@vendor_id}"/>
+                    <a:field name="version" readOnly="true"/>
+                    <a:field name="vendor_code" readOnly="true"/>
+                    <a:field name="national_organization_code"/>
+                    <a:field name="tax_id_number" required="true"/>
+                    <a:field name="d_b_code" readOnly="false"/>
+                    <a:field name="short_name"/>
+                    <a:field name="full_name" readOnly="false" required="true"/>
+                    <a:field name="status"/>
+                    <a:field name="status_display" displayField="code_value_name" options="pur6020_pur_vendor_status_ds" readOnly="true" required="true" returnField="status" valueField="code_value"/>
+                    <a:field name="vendor_category"/>
+                    <a:field name="vendor_category_name" displayField="code_value_name" options="pur6020_vendor_category_ds" required="true" returnField="vendor_category" valueField="code_value"/>
+                    <a:field name="vendor_type_id"/>
+                    <a:field name="vendor_type_name" displayField="description" options="pur6020_vendor_type_ds" required="true" returnField="vendor_type_id" valueField="vender_type_id"/>
+                    <a:field name="legal_representative" required="true"/>
+                    <a:field name="enabled_flag" readOnly="true"/>
+                    <a:field name="note" readOnly="false"/>
+                    <a:field name="payment_term_id"/>
+                    <a:field name="payment_term_name" lovHeight="500" lovLabelWidth="100" lovService="public.csh_payment_terms_lov" lovWidth="600" readOnly="true" title="PUR_SYSTEM_VENDERS.PAYMENT_TERM">
+                        <a:mapping>
+                            <a:map from="payment_term_id" to="payment_term_id"/>
+                            <a:map from="payment_term_name" to="payment_term_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="payment_method_id"/>
+                    <a:field name="payment_method_name" lovHeight="500" lovLabelWidth="100" lovService="public.csh_payment_method_lov" lovWidth="600" readOnly="true" title="PUR_SYSTEM_VENDERS.PAYMENT_METHOD">
+                        <a:mapping>
+                            <a:map from="payment_method_id" to="payment_method_id"/>
+                            <a:map from="payment_method_name" to="payment_method_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="trade_currency_name" lovHeight="510" lovLabelWidth="100" lovService="public.pur_currency_code_lov" lovWidth="580" readOnly="true" title="CURRENCY_SELECTION">
+                        <a:mapping>
+                            <a:map from="currency_code" to="trade_currency_code"/>
+                            <a:map from="currency_name" to="trade_currency_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="trade_currency_code"/>
+                    <a:field name="tax_type_id"/>
+                    <a:field name="tax_type_name" lovHeight="500" lovService="public.fnd_tax_type_code_lov" lovWidth="500" readOnly="true" title="SYS_VENDOR_TAX_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="tax_type_id" to="tax_type_id"/>
+                            <a:map from="description" to="tax_type_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enterprise_nature" required="true"/>
+                    <a:field name="enterprise_nature_name" displayField="code_value_name" options="pur6020_enterprise_nature_ds" required="true" returnField="enterprise_nature" valueField="code_value"/>
+                    <a:field name="registered_country_code"/>
+                    <a:field name="registered_country_name" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="public.fnd_country_lov" lovWidth="500" required="true" title="SYS_VENDOR_COUNTRY_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="country_code" to="registered_country_code"/>
+                            <a:map from="country_name" to="registered_country_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="registered_province_id"/>
+                    <a:field name="registered_province_desc" autoComplete="true" autoCompleteField="province_name" lovHeight="500" lovService="pur.public.fnd_region_province_by_country_lov?country_code=-1" lovWidth="500" readOnly="true" required="true" title="PUR_VENDORS.REGISTERED_PROVINCE_ID">
+                        <a:mapping>
+                            <a:map from="province_id" to="registered_province_id"/>
+                            <a:map from="province_name" to="registered_province_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="registered_city_id"/>
+                    <a:field name="registered_city_desc" autoComplete="true" autoCompleteField="city_name" lovHeight="500" lovService="pur.public.fnd_region_city_by_province_lov?province_id=-1" lovWidth="500" readOnly="true" required="true" title="PUR_VENDORS.REGISTERED_CITY_ID">
+                        <a:mapping>
+                            <a:map from="city_id" to="registered_city_id"/>
+                            <a:map from="city_name" to="registered_city_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="taxpayer_type"/>
+                    <a:field name="taxpayer_type_name" displayField="code_value_name" options="pur6020_taxpayer_type_ds" required="true" returnField="taxpayer_type" valueField="code_value"/>
+                    <a:field name="business_license_number" required="true"/>
+                    <a:field name="business_license_end_date" required="true" validator="business_license_validate"/>
+                    <a:field name="business_license_authority" required="true"/>
+                    <a:field name="operating_license_end_date" validator="operating_license_validate"/>
+                    <a:field name="registered_capital" required="true"/>
+                    <a:field name="registered_currency_code"/>
+                    <a:field name="registered_currency_name" lovHeight="510" lovLabelWidth="100" lovService="public.pur_currency_code_lov" lovWidth="580" required="true" title="CURRENCY_SELECTION">
+                        <a:mapping>
+                            <a:map from="currency_code" to="registered_currency_code"/>
+                            <a:map from="currency_name" to="registered_currency_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="official_email" required="true" validator="pur6020_email_Validator"/>
+                    <a:field name="factory_nature"/>
+                    <a:field name="factory_nature_name" displayField="code_value_name" options="pur6020_factory_nature_ds" returnField="factory_nature" valueField="code_value"/>
+                    <a:field name="iso9001_flag"/>
+                    <a:field name="iso9001_display" displayField="code_value_name" options="pur6020_certificate_ds" returnField="iso9001_flag" valueField="code_value"/>
+                    <a:field name="iso14000_flag"/>
+                    <a:field name="iso14000_display" displayField="code_value_name" options="pur6020_certificate_ds" returnField="iso14000_flag" valueField="code_value"/>
+                    <a:field name="vendor_abstract"/>
+                    <a:field name="business_scope"/>
+                    <a:field name="agent_brand"/>
+                    <a:field name="comments"/>
+                    <a:field name="business_license_type" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="pur6020_vendor_loadHandler"/>
+                    <a:event name="update" handler="pur6020_vendor_updateHandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur6020_finance_ds" autoQuery="true" model="pur.public.pur_vendor_finance" queryUrl="${/request/@context_path}/autocrud/pur.public.pur_vendor_finance/query?vendor_id=${/session/@vendor_id}" selectable="true">
+                <a:fields>
+                    <a:field name="vendor_id" defaultValue="${/session/@vendor_id}"/>
+                    <a:field name="year_period" required="true" requiredMessage="${l:PUR5610_VENDOR_REG.YEAR}${l:PROMPT.INPUT}"/>
+                    <a:field name="total_assets" required="true" requiredMessage="${l:PUR5641_VENDOR_MAINTAIN_DETAIL.TOTAL_ASSETS}${l:PROMPT.INPUT}"/>
+                    <a:field name="total_liabilities" required="true" requiredMessage="${l:PUR_VENDOR_FINANCE.TOTAL_LIABILITIES}${l:PROMPT.INPUT}"/>
+                    <a:field name="current_assets" required="true" requiredMessage="${l:PUR_VENDOR_FINANCE.CURRENT_ASSETS}${l:PROMPT.INPUT}"/>
+                    <a:field name="current_liabilities" required="true" requiredMessage="${l:PUR_VENDOR_FINANCE.CURRENT_LIABILITIES}${l:PROMPT.INPUT}"/>
+                    <a:field name="revenue" required="true" requiredMessage="${l:PUR_VENDOR_FINANCE.REVENUE}${l:PROMPT.INPUT}"/>
+                    <a:field name="net_profit" required="true" requiredMessage="${l:PUR_VENDOR_FINANCE.NET_PROFIT}${l:PROMPT.INPUT}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur6020_finance_updateHandler"/>
+                    <a:event name="submitSuccess" handler="pur6020_finance_submitSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur6020_purchase_category_ds" autoQuery="true" model="pur.public.pur_vendor_purchase_categories" queryUrl="${/request/@context_path}/autocrud/pur.public.pur_vendor_purchase_categories/query?vendor_id=${/session/@vendor_id}" selectable="true">
+                <a:fields>
+                    <a:field name="enabled_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="pur6020_purchaseCategory_submitSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur6020_sex_ds" lookupCode="PUR_SEX"/>
+            <a:dataSet id="pur6020_id_type_ds" lookupCode="PUR_ID_TYPE"/>
+            <a:dataSet id="pur6020_contact_ds" autoQuery="true" model="pur.public.pur_vendor_contacts" queryUrl="${/request/@context_path}/autocrud/pur.public.pur_vendor_contacts/query?vendor_id=${/session/@vendor_id}" selectable="true" submitUrl="${/request/@context_path}/modules/pur/PUR6020/pur_vendor_contacts_batch_save.svc">
+                <a:fields>
+                    <a:field name="vendor_id" defaultValue="${/session/@vendor_id}"/>
+                    <a:field name="contact_name" required="true" requiredMessage="${l:PUR_VENDOR_CONTACTS.CONTACT_NAME}${l:PROMPT.INPUT}"/>
+                    <a:field name="contact_sex"/>
+                    <a:field name="contact_sex_name" displayField="code_value_name" options="pur6020_sex_ds" returnField="contact_sex" valueField="code_value"/>
+                    <a:field name="id_type"/>
+                    <a:field name="id_type_name" displayField="code_value_name" options="pur6020_id_type_ds" returnField="id_type" valueField="code_value"/>
+                    <a:field name="id_number"/>
+                    <a:field name="department"/>
+                    <a:field name="position"/>
+                    <a:field name="mobile_phone"/>
+                    <a:field name="telephone" required="true" requiredMessage="${l:EXP_EMPLOYEE.PHONE}${l:PROMPT.INPUT}"/>
+                    <a:field name="email" validator="pur6020_email_Validator"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="default_contact_flag" checkedValue="Y" defaultValue="N" readOnly="false" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur6020_purSysVendorContactUpdateHandler"/>
+                    <a:event name="submitSuccess" handler="pur6020_contact_submitSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur6020_account_ds" autoQuery="true" model="pur.public.pur_vendor_accounts" queryUrl="${/request/@context_path}/autocrud/pur.public.pur_vendor_accounts/query?vendor_id=${/session/@vendor_id}" selectable="true" submitUrl="${/request/@context_path}/modules/pur/PUR6020/pur_vendor_accounts_batch_save.svc">
+                <a:fields>
+                    <a:field name="vendor_id" defaultValue="${/session/@vendor_id}"/>
+                    <a:field name="bank_code" lovHeight="500" lovService="pur.public.csh_banks_lov" lovWidth="500" title="PUR_VENDOR.BANK_LOV_TITLE">
+                        <a:mapping>
+                            <a:map from="bank_code" to="bank_code"/>
+                            <a:map from="bank_name" to="bank_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="primary_account_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="pur6020_account_submitSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur6020_site_ds" autoQuery="true" model="pur.public.pur_vendor_addresses" queryUrl="${/request/@context_path}/autocrud/pur.public.pur_vendor_addresses/query?vendor_id=${/session/@vendor_id}" selectable="true">
+                <a:fields>
+                    <a:field name="vendor_id" defaultValue="${/session/@vendor_id}"/>
+                    <a:field name="country_code"/>
+                    <a:field name="country_name" lovHeight="500" lovService="public.fnd_country_lov" lovWidth="500" required="true" requiredMessage="${l:PUR_VENDOR_SITES.COUNTRY_CODE}${l:PROMPT.INPUT}" title="SYS_VENDOR_COUNTRY_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="country_code" to="country_code"/>
+                            <a:map from="country_name" to="country_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="province_id"/>
+                    <a:field name="province_name" lovHeight="500" lovWidth="500" title="SYS_VENDOR_REGION_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="province_id" to="province_id"/>
+                            <a:map from="province_name" to="province_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="city_id"/>
+                    <a:field name="city_name" lovHeight="500" lovWidth="500" title="SYS_VENDOR_CITY_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="city_id" to="city_id"/>
+                            <a:map from="city_name" to="city_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="address" required="true" requiredMessage="${l:PUR_VENDOR_SITES.ADDRESS_ID}${l:PROMPT.INPUT}"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="pur6020_site_submitSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur6020_attachment_ds" autoQuery="true" model="pur.public.pur_fnd_atm_lines" queryUrl="${/request/@context_path}/autocrud/pur.public.pur_fnd_atm_lines/query?source_table_name=PUR_VENDORS&amp;source_pk_value=${/session/@vendor_id}" selectable="true">
+                <a:fields>
+                    <a:field name="atm_line_id"/>
+                    <a:field name="line_name"/>
+                    <a:field name="atm_desc"/>
+                    <a:field name="source_pk_value" defaultValue="${/session/@vendor_id}"/>
+                    <a:field name="source_table_name" defaultValue="PUR_VENDORS"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur6020_attachment_updateHandler"/>
+                    <a:event name="submitSuccess" handler="pur6020_attachment_submitSuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton id="pur6020_saveBtn" click="pur6020_vendor_save" style="margin-left:20px;" text="HAP_SAVE" width="100"/>
+                <a:toolbarButton id="pur6020_submitBtn" click="pur6020_vendor_submit" text="HAP_SUBMIT" width="100"/>
+            </a:screenTopToolbar>
+            <a:vBox>
+                <a:hBox labelWidth="120">
+                    <a:textField name="full_name" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_SYSTEM_VENDORS.FULL_NAME" readOnly="false" width="428"/>
+                    <a:checkBox name="enabled_flag" bindTarget="pur6020_pur_vendors_ds" prompt="SYS_CODE.ENABLED_FLAG"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:textField name="short_name" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_SYSTEM_VENDORS.SHORT_NAME"/>
+                    <a:textField name="vendor_code" bindTarget="pur6020_pur_vendors_ds" prompt="VENDER_CODE" readOnly="true"/>
+                    <a:textField name="status_display" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_SYS_VENDOR_BASICS.STATUS"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:numberField name="version" bindTarget="pur6020_pur_vendors_ds" decimalPrecision="1" prompt="PUR_SYS_VENDOR_BASICS.VERSION_NUM" readOnly="true"/>
+                    <a:comboBox name="vendor_category_name" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.VENDOR_CATEGORY" readOnly="false"/>
+                    <a:comboBox name="vendor_type_name" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.SUPPLIER_CATEGORY" readOnly="false"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:textField name="legal_representative" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_SYS_VENDOR_BASICS.LEGAL_REPRESENTATIVE" readOnly="false"/>
+                    <a:textField name="national_organization_code" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE" readOnly="false"/>
+                    <a:textField name="d_b_code" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.D_B_CODE" readOnly="false"/>
+                </a:hBox>
+            </a:vBox>
+            <a:tabPanel marginWidth="100">
+                <a:tabs>
+                    <a:tab prompt="PUR_SYSTEM_VENDERS.BASIC_INFORMATION" width="100">
+                        <a:fieldSet style="margin-top:10px;margin-left:2px;" title="PUR5610_VENDOR_REG.BASIC_INFO">
+                            <a:hBox labelWidth="120">
+                                <a:lov name="registered_country_name" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.REGISTERED_COUNTRY_CODE" readOnly="false"/>
+                                <a:lov name="registered_province_desc" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.REGISTERED_PROVINCE_ID" readOnly="false"/>
+                                <a:lov name="registered_city_desc" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.REGISTERED_CITY_ID" readOnly="false"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:comboBox name="enterprise_nature_name" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.ENTERPRISE_NATURE" readOnly="false"/>
+                                <a:comboBox name="taxpayer_type_name" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_SYSTEM_VENDERS.TAXPAYER_IDENTIFICATION" readOnly="false"/>
+                                <a:textField name="tax_id_number" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.TAX_ID_NUMBER" readOnly="false"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textField name="business_license_number" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.BUSINESS_LICENSE_NUMBER" readOnly="false"/>
+                                <a:datePicker name="business_license_end_date" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.BUSINESS_LICENSE_END_DATE" readOnly="false"/>
+                                <a:checkBox name="business_license_type" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.BUSINESS_LICENSE_TYPE" readOnly="false"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textField name="business_license_authority" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.BUSINESS_LICENSE_AUTHORITY" readOnly="false"/>
+                                <a:textField name="operating_license_number" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.OPERATING_LICENSE_NUMBER" readOnly="false"/>
+                                <a:datePicker name="operating_license_end_date" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.OPERATING_LICENSE_END_DATE" readOnly="false"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:numberField name="registered_capital" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_SYSTEM_VENDERS.REGISTERED_CAPITAL" readOnly="false"/>
+                                <a:lov name="registered_currency_name" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.REGISTERED_CURRENCY_CODE" readOnly="false"/>
+                                <a:textField name="post_code" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDOR_SITES.POST_CODE" readOnly="false"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textField name="zone_code" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.ZONE_CODE" readOnly="false"/>
+                                <a:textField name="fax_no" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.FAX_NO" readOnly="false"/>
+                                <a:textField name="official_telephone" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_SYSTEM_VENDERS.OFFICAL_TELEPHONE" readOnly="false"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textField name="official_email" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.OFFICIAL_EMAIL" readOnly="false" width="428"/>
+                                <a:textField name="customer_service_phone" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.CUSTOMER_SERVICE_PHONE" readOnly="false" width="150"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textField name="website" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.WEBSITE" readOnly="false" width="705"/>
+                            </a:hBox>
+                        </a:fieldSet>
+                        <a:fieldSet style="margin-top:10px;margin-left:2px;" title="PUR_REGISTER_VENDOR_REJECT_DETAIL.FIELDSET_TITLE">
+                            <a:hBox labelWidth="120">
+                                <a:comboBox name="factory_nature_name" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_SYSTEM_VENDERS.FACTORY_NATURE" readOnly="false"/>
+                                <a:numberField name="factory_area" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_REGISTER_VENDORS.FACTORY_AREA" readOnly="false"/>
+                                <a:comboBox name="iso9001_display" bindTarget="pur6020_pur_vendors_ds" prompt="PUR5610_VENDOR_REG.ISO9001" readOnly="false"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:comboBox name="iso14000_display" bindTarget="pur6020_pur_vendors_ds" prompt="PUR5610_VENDOR_REG.ISO14000" readOnly="false"/>
+                                <a:textField name="other_certificate" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.OTHER_CERTIFICATE" readOnly="false"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textArea name="vendor_abstract" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_SYSTEM_VENDERS.VENDOR_ABSTRUCT" readOnly="false" width="704"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textArea name="business_scope" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.BUSINESS_SCOPE" readOnly="false" width="704"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textArea name="agent_brand" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_VENDORS.AGENT_BRAND" readOnly="false" width="704"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textArea name="comments" bindTarget="pur6020_pur_vendors_ds" prompt="PUR_REGISTER_VENDORS.COMMENTS" readOnly="false" width="704"/>
+                            </a:hBox>
+                        </a:fieldSet>
+                    </a:tab>
+                    <a:tab prompt="PUR_SYSTEM_VENDERS.CONTACT_INFORMATION" width="100">
+                        <a:grid bindTarget="pur6020_contact_ds" height="300" marginWidth="104" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button click="pur6020_contactSaveFun" icon="${/request/@context_path}/images/save.gif" text="PROMPT.SAVE"/>
+                                <a:button type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="contact_name" align="left" editor="pur6020_contact_tf" prompt="PUR_VENDOR_CONTACTS.CONTACT_NAME" width="65"/>
+                                <a:column name="contact_sex_name" align="left" editor="pur6020_contact_cbx" prompt="EXP_EMPLOYEES.SEX" width="40"/>
+                                <a:column name="id_type_name" align="left" editor="pur6020_contact_cbx" prompt="EXP_EMPLOYEE.ID_TYPE" width="60"/>
+                                <a:column name="id_number" align="left" editor="pur6020_contact_tf" prompt="HCLC.ID_NUMBER" width="120"/>
+                                <a:column name="department" align="left" editor="pur6020_contact_tf" prompt="EXP_ORG_UNIT.UNIT" width="80"/>
+                                <a:column name="position" align="left" editor="pur6020_contact_tf" prompt="BID_EXPERT_CAREERS.POSITION" width="80"/>
+                                <a:column name="mobile_phone" align="left" editor="pur6020_contact_tf" prompt="EXP_EMPLOYEE.MOBIL" width="100"/>
+                                <a:column name="telephone" align="left" editor="pur6020_contact_tf" prompt="EXP_EMPLOYEE.PHONE" width="100"/>
+                                <a:column name="email" align="left" editor="pur6020_contact_tf" prompt="PUR_SYS_VENDOR_CONTACTS.EMAIL" width="120"/>
+                                <a:column name="default_contact_flag" align="center" editor="pur6020_contact_cb" prompt="PUR_REGISTER_VENDOR_CONTACTS.DEFAULT_CONTACT_FLAG" width="65"/>
+                                <a:column name="contact_comments" align="left" editor="pur6020_contact_tf" prompt="EXP_EMPLOYEE.NOTES" width="90"/>
+                                <a:column name="enabled_flag" align="center" editor="pur6020_contact_cb" prompt="SYS_CODE.ENABLED_FLAG" width="40"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="pur6020_contact_tf"/>
+                                <a:comboBox id="pur6020_contact_cbx"/>
+                                <a:checkBox id="pur6020_contact_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.TAB_PROMPT" width="100">
+                        <a:grid bindTarget="pur6020_account_ds" height="300" marginWidth="104" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button click="pur6020_accountSaveFun" icon="${/request/@context_path}/images/save.gif" text="PROMPT.SAVE"/>
+                                <a:button type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="bank_code" align="center" editor="pur6020_account_lov" prompt="CSH_BANKS.BANK_CODE" width="60"/>
+                                <a:column name="bank_name" align="left" prompt="CSH_BANKS.BANK_ALT_NAME" width="80"/>
+                                <a:column name="bank_branch_name" align="left" editor="pur6020_account_tf" prompt="PUR_SYSTEM_VENDERS.OPENING_BANK_NAME" width="120"/>
+                                <a:column name="bank_account_name" align="left" editor="pur6020_account_tf" prompt="CSH_PAYMENT.BANK_ACCOUNT_NAME" width="100"/>
+                                <a:column name="bank_account_number" align="left" editor="pur6020_account_tf" prompt="EXP_EMPLOYEE.BANK_ACCOUNT" width="120"/>
+                                <a:column name="primary_account_flag" align="center" editor="pur6020_account_cb" prompt="PUR5610_VENDOR_REG.PRIMARY_ACCOUNT_NUMBER" width="60"/>
+                                <a:column name="enabled_flag" align="center" editor="pur6020_account_cb" prompt="SYS_CODE.ENABLED_FLAG" width="60"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="pur6020_account_lov"/>
+                                <a:textField id="pur6020_account_tf"/>
+                                <a:checkBox id="pur6020_account_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.ADDRESS_INFORMATION" width="100">
+                        <a:grid id="pur6020_site_grid" bindTarget="pur6020_site_ds" height="300" marginWidth="104" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="save"/>
+                                <a:button type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <!-- <a:column name="site_name" align="left" prompt="PUR_VENDOR_SITES.SITE_NAME_ID" width="100"/> -->
+                                <a:column name="country_name" align="left" editor="pur6020_site_lov" prompt="PUR_VENDOR_SITES.COUNTRY_CODE" width="120"/>
+                                <a:column name="province_name" align="left" editor="pur6020_site_lov" prompt="PUR_SYSTEM_VENDERS.PROVINCE" width="100"/>
+                                <a:column name="city_name" align="left" editor="pur6020_site_lov" prompt="PUR_SYSTEM_VENDERS.CITY" width="100"/>
+                                <a:column name="address" align="left" editor="pur6020_site_tf" prompt="PUR_VENDOR_SITES.ADDRESS_ID" width="150"/>
+                                <a:column name="post_code" align="left" editor="pur6020_site_tf" prompt="CUSTOMER.ZIP_CODE" width="60"/>
+                                <a:column name="address_comments" align="left" editor="pur6020_site_tf" prompt="PUR_SYSTEM_VENDERS.NOTE_OF_ADDRESS" width="150"/>
+                                <a:column name="enabled_flag" align="center" editor="pur6020_site_cb" prompt="SYS_CODE.ENABLED_FLAG" width="60"/>
+                                <!-- <a:column align="center" prompt="PUR_VENDOR_SITE_COMPANY.ASSIGN_COMPANY" renderer="pur6020_siteCompanyAssign_renderer" width="100"/> -->
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="pur6020_site_lov"/>
+                                <a:textField id="pur6020_site_tf"/>
+                                <a:checkBox id="pur6020_site_cb"/>
+                            </a:editors>
+                            <a:events>
+                                <a:event name="cellclick" handler="pur6020_site_cellclick_handler"/>
+                            </a:events>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="PUR6020_VENDOR.FINANCIAL_SITUATION" width="100">
+                        <a:grid id="pur6020_finance_grid" bindTarget="pur6020_finance_ds" height="300" marginWidth="104" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="save"/>
+                                <a:button type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="year_period" align="center" editorFunction="pur6020_year_period_ef" prompt="PUR5610_VENDOR_REG.YEAR" width="140"/>
+                                <a:column name="total_assets" align="center" editor="pur6020_number_nf" prompt="PUR5641_VENDOR_MAINTAIN_DETAIL.TOTAL_ASSETS" width="140"/>
+                                <a:column name="total_liabilities" align="center" editor="pur6020_number_nf" prompt="PUR_VENDOR_FINANCE.TOTAL_LIABILITIES" width="140"/>
+                                <a:column name="current_assets" align="center" editor="pur6020_number_nf" prompt="PUR_VENDOR_FINANCE.CURRENT_ASSETS" width="140"/>
+                                <a:column name="current_liabilities" align="center" editor="pur6020_number_nf" prompt="PUR_VENDOR_FINANCE.CURRENT_LIABILITIES" width="140"/>
+                                <a:column name="revenue" align="center" editor="pur6020_number_nf" prompt="PUR_VENDOR_FINANCE.REVENUE" width="140"/>
+                                <a:column name="net_profit" align="right" editor="pur6020_number_nf" prompt="PUR_VENDOR_FINANCE.NET_PROFIT" width="100"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:numberField id="pur6020_year_period_nf"/>
+                                <a:numberField id="pur6020_number_nf" allowDecimals="true" decimalPrecision="2"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="INV_SYS_ITEMS.PURCHASE_CATEGORY_INFOMATION" width="100">
+                        <a:grid id="pur6020_purchase_category_grid" bindTarget="pur6020_purchase_category_ds" height="300" marginWidth="104" navBar="true">
+                            <a:toolBar>
+                                <a:button click="pur6020_purchase_category_add" icon="${/request/@context_path}/images/add.gif" text="HAP_NEW"/>
+                                <a:button type="save"/>
+                                <a:button type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="purchase_category_code" align="center" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CATEGORY_CODE" width="120"/>
+                                <a:column name="purchase_category_name" align="left" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CATEGORY_NAME" width="200"/>
+                                <a:column name="enabled_flag" align="left" editor="pur6020_purchase_category_cb" prompt="SYS_CODE.ENABLED_FLAG" width="300"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:checkBox id="pur6020_purchase_category_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="INV_SYS_ITEMS.ATTACHMENT_INFO" width="100">
+                        <a:grid bindTarget="pur6020_attachment_ds" height="300" marginWidth="104" navBar="true">
+                            <a:toolBar>
+                                <a:button click="pur6020_attachment_add_fun" icon="${/request/@context_path}/images/add.gif" text="HAP_NEW"/>
+                                <a:button type="save"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="line_number" align="center" editor="pur6020_atm_ln_num_ed" prompt="BGT_PERIODS.PERIOD_NUM" sortable="true" width="50"/>
+                                <a:column name="atm_file" align="left" prompt="PUR5610_VENDOR_REG.ATTACHMENT_NAME" width="200"/>
+                                <a:column name="atm_desc" align="center" editor="pur6020_atm_tf" prompt="PUR5610_VENDOR_REG.ATTACHMENT_DESC" width="200"/>
+                                <!-- <a:column name="upload_user_name" align="center" prompt="上传人" width="100"/> -->
+                                <a:column align="center" prompt="PUR5610_VENDOR_REG.UPLOAD_DOWNLOAD" renderer="pur6020_upload_renderer" width="100"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:numberField id="pur6020_atm_ln_num_ed" allowDecimals="false" allowFormat="false" allowNegative="false"/>
+                                <a:textField id="pur6020_atm_tf"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+            <script><![CDATA[
+                //init();
+            ]]></script>
+        </a:screenBody>
+    </a:view>
+</a:screen>

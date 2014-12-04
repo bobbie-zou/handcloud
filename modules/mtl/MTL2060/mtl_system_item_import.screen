@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-7-3 上午10:55:29  
+    $Revision: 1.0  
+    $Purpose: 物品管理，批量导入页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.imp_template_code = &apos;MTL_VENDOR_ITEM_IMPORT&apos;" fetchAll="true" model="public.get_fnd_excel_import_template" rootPath="import_template"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="mtl2060_mtl_system_item_import_upload_link" url="${/request/@context_path}/modules/mtl/MTL2060/mtl_system_item_import_upload.screen"/>
+        <a:link id="mtl2060_mtl_system_item_import_error_link" url="${/request/@context_path}/modules/mtl/MTL2060/mtl_system_item_import_error.screen"/>
+        <a:link id="mtl2060_mtl_system_item_import_temp_data_submit_link" url="${/request/@context_path}/modules/mtl/MTL2060/mtl_system_item_import_temp_data_submit.svc"/>
+        <a:link id="mtl2060_mtl_system_item_import_temp_data_check_link" url="${/request/@context_path}/modules/mtl/MTL2060/mtl_system_item_import_temp_data_check.svc"/>
+        <a:link id="mtl2060_mtl_update_excel_import_template_uploadtimes_link" model="public.get_fnd_excel_import_template" modelaction="execute"/>
+        <script><![CDATA[
+        
+        	var batch_id = '${/session/@session_id}';
+            
+            function mtl2060_mtlSystemItemImportLoadData() {
+                new Aurora.Window({
+                    id: 'mtl2060_mtl_system_item_import_upload_link_window',
+                    url: $('mtl2060_mtl_system_item_import_upload_link').getUrl() + '?batch_id=' + batch_id,
+                    title: '${l:MTL_SYSTEM_VENDOR_ITEMS.BATCH_IMPORT}',
+                    width: 450,
+                    height: 300
+                });
+            }
+            
+            function mtl2060_mtlSystemItemImportCheckData() {
+                var allData = $('mtl2060_mtl_system_item_import_temp_ds').getAll();
+                if (allData.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:MTL_SYSTEM_VENDOR_ITEMS.NO_DATA_TO_IMPORT}');
+                    return;
+                } else {
+                    Aurora.request({
+                        url: $('mtl2060_mtl_system_item_import_temp_data_check_link').getUrl(),
+                        para: {
+                            'batch_id': batch_id
+                        },
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:MTL_SYSTEM_VENDOR_ITEMS.CHECK_COMPLETE_VIEW_ERROR_MESSAGE}');
+                            $('mtl2060_mtlSystemItemImportSubmitData_btn').enable();
+                            $('mtl2060_mtlSystemItemImportErrorData_btn').enable();
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function mtl2060_mtlSystemItemImportSubmitData() {
+                var allData = $('mtl2060_mtl_system_item_import_temp_ds').getAll();
+                var errorLines = $('mtl2060_mtl_system_item_import_error_ds').getAll().length;
+                if (allData.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:MTL_SYSTEM_VENDOR_ITEMS.NO_DATA_TO_SUBMIT}');
+                    return;
+                } else {
+                    if (errorLines > 0) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:MTL_SYSTEM_VENDOR_ITEMS.CHECK_DATA_SUCCESS_TO_SUBMIT}');
+                        return;
+                    } else {
+                        Aurora.request({
+                            url: $('mtl2060_mtl_system_item_import_temp_data_submit_link').getUrl(),
+                            para: {
+                                'batch_id': batch_id
+                            },
+                            success: function() {
+                                Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SUBMIT_SUCCESS}', function() {
+                                    $('mtl2060_mtl_system_item_import_error_ds').query();
+                                    $('mtl2060_mtl_system_item_import_temp_ds').query();
+                                });
+                            },
+                            scope: this
+                        });
+                    }
+                }
+            }
+            
+            function mtl2060_mtlSystemItemImportErrorData() {
+                new Aurora.Window({
+                    id: 'mtl2060_mtl_system_item_import_error_link_window',
+                    url: $('mtl2060_mtl_system_item_import_error_link').getUrl() + '?batch_id=' + batch_id,
+                    title: '${l:MTL_SYSTEM_VENDOR_ITEMS.IMPORT_ERROR_INFO}',
+                    width: 930,
+                    height: 450
+                });
+            }
+            
+            function mtl2060_mtlSystemItemImportRrrorDsLoad(ds) {
+                var error_lines = ds.getAll().length;
+                if (error_lines > 0) {
+                    $('mtl2060_mtlSystemItemImportSubmitData_btn').enable();
+                    $('mtl2060_mtlSystemItemImportErrorData_btn').enable();
+                }
+            }
+            
+            function mtl2060_mtlSystemItemImportTemplateDownload() {
+                var attachment_id = '${/model/import_template/record/@attachment_id}';
+                if (attachment_id == undefined || Aurora.isEmpty(attachment_id)) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:MTL_SYSTEM_VENDOR_ITEMS.NO_IMPORT_TEMPLATE_TO_DOWNLOAD}');
+                    return;
+                } else {
+                    Aurora.request({
+                        url: $('mtl2060_mtl_update_excel_import_template_uploadtimes_link').getUrl(),
+                        para: {
+                            imp_template_code:'MTL_VENDOR_ITEM_IMPORT'
+                        },
+                        success: function() {
+		                    document.getElementById('attachment_id').value = attachment_id;
+		                    document.downloadform.submit();
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="mtl2060_mtl_system_item_import_error_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="mtl.MTL2060.mtl_system_item_import_error">
+                <a:events>
+                    <a:event name="load" handler="mtl2060_mtlSystemItemImportRrrorDsLoad"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="mtl2060_mtl_system_item_import_temp_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="mtl.MTL2060.mtl_system_item_import_temp"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="mtl2060_mtlSystemItemImportTemplateDownload" style="margin-left:20px;" text="PROMPT.DOWNLOAD_IMPORT_TEMPLATE" width="100"/>
+                <a:toolbarButton click="mtl2060_mtlSystemItemImportLoadData" style="margin-left:20px;" text="PROMPT.LOADDATA" width="100"/>
+                <a:toolbarButton click="mtl2060_mtlSystemItemImportCheckData" style="margin-left:20px;" text="PROMPT.CHECK" width="100"/>
+                <a:toolbarButton id="mtl2060_mtlSystemItemImportSubmitData_btn" click="mtl2060_mtlSystemItemImportSubmitData" disabled="true" style="margin-left:20px;" text="PROMPT.SUBMIT" width="100"/>
+                <a:toolbarButton id="mtl2060_mtlSystemItemImportErrorData_btn" click="mtl2060_mtlSystemItemImportErrorData" disabled="true" style="margin-left:20px;" text="PROMPT.ERROR" width="100"/>
+            </a:screenTopToolbar>
+            <a:grid id="mtl2060_mtl_system_item_import_temp_ds_grid" autoAppend="false" bindTarget="mtl2060_mtl_system_item_import_temp_ds" marginHeight="100" marginWidth="70" navBar="true" style="margin-top:5px;">
+                <a:columns>
+                    <a:column name="line_number" align="center" prompt="PROMPT.LINE_NUMBER" width="30"/>
+                    <a:column name="display_item_code" align="left" prompt="物品编码" width="100"/>
+                    <a:column name="item_name" align="left" prompt="物品名称" width="120"/>
+                    <a:column name="item_category" align="left" prompt="物品类别" width="120"/>
+                    <a:column name="primary_uom" align="left" prompt="基本计量单位" width="120"/>
+                    <a:column name="secondary_uom" align="left" prompt="辅助计量单位" width="120"/>
+                    <a:column name="lot_numbering_rule" align="left" prompt="批号规则" width="120"/>
+                    <a:column name="item_specs" align="left" prompt="规格" width="120"/>
+                    <a:column name="item_model" align="left" prompt="型号" width="100"/>
+                    <a:column name="comments" align="left" prompt="物品说明" width="120"/>
+                </a:columns>
+            </a:grid>
+            <form name="downloadform" action="${/request/@context_path}/atm_download.svc" enctype="multipart/form-data" method="get" style="display:none;">
+                <input name="attachment_id" id="attachment_id" type="hidden"/>
+            </form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

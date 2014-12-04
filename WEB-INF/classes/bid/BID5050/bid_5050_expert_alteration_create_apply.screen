@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-3-11 上午10:45:02  
+    $Revision: 1.0  
+    $Purpose: 专家变更申请 创建变更申请界面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" defaultWhereClause="user_id=${/session/@user_id}" fetchAll="true" model="bid.BID5050.bid_default_applicant" rootPath="default_applicant"/>
+        <a:model-query autoCount="false" defaultWhereClause="entrustment_header_id=${/parameter/@entrustment_header_id}" fetchAll="true" model="bid.BID5050.bid_entrustment_header_for_alt" rootPath="record"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function bid_5050_header_ds_load(){
+                var record = $('bid_5050_header_ds').getAt(0);
+                record.set('applicant_id','${/model/default_applicant/record/@applicant_id}');
+                record.set('applicant_name','${/model/default_applicant/record/@applicant_name}');
+            }
+            function bid_5050_expert_ds_load(){
+                var records = $('bid_5050_expert_ds').getAll();
+	            for (var i=0;i<records.length;i++){
+	                records[i].set('alter_mode','RETAINED');
+	                records[i].set('alter_mode_display','${l:BID_EXPERT_ALTERATION.RETAINED}');
+	            }
+            }
+            function bid_5050_expert_ds_update(dataSet,record,name,value,oldvalue){
+                if (name == 'leader_flag'){
+                    if (value == 'Y'){
+                        var records = $('bid_5050_expert_ds').getAll();
+                        for (var i = 0;i<records.length;i++){
+                            if (records[i] != record){
+                                records[i].set('leader_flag','N');
+                            }
+                        }
+                    }
+                }
+            }
+            function alterModeDisplayCmbEditor(record,name){
+                if (!record.isNew){
+                    return 'bid_5050_cmb';
+                }else{
+                    return '';
+                }
+            }
+            function newExpertEmpIdLovEditor(record,name){
+                if (record.isNew||record.get('alter_mode')=='REPLACED_BY'){
+                    return 'bid_5050_lov';
+                }else{
+                    return '';
+                }
+            } 
+            function modeNew(value,record,name){
+                if (record.isNew) {
+                    return '${l:BID_EXPERT_ALTERATION.NEW}';
+                }
+            }
+            //保存:
+            //Step 1.保存头信息,第一次保存生成单据编号,以及BID_EXPERT_ALTERATION_HDS表的头ID
+            //Step 2.根据头ID将grid的信息生成BID_EXPERT_ALTERATION_LINES相应的行.
+            function bid_5050_save(){
+                var ds = $('bid_5050_header_ds');
+                var record = ds.getCurrentRecord();
+                if (!record.get('alteration_header_id') || record.get('alteration_header_id') == '') {
+                    record.isNew = true;
+                    record.dirty = false;
+                    var grid_ds =$('bid_5050_expert_ds');
+                    var grid_records = grid_ds.getAll();
+                    for (var i=0;i<grid_records.length;i++){
+                        grid_records[i].isNew = true;
+                        grid_records[i].dirty = false;
+                    }
+                }
+                $('bid_5050_header_ds').submit();
+            }
+            function bid_5050_submit(){
+                var record = $('bid_5050_header_ds').getAt(0);
+                if (!record.get('alteration_header_id') || record.get('alteration_header_id') == '') {
+                    Aurora.showInfoMessage('${l:HAP_PROMPT}', '${l:BID_EXPERT_ALTERATION.PLEASE_SAVE}');
+                } else {
+                    record.set('_status', 'update');
+	                $('bid_5050_header_ds').submit('${/request/@context_path}/autocrud/db.bid_expr_alt_apply_pkg.expr_alt_apply_submit/batch_update');
+                }
+            }
+            function bid_5050_cancel(){
+                Aurora.showConfirm('${l:HAP_PROMPT}', '${l:BID_EXPERT_ALTERATION.CONFIRM_CANCEL}?', function() {
+                    var record = $('bid_5050_header_ds').getAt(0);
+		            if (!record.get('alteration_header_id') || record.get('alteration_header_id') == '') {
+		                $('bid_5050_create_apply_window').close();
+		            } else {
+		                record.set('_status', 'update');
+		                $('bid_5050_header_ds').submit('${/request/@context_path}/autocrud/db.bid_expr_alt_apply_pkg.expr_alt_apply_cancel/batch_update');
+		                $('bid_5050_create_apply_window').close();
+		            }
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid_5050_alter_mode_list" loadData="true" lookupCode="BID_EXPERT_ALTER_MODE"/>
+            <a:dataSet id="bid_5050_header_ds" model="bid.BID5050.bid_expert_alteration_hds" submitUrl="${/request/@context_path}/modules/bid/BID5050/bid_5050_expert_alteration_header_submit.svc">
+                <a:datas dataSource="/model/record"/>
+                <a:fields>
+                    <a:field name="alteration_header_id"/>
+                    <a:field name="apply_num" readOnly="true"/>
+                    <a:field name="applicant_id"/>
+                    <a:field name="applicant_name" autoComplete="true" autoCompleteField="applicant_name" lovHeight="490" lovService="bid.BID5050.bid_applicant_lov" lovWidth="490" required="true" title="BID_EXPERT_ALTERATION.APPLICANT">
+                        <a:mapping>
+                            <a:map from="applicant_id" to="applicant_id"/>
+                            <a:map from="applicant_name" to="applicant_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="creation_date" required="true"/>
+                    <a:field name="entrustment_header_id"/>
+                    <a:field name="entrustment_header_num" readOnly="true"/>
+                    <a:field name="entrustment_header_name" readOnly="true"/>
+                    <a:field name="apply_comments" required="true"/>
+                    <a:field name="flex_appl_relevance_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="bid_5050_header_ds_load"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid_5050_expert_query_ds">
+                <a:fields>
+                    <a:field name="entrustment_header_id" defaultValue="${/parameter/@entrustment_header_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="bid_5050_expert_ds" autoCount="true" autoPageSize="true" autoQuery="true" bindName="expert" bindTarget="bid_5050_header_ds" fetchAll="false" model="bid.BID5050.bid_entrustment_experts" queryDataSet="bid_5050_expert_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="alteration_line_id"/>
+                    <a:field name="entrustment_expert_id"/>
+                    <a:field name="entrustment_header_id"/>
+                    <a:field name="line_serial_num"/>
+                    <a:field name="original_expert_emp_id"/>
+                    <a:field name="original_expert_emp_name"/>
+                    <a:field name="alter_mode"/>
+                    <a:field name="alter_mode_display" displayField="code_value_name" options="bid_5050_alter_mode_list" returnField="alter_mode" valueField="code_value"/>
+                    <a:field name="new_expert_emp_name"/>
+                    <a:field name="new_expert_emp_id" autoComplete="true" autoCompleteField="expert_emp_id" lovHeight="490" lovService="bid.BID5050.bid_new_expert_lov" lovWidth="490" title="BID_EXPERT_ALTERATION.NEW_EXPERT_EMP_ID">
+                        <a:mapping>
+                            <a:map from="expert_emp_id" to="new_expert_emp_id"/>
+                            <a:map from="expert_emp_name" to="new_expert_emp_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="leader_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="comments"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="bid_5050_expert_ds_load"/>
+                    <a:event name="update" handler="bid_5050_expert_ds_update"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton click="bid_5050_save" text="BID_EXPERT_ALTERATION.SAVE" width="100"/>
+            <a:gridButton click="bid_5050_submit" text="ACP_BILL.POST" width="100"/>
+            <a:gridButton click="bid_5050_cancel" text="BID_EXPERT_ALTERATION.CANCEL_APPLY" width="100"/>
+        </a:screenTopToolbar>
+        <a:hBox labelWidth="100">
+            <a:textField name="apply_num" bindTarget="bid_5050_header_ds" prompt="BID_EXPERT_ALTERATION.APPLY_NUM"/>
+            <a:lov name="applicant_name" bindTarget="bid_5050_header_ds" prompt="BID_EXPERT_ALTERATION.APPLICANT"/>
+            <a:datePicker name="creation_date" bindTarget="bid_5050_header_ds" prompt="ACP_BILL_SOURCE.CREATION_DATE"/>
+        </a:hBox>
+        <a:hBox labelWidth="100">
+            <a:textField name="entrustment_header_num" bindTarget="bid_5050_header_ds" prompt="BID_EXPERT_ALTERATION.RELATED_ENTRUSTMENT_NUM"/>
+            <a:textField name="entrustment_header_name" bindTarget="bid_5050_header_ds" prompt="BID_EXPERT_ALTERATION.ENTRUSTMENT_HEADER_NAME"/>
+        </a:hBox>
+        <a:hBox labelWidth="100">
+            <a:textField name="apply_comments" bindTarget="bid_5050_header_ds" prompt="BID_EXPERT_ALTERATION.APPLY_COMMENTS" width="408"/>
+        </a:hBox>
+        <a:grid id="bid_5050_create_apply_grid" bindTarget="bid_5050_expert_ds" marginHeight="160" marginWidth="40" navBar="true" style="border:none">
+            <a:toolBar>
+                <a:button type="add"/>
+                <a:button type="delete"/>
+            </a:toolBar>
+            <a:columns>
+                <a:column name="line_serial_num" align="center" prompt="BID_EXPERT_ALTERATION.LINE_NUMBER" width="40"/>
+                <a:column name="original_expert_emp_id" align="center" prompt="BID_EXPERT_ALTERATION.ORIGINAL_EXPERT_EMP_ID" width="80"/>
+                <a:column name="original_expert_emp_name" align="center" prompt="BID_EXPERT_ALTERATION.ORIGINAL_EXPERT_EMP_NAME" width="80"/>
+                <a:column name="alter_mode_display" align="center" editor="bid_5050_cmb" editorFunction="alterModeDisplayCmbEditor" prompt="BID_EXPERT_ALTERATION.ALTER_MODE" width="80"/>
+                <a:column name="new_expert_emp_id" align="center" editorFunction="newExpertEmpIdLovEditor" prompt="BID_EXPERT_ALTERATION.NEW_EXPERT_EMP_ID" width="80"/>
+                <a:column name="new_expert_emp_name" align="center" prompt="BID_EXPERT_ALTERATION.NEW_EXPERT_EMP_NAME" width="80"/>
+                <a:column name="leader_flag" align="center" editor="bid_5050_cb" prompt="BID_EXPERT_ALTERATION.LEADER_FLAG" width="40"/>
+                <a:column name="comments" align="right" prompt="BID_EXPERT_ALTERATION.COMMENTS" width="300"/>
+            </a:columns>
+            <a:editors>
+                <a:comboBox id="bid_5050_cmb"/>
+                <a:lov id="bid_5050_lov"/>
+                <a:checkBox id="bid_5050_cb"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

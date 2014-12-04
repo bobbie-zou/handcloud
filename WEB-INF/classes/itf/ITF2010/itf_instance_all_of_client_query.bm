@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-4-28 下午2:13:16  
+    $Revision: 1.0  
+    $Purpose: 接口监控-CLIENT级接口实例查询
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="itf_instance_id desc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT iirp.itf_instance_id,
+               iirp.client,
+               iirp.running_status,
+               (SELECT scv.code_value_name
+                  FROM sys_code_values_v scv
+                 WHERE scv.code = 'ITF_INSTANCE_STATUS'
+                   AND scv.code_value = iirp.running_status) status_desc,
+               iirp.running_action,
+               (SELECT scv.code_value_name
+                  FROM sys_code_values_v scv
+                 WHERE scv.code = 'ITF_INSTANCE_ACTION'
+                   AND scv.code_value = iirp.running_action) action_desc,
+               nvl(iirp.finished_flag, 'N') finished_flag,
+               iirp.data_execute_result,
+               (SELECT s.code_value_name
+                  FROM sys_code_values_v s
+                 WHERE s.code = 'ITF_DATA_EXECUTE_RESULT'
+                   AND s.code_value = iirp.data_execute_result) data_execute_result_desc,
+               iif.interface_id,
+               iif.interface_code,
+               iif.interface_desc,
+               iif.interface_category_id,
+               iic.interface_category_code,
+               iic.interface_category_desc,
+               iif.interface_type,
+               iirp.start_time instance_start_time,
+               iirp.finished_time instance_end_time,
+               to_char(iirp.start_time, 'YYYY-MM-DD HH24:MI:SS') instance_start_time_desc,
+               to_char(iirp.finished_time, 'YYYY-MM-DD HH24:MI:SS') instance_end_time_desc,
+               iirp.lot_id
+          FROM itf_instance_running_pools iirp,
+               itf_system_interfaces       isi,
+               itf_interfaces_vl           iif,
+               itf_interface_categories_vl iic
+         WHERE 1 = 1
+           AND iirp.system_interface_id = isi.system_interface_id
+           AND isi.interface_id = iif.interface_id
+           AND iif.interface_category_id = iic.interface_category_id)
+
+#WHERE_CLAUSE# #ORDER_BY_CLAUSE#]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="itf_instance_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ITF_INSTANCE_ID"/>
+        <bm:field name="client" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CLIENT"/>
+        <bm:field name="running_status" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="RUNNING_STATUS"/>
+        <bm:field name="status_desc"/>
+        <bm:field name="action_desc"/>
+        <bm:field name="running_action" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="RUNNING_ACTION"/>
+        <bm:field name="finished_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FINISHED_FLAG"/>
+        <bm:field name="data_execute_result" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DATA_EXECUTE_RESULT"/>
+        <bm:field name="data_execute_result_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DATA_EXECUTE_RESULT_DESC"/>
+        <bm:field name="interface_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="INTERFACE_ID"/>
+        <bm:field name="interface_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="INTERFACE_CODE"/>
+        <bm:field name="interface_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="INTERFACE_DESC"/>
+        <bm:field name="interface_category_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="INTERFACE_CATEGORY_ID"/>
+        <bm:field name="interface_category_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="INTERFACE_CATEGORY_CODE"/>
+        <bm:field name="interface_category_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="INTERFACE_CATEGORY_DESC"/>
+        <bm:field name="interface_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="INTERFACE_TYPE"/>
+        <bm:field name="instance_start_time" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="INSTANCE_START_TIME"/>
+        <bm:field name="instance_end_time" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="INSTANCE_END_TIME"/>
+        <bm:field name="instance_start_time_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="INSTANCE_START_TIME"/>
+        <bm:field name="instance_end_time_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="INSTANCE_END_TIME"/>
+        <bm:field name="lot_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="LOT_ID"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="lot_id" queryOperator="="/>
+        <bm:query-field field="running_status" queryOperator="="/>
+        <bm:query-field field="running_action" queryOperator="="/>
+        <bm:query-field name="instance_start_time_from" queryExpression="instance_start_time &gt;= to_date(${@instance_start_time_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="instance_start_time_to" queryExpression="instance_start_time &lt;= to_date(${@instance_start_time_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="instance_end_time_from" queryExpression="instance_end_time &gt;= to_date(${@instance_end_time_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="instance_end_time_to" queryExpression="instance_end_time &lt;= to_date(${@instance_end_time_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field field="finished_flag" queryOperator="="/>
+        <bm:query-field field="interface_category_id" queryOperator="="/>
+        <bm:query-field field="interface_id" queryOperator="="/>
+        <bm:query-field field="data_execute_result" queryOperator="="/>
+    </bm:query-fields>
+</bm:model>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Administrator  
+    $Date: 2013-6-14 上午10:48:50  
+    $Revision: 1.0  
+    $Purpose: 采购品类总览
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <script><![CDATA[
+    		//记录首位置
+    		var local_index = 0;
+    		//数组记录查询到的结果在dataset中的row
+    		var row_list = [];
+    		//是否初始化定位数组
+    		var local_flag = false;
+    		//初始化定位数组
+    		function initRowList(para){
+    		    //获取dataset数据
+    		    var records = $('pur1060_vendor_category_tree_ds').getAll();
+    		    //对dataset进行遍历
+    		    for(var i = 0; i < records.length; i++){
+    		        var record = records[i];
+    		        //判断是否包含当前查询字符，且当前index不等于全局变量local_index
+    		        if(record.get('vendor_category_code').indexOf(para) != -1 || record.get('description_text').indexOf(para) != -1){
+    		            //记录当前指针
+    		            local_index = $('pur1060_vendor_category_tree_ds').indexOf(record)+1;
+    		            //定位行
+    		            row_list.push(local_index);
+    		        }
+    		    }
+    		    local_flag = true;
+    		}
+    		//JS模拟查询函数
+    		function pur1060_purchase_category_tree_query(){
+    		    //获取查询字符串
+    		    var para = $('pur1060_vendro_category_tree_query_ds').getCurrentRecord().get('query_para');
+    		    if(para != undefined && !Ext.isEmpty(para)){
+	    		    //判断是否初始化定位数组
+	    		    if(!local_flag){
+	    		        initRowList(para);
+	    		    }
+	    		    if(row_list.length > 0){
+	    		        //定位至当前数组位置
+		    		    $('pur1060_vendor_category_tree_ds').locate(row_list[local_index]);
+		    		    //数组当前指针+1
+		    		    if(local_index < row_list.length-1){
+			    		    local_index++;
+		    		    }else{
+		    		        //若当前指针超过数组长度，从0开始
+		    		        local_index = 0;
+		    		    }
+	    		    }
+    		    }
+    		}
+    		
+    		//查询dataset更新事件
+    		function pur1060_purchaseCategoryLocalUpdateHandler(ds, record, name, value, oldvalue){
+    		    $('pur1060_vendro_category_tree_query_ds').getCurrentRecord().dirty = false;
+    		    if(name == 'query_para'){
+	    		    //查询条件改变，重置全局定位变量
+	    		    local_index = 0;
+	    		    row_list = [];
+	    		    local_flag = false;
+    		    }
+    		}
+    		
+    		//查询条件更新事件
+    		function pur1060_purchaseCategoryLocalValidHandler(ds, record, name){
+    		    $('pur1060_vendro_category_tree_query_ds').getCurrentRecord().dirty = false;
+    		}
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur1060_vendro_category_tree_query_ds">
+                <a:events>
+                    <a:event name="valid" handler="pur1060_purchaseCategoryLocalValidHandler"/>
+                    <a:event name="update" handler="pur1060_purchaseCategoryLocalUpdateHandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur1060_vendor_category_tree_ds" autoQuery="true" fetchAll="true" model="pur.PUR1060.pur_vendor_category_tree_query"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form row="1" width="500">
+                <a:textField name="query_para" bindTarget="pur1060_vendro_category_tree_query_ds" emptyText="请输入供应商分类代码或名称" width="400"/>
+                <a:toolbarButton click="pur1060_purchase_category_tree_query" style="margin-left:10px;" text="HAP_QUERY" width="70"/>
+                <!-- <a:button click="pur1060_purchase_category_tree_query" text="HAP_QUERY" width="70"/> -->
+            </a:form>
+            <a:treeGrid id="pur1060_vendor_category_tree_grid" bindTarget="pur1060_vendor_category_tree_ds" height="500" idField="vendor_category_id" parentField="parent_category_id" width="500">
+                <a:columns>
+                    <a:column name="vendor_category_code" width="240"/>
+                    <a:column name="description_text" width="250"/>
+                </a:columns>
+            </a:treeGrid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

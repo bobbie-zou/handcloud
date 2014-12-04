@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-8 下午5:04:20  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="round" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="version" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="applicant_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="BID_ENTRUSTMENT_HEADERS.TENDEREE_ID"/>
+        <bm:field name="applicant_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="application_date" databaseType="DATE" datatype="java.util.Date" prompt="BID_ENTRUSTMENT_HEADERS.PRIVATE_DATE"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="BID_ENTRUSTMENT_HEADERS.TENDERING_COMPANY_ID"/>
+        <bm:field name="company_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="company_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="inv_organization_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="BID_ENTRUSTMENT_HEADERS.ORGANIZATION_ID"/>
+        <bm:field name="inv_organization_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="authorized_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="BID_ENTRUSTMENT_HEADERS.REVERSED_ENTRUST_FLAG"/>
+        <bm:field name="currency_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="BID_ENTRUSTMENT_HEADERS.CURRENCY_CODE"/>
+        <bm:field name="currency_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="margin_required_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="BID_ENTRUSTMENT_HEADERS.MARGIN_REQUIRED_FLAG"/>
+        <bm:field name="bidder_qualified_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_QUALIFIED_FLAG"/>
+        <bm:field name="tax_included_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="BID_ENTRUSTMENT_HEADERS.TAX_INCLUDED_FLAG"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    1 AS ROUND,
+                    1 AS version,
+                    (SELECT
+                        u.employee_id
+                    FROM
+                        sys_user u
+                    WHERE
+                        u.user_id = ${/session/@user_id} AND
+                        EXISTS
+                        (SELECT
+                            1
+                        FROM
+                            exp_employees ee,
+                            exp_employee_assigns eea
+                        WHERE
+                            ee.employee_id   = u.employee_id AND
+                            eea.employee_id  = ee.employee_id AND
+                            ee.enabled_flag  = 'Y' AND
+                            eea.enabled_flag = 'Y' AND
+                            eea.company_id   = ${/session/@default_company_id}
+                        )
+                    ) AS applicant_id,
+                    (SELECT
+                        ee2.name
+                    FROM
+                        exp_employees ee2
+                    WHERE
+                        ee2.employee_id =
+                        (SELECT
+                            u.employee_id
+                        FROM
+                            sys_user u
+                        WHERE
+                            u.user_id = ${/session/@user_id} AND
+                            EXISTS
+                            (SELECT
+                                1
+                            FROM
+                                exp_employees ee,
+                                exp_employee_assigns eea
+                            WHERE
+                                ee.employee_id   = u.employee_id AND
+                                eea.employee_id  = ee.employee_id AND
+                                ee.enabled_flag  = 'Y' AND
+                                eea.enabled_flag = 'Y' AND
+                                eea.company_id   = ${/session/@default_company_id}
+                            )
+                        )
+                    ) AS applicant_desc,
+                    SYSDATE AS application_date,
+                    'CNY' AS currency_code,
+                    (SELECT
+                        gc.currency_name
+                    FROM
+                        gld_currency_vl gc
+                    WHERE
+                        gc.currency_code = 'CNY'
+                    ) AS currency_name,
+                    'N' authorized_flag,
+                    'N' margin_required_flag,
+                    'N' bidder_qualified_flag,
+                    ${/session/@default_company_id} AS company_id,
+                    (SELECT
+                        c.company_code
+                    FROM
+                        fnd_companies_vl c
+                    WHERE
+                        c.company_id = ${/session/@default_company_id}
+                    ) AS company_code,
+                    (SELECT
+                        c.company_short_name
+                    FROM
+                        fnd_companies_vl c
+                    WHERE
+                        c.company_id = ${/session/@default_company_id}
+                    ) AS company_desc,
+                    ${/session/@default_inv_organization_id} AS inv_organization_id,
+                    (SELECT
+                        io.description
+                    FROM
+                        inv_organizations_vl io
+                    WHERE
+                        io.inv_organization_id = ${/session/@default_inv_organization_id}
+                    ) AS inv_organization_desc,
+                    'N' AS tax_included_flag
+                FROM
+                    dual
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

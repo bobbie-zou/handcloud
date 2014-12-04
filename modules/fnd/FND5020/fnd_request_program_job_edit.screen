@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tangrunyu3837 $
+    $Date: 2014/02/21 05:33:12 $
+    $Revision: 1.4 $
+    $Purpose: “可执行JOB明细定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="true" defaultWhereClause="program_id=${/parameter/@program_id}" fetchAll="true" model="fnd.FND5020.fnd_request_program" rootPath="fnd5020_fnd_request_program_list"/>
+        <a:model-query defaultWhereClause="prompt_code = &apos;FND_REQUEST.NO_TIME_NOTICE&apos;" model="public.sys_prompts_record" rootPath="prompt_data1"/>
+        <a:model-query defaultWhereClause="prompt_code = &apos;FND_REQUEST.PACKAGE_NOTICE&apos;" model="public.sys_prompts_record" rootPath="prompt_data2"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd5020_fnd_request_program_parameter_edit_link" url="${/request/@context_path}/modules/fnd/FND5020/fnd_request_program_parameter_resource.screen"/>
+        <script><![CDATA[
+            function fnd5020_saveFunction() {
+                var Ds = $('fnd5020_fnd_request_program_insert_ds');
+                var gridDs = $('fnd5020_fnd_program_paramter_ds');
+                if (Ds.validate() && gridDs.validate()) {
+                    Ds.submit();
+                }
+            }
+            
+            function fnd5020_closeWindow() {
+                $('fnd5020_fnd_request_program_create_window').close();
+            }
+            
+            function fnd5020_parameterRenderer(value, record, name) {
+                if (value) {
+                    var window_id = "fnd5020_fnd_request_program_resource_window";
+                    var path = $('fnd5020_fnd_request_program_parameter_edit_link').getUrl() + '?parameter_id=' + value;
+                    return "<a href=\"javascript:fnd5020_editParameter('" + window_id + "','" + path + "')\">${l:HAP_EDIT}</a>";
+                } else {
+                    return '';
+                }
+            }
+            
+            function fnd5020_editParameter(window_id, path) {
+                new Aurora.Window({
+                    id: window_id,
+                    url: path,
+                    title: '${l:INV_ASN_HEADERS.DATA_SOURCE}',
+                    height: 400,
+                    width: 500
+            
+                });
+            }
+            
+            function fnd5020_deleteLines() {
+                $('fnd5020_fnd_request_program_insert_ds').getAt(0).set('_isdelete', 'delete');
+                var rs = $('fnd5020_fnd_program_paramter_ds').getSelected();
+                for (var i = 0;i < rs.length;i++) {
+                    rs[i].set('__delete', 'true');
+                }
+            
+                $('fnd5020_fnd_request_program_insert_ds').submit();
+            }
+            
+            function fnd5020_showsuccessmessage(ds, res) {
+                Aurora.showMessage('${l:PROMPT}', '${l:BGT_STRUCTURE.OPERATE_SUCCESS}');
+                $('fnd5020_fnd_program_paramter_ds').query();
+            }
+            
+            function fnd5020_quantityValidator(record, name, value) {
+                if (name == 'interval_hour') {
+                    // if (value > 24) {
+                    // Aurora.showMessage('提示', '小时不能大于24，请查证！');
+                    // record.set('interval_hour', null);
+                    // return;
+                    // }
+                }
+            
+                if (name == 'interval_minute') {
+                    if (value > 60) {
+                        Aurora.showMessage('${l:EXP5080_EXP_REQ_HEADER_UNIQUE_ERR}', '${l:FND_REQUEST.MIN_ERR_NOTICE}！');
+                        record.set('interval_minute', null);
+                        return;
+                    }
+                }
+            
+                if (name == 'interval_second') {
+                    if (value > 60) {
+                        Aurora.showMessage('${l:EXP5080_EXP_REQ_HEADER_UNIQUE_ERR}', '${l:FND_REQUEST.SECOND_ERR_NOTICE}！');
+                        record.set('interval_second', null);
+                        return;
+                    }
+                }
+            
+                return true;
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd5020_parameter_type_ds" lookupCode="REQUEST_PARAMETER_TYPE"/>
+            <a:dataSet id="fnd5020_parameter_edit_type_ds" lookupCode="REQUEST_PARAMETER_EDIT_TYPE"/>
+            <a:dataSet id="fnd5020_fnd_request_program_insert_ds" submitUrl="${/request/@context_path}/modules/fnd/FND5020/fnd_request_parameter.svc">
+                <a:datas dataSource="/model/fnd5020_fnd_request_program_list"/>
+                <a:fields>
+                    <a:field name="fixed_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="interval_hour" required="true" validator="fnd5020_quantityValidator"/>
+                    <a:field name="interval_minute" required="true" validator="fnd5020_quantityValidator"/>
+                    <a:field name="interval_second" required="true" validator="fnd5020_quantityValidator"/>
+                    <a:field name="start_date" required="false"/>
+                    <a:field name="end_date" required="false"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="fnd5020_showsuccessmessage"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd5020_fnd_program_paramter_ds" autoQuery="true" bindName="programs" bindTarget="fnd5020_fnd_request_program_insert_ds" queryUrl="${/request/@context_path}/autocrud/fnd.FND5020.fnd_program_parameters/query?program_id=${/parameter/@program_id}" selectable="true">
+                <a:fields>
+                    <a:field name="required_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="program_id" defaultValue="${/parameter/@program_id}"/>
+                    <a:field name="parameter_name" required="true"/>
+                    <a:field name="seq" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="parameter_type_desc" displayField="code_value_name" options="fnd5020_parameter_type_ds" required="true" returnField="parameter_type" valueField="code_value"/>
+                    <a:field name="edit_type_desc" displayField="code_value_name" options="fnd5020_parameter_edit_type_ds" required="true" returnField="edit_type" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:tabPanel height="465" width="570">
+                <a:tabs>
+                    <a:tab prompt="PROMPT.DETAIL" width="110">
+                        <a:screenBody>
+                            <a:fieldSet column="1" labelWidth="100" title="PUR_SYSTEM_VENDERS.BASIC_INFORMATION" width="550">
+                                <a:hBox>
+                                    <a:label name="program_code" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="FND_REQUEST_PROGRAM.PROGRAM_CODE"/>
+                                    <a:label name="program_name" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="FND_CONCURRENT_REQUEST.REQUEST_NAME"/>
+                                </a:hBox>
+                                <a:hBox>
+                                    <a:label name="request_code" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="FND_REQUEST_INFO.REQUEST_CODE"/>
+                                    <a:label name="request_name" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="FND_REQUEST_INFO.REQUEST_NAME"/>
+                                </a:hBox>
+                                <a:hBox>
+                                    <a:label name="cycle_flag_desc" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="FND_REQUEST_PROGRAM.CYCLE_FLAG"/>
+                                    <a:label name="enable_desc" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="STATUS"/>
+                                </a:hBox>
+                                <a:hBox>
+                                    <a:textArea name="url" bindTarget="fnd5020_fnd_request_program_insert_ds" height="25" prompt="SYS_FUNCTION.SERVICE_ID" width="450"/>
+                                </a:hBox>
+                                <a:hBox>
+                                    <a:textArea name="what" bindTarget="fnd5020_fnd_request_program_insert_ds" height="50" prompt="FRS_GENERAL_REPORTS_HEADERS.PROCEDURE_NAME" width="450"/>
+                                </a:hBox>
+                            </a:fieldSet>
+                            <a:fieldSet column="1" labelWidth="100" title="FND_REQUEST.GENERAL_INFORMATION" width="550">
+                                <a:hBox>
+                                    <a:dateTimePicker name="start_date" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="FND_REQUEST_PROGRAM.START_DATE" renderer="Aurora.formatDateTime"/>
+                                    <a:dateTimePicker name="end_date" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="FND_REQUEST_PROGRAM.END_DATE" renderer="Aurora.formatDateTime"/>
+                                </a:hBox>
+                            </a:fieldSet>
+                            <a:fieldSet column="1" labelWidth="150" title="SYS_ALERT_RULE_JOBS_JOB_SCHEDULE.RUN_INTERVAL" width="550">
+                                <a:hBox labelWidth="100">
+                                    <a:checkBox name="fixed_flag" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="FND_REQUEST_PROGRAM.FIXED_FLAG"/>
+                                </a:hBox>
+                                <a:hBox labelWidth="80">
+                                    <a:numberField name="interval_hour" allowDecimals="false" allowNegative="false" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="FND_REQUEST_PROGRAM.INTERVAL_HOUR" width="100"/>
+                                    <a:numberField name="interval_minute" allowDecimals="false" allowNegative="false" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="FND_REQUEST_PROGRAM.INTERVAL_MINUTE" width="100"/>
+                                    <a:numberField name="interval_second" allowDecimals="false" allowNegative="false" bindTarget="fnd5020_fnd_request_program_insert_ds" prompt="FND_REQUEST_PROGRAM.INTERVAL_SECOND" width="100"/>
+                                </a:hBox>
+                            </a:fieldSet>
+                            <table>
+                                <tr>
+                                    <td style="color:#FF0000;"><![CDATA[*${/model/prompt_data1/record/@description}]]></td>
+                                </tr>
+                            </table>
+                        </a:screenBody>
+                    </a:tab>
+                    <a:tab prompt="PARAMATER_DEFINED" width="110">
+                        <a:screenBody>
+                            <a:grid id="fnd5020_edit_grid" bindTarget="fnd5020_fnd_program_paramter_ds" height="350" navBar="true" width="550">
+                                <a:toolBar>
+                                    <a:button type="add"/>
+                                    <a:button click="fnd5020_deleteLines" icon="${/request/@context_path}/images/remove.gif" text="PROMPT.DELETE"/>
+                                    <a:button type="clear"/>
+                                </a:toolBar>
+                                <a:columns>
+                                    <a:column name="seq" editor="fnd5020_seq_nm" prompt="WORKFLOW_APPR.SEQ_NUMBER" width="45"/>
+                                    <a:column name="parameter_name" editor="fnd5020_edit_grid_tf" prompt="FND_PROGRAM_PARAMETERS.PARAMETER_NAME" width="100"/>
+                                    <a:column name="description" editor="fnd5020_edit_grid_tf" prompt="SYS_PARAMETER.DESCRIPTION" width="120"/>
+                                    <a:column name="parameter_type_desc" editor="fnd5020_edit_grid_comboBox" prompt="ZJ_WFL_DOCUMENT_SERVICE_PARA.PARAMETER_TYPE" width="65"/>
+                                    <a:column name="edit_type_desc" editor="fnd5020_edit_grid_comboBox" prompt="FND_PROGRAM_PARAMETERS.EDIT_TYPE" width="65"/>
+                                    <a:column name="required_flag" editor="fnd5020_edit_grid_checkBox" prompt="FND_PROGRAM_PARAMETERS.REQUIRED_FLAG" width="55"/>
+                                    <a:column name="parameter_id" align="center" prompt="FND_PROGRAM_PARAMETERS.PARAMETER_SQL" renderer="fnd5020_parameterRenderer" width="65"/>
+                                </a:columns>
+                                <a:editors>
+                                    <a:numberField id="fnd5020_seq_nm" allowDecimals="false" allowNegative="false"/>
+                                    <a:textField id="fnd5020_edit_grid_tf"/>
+                                    <a:checkBox id="fnd5020_edit_grid_checkBox"/>
+                                    <a:comboBox id="fnd5020_edit_grid_comboBox"/>
+                                </a:editors>
+                            </a:grid>
+                            <table>
+                                <tr>
+                                    <td style="color:#FF0000;"><![CDATA[*${/model/prompt_data2/record/@description}]]></td>
+                                </tr>
+                            </table>
+                        </a:screenBody>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+        <div class="win-toolbar" style="width:580px;height:40px;">
+            <a:hBox style="float:right;margin-right:10px;margin-top:5px;">
+                <a:button click="fnd5020_saveFunction" text="HAP_SAVE"/>
+                <a:button click="fnd5020_closeWindow" text="HAP_CLOSE"/>
+            </a:hBox>
+        </div>
+    </a:view>
+</a:screen>

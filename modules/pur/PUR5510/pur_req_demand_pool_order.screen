@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2014-1-23 下午3:28:50  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <s:server-script import="fnd_flex_dynamic_tools.js"/>
+        <s:server-script import="fnd_flex_dynamic_page_main.js"/>
+        <s:server-script import="fnd_flex_dynamic_grid_expanded.js"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="pur55102_pool_order_link" url="${/request/@context_path}/modules/pur/PUR5510/pur_req_demand_pool_order.svc"/>
+        <script><![CDATA[
+        	function clone(obj) {
+			    // Handle the 3 simple types, and null or undefined
+			    if (null == obj || "object" != typeof obj) return obj;
+			
+			    // Handle Date
+			    if (obj instanceof Date) {
+			        var copy = new Date();
+			        copy.setTime(obj.getTime());
+			        return copy;
+			    }
+			
+			    // Handle Array
+			    if (obj instanceof Array) {
+			        var copy = [];
+			        var len = obj.length;
+			        for (var i = 0; i < len; ++i) {
+			            copy[i] = clone(obj[i]);
+			        }
+			        return copy;
+			    }
+			
+			    // Handle Object
+			    if (obj instanceof Object) {
+			        var copy = {};
+			        for (var attr in obj) {
+			            if (obj.hasOwnProperty(attr)) copy[attr] = clone(obj[attr]);
+			        }
+			        return copy;
+			    }
+			
+			    throw new Error("Unable to copy obj! Its type isn't supported.");
+			}
+        	function pur55102_req_pool_order_header_update(ds, record, name, value, oldvalue){
+        		var line_records = $('pur55102_req_pool_order_ds').getAll();
+        		if(!line_records||line_records.length==0){
+        		 	return;   
+        		}
+        		if(name == 'pro_mode_code'){
+        		    var pro_mode_code = value;
+        			for(var i=0;i<line_records.length;i++){
+        				line_records[i].set('pro_mode_code',pro_mode_code);
+        			}
+        		}
+        		
+        		if(name == 'pro_mode_name'){
+        		    var pro_mode_name = value;
+        			for(var i=0;i<line_records.length;i++){
+        				line_records[i].set('pro_mode_name',pro_mode_name);
+        			}
+        		}
+        		
+        		if(name == 'rfx_employee_id'){
+        		    var rfx_employee_id = value;
+        			for(var i=0;i<line_records.length;i++){
+        				line_records[i].set('rfx_employee_id',rfx_employee_id);
+        			}
+        		}
+        		if(name == 'rfx_employee_code'){
+        		    var rfx_employee_code = value;
+        			for(var i=0;i<line_records.length;i++){
+        				line_records[i].set('rfx_employee_code',rfx_employee_code);
+        			}
+        		}
+        		if(name == 'rfx_employee_name'){
+        		    var rfx_employee_name = value;
+        			for(var i=0;i<line_records.length;i++){
+        				line_records[i].set('rfx_employee_name',rfx_employee_name);
+        			}
+        		}
+        		if(name == 'completion_date'){
+        		 	var completion_date = value;
+        			for(var i=0;i<line_records.length;i++){
+        				line_records[i].set('completion_date',completion_date);
+        			}   
+        		}
+        	}
+        	
+        	function pur55102_order_pool(){
+				var distribute_ds = $('pur55102_req_pool_order_ds');
+				if(!distribute_ds.validate()){
+	              	return;   
+	            }
+	            var all_records = distribute_ds.getAll();
+				var para = {};
+	            var datas = [];
+	            for(var i=0;i<all_records.length;i++){
+	             	datas[i] = all_records[i].data;
+	             	datas[i].pur5510_req_demand_pool_contracts = null;
+	            }
+	            para.distributions = datas;
+	            
+	            Aurora.showConfirm('提示', '确认下达？', function() { 
+	                Aurora.Masker.mask($('pur55102_req_demand_pool_order_window').wrap, '正在加载...'); 
+		             Aurora.request({
+		                url: $('pur55102_pool_order_link').getUrl(),
+		                para: para,
+		                success: function(result) {
+		                    Aurora.Masker.unmask($('pur55102_req_demand_pool_order_window').wrap);
+		                    Aurora.showMessage('提示', '下达成功!', function(){
+		                        pur5510_query();
+		                        pur55102_reback();
+		                    });
+		                },
+		                failure: function() {
+		                    Aurora.Masker.unmask($('pur55102_req_demand_pool_order_window').wrap);
+		                    return;
+		                },
+		                error: function() {
+		                    Aurora.Masker.unmask($('pur55102_req_demand_pool_order_window').wrap);
+		                    return;
+		                }
+		             });
+	           });
+			}
+			
+			function pur55102_reback(){
+				$('pur55102_req_demand_pool_order_window').close();
+			}
+        	
+        	
+	
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur55102_req_pool_order_header_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="pro_mode_name" displayField="code_value_name" options="pur5510_req_pro_mode_ds" required="true" returnField="pro_mode_code" valueField="code_value"/>
+                    <a:field name="rfx_employee_name" autoComplete="true" autoCompleteField="code_value" lovGridHeight="350" lovHeight="500" lovService="public.exp_employees_lov" lovWidth="500" required="true" title="责任人">
+                        <a:mapping>
+                            <a:map from="employee_id" to="rfx_employee_id"/>
+                            <a:map from="employee_code" to="rfx_employee_code"/>
+                            <a:map from="name" to="rfx_employee_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur55102_req_pool_order_header_update"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur55102_req_pool_order_ds" selectable="true">
+                <a:fields>
+                    <a:field name="pro_mode_name" displayField="code_value_name" options="pur5510_req_pro_mode_ds" required="true" returnField="pro_mode_code" valueField="code_value"/>
+                    <a:field name="rfx_employee_name" autoComplete="true" autoCompleteField="code_value" lovGridHeight="350" lovHeight="500" lovService="public.exp_employees_lov" lovWidth="500" required="true" title="责任人">
+                        <a:mapping>
+                            <a:map from="employee_id" to="rfx_employee_id"/>
+                            <a:map from="employee_code" to="rfx_employee_code"/>
+                            <a:map from="name" to="rfx_employee_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur55102_order_pool" style="margin-left:20px;" text="下达" width="100"/>
+                <a:toolbarButton click="pur55102_reback" text="返回" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="150" padding="0">
+                <a:comboBox name="pro_mode_name" bindTarget="pur55102_req_pool_order_header_ds" prompt="采购方式"/>
+                <a:datePicker name="completion_date" bindTarget="pur55102_req_pool_order_header_ds" prompt="办结日期"/>
+                <a:lov name="rfx_employee_name" bindTarget="pur55102_req_pool_order_header_ds" prompt="责任人"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:textArea name="comments" bindTarget="pur55102_req_pool_order_header_ds" height="60" marginWidth="360" prompt="说明"/>
+            </a:hBox>
+        </a:defaultScreen>
+        <a:grid id="pur55102_req_pool_order_grid" bindTarget="pur55102_req_pool_order_ds" marginHeight="130" marginWidth="65" navBar="true">
+            <a:toolBar>
+                <a:button type="delete"/>
+            </a:toolBar>
+            <a:columns>
+                <a:column name="req_type_name" align="left" lock="true" prompt="单据类型" width="50"/>
+                <a:column name="req_num" align="left" lock="true" prompt="单据编号" width="50"/>
+                <a:column name="req_line_num" align="left" lock="true" prompt="行号" width="50"/>
+                <a:column name="req_dist_num" align="left" lock="true" prompt="分配行号" width="50"/>
+                <a:column name="pro_mode_name" align="left" editor="pur55102_req_pool_order_grid_cb" lock="true" prompt="采购方式" width="50"/>
+                <a:column name="rfx_employee_name" align="left" editor="pur55102_rfx_employee_name_lov" lock="true" prompt="责任人" width="50"/>
+                <a:column name="item_category_desc" align="left" prompt="采购品类" width="50"/>
+                <a:column name="item_code" align="left" prompt="物料编码" width="50"/>
+                <a:column name="item_desc" align="left" prompt="物料描述" width="50"/>
+                <a:column name="" align="left" prompt="配置清单" width="50"/>
+                <a:column name="parameter_config" align="left" prompt="配置信息" width="50"/>
+                <a:column name="quantity" align="left" prompt="数量" width="50"/>
+                <a:column name="unit_meas_lookup_code" align="left" prompt="单位" width="50"/>
+                <a:column name="need_by_date" align="left" prompt="需求日期" renderer="Aurora.formatDate" width="50"/>
+                <a:column name="unit_price" align="left" prompt="单价" width="50"/>
+                <a:column name="currency_name" align="left" prompt="币种" width="50"/>
+                <a:column name="exchange_rate" align="left" prompt="汇率" width="50"/>
+                <a:column name="tax_flag" align="left" prompt="含税标识" width="50"/>
+                <a:column name="tax_name" align="left" prompt="税码" width="50"/>
+                <a:column name="tax_type_rate" align="left" prompt="税率(%)" width="50"/>
+                <a:column name="pur_line_type_name" align="left" prompt="类型" width="50"/>
+                <a:column name="company_name" align="left" prompt="公司" width="50"/>
+                <a:column name="unit_name" align="left" prompt="部门" width="50"/>
+                <a:column name="ship_to_organization_name" align="left" prompt="收货组织" width="50"/>
+                <a:column name="ship_to_location_name" align="left" prompt="交货地点" width="50"/>
+                <a:column name="created_by_name" align="left" prompt="创建人" width="50"/>
+                <a:column name="completion_date" align="left" prompt="办结日期" renderer="Aurora.formatDate" width="50"/>
+                <a:column name="creation_date_desc" align="left" prompt="创建日期" width="50"/>
+                <a:column name="data_source" align="left" prompt="来源" width="50"/>
+            </a:columns>
+            <a:editors>
+                <a:lov id="pur55102_rfx_employee_name_lov"/>
+                <a:comboBox id="pur55102_req_pool_order_grid_cb"/>
+            </a:editors>
+        </a:grid>
+        <script><![CDATA[
+        	function pur55102_init() {
+                var pur55102_req_pool_order_ds = $("pur55102_req_pool_order_ds");
+                
+                    var pur5510_pool_order_lines = $("pur5510_req_demand_pool_selected_ds");
+                    var records = pur5510_pool_order_lines.getAll();
+
+                    for (var i = 0;i < records.length;i++) {
+                        var data = records[i].data;
+                        //req=pur;
+                        var newRecord = new Aurora.Record(records[i].data);
+                        pur55102_req_pool_order_ds.add(newRecord);
+
+                    }
+            }
+            
+            Aurora.onReady(function(){
+                pur55102_init();
+            });
+        ]]></script>
+    </a:view>
+</a:screen>

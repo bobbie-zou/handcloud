@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-2-28 下午06:48:38  
+    $Revision: 1.0  
+    $Purpose: 非寄销网上发票头表
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="h.creation_date desc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    h.invoice_header_id,
+                    h.invoice_num,
+                    h.company_name,
+                    h.vendor_site_name,
+                    h.currency_code,
+                    h.invoice_amount,
+                    h.invoice_tax_amount,
+                    h.tax_amount,
+                    h.tax_total_amount,
+                    h.tax_invoice_num,
+                    (SELECT
+                        code_value_name
+                    FROM
+                        sys_code_values_v
+                    WHERE
+                        code       = 'INVOICE_STATUS' AND
+                        code_value = h.invoice_status
+                    ) AS invoice_status,
+                    TO_CHAR(h.creation_date, 'yyyy-mm-dd hh24:mi:ss') AS creation_date,
+                    h.vendor_comments,
+                    h.data_source
+                FROM
+                    acp_web_invoice_headers h #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                  acp_web_invoice_pkg.submit_web_invoice(p_invoice_header_id => ${@invoice_header_id},
+				                                         p_vendor_id => ${/session/@vendor_id},
+				                                         p_user_id => ${/session/@user_id});
+				                                         
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                  acp_web_invoice_pkg.cancel_web_invoice(p_invoice_header_id =>  ${@invoice_header_id},
+				                                         p_vendor_id => ${/session/@vendor_id},
+				                                         p_user_id => ${/session/@user_id});
+                                         
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="(h.invoice_status = &apos;NEW&apos; or h.invoice_status = &apos;RETURNED&apos;)"/>
+        <bm:data-filter expression="h.vendor_id=${/session/@vendor_id}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="invoice_header_id" queryExpression="h.invoice_header_id = ${@invoice_header_id}"/>
+        <bm:query-field name="vendor_id" queryExpression="h.vendor_id=${@vendor_id}"/>
+        <bm:query-field name="vendor_site_name" queryExpression="h.vendor_site_name=${@vendor_site_name}"/>
+        <bm:query-field name="data_source" queryExpression="h.data_source=${@data_source}"/>
+        <bm:query-field name="invoice_status" queryExpression="h.invoice_status=${@invoice_status}"/>
+        <bm:query-field name="invoice_num_from" queryExpression="h.invoice_num &gt;= ${@invoice_num_from}"/>
+        <bm:query-field name="invoice_num_to" queryExpression="h.invoice_num &lt;= ${@invoice_num_to}"/>
+        <bm:query-field name="creation_date_from" queryExpression="(to_char(h.creation_date,&apos;yyyy-mm-dd&apos;) &gt;= ${@creation_date_from})"/>
+        <bm:query-field name="creation_date_to" queryExpression="(to_char(h.creation_date,&apos;yyyy-mm-dd&apos;) &lt;= ${@creation_date_to})"/>
+        <bm:query-field name="submit_date_from" queryExpression="(to_char(h.submit_date,&apos;yyyy-mm-dd&apos;) &gt;= ${@submit_date_from})"/>
+        <bm:query-field name="submit_date_to" queryExpression="(to_char(h.submit_date,&apos;yyyy-mm-dd&apos;) &lt;= ${@submit_date_to})"/>
+        <bm:query-field name="review_date_from" queryExpression="(to_char(h.approve_date,&apos;yyyy-mm-dd&apos;) &gt;= ${@review_date_from})"/>
+        <bm:query-field name="review_date_to" queryExpression="(to_char(h.approve_date,&apos;yyyy-mm-dd&apos;) &lt;= ${@review_date_to})"/>
+        <bm:query-field name="approve_date_from" queryExpression="(to_char(h.approve_date,&apos;yyyy-mm-dd&apos;) &gt;= ${@approve_date_from})"/>
+        <bm:query-field name="approve_date_to" queryExpression="(to_char(h.approve_date,&apos;yyyy-mm-dd&apos;) &lt;= ${@approve_date_to})"/>
+    </bm:query-fields>
+</bm:model>

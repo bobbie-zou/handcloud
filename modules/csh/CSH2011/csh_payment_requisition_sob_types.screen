@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: likun1919 $
+    $Date: 2013/01/09 01:47:09 $
+    $Revision: 1.1.1.1 $
+    $Purpose: 帐套级借款申请类型定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="csh.CSH2011.payment_method" rootPath="payment_method"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="CSH2011_csh_sob_expense_books_select_link" url="${/request/@context_path}/modules/csh/CSH2011/csh_payment_types_books_select.screen"/>
+        <a:link id="CSH2011_csh_sob_payment_company_assigned_batch_link" url="${/request/@context_path}/modules/csh/CSH2011/batch_csh_sob_payment_assign_com.screen"/>
+        <a:link id="CSH2011_csh_sob_payment_assign_com_link" url="${/request/@context_path}/modules/csh/CSH2011/csh_sob_payment_assign_com.screen"/>
+        <a:link id="csh_payment_requisition_types_def_link" url="${/request/@context_path}/modules/csh/CSH2011/csh_sob_payment_requisition_types_def.screen"/>
+        <a:link id="csh_pay_ref_user_groups_link" url="${/request/@context_path}/modules/csh/CSH2011/csh_sob_payment_ref_user_groups.screen"/>
+        <!--script-->
+        <script><![CDATA[
+       function queryRequisition(){
+                $('csh_payment_requisition_types_result_ds').query();
+            }
+        //重置查询条件
+       function resetRequisition(){
+               $('csh_payment_requisition_types_query_ds').reset();
+            }
+            
+       function typeCodeEditor(record,name){
+          if(record.isNew){
+             return 'type_code_tf';
+          }else{
+            return '';
+          }      
+       }
+       
+       
+       /**********************************************/
+            function back(){
+                window.location.href=/*csh_payment_types_books_select.screen.screen*/$('CSH2011_csh_sob_expense_books_select_link').getUrl();
+            }
+           //批量分配公司 
+            function CSH2011_batchAssignCompany() {
+                var typeDs = $('csh_payment_requisition_types_result_ds');
+                var typeRecordsData = typeDs.getJsonData(true);
+                if (typeRecordsData.length == 0) {
+                    Aurora.showInfoMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}', null, 250, 100);
+                    return;
+                }
+                new Aurora.Window({
+                    id: 'CSH2011_csh_sob_payment_company_batch_id',
+                    url: /*batch_csh_sob_payment_assign_com.screen*/$('CSH2011_csh_sob_payment_company_assigned_batch_link').getUrl()+'?set_of_books_id=' + '${/parameter/@set_of_books_id}',
+                    title: '${l:FND_SYS_VENDERS.BATCH_DISP_COMPANY}',
+                    width: 540,
+                    height: 520
+                });
+            }
+            
+            
+             function assignCompany(value, record, name) {
+                if (record.isNew) {
+                    return '';
+                }
+            	return '<a href="javascript:csh_openAssignCM(\'' + record.get('type_code') + '\',\'' + record.get('description') + '\',\'' + record.get('currency_code')+ '\',\'' + record.get('report_name')+ '\',\'' + record.get('paymentType')+ '\',\'' + record.get('auto_approve_flag')+ '\',\'' + record.get('enabled_flag')  + '\')">${l:FND_SYSTEM_VENDERS.COMPANY_ASSIGN}</>';
+            	
+                
+            }
+           function csh_openAssignCM(type_code, description,currency_code,report_name,paymentType,auto_approve_flag,enabled_flag) {
+                new Aurora.Window({
+                    id: 'csh_sob_payment_assign_com',
+                    url: /*csh_sob_payment_assign_com.screen*/$('CSH2011_csh_sob_payment_assign_com_link').getUrl()+'?type_code=' + type_code + '&description=' +  encodeURI(description) + '&currency_code=' + currency_code + '&report_name=' + report_name +'&paymentType=' + paymentType + '&auto_approve_flag='+ auto_approve_flag+ '&enabled_flag=' +enabled_flag+ '&set_of_books_id=' + '${/parameter/@set_of_books_id}' ,
+                    title: '${l:FND_SYSTEM_VENDERS.COMPANY_ASSIGN}',
+                    height: 480,
+                    width: 500
+                });
+            }
+            
+           function load(ds){
+                var records=ds.getAll();
+                 for(var j=0;j<records.length;j++){
+                     var r = records[j];
+                     r.set("set_of_books_id",'${/parameter/@set_of_books_id}');
+                  }
+            }
+            
+       /***********************************/
+       
+       function paymentType(value, record, name){
+                var typeId = record.get('type_id');
+                var typecode=record.get('type_code');
+                var set_of_books_id='${/parameter/@set_of_books_id}';
+                if(!record.isNew){
+                return '<a href="javascript:typeIdEditor('+typeId+',\''+typecode+'\','+set_of_books_id+')">${l:CSH_TRANSACTION_CLASSES.CSH_TRANSACTION_TYPE}</a>';
+            }	
+       }
+       function typeIdEditor(typeId,typecode,set_of_books_id){
+            new Aurora.Window({id:'csh_pay_req_type_trs_window', url:/*csh_sob_payment_requisition_types_def.screen*/$('csh_payment_requisition_types_def_link').getUrl()+'?type_id='+typeId+'&type_code='+typecode+'&set_of_books_id=' + set_of_books_id,
+            title:'${l:CSH_TRANSACTION_CLASSES.CSH_TRANSACTION_TYPE_CODE}',
+            height:480,width:600});
+       }
+       
+       function cshReqRefUserGroupsRenderer(value, record, name) {
+                if (!record.isNew) {
+                    var typeId = record.get('type_id');
+                    return '<a href="javascript:cshPayRefUserGroupsRendererWindow(' + typeId + ')">${l:BGT_BALANCE_RUNNING_PARAMETERS.EMPLOYEE_GROUP_ID}</a>';
+                }
+            }
+            
+            function cshPayRefUserGroupsRendererWindow(typeId) {
+                new Aurora.Window({
+                    id: 'CSH2010_csh_pay_ref_user_groups_renderer_window',
+                    url: $('csh_pay_ref_user_groups_link').getUrl()+'?type_id=' + typeId+'&set_of_books_id='+'${/parameter/@set_of_books_id}'+'&type_code='+'type_code',
+                    title: '${l:BGT_BALANCE_RUNNING_PARAMETERS.EMPLOYEE_GROUP_ID}',
+                    height: 440,
+                    width: 530
+                });
+            }
+     
+     	function resLoadComplete(){
+     		// $('res_grid').onLoad();	
+     		$('csh_payment_requisition_types_result_ds').query();
+     	}
+     
+    ]]></script>
+        <!--dataSets-->
+        <a:dataSets>
+            <a:dataSet id="payment_method_ds">
+                <a:datas dataSource="/model/payment_method"/>
+            </a:dataSet>
+            <a:dataSet id="currency_code_combo_ds" autoQuery="true" model="csh.csh_bank_account_auth_currency_code"/>
+            <a:dataSet id="csh_payment_requisition_types_query_ds" model="csh.CSH2011.csh_sob_payment_requisition_types" selectable="true"/>
+            <!--绑定grid-->
+            <a:dataSet id="csh_payment_requisition_types_result_ds" autoQuery="true" model="csh.CSH2011.csh_sob_payment_requisition_types" queryDataSet="csh_payment_requisition_types_query_ds" queryUrl="${/request/@context_path}/autocrud/csh.CSH2011.csh_sob_payment_requisition_types/query?set_of_books_id=${/parameter/@set_of_books_id}" selectable="true" submitUrl="${/request/@context_path}/autocrud/csh.CSH2011.csh_sob_payment_requisition_types_submit/batch_update?set_of_books_id=${/parameter/@set_of_books_id}">
+                <a:fields>
+                    <a:field name="type_code" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="payment_method" displayField="payment_method" options="payment_method_ds" returnField="payment_method" valueField="payment_method"/>
+                    <a:field name="currency_name" displayField="currency_name" options="currency_code_combo_ds" required="true" returnField="currency_code" valueField="currency_code"/>
+                    <a:field name="auto_approve_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="resLoadComplete"/>
+                    <a:event name="load" handler="load"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <!--页面显示-->
+            <a:form column="2" labelWidth="100" title="CSH_PAY_REQ_TYPE_TRS_CLASSES.TITLE" width="550">
+                <a:textField name="type_code" bindTarget="csh_payment_requisition_types_query_ds" prompt="PAY_REQ_TYPE" typeCase="upper"/>
+                <a:textField name="description" bindTarget="csh_payment_requisition_types_query_ds" prompt="EXP_REQ_ITEMS.DESCRIPTION"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="queryRequisition" text="HAP_QUERY"/>
+                <a:button click="resetRequisition" text="HAP_RESET"/>
+                <a:button click="back" text="HAP_BACK"/>
+            </a:hBox>
+            <a:hBox>
+                <!--批量分配公司-->
+                <a:button click="CSH2011_batchAssignCompany" text="PROMPT.BATCH_DISP_COMPANY"/>
+            </a:hBox>
+            <a:grid id="res_grid" bindTarget="csh_payment_requisition_types_result_ds" height="400" navBar="true" width="1000">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="clear"/>
+                    <a:button type="save"/>
+                </a:toolBar>
+                <a:columns>
+                    <!--借款申请类型-->
+                    <a:column name="type_code" align="center" editorFunction="typeCodeEditor" prompt="BGT_BUDGET_ITEM_TYPES.BUDGET_ITEM_TYPE_CODE" width="100"/>
+                    <!--描述-->
+                    <a:column name="description" editor="text_field" prompt="EXP_REQ_ITEMS.DESCRIPTION" width="150"/>
+                    <!--币种-->
+                    <a:column name="currency_name" align="center" editor="combo_box" prompt="CSH_PAY_REQ_TYPES.CURRENCY_CODE" width="90"/>
+                    <!--付款方式-->
+                    <a:column name="payment_method" align="center" editor="combo_box" prompt="CSH_PAYMENT.PAYMENT_METHOD_ID" width="100"/>
+                    <!--报表名-->
+                    <a:column name="report_name" align="center" editor="text_field" prompt="CSH_PAY_REQ_TYPES.REPORT_NAME" width="100"/>
+                    <!--借款申请类型-->
+                    <a:column name="paymentType" align="center" prompt="CSH_TRANSACTION_CLASSES.CSH_TRANSACTION_TYPE_CODE" renderer="paymentType" width="100"/>
+                    <!--自审批-->
+                    <a:column name="auto_approve_flag" align="center" editor="check_box" prompt="CSH_PAY_REQ_TYPES.AUTO_APPROVE_FLAG" width="110"/>
+                    <!--启用-->
+                    <a:column name="enabled_flag" align="center" editor="check_box" prompt="SYS_CODE.ENABLED_FLAG" width="110"/>
+                    <a:column name="a" align="center" prompt="BGT_BALANCE_RUNNING_PARAMETERS.EMPLOYEE_GROUP_ID" renderer="cshReqRefUserGroupsRenderer" width="70"/>
+                    <!--分配公司-->
+                    <a:column name="asignCm" align="center" prompt="FND_SYSTEM_VENDERS.COMPANY_ASSIGN" renderer="assignCompany"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="type_code_tf" typeCase="upper"/>
+                    <a:textField id="text_field"/>
+                    <a:comboBox id="combo_box"/>
+                    <a:checkBox id="check_box"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

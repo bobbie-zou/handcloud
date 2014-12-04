@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-5-6 下午4:10:15  
+    $Revision: 1.0  
+    $Purpose: 邀请供应商是
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <a:link id="pur5611_VendorInvitation_link" model="pur.PUR5611.pur_vendor_invitation" modelaction="update"/>
+        <a:link id="pur5611_VendorCompanyRelation_link" model="pur.PUR5611.pur_vendor_invitation" modelaction="execute"/>
+        <script><![CDATA[
+            //返回
+            
+            
+            function pur5611_vendor_invitation_cancel_fun() {
+                $('pur5611_vendor_invitation_window').close();
+            }
+            
+            //邀请供应商
+            
+            function pur5611_vendor_invitation_create_fun() {
+                if (!$('pur5611_vendor_invitation_ds').validate()) {
+                    return;
+                }
+                $('pur5611_vendor_invitation_create_btu').disable();
+                $('pur5611_vendor_invitation_cancel_btu').disable();
+            
+                var record = $('pur5611_vendor_invitation_ds').getAt(0);
+                Aurora.request({
+                    url: $('pur5611_VendorInvitation_link').getUrl(),
+                    para: {
+                        company_id: record.get('company_id'),
+                        vendor_name: record.get('vendor_name'),
+                        vendor_email: record.get('vendor_email')
+                    },
+                    success: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                        if (res.result.feedback == 'EXISTED') {
+                            Aurora.showConfirm('${l:PROMPT}', '${l:PUR_VENDOR_INVITATION.EMAIL_COMPANY_EXISTED_FRONT}' + res.result.coop_company_name + '${l:PUR_VENDOR_INVITATION.EMAIL_COMPANY_EXISTED_BACK}', function(cmp) {
+                                //确定按钮
+                                pur5611_VendorCompanyRelationFun(record.get('company_id'), record.get('vendor_email'), res.result.coop_company_id);
+                                cmp.close();
+                            }, function() {
+                                //取消按钮
+                            }, 300, 120);
+                        } else {
+                            Aurora.showMessage('${l:PROMPT}', '${l:PUR_VENDOR_INVITATION.INVITE_SUCCESS}', function() {
+                                pur5611_vendor_invitation_cancel_fun();
+                            });
+                        }
+                    },
+                    failure: function() {
+                        $('pur5611_vendor_invitation_create_btu').enable();
+                        $('pur5611_vendor_invitation_cancel_btu').enable();
+                    },
+                    error: function() {
+                        $('pur5611_vendor_invitation_create_btu').enable();
+                        $('pur5611_vendor_invitation_cancel_btu').enable();
+                    },
+                    scope: this
+                });
+            }
+            //关联企业
+            
+            function pur5611_VendorCompanyRelationFun(company_id, vendor_email, coop_company_id) {
+                Aurora.Masker.mask(Ext.getBody());
+                Aurora.request({
+                    url: $('pur5611_VendorCompanyRelation_link').getUrl(),
+                    para: {
+                        company_id: company_id,
+                        vendor_email: vendor_email,
+                        coop_company_id: coop_company_id
+                    },
+                    success: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                        Aurora.showMessage('${l:PROMPT}', '${l:PUR_VENDOR_INVITATION.RELATION_SUCCESS}', function() {
+                            pur5611_vendor_invitation_cancel_fun();
+                        });
+                    },
+                    failure: function() {
+                        $('pur5611_vendor_invitation_create_btu').enable();
+                        $('pur5611_vendor_invitation_cancel_btu').enable();
+                    },
+                    error: function() {
+                        $('pur5611_vendor_invitation_create_btu').enable();
+                        $('pur5611_vendor_invitation_cancel_btu').enable();
+                    },
+                    scope: this
+                });
+            }
+            //数据提交失败
+            
+            function pur5611_onVendorInvitation_submitfailedFun() {
+                $('pur5611_vendor_invitation_create_btu').enable();
+                $('pur5611_vendor_invitation_cancel_btu').enable();
+            }
+            //邮箱校验
+            
+            
+            function pur5611_email_validator(record, name, value) {
+                if (value) {
+                    var myReg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,4})+$/;
+                    if (myReg.test(value)) {
+                        return true;
+                    }
+                    return '${l:PROMPT.INCORRECT_EMAIL_FORMAT}';
+                }
+                return true;
+            }
+        ]]></script>
+        <a:dataSets>
+            <!-- USER AUTHORITY COMPANY-->
+            <a:dataSet id="pur5611_userAuthorityCompany_ds" fetchAll="true" loadData="true" model="public.fnd_user_authority_company_query"/>
+            <a:dataSet id="pur5611_vendor_invitation_ds" autoCreate="true" model="pur.PUR5611.pur_vendor_invitation">
+                <a:fields>
+                    <a:field name="company_id" />
+                    <a:field name="company_name"  displayField="company_full_name" options="pur5611_userAuthorityCompany_ds" prompt="PUR_VENDOR_INVITATIONS.COMPANY_ID" required="true" returnField="company_id" valueField="company_id"/>
+                    <a:field name="vendor_name" prompt="PUR_VENDOR_INVITATION.VENDOR_NAME" required="true"/>
+                    <a:field name="vendor_email" prompt="PUR_VENDOR_INVITATION.VENDOR_EMAIL" required="true" validator="pur5611_email_validator"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton id="pur5611_vendor_invitation_create_btu" click="pur5611_vendor_invitation_create_fun" text="PROMPT.SUBMIT" width="100"/>
+                <a:toolbarButton id="pur5611_vendor_invitation_cancel_btu" click="pur5611_vendor_invitation_cancel_fun" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:fieldSet column="3" style="margin-left:10px;margin-top:10px;" title="PUR_VENDOR_INVITATION.INTITATION" width="700">
+                <a:comboBox name="company_name" bindTarget="pur5611_vendor_invitation_ds"/>
+                <a:textField name="vendor_name" bindTarget="pur5611_vendor_invitation_ds"/>
+                <a:textField name="vendor_email" bindTarget="pur5611_vendor_invitation_ds"/>
+            </a:fieldSet>
+        </a:screenBody>
+    </a:view>
+</a:screen>

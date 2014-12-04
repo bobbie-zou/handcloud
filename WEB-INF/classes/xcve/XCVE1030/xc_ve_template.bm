@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lichenguang  
+    $Date: 2011-11-14 下午01:42:24  
+    $Revision: 1.0  
+    $Purpose: 评估模板定义
+-->
+<bm:model xmlns:e="aurora.service.exception" xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="XC_VE_TEMPLATE" defaultOrderBy="t1.ve_template_code">
+    <bm:fields>
+        <bm:field name="ve_template_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VE_TEMPLATE_ID" prompt="XC_VE_TEMPLATE.VE_TEMPLATE_ID"/>
+        <bm:field name="ve_template_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="VE_TEMPLATE_CODE" prompt="XC_VE_TEMPLATE.VE_TEMPLATE_CODE"/>
+        <bm:field name="description_id" databaseType="NUMBER" datatype="java.lang.Long" multiLanguage="true" multiLanguageDescField="description" physicalName="DESCRIPTION_ID" prompt="XC_VE_TEMPLATE.DESCRIPTION_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID" prompt="XC_VE_TEMPLATE.COMPANY_ID"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="XC_VE_TEMPLATE.ENABLED_FLAG"/>
+        <bm:field name="description" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" prompt="XC_VE_TEMPLATE.VE_TEMPLATE_DESC"/>
+        <bm:field name="company_desc" expression="(select f.COMPANY_SHORT_NAME from fnd_companies_vl f where f.company_id = t1.company_id)" forInsert="false" forUpdate="false" prompt="FND_COMPANIES.COMPANY_SHORT_NAME"/>
+    </bm:fields>
+    <bm:features>
+        <f:standard-who/>
+        <f:multi-language-storage/>
+        <o:sequence-pk/>
+    </bm:features>
+    <bm:primary-key>
+        <bm:pk-field name="ve_template_id"/>
+    </bm:primary-key>
+    <bm:data-filters>
+        <bm:data-filter name="company_id" enforceOperations="query" expression="t1.company_id=${@company_id}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="ve_template_code" queryExpression="t1.ve_template_code like &apos;%&apos;||${@ve_template_code}||&apos;%&apos;"/>
+        <bm:query-field name="description" queryExpression="exists (select 1 from fnd_descriptions fd where t1.description_id=fd.description_id and fd.description_text like &apos;%&apos;||${@description}||&apos;%&apos; and fd.language = ${/session/@lang})"/>
+        <bm:query-field name="enabled_flag" queryExpression="t1.enabled_flag=${@enabled_flag}"/>
+    </bm:query-fields>
+    <bm:cascade-operations>
+        <bm:cascade-operation inputPath="result_ds" model="xcve.XCVE1030.xc_ve_template_mc_asgn" operations="insert,update"/>
+    </bm:cascade-operations>
+    <e:exception-descriptor-config>
+        <e:exception-descriptor exception="java.sql.SQLException" handleClass="aurora.database.SQLExceptionDescriptor">
+            <e:error-message code="1" message="考评模板代码不能重复！"/>
+        </e:exception-descriptor>
+    </e:exception-descriptor-config>
+</bm:model>

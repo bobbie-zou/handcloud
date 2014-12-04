@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-5 下午02:19:38  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="bid6010_bidding_docm_score_save_link" url="${/request/@context_path}/modules/bid/BID6010/bid_bidding_score_save.svc"/>
+        <script><![CDATA[
+        	var bid6010_score_header_id	= '${/parameter/@score_header_id}';
+        
+            function bid6010BiddingScoreLineValidator(record, name, value) {
+                if (name == 'elements_score') {
+                    if ((!Aurora.isEmpty(value) && value <= 100 & value >= 1) || Aurora.isEmpty(value)) {
+                        return true;
+                    } else {
+                        return '输入的分数必须在1到100之间，请重新输入！';
+                    }
+                }
+            }
+            
+            function bid6010BiddingScoreSave() {
+                var header_ds = $('bid6010_bidding_docm_header_ds');
+                var line_ds = $('bid6010_bidding_score_line_ds');
+            
+                if (!line_ds.validate()) {
+                    return;
+                }
+            
+                Aurora.Masker.mask($('bid6010_bidding_score_window').wrap, '正在加载');
+            
+                var header_rec = header_ds.getCurrentRecord();
+                var line_recs = line_ds.getAll();
+                var header_data = header_rec.data;
+            
+                var line_data = [];
+                for (var i = 0;i < line_recs.length;i++) {
+                    line_data.push(line_recs[i].data);
+                }
+            
+                header_data['lines'] = line_data;
+            
+                Aurora.request({
+                    url: $('bid6010_bidding_docm_score_save_link').getUrl(),
+                    para: {
+                        'score_header_id': bid6010_score_header_id,
+                        'entrustment_header_id': header_rec.get('entrustment_header_id'),
+                        'round': header_rec.get('round'),
+                        'version': header_rec.get('version'),
+                        'bid_header_id': header_rec.get('bid_header_id'),
+                        'expert_suggestion': header_rec.get('expert_suggestion'),
+                        'bid_score_sum': header_rec.get('bid_score_sum'),
+                        'comments': header_rec.get('comments'),
+                        'lines': line_data
+                    },
+                    success: function(res) {
+                        bid6010_score_header_id = res.result.score_header_id;
+                        line_ds.setQueryParameter('score_header_id', bid6010_score_header_id);
+                        line_ds.setSubmitParameter('score_heasder_id', bid6010_score_header_id);
+            
+                        Aurora.showMessage('提示', '已保存！',function(){
+                            $('bid6010_bidding_score_line_ds').query();
+                        });
+                    },
+                    failure: function() {
+                        return;
+                    },
+                    error: function() {
+                        return;
+                    }
+                });
+            
+                Aurora.Masker.unmask($('bid6010_bidding_score_window').wrap);
+            }
+            
+            function bid6010BiddingScoreReturn() {
+                $('bid6010_bidding_score_window').close();
+            }
+            
+            function bid6010BiddingScoreLineFootRender(data, name) {
+                if (name == 'elements_score') {
+                    var records = $('bid6010_bidding_score_line_ds').getAll();
+                    var score_sum = 0;
+                    for (var i = 0;i < records.length;i++) {
+                        var elements_score = records[i].get('elements_score');
+                        if (Aurora.isEmpty(elements_score)) {
+                            score_sum += 0;
+                        } else {
+                            score_sum += elements_score;
+                        }
+                    }
+                    return score_sum;
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid6010_bidding_score_line_ds" autoQuery="true" fetchAll="true" model="bid.BID6010.bid_bidding_score_lines" queryUrl="${/request/@context_path}/autocrud/bid.BID6010.bid_bidding_score_lines/query?bid_header_id=${/parameter/@bid_header_id}&amp;entrustment_header_id=${/parameter/@entrustment_header_id}&amp;score_header_id=${/parameter/@score_header_id}">
+                <a:fields>
+                    <a:field name="elements_score" required="true" validator="bid6010BiddingScoreLineValidator"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="bid6010BiddingScoreSave" text="保存" width="100"/>
+            <a:toolbarButton click="bid6010BiddingScoreReturn" text="返回" width="100"/>
+        </a:screenTopToolbar>
+        <a:hBox labelWidth="100">
+            <a:label name="bidder_desc" bindTarget="bid6010_bidding_docm_header_ds" prompt="投标方" width="150"/>
+            <a:label name="bid_header_number" bindTarget="bid6010_bidding_docm_header_ds" prompt="投标编号" width="150"/>
+        </a:hBox>
+        <a:hBox labelWidth="100">
+            <a:textField name="expert_suggestion" bindTarget="bid6010_bidding_docm_header_ds" prompt="专家意见" width="400"/>
+        </a:hBox>
+        <a:grid id="bid6010_bidding_score_line_grid" autoAppend="false" bindTarget="bid6010_bidding_score_line_ds" height="350" width="550">
+            <a:columns>
+                <a:column name="scoring_elements_desc" align="left" prompt="评分项" width="200"/>
+                <a:column name="elements_score" align="right" editor="bid6010_bidding_score_line_nf" footerRenderer="bid6010BiddingScoreLineFootRender" prompt="得分"/>
+                <a:column name="comments" align="left" editor="bid6010_bidding_score_line_tf" prompt="备注" width="200"/>
+            </a:columns>
+            <a:editors>
+                <a:numberField id="bid6010_bidding_score_line_nf" allowDecimals="false" allowNegative="false"/>
+                <a:textField id="bid6010_bidding_score_line_tf"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui 6743$
+    $Date: 2014/09/29 10:46:59 $
+    $Revision: 1.0 $
+    $Purpose: ERP应付发票明细查询金额信息-采购方
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t1.*,
+                    (t1.item+t1.freight+t1.miscellaneous+t1.tax+t1.prepay+t1.awt) invoice_amount
+                FROM
+                    (SELECT
+                        eail.invoice_id,
+                        SUM(DECODE(eail.line_type, 'ITEM', NVL(eail.amount,0),0)) AS item,
+                        SUM(DECODE(eail.line_type, 'FREIGHT', NVL(eail.amount,0),0)) AS freight,
+                        SUM(DECODE(eail.line_type, 'MISCELLANEOUS', NVL(eail.amount,0),0)) AS miscellaneous,
+                        SUM(DECODE(eail.line_type, 'TAX', NVL(eail.amount,0),0)) AS tax,
+                        SUM(DECODE(eail.line_type, 'PREPAY', NVL(eail.amount,0),0)) AS prepay,
+                        SUM(DECODE(eail.line_type, 'AWT', NVL(eail.amount,0),0)) AS awt
+                    FROM
+                        erp_ap_invoice_lines eail #WHERE_CLAUSE#
+                    GROUP BY
+                        eail.invoice_id
+                    ) t1
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters/>
+    <bm:query-fields>
+        <bm:query-field name="invoice_id" queryExpression="eail.invoice_id=${@invoice_id}"/>
+    </bm:query-fields>
+</bm:model>

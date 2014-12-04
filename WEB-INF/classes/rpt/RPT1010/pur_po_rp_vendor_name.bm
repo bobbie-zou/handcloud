@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-10-28 上午11:11:51  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features">
+    <bm:fields>
+        <bm:field name="vendor_name"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    short_name vendor_name
+                FROM
+                    (SELECT
+                        SUM(total_amount) SUM,
+                        v2.short_name,
+                        pr.rp_header_id
+                    FROM
+                        PUR_PO_RP_DETAILS pr,
+                        pur_vendors_vl v2,
+                        rpt_setting_frequency sf
+                    WHERE
+                        pr.rp_header_id    = sf.rp_header_id AND
+                        sf.rpt_code        = 'RPT5020' AND
+                        sf.business_group  = ${/session/@business_group} and
+                        v2.vendor_id = pr.coop_company_id
+                    GROUP BY
+                        v2.short_name,
+                        pr.rp_header_id
+                    ORDER BY
+                        SUM DESC
+                    ),
+                    rpt_setting_headers sh,
+                    rpt_setting_lines  sl,
+                    rpt_setting_details sd
+                WHERE
+                    sh.rpt_code = 'RPT5020' and
+                    sh.business_group = 'BG00000001' and
+                    sh.rpt_header_id = sl.rpt_header_id and
+                    sl.enable_flag = 'Y' and
+                    sl.rpt_line_id = sd.rpt_line_id and
+                    sd.flex_value_set_code = '1_SHOW_NUMBER' and
+                    rownum < to_number(sd.flex_value_code)+1
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-22 下午2:43:16  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+ select *from (
+ SELECT pll.pur_line_location_id,
+       l.line_num,
+       pll.shipment_num,
+       nvl(msi.display_item_code, l.item_code) item_code,
+       l.item_description,
+       msi.item_specs,
+       msi.item_model,
+       l.unit_meas_lookup_code,
+       pll.quantity,
+       fnd_document_control_pkg.get_reality_value(p_rule_code    => 'PRICE_SECRECY',
+                                             p_role_id         => ${/session/@role_id},
+                                             p_foundation_code => 'PUR_PO',
+                                             p_document_id     => h.pur_header_id,
+                                             p_control_area    => 'INTERNAL',
+                                             p_business_group  => ${/session/@business_group},
+                                             p_value           =>  l.unit_price) unit_price,
+       fnd_document_control_pkg.get_reality_value(p_rule_code    => 'PRICE_SECRECY',
+                                             p_role_id         => ${/session/@role_id},
+                                             p_foundation_code => 'PUR_PO',
+                                             p_document_id     => h.pur_header_id,
+                                             p_control_area    => 'INTERNAL',
+                                             p_business_group  => ${/session/@business_group},
+                                             p_value           =>   pll.quantity * l.unit_price) AS line_amount,
+       to_char(pll.need_by_date,
+               'yyyy-mm-dd') AS need_by_date,
+       to_char(pll.promised_date,
+               'yyyy-mm-dd') AS promised_date,
+       decode(pll.consigned_flag,
+              'Y',
+              '是',
+              '否') AS consigned_flag,
+       pll.vendor_desc,
+       pll.ship_to_location_name,
+       h.bill_to_location_name,
+       l.line_type_name,
+       l.category_name,
+       l.secondary_unit_of_measure,
+       l.secondary_quantity,
+       pll.c_attribute1,
+       pll.c_attribute2,
+       pll.c_attribute3,
+       pll.warehouse_id,
+       (SELECT iwv.description FROM inv_warehouses_vl iwv WHERE iwv.warehouse_id = pll.warehouse_id) warehouse_name,
+       pll.inv_location_id,
+       (SELECT ilv.description FROM inv_locations_vl ilv WHERE ilv.location_id = pll.inv_location_id) inv_location_name,
+       (SELECT su.user_id FROM sys_user   su, pur_buyers pb WHERE su.user_id = pb.user_id AND pb.buyer_id = h.agent_id AND ROWNUM = 1) agent_user_id,
+       h.company_id,
+       h.coop_company_id,
+       h.coop_business_group,
+       h.owner_company_id,
+       h.owner_business_group,
+       h.inv_organization_id,
+       h.business_unit_id,
+       h.vendor_id,
+        null useless_id_3,
+        null useless_id_4,
+        null useless_id_5,
+        null useless_id_6,
+        null useless_id_7,
+        null useless_id_8,
+        null useless_id_9,
+        null useless_id_10,
+        null useless_id_11
+  FROM mtl_system_items       msi,
+       pur_headers_all_v      h,
+       pur_lines_all          l,
+       pur_line_locations_all pll
+ WHERE msi.item_id(+) = l.item_id
+       AND h.pur_header_id = l.pur_header_id
+       AND l.pur_line_id = pll.pur_line_id
+       and h.owner_business_group = ${/session/@business_group}
+       AND h.pur_header_id = ${@pur_header_id})v
+  #AUTHORIY_FROM#  #WHERE_CLAUSE# #AUTHORIY_WHERE# ORDER BY line_num       ASC,
+          shipment_num ASC
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="1 = 1"/>
+    </bm:data-filters>
+    <authority foundation_code="PUR_PO">
+        <authority-segment source_alias="v" source_name="agent_user_id" type="CREATER"/>
+        <authority-segment source_alias="v" source_name="owner_company_id" type="COMPANY"/>
+        <authority-segment source_alias="v" source_name="useless_id_3" type="RECEIVER"/>
+        <authority-segment source_alias="v" source_name="business_unit_id" type="BUSINESS_UNIT"/>
+        <authority-segment source_alias="v" source_name="useless_id_5" type="PUR_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="inv_organization_id" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_7" type="SD_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="vendor_id" type="VENDOR"/>
+        <authority-segment source_alias="v" source_name="useless_id_9" type="CLIENT"/>
+        <authority-segment source_alias="v" source_name="useless_id_10" type="PURHASE_MATERIAL"/>
+        <authority-segment source_alias="v" source_name="useless_id_11" type="SALES_PRODUCTION"/>
+        <authority-segment source_alias="v" source_name="useless_id_4" type="CLIENT_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id_6" type="VENDOR_SITE"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+            var cx = Packages.aurora.javascript.Context.getCurrentContext();
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

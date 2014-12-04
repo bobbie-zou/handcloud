@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:e="aurora.service.exception" xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="fc" baseTable="sys_user">
+    <bm:fields>
+        <bm:field name="user_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="user_name" databaseType="VARCHAR" datatype="java.lang.String" prompt="SYS_USER.ACCOUNT"/>
+        <bm:field name="type" databaseType="VARCHAR" datatype="java.lang.String" forInsert="true" forUpdate="true"/>
+        <bm:field name="start_date" databaseType="DATE" datatype="java.sql.Date" forInsert="true" forUpdate="true" prompt="HAP_START_DATE"/>
+        <bm:field name="end_date" databaseType="DATE" datatype="java.sql.Date" forInsert="true" forUpdate="true" prompt="HAP_END_DATE"/>
+        <bm:field name="last_logon_date" databaseType="DATE" datatype="java.sql.Date" forInsert="true" forUpdate="true"/>
+        <bm:field name="description" databaseType="VARCHAR" datatype="java.lang.String" prompt="SYS_USER.DESCRIPTION"/>
+        <bm:field name="password_lifespan_days" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="password_lifespan_access" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="employee_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="vender_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="vendor_code" databaseType="VARCHAR" datatype="java.lang.String" expression="(select psv.vendor_code from pur_vendors_vl psv where psv.vendor_id = fc.vender_id)" forInsert="false" forUpdate="false"/>
+        <bm:field name="frozen_flag" databaseType="VARCHAR" datatype="java.lang.String" prompt="SYS_USER.FROZEN_FLAG"/>
+        <bm:field name="frozen_flag_display" databaseType="VARCHAR" datatype="java.lang.String" expression="decode(fc.frozen_flag,&apos;Y&apos;,&apos;已冻结&apos;,&apos;N&apos;,&apos;未冻结&apos;)" forInsert="false" forUpdate="false" prompt="SYS_USER.IS_FROZEN"/>
+        <bm:field name="frozen_date" databaseType="DATE" datatype="java.sql.Date" forInsert="true" forUpdate="true" prompt="SYS_USER.FROZEN_DATE"/>
+        <bm:field name="password_start_date" databaseType="DATE" datatype="java.sql.Date" forInsert="true" forUpdate="true"/>
+        <bm:field name="menu_type" databaseType="VARCHAR" datatype="java.lang.String"/>
+        <bm:field name="employee_code" databaseType="VARCHAR" datatype="java.lang.String"/>
+        <bm:field name="emp_name" databaseType="VARCHAR" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="user_id" queryOperator="="/>
+        <bm:query-field field="user_name" queryOperator="like"/>
+        <bm:query-field field="frozen_flag" queryOperator="="/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            SELECT *
+  FROM (SELECT s.user_id,
+               s.user_name,
+               s.type,
+               s.start_date,
+               s.end_date,
+               s.last_logon_date,
+               s.description,
+               s.password_lifespan_days,
+               s.password_lifespan_access,
+               s.employee_id,
+               e.employee_code,
+               e.name emp_name,
+               s.vender_id,
+               (SELECT psv.vendor_code FROM pur_vendors psv WHERE psv.vendor_id = s.vender_id) vendor_code,
+               s.frozen_flag,
+               decode(s.frozen_flag,
+                      'Y',
+                      '已冻结',
+                      'N',
+                      '未冻结') frozen_flag_display,
+               s.frozen_date,
+               s.password_start_date,
+               s.menu_type,
+               s.client,
+               (SELECT c.client_full_name FROM fnd_clients_vl c WHERE c.client = s.client) client_name
+          FROM sys_user      s,
+               exp_employees e
+         WHERE s.employee_id = e.employee_id(+))
+#WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="user_id" output="true"/>
+                <bm:parameter name="user_name" output="true" outputPath="@user_name"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+            BEGIN
+  sys_user_pkg.create_sys_client_user(p_user_id                  => ${@user_id},
+                               p_user_name                => ${@user_name},
+                               p_user_password            => ${@user_password},
+                               p_user_password_re         => ${@user_password_re},
+                               p_type                     => ${@type},
+                               p_start_date               => to_date(${@start_date},'YYYY-MM-DD'),
+                               p_end_date                 => to_date(${@end_date},'YYYY-MM-DD'),
+                               p_description              => ${@description},
+                               p_password_lifespan_days   => ${@password_lifespan_days},
+                               p_password_lifespan_access => ${@password_lifespan_access},
+                               p_employee_id              => ${@employee_id},
+                               p_vender_id                => ${/session/@vendor_id},
+                               p_frozen_flag              => ${@frozen_flag},
+                               p_frozen_date              => to_date(${@frozen_date},'YYYY-MM-DD'),
+                               p_password_start_date      => to_date(${@password_start_date},'YYYY-MM-DD'),
+                               p_menu_type                => ${@menu_type},
+                               p_session_user_id          => ${/session/@user_id},
+                               p_ip_address               => ${/request/@address});
+END;
+]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+  BEGIN
+  sys_user_pkg.modify_sys_client_user(p_user_id                  => ${@user_id},
+                               p_type                     => ${@type},
+                               p_start_date               => to_date(${@start_date},'YYYY-MM-DD'),
+                               p_end_date                 => to_date(${@end_date},'YYYY-MM-DD'),
+                               p_description              => ${@description},
+                               p_password_lifespan_days   => ${@password_lifespan_days},
+                               p_password_lifespan_access => ${@password_lifespan_access},
+                               p_employee_id              => ${@employee_id},
+                               p_vender_id                => ${/session/@vendor_id},
+                               p_frozen_flag              => ${@frozen_flag},
+                               p_frozen_date              => ${@frozen_date},
+                               p_password_start_date      => to_date(${@password_start_date},'YYYY-MM-DD'),
+                               p_menu_type                => ${@menu_type},
+                               p_session_user_id          => ${/session/@user_id});
+END;
+
+]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

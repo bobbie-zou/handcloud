@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	&author:huangshengbo
+	$date:2011/07/08
+	$purpose:银行定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="csh1015_csh_bank_accounts_link" url="${/request/@context_path}/modules/csh/CSH1015/csh_bank_accounts.screen"/>
+        <a:link id="csh1015_csh_bank_contact_persons_link" url="${/request/@context_path}/modules/csh/CSH1015/csh_bank_contact_persons.screen"/>
+        <script><![CDATA[
+            function csh1015_queryFunction() {
+                $('csh1015_csh_bank_line_ds').query();
+            }
+            
+            
+            function csh1015_editFunction(record, name) {
+                if (record.isNew) {
+                    if (name == 'bank_type_display') {
+                        return 'csh1015_editor_cb';
+                    }
+                    if (name == 'bank_code') {
+                        return 'csh1015_editor_tf_upper';
+                    }
+                }
+                return '';
+            }
+            
+            function csh1015_bank_branches_show(value, record, name) {
+                if (!record.isNew) {
+                    return '<a href="javascript:csh1015_queryBranchs(\'' + record.get('bank_code') + '\')">${l:CSH_BANKS_SERVICE.BANK_BRANCHES}</a>';
+                }
+            }
+            
+            function csh1015_queryBranchs(bank_code) {
+                csh1015_glb_bank_code = bank_code;
+                $('csh1015_btnAdd').enable();
+                $('csh1015_btnSave').enable();
+                $('csh1015_csh_bank_branchs_line_ds').setQueryParameter('bank_code', bank_code);
+                $('csh1015_csh_bank_branchs_line_ds').query();
+            }
+            
+            function csh1015_doEdit(record, name) {
+                if (record.isNew) {
+                    return 'csh1015_editor_tf_upper';
+                }
+                return '';
+            }
+            
+            function csh1015_contact_persons(value, record, name) {
+                if (!record.isNew) {
+                    var bank_branch_id = record.get("bank_branch_id");
+                    var bank_code = record.get("bank_code");
+                    var url = $('csh1015_csh_bank_contact_persons_link').getUrl() + '?bank_branch_id=' + bank_branch_id + '&bank_code=' + bank_code;
+                    return '<a href="javascript:csh1015_openWindow(\'' + url + '\')">${l:CSH_BANK_BRANCHES.CONTACT_NAME}</a>';
+                }
+            }
+            
+            function csh1015_account(value, record, name) {
+                if (!record.isNew) {
+                    var bank_branch_id = record.get("bank_branch_id");
+                    var bank_code = record.get("bank_code");
+                    var url = $('csh1015_csh_bank_accounts_link').getUrl() + '?bank_branch_id=' + bank_branch_id + '&bank_code=' + bank_code;
+                    return '<a href="javascript:csh1015_openWindow(\'' + url + '\')">${l:CSH_BANKS_SERVICE.BANK_ACCOUNTS}</a>';
+                }
+            }
+            
+            function csh1015_addFunction(ds, record, index) {
+                record.set('bank_code', csh1015_glb_bank_code);
+            }
+            
+            function csh1015_openWindow(url) {
+                window.open(url, '', 'fullscreen=no,resizable=yes,width=1000,height=500');
+            }
+            
+            function csh1015_doSave() {
+                csh1015_beforeSave('csh1015_csh_bank_line_ds', 'bank_code', '${l:CSH_BANKS.BANK_CODE_DISTINCT}');
+            }
+            
+            function csh1015_saveFunction() {
+                csh1015_beforeSave('csh1015_csh_bank_branchs_line_ds', 'bank_branch_code', '${l:CSH_BANKS.BANK_BRANCH_CODE_DISTINCT}');
+            }
+            
+            function csh1015_beforeSave(ds, name, message) {
+                var records = $(ds).getAll();
+                for (var i = 0;i < records.length;i++) {
+                    for (var j = i + 1;j < records.length;j++) {
+                        if (records[i].get(name) == records[j].get(name)) {
+                            Aurora.showErrorMessage('', message);
+                            return;
+                        }
+                    }
+                }
+                $(ds).submit();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="csh1015_bank_type_ds" lookupCode="BANK_TYPE"/>
+            <a:dataSet id="csh1015_csh_bank_header_ds" model="csh.csh_banks">
+                <a:fields>
+                    <a:field name="bank_type_display" displayField="code_value_name" options="csh1015_bank_type_ds" returnField="bank_type" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh1015_csh_bank_line_ds" autoQuery="true" model="csh.csh_banks" pageSize="8" queryDataSet="csh1015_csh_bank_header_ds" selectable="true">
+                <a:fields>
+                    <a:field name="bank_code" required="true"/>
+                    <a:field name="bank_name" required="true"/>
+                    <a:field name="bank_name_alt" required="true"/>
+                    <a:field name="bank_type_display" displayField="code_value_name" options="csh1015_bank_type_ds" required="true" returnField="bank_type" valueField="code_value"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="zero_amounts_allowed" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh1015_csh_bank_branchs_line_ds" model="csh.CSH1015.csh_bank_branchs" pageSize="4" selectable="true">
+                <a:fields>
+                    <a:field name="bank_branch_code" required="true"/>
+                    <a:field name="branch_name" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="csh1015_addFunction"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="csh1015_csh_bank_header_ds" resultTarget="csh1015_csh_bank_line_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="bank_code" bindTarget="csh1015_csh_bank_header_ds" prompt="CSH_BANKS.BANK_CODE">
+                            <a:events>
+                                <a:event name="enterdown" handler="csh1015_queryFunction"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="bank_name_alt" bindTarget="csh1015_csh_bank_header_ds" prompt="CSH_BANKS.BANK_ALT_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="csh1015_queryFunction"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="bank_name" bindTarget="csh1015_csh_bank_header_ds" prompt="CSH_BANKS.BANK_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="csh1015_queryFunction"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="bank_type_display" bindTarget="csh1015_csh_bank_header_ds" prompt="CSH_BANKS.BANK_TYPE">
+                            <a:events>
+                                <a:event name="enterdown" handler="csh1015_queryFunction"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid bindTarget="csh1015_csh_bank_line_ds" marginHeight="300" marginWidth="90" navBar="true">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="clear"/>
+                    <a:button click="csh1015_doSave" icon="${/request/@context_path}/images/save.gif" text="HAP_SAVE"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="bank_code" align="center" editorFunction="csh1015_editFunction" prompt="CSH_BANKS.BANK_CODE" width="140"/>
+                    <a:column name="bank_name" align="center" editor="csh1015_editor_tf" prompt="CSH_BANKS.BANK_NAME" width="140"/>
+                    <a:column name="bank_name_alt" align="center" editor="csh1015_editor_tf" prompt="CSH_BANKS.BANK_ALT_NAME" width="140"/>
+                    <a:column name="bank_type_display" align="center" editorFunction="csh1015_editFunction" prompt="CSH_BANKS.BANK_TYPE" width="140"/>
+                    <a:column name="enabled_flag" align="center" editor="csh1015_editor_ck" prompt="CSH_BANKS.ENABLED_FLAG" width="140"/>
+                    <a:column name="zero_amounts_allowed" align="center" editor="csh1015_editor_ck" prompt="CSH_BANKS.ZERO_AMOUNTS_ALLOWED" width="140"/>
+                    <a:column name="csh1015_bank_branches_show" align="center" prompt="CSH_BANKS_SERVICE.BANK_BRANCHES" renderer="csh1015_bank_branches_show"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="csh1015_editor_tf_upper" typeCase="upper"/>
+                    <a:textField id="csh1015_editor_tf"/>
+                    <a:comboBox id="csh1015_editor_cb"/>
+                    <a:checkBox id="csh1015_editor_ck"/>
+                </a:editors>
+            </a:grid>
+            <a:grid bindTarget="csh1015_csh_bank_branchs_line_ds" marginHeight="370" marginWidth="90" navBar="true">
+                <a:toolBar>
+                    <a:button id="csh1015_btnAdd" disabled="true" type="add"/>
+                    <a:button type="clear"/>
+                    <a:button id="csh1015_btnSave" click="csh1015_saveFunction" disabled="true" icon="${/request/@context_path}/images/save.gif" text="HAP_SAVE"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="bank_code" align="center" prompt="CSH_BANKS.BANK_CODE" width="70"/>
+                    <a:column name="bank_branch_code" align="center" editorFunction="csh1015_doEdit" prompt="CSH_BANK_BRANCHES.BANK_BRANCH_CODE" width="110"/>
+                    <a:column name="branch_name" align="center" editor="csh1015_editor_tf" prompt="CSH_BANK_BRANCHES.BRANCH_NAME" width="80"/>
+                    <a:column name="address" align="center" editor="csh1015_editor_tf" prompt="CSH_BANK_BRANCHES.ADDRESS" width="134"/>
+                    <a:column name="contact_name" align="center" editor="csh1015_editor_tf" prompt="CSH_BANK_BRANCHES.CONTACT_NAME" width="85"/>
+                    <a:column name="e_mail_address" align="center" editor="csh1015_editor_tf" prompt="CSH_BANK_BRANCHES.E_MAIL_ADDRESS" width="134"/>
+                    <a:column name="phone" align="center" editor="csh1015_editor_tf" prompt="CSH_BANK_BRANCHES.PHONE" width="80"/>
+                    <a:column name="enabled_flag" align="center" editor="csh1015_editor_ck" prompt="CSH_BANK_BRANCHES.ENABLED_FLAG" width="78"/>
+                    <a:column name="csh1015_contact_persons" align="center" prompt="CSH_BANK_BRANCHES.CONTACT_NAME" renderer="csh1015_contact_persons" width="90"/>
+                    <a:column name="csh1015_account" align="center" prompt="CSH_BANKS_SERVICE.BANK_ACCOUNTS" renderer="csh1015_account" width="92"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+        <script><![CDATA[
+			var csh1015_glb_bank_code;
+		]]></script>
+    </a:view>
+</a:screen>

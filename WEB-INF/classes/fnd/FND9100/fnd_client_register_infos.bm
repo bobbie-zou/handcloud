@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-2 下午3:14:25  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT f.register_info_id,
+       f.email,
+       f.statement_read_flag,
+       f.safety_protection_question,
+       f.safety_protection_answer,
+       f.enterprise_name,
+       f.business_license_number,
+       f.registered_country_code,
+       (SELECT fc.description FROM fnd_country_code_vl fc WHERE fc.country_code = f.registered_country_code) registered_country_name,
+       f.registered_province_id,
+       (SELECT r.description FROM fnd_region_code_vl r WHERE r.region_id = f.registered_province_id) registered_province_desc,
+       f.registered_city_id,
+       (SELECT r.description FROM fnd_region_code_vl r WHERE r.region_id = f.registered_city_id) registered_city_desc,
+       to_char(f.business_license_end_date,
+               'YYYY-MM-DD') business_license_end_date,
+       nvl(f.business_license_forever,
+           'N') business_license_forever,
+       f.address,
+       f.telephone,
+       f.national_organization_code,
+       f.business_scope,
+       f.registered_capital,
+       f.fax_no,
+       f.legal_rep_of_ownership,
+       (SELECT s.code_value_name
+          FROM sys_code_values_v s
+         WHERE s.code_value = f.legal_rep_of_ownership
+               AND s.code = 'LEGAL_REP_OF_OWNERSHIP') legal_rep_of_ownership_desc,
+       f.legal_rep_name,
+       f.legal_rep_identity_num,
+       f.legal_rep_identity_type,
+       (SELECT s.code_value_name
+          FROM sys_code_values_v s
+         WHERE s.code_value = f.legal_rep_identity_type
+               AND s.code = 'SYS_IDENTITY_CARD_TYPES') legal_rep_identity_type_desc,
+       f.legal_rep_phone,
+       f.agent_name,
+       f.agent_identity_num,
+       f.agent_identity_type,
+       (SELECT s.code_value_name
+          FROM sys_code_values_v s
+         WHERE s.code_value = f.agent_identity_type
+               AND s.code = 'SYS_IDENTITY_CARD_TYPES') agent_identity_type_desc,
+       f.agent_phone,
+       (select l.atm_line_id from fnd_atm_lines l where l.source_pk_value = f.register_info_id 
+          and l.source_table_name = 'FND_CLIENT_REGISTER_INFOS_BUSINESS_LICENSE') business_licence_attm_id,
+       (select l.atm_line_id from fnd_atm_lines l where l.source_pk_value = f.register_info_id 
+          and l.source_table_name = 'FND_CLIENT_REGISTER_INFOS_LEGAL_REP_IDENTITY_FRONT') legal_identity_front_attm_id,
+       (select l.atm_line_id from fnd_atm_lines l where l.source_pk_value = f.register_info_id 
+          and l.source_table_name = 'FND_CLIENT_REGISTER_INFOS_LEGAL_REP_IDENTITY_BACK') legal_identity_back_attm_id,
+       (select l.atm_line_id from fnd_atm_lines l where l.source_pk_value = f.register_info_id 
+          and l.source_table_name = 'FND_CLIENT_REGISTER_INFOS_AGENT_IDENTITY_FRONT') agent_identity_front_attm_id,
+       (select l.atm_line_id from fnd_atm_lines l where l.source_pk_value = f.register_info_id 
+          and l.source_table_name = 'FND_CLIENT_REGISTER_INFOS_AGENT_IDENTITY_BACK') agent_identity_back_attm_id, 
+       (select l.atm_line_id from fnd_atm_lines l where l.source_pk_value = f.register_info_id 
+          and l.source_table_name = 'FND_CLIENT_REGISTER_INFOS_PROXY_OF_ENTERPRISE') proxy_of_enterprise_attm_id  
+  FROM fnd_client_register_infos f
+  WHERE f.register_info_id = ${@register_info_id}
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="register_info_id" input="false" output="true"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+                BEGIN
+  fnd_client_info_pkg.create_client_register(x_register_info_id => ${@register_info_id},
+                                             p_email            => ${@email},
+                                             p_register_ip      => ${/request/@address});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+  fnd_client_info_pkg.read_register_statement(p_register_info_id    => ${@register_info_id},
+                                              p_statement_read_flag => ${@statement_read_flag});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:parameters>
+                <bm:parameter name="visit_feedback" input="false" output="true"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+                BEGIN
+  fnd_client_info_pkg.check_client_register_show(p_register_info_id => ${@register_info_id},
+                                                 x_visit_feedback   => ${@visit_feedback});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

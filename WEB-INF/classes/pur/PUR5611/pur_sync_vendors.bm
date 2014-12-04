@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-7 下午4:13:08  
+    $Revision: 1.0  
+    $Purpose: 未邀请的ERP供应商
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT s.vendor_id,
+       s.vendor_code,
+       s.display_vendor_code,
+       s.full_name,
+       s.short_name,
+       to_char(i.invitation_date,
+               'YYYY-MM-DD HH24:MI') invitation_date,
+       (SELECT su.description FROM sys_user su WHERE su.user_id = i.inviter_user_id) user_desc,
+      decode(decode(i.invitation_id,
+                             NULL,
+                             a.vendor_email,
+                             i.vendor_email),
+                      NULL,
+                      s.official_email,
+                      decode(i.invitation_id,
+                             NULL,
+                             a.vendor_email,
+                             i.vendor_email)) vendor_email,
+       i.invitation_id,
+       s.coop_company_id,
+       a.advice_company_id,
+       (SELECT fc.company_code || '-' || fc.company_full_name
+          FROM fnd_companies_vl fc
+         WHERE fc.company_id = a.advice_company_id) advice_company_name
+  FROM pur_vendor_invite_advices a,
+       pur_vendor_invitations    i,
+       pur_vendors_v             s
+ WHERE s.vendor_id = a.vendor_id(+)
+       AND s.vendor_id = i.vendor_id(+)
+       AND s.coop_company_id IS NULL
+              and s.business_group = ${/session/@business_group})
+      #WHERE_CLAUSE# #ORDER_BY_CLAUSE#]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:parameters>
+                <bm:parameter name="coop_company_name" input="false" output="true" outputPath="@coop_company_name"/>
+                <bm:parameter name="coop_company_id" input="false" output="true" outputPath="@coop_company_id"/>
+                <bm:parameter name="feedback" input="false" output="true" outputPath="@feedback"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[BEGIN
+  pur_vendor_invitation_pkg.invite_vendor_register(
+                                             p_invitation_id        => ${@invitation_id},
+                                             p_vendor_id            => ${@vendor_id},
+                                             p_vendor_email         => ${@vendor_email},
+                                             p_business_group       => ${/session/@business_group},
+                                             p_user_id              => ${/session/@user_id},
+                                             x_coop_company_name => ${@coop_company_name},
+                                             x_coop_company_id   => ${@coop_company_id},
+                                             x_feedback             => ${@feedback});
+END;
+]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+            BEGIN
+  pur_vendor_invitation_pkg.relation_coop_company(p_vendor_id         => ${@vendor_id},
+	                                              p_coop_company_id   => ${@coop_company_id},
+	                                              p_vendor_email      => ${@vendor_email},
+	                                              p_business_group    => ${/session/@business_group},
+	                                              p_user_id           => ${/session/@user_id});
+END;
+            
+]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="display_vendor_code" queryExpression="display_vendor_code like &apos;%&apos;||trim(${@display_vendor_code})||&apos;%&apos;"/>
+        <bm:query-field name="short_name" queryExpression="short_name like &apos;%&apos;||trim(${@short_name})||&apos;%&apos;"/>
+        <bm:query-field name="full_name" queryExpression="full_name like &apos;%&apos;||trim(${@full_name})||&apos;%&apos;"/>
+        <bm:query-field name="vendor_email" queryExpression="vendor_email like &apos;%&apos;||trim(${@vendor_email})||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

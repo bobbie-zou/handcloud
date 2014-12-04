@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-2-25 下午3:55:03  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT *
+				  FROM (SELECT ft.template_id,
+				               ti.tmpl_instance_id temp_instance_id,
+				               (SELECT COUNT(1)
+				                  FROM fnd_flex_tmpl_insc_attrs t
+				                 WHERE NOT EXISTS (SELECT 1
+				                          FROM inv_item_attr_configs ac
+				                         WHERE ac.temp_instance_id = t.tmpl_instance_id
+				                               AND ac.temp_insc_attr_id = t.tmpl_insc_attr_id)
+				                       AND t.tmpl_instance_id = ti.tmpl_instance_id) AS new_attribute_count,
+				               ft.template_code,
+				               ft.template_desc,
+				               fg.tmpl_group_id flexfield_group_id,
+				               fg.tmpl_group_code flexfield_group_code,
+				               fg.tmpl_group_desc flexfield_group_desc,
+				               fc.flexfield_category_id,
+				               fc.flexfield_category_code,
+				               fc.flexfield_category_desc,
+				               fc.framework_type,
+				               fc.framework_type_desc,
+				               fc.sys_flag flexfield_category_sys_flag,
+				               ft.compiled_flag,
+				               (SELECT scv.code_value_name
+				                  FROM sys_code_values_vl scv,
+				                       sys_codes_vl       sc
+				                 WHERE sc.code_id = scv.code_id
+				                       AND scv.code_value = ft.compiled_flag
+				                       AND sc.code = 'YES_NO') compiled_flag_desc,
+				               ft.sys_flag used_flag,
+				               ft.enabled_flag
+				          FROM fnd_flex_templates_t_vl ft,
+				               fnd_flex_tmpl_instances ti,
+				               (SELECT c.tmpl_category_id flexfield_category_id,
+				                       c.tmpl_category_code flexfield_category_code,
+				                       c.tmpl_category_desc flexfield_category_desc,
+				                       c.framework_type,
+				                       (SELECT scv.code_value_name
+				                          FROM sys_code_values_vl scv,
+				                               sys_codes_vl       sc
+				                         WHERE sc.code_id = scv.code_id
+				                               AND scv.code_value = c.framework_type
+				                               AND sc.code = 'FND_FLEX_FRAMEWORK_TYPE') framework_type_desc,
+				                       c.sys_flag
+				                  FROM fnd_flex_tmpl_categories_vl c
+				                  where c.tmpl_category_code = 'INV_ITEM_ATTR_CONFIGS') fc,
+				               fnd_flex_tmpl_groups_vl fg
+				         WHERE fg.tmpl_category_id = fc.flexfield_category_id
+				               and ft.tmpl_group_id = fg.tmpl_group_id
+				               AND ft.template_id = ti.template_id
+				               AND ti.level_type = 'TEMPLATE') t
+				#WHERE_CLAUSE#
+                ORDER BY
+                    t.flexfield_category_code,
+                    flexfield_group_code,
+                    template_code
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    fnd_template_pkg.insert_templates(x_template_id => ${@template_id},
+                    								  x_temp_instance_id => ${@temp_instance_id},
+                                                      p_template_code => ${@template_code},
+                                                      p_description => ${@template_desc},
+                                                      p_flexfield_group_id => ${../../@flexfield_group_id},
+                                                      p_enabled_flag => ${@enabled_flag},
+                                                      p_language_code => ${/session/@lang},
+                                                      p_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="template_id" input="false" output="true"/>
+                <bm:parameter name="temp_instance_id" input="false" output="true"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    fnd_template_pkg.update_template(p_template_id => ${@template_id},
+                                                     p_description => ${@template_desc},
+                                                     p_flexfield_group_id => ${../../@flexfield_group_id},
+                                                     p_enabled_flag => ${@enabled_flag},
+                                                     p_language_code => ${/session/@lang},
+                                                     p_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="template_id" queryExpression="template_id=${@template_id}"/>
+        <bm:query-field name="flexfield_group_id" queryExpression="flexfield_group_id=${@flexfield_group_id}"/>
+        <bm:query-field name="template_code" queryExpression="template_code like &apos;%&apos;||${@template_code}||&apos;%&apos;"/>
+        <bm:query-field name="template_desc" queryExpression="template_desc like &apos;%&apos;||${@template_desc}||&apos;%&apos;"/>
+        <bm:query-field name="quick_value" queryExpression="(template_code like &apos;%&apos;||upper(${@quick_value})||&apos;%&apos; or template_desc like &apos;%&apos;||${@quick_value}||&apos;%&apos;)"/>
+    </bm:query-fields>
+</bm:model>

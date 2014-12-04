@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: ronghui.xu  
+    $Date: 2012-3-27 上午10:27:15  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="fnd2150_fnd_set_book_resp_centers_hierarchy_link" url="${/request/@context_path}/modules/fnd/FND2510/fnd_set_book_resp_centers_hierarchy.screen"/>
+        <a:link id="fnd2150_fnd_set_book_resp_centers_assign_com_link" url="${/request/@context_path}/modules/fnd/FND2510/fnd_set_book_res_assign_com.screen"/>
+        <a:link id="fnd2150_fnd_set_book_resp_company_assign_batch_link" url="${/request/@context_path}/modules/fnd/FND2510/fnd_set_book_resp_company_assign_batch.screen"/>
+        <script><![CDATA[
+            function fnd2150_queryResponsibilityCenters() {
+                $('fnd2150_fnd_responsibility_centers_result_ds').query();
+            }
+            
+            function fnd2150_resetResponsibilityCenters() {
+                $('fnd2150_fnd_responsibility_centers_query_ds').reset();
+            }
+            
+            function fnd2150_responsibilityCodeEdit(record, name) {
+                if (record.isNew) {
+                    return 'fnd2150_fnd_responsibility_code_grid_tf';
+                }
+                return '';
+            }
+            
+            function fnd2150_summaryFlagEdit(record, name) {
+                if (record.isNew) {
+                    return 'fnd2150_summary_flag_grid_dp';
+                }
+                return '';
+            }
+            
+            function fnd2150_setSubResbonsibilitys(value, record, name) {
+            
+                var responsibilityId = record.get('responsibility_center_id');
+                var responsibility_center_code = record.get('responsibility_center_code') ? record.get('responsibility_center_code') : '';
+                if (responsibilityId && record.get('summary_flag') == 'Y') {
+                    return '<a href="javascript:fnd2150_setSubResbonsibilitysInfo(\'' + responsibilityId + '\',\'' + '${/parameter/@set_of_books_id}' + '\')">${l:FND_RESP_CENTER.CHILD_CENTER_DEF}</a>';
+                }
+            
+            }
+            
+            function fnd2150_summaryFlagRenderer(value, record, name) {
+                if (!record.isNew && value == "N") {
+                    return '${l:HAP_NO}';
+                } else if (!record.isNew && value == "Y") {
+                    return '${l:HAP_YES}';
+                }
+            }
+            
+            function fnd2150_setSubResbonsibilitysInfo(responsibilityId, set_of_books_id) {
+                new Aurora.Window({
+                    id: 'fnd2150_fnd_responsibility_center_detail_window',
+                    url: /*fnd_resp_centers_hierarchy.screen*/
+                    $('fnd2150_fnd_set_book_resp_centers_hierarchy_link').getUrl() + '?responsibility_center_id=' + responsibilityId + '&set_of_books_id=' + set_of_books_id,
+                    title: '${l:FND_RESP_CENTER.CHILD_CENTER_DEF}',
+                    height: 458,
+                    width: 600
+                });
+            }
+            
+            function fnd2150_dateValidator(record, name, value) {
+                if (name == "start_date_active" || name == "end_date_active") {
+                    var start_date = record.get('start_date_active');
+                    var end_date = record.get('end_date_active');
+                    if (typeof(end_date) != 'undefined' && !Ext.isEmpty(end_date)) {
+                        if (!compareDate(start_date, end_date)) {
+                            return '${l:FND_RESPOSIBILITY_CENTERS.DATE_VALIDATE}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function fnd2150_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function fnd2150_assignCompany(value, record, name) {
+                if (record.isNew) {
+                    return '';
+                }
+                return '<a href="javascript:fnd2150_openAssignCM(' + record.get('responsibility_center_id') + ',\'' + (record.get('responsibility_center_code') ? record.get('responsibility_center_code') : '') + '\',\'' + (record.get('responsibility_center_name') ? record.get('responsibility_center_name') : '') + '\')">${l:INV_SYSTEM_ITEM_TYPES.ALLOCATE}</>';
+            }
+            
+            function fnd2150_openAssignCM(responsibility_center_id, responsibility_center_code, responsibility_center_name) {
+                new Aurora.Window({
+                    id: 'fnd2150_fnd_set_book_resp_centers_assign',
+                    url: /*pur_system_venders_assign_com.screen*/
+                    $('fnd2150_fnd_set_book_resp_centers_assign_com_link').getUrl() + '?responsibility_center_id=' + responsibility_center_id + '&responsibility_center_code=' + encodeURIComponent(responsibility_center_code) + '&responsibility_center_name=' + encodeURIComponent(responsibility_center_name) + '&set_of_books_id=' + '${/parameter/@set_of_books_id}',
+                    title: '${l:INV_SYSTEM_ITEM_TYPES.ALLOCATE}',
+                    height: 470,
+                    width: 570
+                });
+            }
+            
+            function FND2510_batch_assign_company() {
+                var FND2510_Arr_set_book_resp_records = $('fnd2150_fnd_responsibility_centers_result_ds').getSelected();
+                if (FND2510_Arr_set_book_resp_records.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}');
+                    return false;
+                }
+                for (var i = 0;i < FND2510_Arr_set_book_resp_records.length;i++) {
+                    if (FND2510_Arr_set_book_resp_records[i].isNew || FND2510_Arr_set_book_resp_records[i].dirty) {
+                        Aurora.showMessage('${l:PROMPT_MESSAGE}', '${l:WORK_FLOW_ACTION.EXIT_BEFORE_SAVE}', null, 230, 100);
+                        return false;
+                    }
+                }
+                new Aurora.Window({
+                    id: 'fnd2150_resp_batch_assign_company_id',
+                    url: $('fnd2150_fnd_set_book_resp_company_assign_batch_link').getUrl() + '?set_of_books_id=' + '${/parameter/@set_of_books_id}',
+                    title: '${l:FND_SYS_VENDERS.BATCH_DISP_COMPANY}',
+                    width: 630,
+                    height: 510
+                });
+            }
+            
+            function fnd2150_saveInfo() {
+            
+                var f_ds = $('fnd2150_fnd_responsibility_centers_result_ds');
+                var record = f_ds.getCurrentRecord();
+                var resp_center_code = record.get('responsibility_center_code');
+                var resp_center_name = record.get('responsibility_center_name');
+            
+                f_ds.setSubmitUrl('${/request/@context_path}/autocrud/fnd.FND2510.fnd_set_book_resp_centers/batch_update');
+                /*             Aurora.request({
+                 url: '${/request/@context_path}/autocrud/fnd.FND2510.fnd_update_set_book_resp_centers/batch_update',
+                 para: {
+                 'resp_center_code': resp_center_code,
+                 'resp_center_name': resp_center_name
+                 }
+                 });*/
+                f_ds.submit();
+            }
+            
+            function FND2510_submitsuccess_On_fnd_resp_result_ds(ds, rs) {
+                ds.query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2150_resp_center_type_code_ds" lookupCode="RESP_CENTER_TYPE"/>
+            <a:dataSet id="fnd2150_fnd_responsibility_centers_query_ds" model="fnd.fnd_responsibility_centers"/>
+            <a:dataSet id="fnd2150_fnd_responsibility_centers_result_ds" autoQuery="true" fetchAll="false" model="fnd.FND2510.fnd_set_book_resp_centers" queryDataSet="fnd2150_fnd_responsibility_centers_query_ds" queryUrl="${/request/@context_path}/autocrud/fnd.FND2510.fnd_set_book_resp_centers/query?set_of_books_id=${/parameter/@set_of_books_id}" selectable="true">
+                <a:fields>
+                    <a:field name="responsibility_center_name_id"/>
+                    <a:field name="company_id" defaultValue="${/session/@company_id}"/>
+                    <a:field name="responsibility_center_code" required="true"/>
+                    <a:field name="responsibility_center_name" required="true"/>
+                    <a:field name="resp_center_type_code"/>
+                    <a:field name="resp_center_type_code_display" displayField="code_value_name" options="fnd2150_resp_center_type_code_ds" required="true" returnField="resp_center_type_code" valueField="code_value"/>
+                    <a:field name="summary_flag" checkedValue="Y" defaultValue="N" unCheckedValue="N"/>
+                    <a:field name="start_date_active" required="true" validator="fnd2150_dateValidator"/>
+                    <a:field name="end_date_active" validator="fnd2150_dateValidator"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="N" unCheckedValue="N"/>
+                </a:fields>
+                <!--                <a:events>
+                    <a:event name="submitsuccess" handler="FND2510_submitsuccess_On_fnd_resp_result_ds"/>
+                </a:events>-->
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" labelWidth="100" title="FND_RESPONSIBILITY_CENTERS.QUERY" width="530">
+                <a:textField name="responsibility_center_code" bindTarget="fnd2150_fnd_responsibility_centers_query_ds" typeCase="upper" width="150">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd2150_queryResponsibilityCenters"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="responsibility_center_name" bindTarget="fnd2150_fnd_responsibility_centers_query_ds" width="150">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd2150_queryResponsibilityCenters"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:hBox>
+                <a:button click="fnd2150_queryResponsibilityCenters" text="HAP_QUERY"/>
+                <a:button click="fnd2150_resetResponsibilityCenters" text="HAP_RESET"/>
+            </a:hBox>
+            <a:hBox>
+                <a:button click="FND2510_batch_assign_company" text="FND_SYS_VENDERS.BATCH_DISP_COMPANY"/>
+            </a:hBox>
+            <a:grid bindTarget="fnd2150_fnd_responsibility_centers_result_ds" height="330" navBar="true" width="900">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="clear"/>
+                    <a:button id="saveInfo" click="fnd2150_saveInfo" icon="${/request/@context_path}/images/save.gif" text="HAP_SAVE"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="responsibility_center_code" align="center" editorFunction="fnd2150_responsibilityCodeEdit" prompt="FND_RESPONSIBILITY_CENTERS.RESPONSIBILITY_CENTER_CODE" sortable="true" width="150"/>
+                    <a:column name="responsibility_center_name" align="left" editor="fnd2150_responsibility_center_name_grid_tf" prompt="FND_RESPONSIBILITY_CENTERS.RESPONSIBILITY_CENTER_NAME" width="150"/>
+                    <a:column name="resp_center_type_code_display" align="center" editor="fnd2150_resp_center_type_code_display_cmb" prompt="EXP_LEVEL_SERIES.LEVEL_SERIES"/>
+                    <a:column name="start_date_active" align="center" editor="fnd2150_date_grid_dp" prompt="HAP_START_DATE" renderer="Aurora.formatDate" sortable="true"/>
+                    <a:column name="end_date_active" align="center" editor="fnd2150_date_grid_dp" prompt="HAP_END_DATE" renderer="Aurora.formatDate" sortable="true"/>
+                    <a:column name="summary_flag" align="center" editorFunction="fnd2150_summaryFlagEdit" prompt="FND_RESPONSIBILITY_CENTERS.SUMMARY_FLAG" renderer="fnd2150_summaryFlagRenderer" sortable="true" width="50"/>
+                    <a:column name="responsibility_center_id" align="center" prompt="FND_RESPONSIBILITY_CENTERS.SUB_RESPONSIBILITY_CENTERS" renderer="fnd2150_setSubResbonsibilitys"/>
+                    <a:column name="asignCm" align="center" prompt="INV_SYSTEM_ITEM_TYPES.ALLOCATE" renderer="fnd2150_assignCompany"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd2150_fnd_responsibility_code_grid_tf" typeCase="upper"/>
+                    <a:textField id="fnd2150_responsibility_center_name_grid_tf"/>
+                    <a:comboBox id="fnd2150_resp_center_type_code_display_cmb"/>
+                    <a:datePicker id="fnd2150_date_grid_dp"/>
+                    <a:checkBox id="fnd2150_summary_flag_grid_dp"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

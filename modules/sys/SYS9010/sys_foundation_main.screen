@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-8-25 下午1:36:55  
+    $Revision: 1.0  
+    $Purpose: 基础数据定义，维护入口页面 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="sys9010_documentCtrlRules_link" url="${/request/@context_path}/modules/sys/SYS9010/sys_document_ctrl_rules.screen"/>
+        <script><![CDATA[
+    		
+    		function sys9010_foundationResultDsGridEditorFunction(record, name){
+    		    if(name == 'foundation_code'){
+    		        if(record.isNew){
+    		            return 'sys9010_foundation_result_ds_grid_textField_UPPER';
+    		        }
+    		    }
+    		    
+    		    if(name == 'module_name'){
+    		        if(record.isNew){
+    		            return 'sys9010_foundation_result_ds_grid_comboBox';
+    		        }
+    		    }
+    		    
+    		    if(name == 'foundation_type_display'){
+    		        if(record.isNew){
+    		            return 'sys9010_foundation_result_ds_grid_comboBox';
+    		        }
+    		    }
+    		}
+    		
+    		function sys9010_foundationResultDsBeforeSubmit(dataset){
+    		    var records = dataset.getAll();
+    		    for(var i=0;i<records.length;i++){
+    		        if(records[i].isNew){
+    		            if(getLength(records[i].get('foundation_code')) >= 30){
+    		                Aurora.showMessage('${l:PROMPT}','${l:SYS9010.FOUNDATION_CODE_OVERLENGTH}');
+    		                return false;
+    		            }
+    		            if(getLength(records[i].get('foundation_name')) >= 1000){
+    		                Aurora.showMessage('${l:PROMPT}','${l:SYS9010.FOUNDATION_NAME_OVERLENGTH}');
+    		                return false;
+    		            }
+    		        }
+    		    }
+    		}
+    		
+    		function getLength(str) {
+			    var realLength = 0, len = str.length, charCode = -1;
+			    for (var i = 0; i < len; i++) {
+			        charCode = str.charCodeAt(i);
+			        if (charCode >= 0 && charCode <= 128){
+			            realLength += 1;
+			        }else{
+			            realLength += 3;
+			        }
+			    }
+			    return realLength;
+			}
+			
+			function sys9010_foundationResultDsSubmitSuccess(dataset, response){
+			    dataset.query();
+			}
+			
+			//Renderer Function
+			function sys9010_documentCtrlRules_rendererFun(value, record, name){
+			    if (!record.isNew && record.get('enabled_flag') == 'Y' && record.get('foundation_type') == 'DOCUMENT') {
+                    var foundation_code = record.get('foundation_code');
+                    return '<a href="javascript:sys9010_documentCtrlRules_openWindow(\''+foundation_code +'\')">${l:SYS9010.DOCUMENT_CTRL_RULE_TITLE}</a>';
+                }
+			}
+			
+			//Open Window 
+			function sys9010_documentCtrlRules_openWindow(foundation_code){
+			    new Aurora.Window({
+                    id: 'sys9010_documentCtrlRules_window',
+                    url: 
+                    $('sys9010_documentCtrlRules_link').getUrl() + '?foundation_code=' + foundation_code,
+                    title: '${l:SYS9010.DOCUMENT_CTRL_RULE_TITLE}',
+                    height: 400,
+                    width: 570
+                });
+			}
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys9010_foundation_type_list_ds" lookupCode="SYS_FOUNDATION_TYPE"/>
+            <a:dataSet id="sys9010_module_list_ds" loadData="true" model="public.sys_module_list"/>
+            <a:dataSet id="sys9010_foundation_query_ds" autoCreate="true"/>
+            <a:dataSet id="sys9010_foundation_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="sys.SYS9010.sys_foundation_maintain" queryDataSet="sys9010_foundation_query_ds" selectable="true" submitUrl="${/request/@context_path}/autocrud/sys.SYS9010.sys_foundation_maintain/batch_update">
+                <a:fields>
+                    <a:field name="foundation_code" required="true" requiredMessage="${l:SYS9010.FOUNDATION_CODE_NOT_NULL}"/>
+                    <a:field name="foundation_name" required="true" requiredMessage="${l:SYS9010.FOUNDATION_NAME_NOT_NULL}"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="module_name" displayField="module_name" options="sys9010_module_list_ds" required="true" requiredMessage="${l:SYS9000.MODULE_CODE_NOT_NULL}" returnField="module_code" valueField="module_code"/>
+                    <a:field name="foundation_type_display" displayField="code_value_name" options="sys9010_foundation_type_list_ds" prompt="SYS_FOUNDATIONS.FOUNDATION_TYPE" required="true" requiredMessage="${l:SYS9010.FOUNDATION_TYPE_NOT_NULL}" returnField="foundation_type" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="beforesubmit" handler="sys9010_foundationResultDsBeforeSubmit"/>
+                    <a:event name="submitsuccess" handler="sys9010_foundationResultDsSubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="sys9010_foundation_result_ds_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="sys9010_foundation_result_ds_grid" style="margin-left:20px;" type="save" width="100"/>
+                <a:gridButton bind="sys9010_foundation_result_ds_grid" style="margin-left:20px;" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="sys9010_foundation_query_ds" defaultQueryField="foundation_code_name" defaultQueryHint="SYS_FOUNDATIONS.FOUNDATION_CODE_NAME" resultTarget="sys9010_foundation_result_ds" style="width:100%;border:none"/>
+            <a:grid id="sys9010_foundation_result_ds_grid" bindTarget="sys9010_foundation_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="foundation_code" align="left" editorFunction="sys9010_foundationResultDsGridEditorFunction" sortable="true" width="100"/>
+                    <a:column name="module_name" align="center" editorFunction="sys9010_foundationResultDsGridEditorFunction" sortable="true" width="100"/>
+                    <a:column name="foundation_type_display" align="center" editorFunction="sys9010_foundationResultDsGridEditorFunction" sortable="true" width="100"/>
+                    <a:column name="foundation_name" align="left" editor="sys9010_foundation_result_ds_grid_textField" sortable="true" width="150"/>
+                    <a:column name="enabled_flag" align="center" editor="sys9010_foundation_result_ds_grid_checkBox" sortable="true" width="50"/>
+                    <a:column align="center" renderer="sys9010_documentCtrlRules_rendererFun" width="80"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="sys9010_foundation_result_ds_grid_textField_UPPER" typeCase="UPPER"/>
+                    <a:textField id="sys9010_foundation_result_ds_grid_textField"/>
+                    <a:checkBox id="sys9010_foundation_result_ds_grid_checkBox"/>
+                    <a:comboBox id="sys9010_foundation_result_ds_grid_comboBox"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" model="wfl.wfl_workflow_node" queryOrderBy="sequence_num asc" rootPath="wfl2040_workflow_node_rootpath"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            var wfl2040_recipient_set_id = '';
+            
+            function wfl2040WorkflowNodeOnCellclick(ds, row, name, record) {
+                $('wfl2040_workflow_node_recipient_set_ds').setQueryParameter('node_id', record.get('node_id'));
+                $('wfl2040_workflow_node_recipient_set_ds').query();
+                $('wfl2040_workflow_node_recipient_set_rule_ds').removeAll();
+            
+            }
+            
+            function wfl2040WorkflowNodeRecipientSetOnCellclick(ds, row, name, record) {
+                wfl2040_recipient_set_id = record.get('recipient_set_id');
+                $('wfl2040_workflow_node_recipient_set_rule_ds').setQueryParameter('recipient_set_id', record.get('recipient_set_id'));
+                $('wfl2040_workflow_node_recipient_set_rule_ds').query();
+            }
+            
+            function wfl2040WorkflowNodeRecipientSetRuleOnAdd(ds, record, index) {
+                record.set('recipient_set_id', wfl2040_recipient_set_id);
+            }
+            
+            function wfl2040WorkflowNodeRecipientSetRuleOnBeforecreate(ds) {
+                if (wfl2040_recipient_set_id == '') {
+                    Aurora.showErrorMessage('${l:PROMPT.ERROR}', '${l:PROMPT.PLEASE_SELECT_ONE}');
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+            
+            function wfl2040WorkflowNodeRecipientSetRuleOnCellclick(ds, row, name, record) {
+                record.getMeta().getField('business_rule_code').setLovPara('workflow_id', '${/parameter/@workflow_id}');
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl2040_workflow_node_ds">
+                <a:datas dataSource="/model/wfl2040_workflow_node_rootpath"/>
+                <a:fields>
+                    <a:field name="sequence_num"/>
+                    <a:field name="name"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl2040_workflow_node_recipient_set_ds" autoCount="true" autoQuery="false" fetchAll="false" model="wfl.WFL2040.wfl_node_recipient_set"/>
+            <a:dataSet id="wfl2040_workflow_node_recipient_set_rule_ds" autoCount="true" autoQuery="false" fetchAll="false" model="wfl.WFL2040.wfl_node_recipient_set_rules" selectable="true">
+                <a:fields>
+                    <a:field name="business_rule_code" lovGridHeight="320" lovHeight="460" lovLabelWidth="90" lovService="wfl.wfl_business_rules" lovWidth="550" required="true" title="WFL_BUSINESS_RULES.BUSINESS_RULE_CODE">
+                        <a:mapping>
+                            <a:map from="business_rule_code" to="business_rule_code"/>
+                            <a:map from="business_rule_id" to="business_rule_id"/>
+                            <a:map from="description" to="description"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="wfl2040WorkflowNodeRecipientSetRuleOnAdd"/>
+                    <a:event name="beforecreate" handler="wfl2040WorkflowNodeRecipientSetRuleOnBeforecreate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:grid id="wfl2040_workflow_node_grid" bindTarget="wfl2040_workflow_node_ds" height="150" width="600">
+                <a:columns>
+                    <a:column name="sequence_num" prompt="WORKFLOW_NODE.SEQUENCE_NUM" width="300"/>
+                    <a:column name="name" prompt="WORKFLOW_NODE.NAME" width="290"/>
+                </a:columns>
+                <a:events>
+                    <a:event name="cellclick" handler="wfl2040WorkflowNodeOnCellclick"/>
+                </a:events>
+            </a:grid>
+            <a:grid id="wfl2040_workflow_node_recipient_set_grid" bindTarget="wfl2040_workflow_node_recipient_set_ds" height="150" navBar="true" style="margin-top:10px" width="600">
+                <a:columns>
+                    <a:column name="rule_sequence" prompt="WORKFLOW_RULE.RULE_SEQUENCE"/>
+                    <a:column name="rule_code" prompt="WORKFLOW_RULE.RULE_CODE" width="150"/>
+                    <a:column name="recipient_sequence" prompt="WORKFLOW_RULE.RECIPIENT_SEQUENCE"/>
+                    <a:column name="parameter_1_value" prompt="WORKFLOW_NODE.PARAM1"/>
+                    <a:column name="parameter_1_desc" prompt="WORKFLOW_NODE.DESC"/>
+                    <a:column name="parameter_2_value" prompt="WORKFLOW_NODE.PARAM2"/>
+                    <a:column name="parameter_2_desc" prompt="WORKFLOW_NODE.DESC"/>
+                    <a:column name="parameter_3_value" prompt="WORKFLOW_NODE.PARAM3"/>
+                    <a:column name="parameter_3_desc" prompt="WORKFLOW_NODE.DESC"/>
+                    <a:column name="parameter_4_value" prompt="WORKFLOW_NODE.PARAM4"/>
+                    <a:column name="parameter_5_desc" prompt="WORKFLOW_NODE.DESC"/>
+                </a:columns>
+                <a:events>
+                    <a:event name="cellclick" handler="wfl2040WorkflowNodeRecipientSetOnCellclick"/>
+                </a:events>
+            </a:grid>
+            <a:grid id="wfl2040_workflow_node_recipient_set_rule_grid" bindTarget="wfl2040_workflow_node_recipient_set_rule_ds" height="150" navBar="true" style="margin-top:10px" width="600">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="save"/>
+                    <a:button type="delete"/>
+                    <a:button type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="business_rule_code" editor="wfl2040_workflow_node_recipient_set_rule_lov" prompt="WFL_BUSINESS_RULES.BUSINESS_RULE_CODE" width="200"/>
+                    <a:column name="description" prompt="WFL_BUSINESS_RULES.DESCRIPTION_ID" width="250"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="wfl2040_workflow_node_recipient_set_rule_lov"/>
+                </a:editors>
+                <a:events>
+                    <a:event name="cellclick" handler="wfl2040WorkflowNodeRecipientSetRuleOnCellclick"/>
+                </a:events>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

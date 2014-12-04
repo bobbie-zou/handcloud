@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="WFL_WORKFLOW_TRANSACTION">
+    <bm:fields>
+        <bm:field name="transaction_category" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="TRANSACTION_CATEGORY" prompt="WFL_WORKFLOW_TRANSACTION.TRANSACTION_CATEGORY"/>
+        <bm:field name="transaction_category_code" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="TRANSACTION_CATEGORY" prompt="WFL_WORKFLOW_TRANSACTION.TRANSACTION_CATEGORY"/>
+        <bm:field name="transaction_type_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="TRANSACTION_TYPE_ID" prompt="WFL_WORKFLOW_TRANSACTION.TRANSACTION_TYPE_ID"/>
+        <bm:field name="type_code" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="TRANSACTION_TYPE_ID" prompt="CSH_CASH_PLAN_TYPES.TYPE_CODE"/>
+        <bm:field name="workflow_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="WORKFLOW_CODE" prompt="WFL_WORKFLOW_TRANSFER.WORKFLOW_ID"/>
+        <bm:field name="record_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="RECORD_ID" prompt="WFL_WORKFLOW_TRANSACTION.RECORD_ID"/>
+        <bm:field name="description_text" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="TRANSACTION_TYPE_ID" prompt="CSH_CASH_PLAN_TYPES.DESCRIPTION_TEXT"/>
+        <bm:field name="company_code" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="TRANSACTION_TYPE_ID" prompt="FND_COMPANIES.COMPANY_CODE"/>
+        <bm:field name="company_short_name" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="TRANSACTION_TYPE_ID" prompt="BGT_COMPANY_PERIOD_SETS.COMPANY_FULL_NAME"/>
+        <bm:field name="name" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="TRANSACTION_TYPE_ID" prompt="EXP_WFL_TRANSACTION.NAME"/>
+        <bm:field name="company_id"/>
+    </bm:fields>
+    <bm:features>
+        <f:standard-who/>
+        <o:sequence-pk/>
+    </bm:features>
+    <bm:primary-key>
+        <bm:pk-field name="record_id"/>
+    </bm:primary-key>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+           
+            select v.*,(select sv.code_value_name from sys_code_values_vl sv,sys_codes sc
+where sc.code= 'WFL_WORKFLOW_CATEGORY'
+and sc.code_id=sv.code_id
+and sv.code_value=v.transaction_category ) transaction_category_code
+  from (select t.transaction_category,
+               t.transaction_type_id,
+               t.workflow_code,
+               w.name,
+               t.record_id,
+               e1.expense_requisition_type_code as type_code,
+               f.description_text,
+               e1.company_id,
+               fc.company_code,
+               fc.company_short_name
+          from wfl_workflow_transaction t,
+               exp_expense_req_types    e1,
+               fnd_descriptions         f,
+               wfl_workflow_vl          w,
+               fnd_companies_vl         fc
+         where t.transaction_type_id = e1.expense_requisition_type_id(+)
+           and t.transaction_category = 'EXP_REQUISITION'
+           and e1.description_id = f.description_id(+)
+           and f.language(+) = userenv('LANG')
+           and t.workflow_code = w.workflow_code
+           and e1.company_id = fc.company_id(+)
+        union
+        select t.transaction_category,
+               t.transaction_type_id,
+               t.workflow_code,
+               w.name,
+               t.record_id,
+               e2.expense_report_type_code as type_code,
+               f.description_text,
+               e2.company_id,
+               fc.company_code,
+               fc.company_short_name
+          from wfl_workflow_transaction t,
+               exp_expense_report_types e2,
+               fnd_descriptions         f,
+               wfl_workflow_vl          w,
+               fnd_companies_vl         fc
+         where t.transaction_type_id = e2.expense_report_type_id(+)
+           and t.transaction_category = 'EXP_REPORT'
+           and e2.description_id = f.description_id(+)
+           and f.language(+) = userenv('LANG')
+           and t.workflow_code = w.workflow_code
+           and e2.company_id = fc.company_id(+)
+        union
+        select t.transaction_category,
+               t.transaction_type_id,
+               t.workflow_code,
+               w.name,
+               t.record_id,
+               e3.type_code,
+               f.description_text,
+               e3.company_id,
+               fc.company_code,
+               fc.company_short_name
+          from wfl_workflow_transaction t,
+               csh_pay_req_types_vl     e3,
+               fnd_descriptions         f,
+               wfl_workflow_vl          w,
+               fnd_companies_vl         fc
+         where t.transaction_type_id = e3.type_id(+)
+           and t.transaction_category = 'PAYMENT_REQUISITION'
+           and e3.description_id = f.description_id(+)
+           and f.language(+) = userenv('LANG')
+           and t.workflow_code = w.workflow_code
+           and e3.company_id = fc.company_id(+)
+        union
+        select t.transaction_category,
+               t.transaction_type_id,
+               t.workflow_code,
+               w.name,
+               t.record_id,
+               e3.cash_plan_type_code type_code,
+               f.description_text,
+               to_number(''),
+               '',
+               ''
+          from wfl_workflow_transaction t,
+               csh_cash_plan_types      e3,
+               fnd_descriptions         f,
+               wfl_workflow_vl          w
+         where t.transaction_type_id = e3.cash_plan_type_id(+)
+           and t.transaction_category = 'CASH_PLAN'
+           and e3.description_id = f.description_id(+)
+           and f.language(+) = userenv('LANG')
+           and t.workflow_code = w.workflow_code
+        union
+        select t.transaction_category,
+               t.transaction_type_id,
+               t.workflow_code,
+               w.name,
+               t.record_id,
+               e3.acp_req_type_code type_code,
+               f.description_text,
+               to_number(''),
+               '',
+               ''
+          from wfl_workflow_transaction t,
+               acp_sys_acp_req_types    e3,
+               fnd_descriptions         f,
+               wfl_workflow_vl          w
+         where t.transaction_type_id = e3.acp_req_type_id(+)
+           and t.transaction_category = 'ACP_REQUISITION'
+           and e3.description_id = f.description_id(+)
+           and f.language(+) = userenv('LANG')
+           and t.workflow_code = w.workflow_code
+        UNION
+       SELECT t.transaction_category,
+               t.transaction_type_id,
+               t.workflow_code,
+               w.name,
+               t.record_id,
+               '' type_code,
+               '' description_text,
+               fc.COMPANY_ID,
+               fc.COMPANY_CODE,
+               fc.COMPANY_SHORT_NAME
+          FROM wfl_workflow_transaction t,
+               wfl_workflow_vl          w,
+               fnd_companies_vl  fc
+         WHERE  t.transaction_category = 'PUR_PROGRAM'
+               AND t.workflow_code = w.workflow_code
+               and t.company_id = fc.COMPANY_ID (+)) v
+             #WHERE_CLAUSE#
+         ORDER BY v.TRANSACTION_CATEGORY,
+                  v.TYPE_CODE
+           ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="transaction_category" queryExpression="transaction_category =${@transaction_category}"/>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+        <bm:query-field name="type_code" queryExpression="type_code like ${@type_code}"/>
+        <bm:query-field name="workflow_code" queryExpression="workflow_code like ${@workflow_code}"/>
+    </bm:query-fields>
+</bm:model>

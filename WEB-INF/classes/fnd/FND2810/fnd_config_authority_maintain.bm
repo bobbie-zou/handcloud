@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-4-7 下午6:10:08  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features">
+    <bm:fields>
+        <bm:field name="enable_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="config_hd_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="connect_type" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="connect_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="connect_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="connect_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    FCAH.ENABLE_FLAG,
+                    FCAH.CONFIG_HD_ID,
+                    FCAH.CONNECT_TYPE,
+                    FCAH.CONNECT_ID,
+                    (SELECT SU.USER_NAME FROM SYS_USER_V SU WHERE SU.USER_ID = FCAH.CONNECT_ID
+                    ) AS CONNECT_NAME,
+                    (SELECT SU.USER_DESC FROM SYS_USER_V SU WHERE SU.USER_ID = FCAH.CONNECT_ID
+                    ) AS CONNECT_DESC
+                FROM
+                    FND_CONFIG_AUTHORITY_HDS FCAH
+                WHERE
+                    FCAH.CONNECT_TYPE = 'USER'
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="CONFIG_HD_ID" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@CONFIG_HD_ID"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+        	begin
+			  -- call the procedure
+			  fnd_config_authority_pkg.create_config_authority_hd(x_config_hd_id => ${@config_hd_id},
+			                                                      p_connect_type => 'USER',
+			                                                      p_connect_id   => ${@connect_id},
+			                                                      p_enable_flag  => ${@enable_flag},
+			                                                      p_user_id      => ${/session/@user_id});
+			end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        	begin
+			  -- call the procedure
+			  fnd_config_authority_pkg.modify_config_authority_hd(p_config_hd_id => ${@config_hd_id},
+			                                                      p_connect_type => 'USER',
+			                                                      p_connect_id   => ${@connect_id},
+			                                                      p_enable_flag  => ${@enable_flag},
+			                                                      p_user_id      => ${/session/@user_id});
+			end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

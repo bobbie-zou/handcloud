@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tangrunyu3837 $
+    $Date: 2013/06/19 07:58:58 $
+    $Revision: 1.2 $
+    $Purpose: 用途代码定义 - 配置匹配值(动态列查询所用的lov)
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="s.mapping_condition_code=upper(${/parameter/@mapping_condition_code})" fetchAll="true" model="gld.FND2910.gld_acc_gen_value_lov_mapping_conditions_sql" rootPath="fnd2910_conditions_sql"/>
+    </a:init-procedure>
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <script><![CDATA[
+
+            function _query(){
+                $('fnd2910_gld_acc_gen_vlaue_lov_result_ds').query();
+            }
+            
+            function _onRowselect(grid,record,row){
+               $('${/parameter/@lovid}').commit(record);
+            }
+            
+            function _onKeyDown(grid, e){
+                if(e.getKey() == 13){
+                    var record = $('fnd2910_gld_acc_gen_vlaue_lov_result_ds').getCurrentRecord();
+                    $('${/parameter/@lovid}').commit(record);
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2910_gld_acc_gen_vlaue_lov_query_ds" autoCreate="true" model="gld.FND2910.gld_mapping_conditions_sql_lov_query">
+                <a:fields>
+                    <a:field name="COMPANY_ID" defaultValue="${/parameter/@company_id}"/>
+                    <a:field name="MAPPING_CONDITION_CODE_VALUE" defaultValue="${/parameter/@mapping_condition_code_value}"/>
+                    <a:field name="partner_category" defaultValue="${/parameter/@partner_category}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd2910_gld_acc_gen_vlaue_lov_result_ds" autoQuery="true" model="gld.FND2910.gld_mapping_conditions_sql_lov_query" queryDataSet="fnd2910_gld_acc_gen_vlaue_lov_query_ds"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" title="HAP_QUERY_TITLE">
+                <a:textField name="code" bindTarget="fnd2910_gld_acc_gen_vlaue_lov_query_ds" prompt="WFL_WORKFLOW.WORKFLOW_CODE">
+                    <a:events>
+                        <a:event name="enterdown" handler="_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="description" bindTarget="fnd2910_gld_acc_gen_vlaue_lov_query_ds" prompt="GLD_SET_OF_BOOKS.PERIOD_SET_NAME">
+                    <a:events>
+                        <a:event name="enterdown" handler="_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:hBox>
+                <a:button click="_query" text="HAP_QUERY"/>
+            </a:hBox>
+            <a:grid bindTarget="fnd2910_gld_acc_gen_vlaue_lov_result_ds" height="300" navBar="true" width="400">
+                <a:columns>
+                    <a:column name="code" prompt="WFL_WORKFLOW.WORKFLOW_CODE" width="180"/>
+                    <a:column name="description" prompt="GLD_SET_OF_BOOKS.PERIOD_SET_NAME" width="200"/>
+                </a:columns>
+                <a:events>
+                    <a:event name="dblclick" handler="_onRowselect"/>
+                    <a:event name="keydown" handler="_onKeyDown"/>
+                </a:events>
+            </a:grid>
+        </a:screenBody>
+        <script><![CDATA[
+            function init(){
+                var queryRecord = $('fnd2910_gld_acc_gen_vlaue_lov_query_ds').getCurrentRecord();
+                var lovStatement = "${/model/fnd2910_conditions_sql/record/@lov_statement}";
+                
+                queryRecord.set('lov_statement',lovStatement);
+                $('fnd2910_gld_acc_gen_vlaue_lov_result_ds').query();
+            }
+            init();
+        ]]></script>
+    </a:view>
+</a:screen>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-4-7 下午7:18:18  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="fnd2810_fnd_config_authority_maintain_assign_save_link" url="${/request/@context_path}/modules/fnd/FND2810/fnd_config_authority_maintain_assign_save.svc"/>
+        <script><![CDATA[
+            function fnd2810FndConfigAuthorityMaintainAssignOnSelect(ds, rec) {
+                rec.set('checked', 'Y');
+            }
+            
+            function fnd2810FndConfigAuthorityMaintainAssignOnUnselect(ds, rec) {
+                rec.set('checked', 'N');
+            }
+            
+            function fnd2810FndConfigAuthorityMaintainAssignGridOnRender(grid) {
+                var ds = $('fnd2810_fnd_config_authority_maintain_assign_ds');
+                var recs = ds.getAll();
+                var count_recs = recs.length;
+                for (var i = 0;i < count_recs;i++) {
+                    var rec = recs[i];
+                    if (rec.get('checked') == 'Y') {
+                        ds.select(rec);
+                    }
+                }
+            }
+            
+            function fnd2810_close() {
+                $('fnd2810_assign_window').close();
+            }
+            
+            function fnd2810_save() {
+                Aurora.Masker.mask($('fnd2810_assign_window').wrap, '正在加载');
+                var ds = $('fnd2810_fnd_config_authority_maintain_assign_ds');
+                var data = {
+                    'assign_user_id': '${/parameter/@assign_user_id}',
+                    'assign_type': '${/parameter/@dimension_line_code}'
+                };
+                var lines = [];
+                var recs = ds.getAll();
+                var count_recs = recs.length;
+            
+                for (var i = 0;i < count_recs;i++) {
+                    lines.push({
+                        'checked': recs[i].get('checked'),
+                        'config_hd_id': '${/parameter/@config_hd_id}',
+                        'assign_type': '${/parameter/@dimension_line_code}',
+                        'assign_id': recs[i].get('flex_value_id'),
+                        'assign_code': recs[i].get('flex_value'),
+                        'assign_desc': recs[i].get('flex_desc'),
+                        'note': recs[i].get('note'),
+                        'default_flag': recs[i].get('default_flag')
+                    });
+                }
+                data['lines'] = lines;
+                Aurora.request({
+                    url: $('fnd2810_fnd_config_authority_maintain_assign_save_link').getUrl(),
+                    para: data,
+                    success: function(res) {
+                        Aurora.showMessage('${l:PROMPT.HINT}', '${l:FND2810.ASSIGN_SUCCESS}', function() {
+                            ds.query();
+                        });
+                    },
+                    scope: this
+                });
+                
+                Aurora.Masker.unmask($('fnd2810_assign_window').wrap);
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2810_fnd_config_authority_maintain_assign_ds" autoPageSize="true" autoQuery="true" queryUrl="${/request/@context_path}/modules/fnd/FND2810/fnd_config_authority_maintain_assign_query.svc?flex_value_set_id=${/parameter/@flex_value_set_id}&amp;dimension_line_code=${/parameter/@dimension_line_code}&amp;config_hd_id=${/parameter/@config_hd_id}" selectable="true">
+                <a:fields>
+                    <a:field name="default_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="select" handler="fnd2810FndConfigAuthorityMaintainAssignOnSelect"/>
+                    <a:event name="unselect" handler="fnd2810FndConfigAuthorityMaintainAssignOnUnselect"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:grid id="fnd2810_fnd_config_authority_maintain_assign_grid" bindTarget="fnd2810_fnd_config_authority_maintain_assign_ds" height="400" navBar="true" width="770">
+            <a:columns>
+                <a:column name="flex_value" prompt="FND2810.CODE" width="250"/>
+                <a:column name="flex_desc" prompt="FND2810.DESC" width="250"/>
+                <a:column name="default_flag" editor="fnd2810_fnd_config_authority_maintain_assign_grid_cb" prompt="FND_CONFIG_AUTHORITY_LNS.DEFAULT_FLAG" width="60"/>
+                <a:column name="note" editor="fnd2810_fnd_config_authority_maintain_assign_grid_tf" prompt="FND_CONFIG_AUTHORITY_LNS.NOTE" width="200"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="fnd2810_fnd_config_authority_maintain_assign_grid_tf"/>
+                <a:checkBox id="fnd2810_fnd_config_authority_maintain_assign_grid_cb"/>
+            </a:editors>
+            <a:events>
+                <a:event name="render" handler="fnd2810FndConfigAuthorityMaintainAssignGridOnRender"/>
+            </a:events>
+        </a:grid>
+        <div class="win-toolbar" style="width:770px;height:40px;">
+            <a:hBox style="float:right;margin-right:10px;margin-top:5px;">
+                <a:button click="fnd2810_save" text="PROMPT.SAVE"/>
+                <a:button click="fnd2810_close" text="PROMPT.CLOSE"/>
+            </a:hBox>
+        </div>
+    </a:view>
+</a:screen>

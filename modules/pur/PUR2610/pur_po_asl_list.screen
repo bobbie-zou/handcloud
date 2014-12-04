@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: FelixDru
+    $Date: 2014-10-31 上午10:34:26  
+    $Revision: 1.0  
+    $Purpose: 批准供应商列表
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="pur2610_poAslListSave_link" url="${/request/@context_path}/modules/pur/PUR2610/pur_po_asl_list_save.svc"/>
+        <div/>
+        <script><![CDATA[
+            //Query
+            
+            function pur2610_poAslListResultDs_queryFun() {
+                $('pur2610_poAslList_resultDs').query();
+            }
+            
+            //Query Ds Update
+            
+            function pur2610_poAslListQueryDs_updateFun(ds, record, name, value, oldvalue) {
+                if (name == 'vendor_id') {
+                    if (Ext.isEmpty(value) || value == 'undefined') {
+                        record.getField('vendor_site_code').setReadOnly(true);
+                        record.getField('vendor_site_code').setLovPara('vendor_id', -1);
+                    } else {
+                        record.getField('vendor_site_code').setReadOnly(false);
+                        record.getField('vendor_site_code').setLovPara('vendor_id', value);
+                    }
+                }
+            }
+            //Update
+            
+            function pur2610_poAslListResultDs_updateFun(ds, record, name, value, oldvalue) {
+                if (name == 'vendor_id') {
+                    if (Ext.isEmpty(value) || value == 'undefined') {
+                        record.getField('vendor_site_code').setReadOnly(true);
+                        record.getField('vendor_site_code').setLovPara('vendor_id', -1);
+                    } else {
+                        record.getField('vendor_site_code').setReadOnly(false);
+                        record.getField('vendor_site_code').setLovPara('vendor_id', value);
+                    }
+                }
+            }
+            
+            //Load
+            
+            function pur2610_poAslListResultDs_loadFun(ds) {
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+            
+                    if (Ext.isEmpty(record.get('vendor_id')) || record.get('vendor_id') == 'undefined') {
+                        record.getField('vendor_site_code').setReadOnly(true);
+                        record.getField('vendor_site_code').setLovPara('vendor_id', -1);
+                    } else {
+                        record.getField('vendor_site_code').setReadOnly(false);
+                        record.getField('vendor_site_code').setLovPara('vendor_id', record.get('vendor_id'));
+                    }
+                }
+            }
+            
+            //Save
+            
+            
+            function pur2610_poAslList_resultDs_saveFun() {
+                if (!$('pur2610_poAslList_resultDs').validate()) {
+                    return;
+                }
+                var datas = {};
+                datas['po_asl_list'] = $('pur2610_poAslList_resultDs').getJsonData(false);
+                //锁定界面
+                Aurora.Masker.mask(Ext.getBody());
+                //提交AjAX请求
+                Aurora.request({
+                    url: $('pur2610_poAslListSave_link').getUrl(),
+                    para: datas,
+                    success: function(res) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SAVE_SUCCESS}', function() {
+                            $('pur2610_poAslList_resultDs').query();
+                            Aurora.Masker.unmask(Ext.getBody());
+                        });
+                    },
+                    failure: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    error: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <!--Query Ds-->
+            <a:dataSet id="pur2610_poAslList_queryDs">
+                <a:fields>
+                    <a:field name="using_organization_name" lovHeight="480" lovService="public.inv_organizations_lov" lovWidth="500" prompt="PUR_PO_ASL_LIST.USING_ORGANIZATION_ID" title="PUR_PO_ASL_LIST.USING_ORGANIZATION_QUERY_TITLE">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="using_organization_id"/>
+                            <a:map from="inv_organization_name" to="using_organization_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="manufacturer_code" prompt="PUR_PO_ASL_LIST.MANUFACTURER_CODE"/>
+                    <a:field name="manufacturer_name" prompt="PUR_PO_ASL_LIST.MANUFACTURER_NAME"/>
+                    <a:field name="vendor_name" lovHeight="480" lovService="public.pur_vendors_lov" lovWidth="500" prompt="PUR_PO_ASL_LIST.VENDOR_ID" title="PUR_PO_ASL_LIST.VENDOR_ID">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_name" lovHeight="480" lovService="pur.PUR2610.mtl_system_items_lov" lovWidth="500" prompt="PUR_PO_ASL_LIST.ITEM_TITLE" title="PUR_PO_ASL_LIST.ITEM_TITLE">
+                        <a:mapping>
+                            <a:map from="item_name" to="item_name"/>
+                            <a:map from="display_item_code" to="item_code"/>
+                            <a:map from="item_id" to="item_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_site_code" lovHeight="480" lovService="pur.PUR2610.pur_vendor_sites_lov?vendor_id=-1" lovWidth="500" prompt="PUR_PO_ASL_LIST.VENDOR_SITE_CODE" readOnly="true" title="PUR_PO_ASL_LIST.VENDOR_SITE_ID">
+                        <a:mapping>
+                            <a:map from="vendor_site_id" to="vendor_site_id"/>
+                            <a:map from="display_site_code" to="vendor_site_code"/>
+                            <a:map from="site_name" to="vendor_site_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur2610_poAslListQueryDs_updateFun"/>
+                </a:events>
+            </a:dataSet>
+            <!--Result Ds -->
+            <a:dataSet id="pur2610_poAslList_resultDs" autoCount="true" autoPageSize="true" model="pur.PUR2610.pur_po_asl_list" queryDataSet="pur2610_poAslList_queryDs" queryUrl="${/request/@context_path}/autocrud/pur.PUR2610.pur_po_asl_list/query?ORDER_FIELD=asl_id" selectable="true">
+                <a:fields>
+                    <a:field name="using_organization_name" lovHeight="480" lovService="public.inv_organizations_lov" lovWidth="500" prompt="PUR_PO_ASL_LIST.USING_ORGANIZATION_ID" required="true" title="PUR_PO_ASL_LIST.USING_ORGANIZATION_QUERY_TITLE">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="using_organization_id"/>
+                            <a:map from="inv_organization_name" to="using_organization_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="manufacturer_code" prompt="PUR_PO_ASL_LIST.MANUFACTURER_CODE"/>
+                    <a:field name="manufacturer_name" prompt="PUR_PO_ASL_LIST.MANUFACTURER_NAME"/>
+                    <a:field name="vendor_name" lovHeight="480" lovService="public.pur_vendors_lov" lovWidth="500" prompt="PUR_PO_ASL_LIST.VENDOR_ID" required="true" title="PUR_PO_ASL_LIST.VENDOR_ID">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_code" lovHeight="480" lovService="pur.PUR2610.mtl_system_items_lov" lovWidth="500" prompt="PUR_PO_ASL_LIST.ITEM_CODE" required="true" title="PUR_PO_ASL_LIST.ITEM_TITLE">
+                        <a:mapping>
+                            <a:map from="item_name" to="item_name"/>
+                            <a:map from="display_item_code" to="item_code"/>
+                            <a:map from="item_id" to="item_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_name" prompt="PUR_PO_ASL_LIST.ITEM_NAME" readOnly="true"/>
+                    <a:field name="vendor_site_code" lovHeight="500" lovService="pur.PUR2610.pur_vendor_sites_lov?vendor_id=-1" lovWidth="500" prompt="PUR_PO_ASL_LIST.VENDOR_SITE_CODE" readOnly="true" title="PUR_PO_ASL_LIST.VENDOR_SITE_ID">
+                        <a:mapping>
+                            <a:map from="vendor_site_id" to="vendor_site_id"/>
+                            <a:map from="display_site_code" to="vendor_site_code"/>
+                            <a:map from="site_name" to="vendor_site_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_site_name" prompt="PUR_PO_ASL_LIST.VENDOR_SITE_NAME" readOnly="true"/>
+                    <a:field name="comments" prompt="PUR_PO_ASL_LIST.COMMENTS"/>
+                    <a:field name="data_lock_flag" checkedValue="Y" defaultValue="N" prompt="PUR_PO_ASL_LIST.DATA_LOCK_FLAG" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="HAP_ENABLED_FLAG" uncheckedValue="N"/>
+                    <a:field name="only_source_of_supply_flag" checkedValue="Y" defaultValue="N" prompt="PUR_PO_ASL_LIST.ONLY_SOURCE_OF_SUPPLY_FLAG" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur2610_poAslListResultDs_updateFun"/>
+                    <a:event name="load" handler="pur2610_poAslListResultDs_loadFun"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton bind="pur2610_poAslList_resultDs_Grid" type="add" width="100"/>
+                <a:gridButton bind="pur2610_poAslList_resultDs_Grid" click="pur2610_poAslList_resultDs_saveFun" text="PROMPT.SAVE" width="100"/>
+                <a:gridButton bind="pur2610_poAslList_resultDs_Grid" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="pur2610_poAslList_queryDs" marginWidth="80" resultTarget="pur2610_poAslList_resultDs" style="border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="100">
+                        <a:lov name="using_organization_name" bindTarget="pur2610_poAslList_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur2610_poAslListResultDs_queryFun"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="vendor_name" bindTarget="pur2610_poAslList_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur2610_poAslListResultDs_queryFun"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="item_name" bindTarget="pur2610_poAslList_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur2610_poAslListResultDs_queryFun"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="pur2610_poAslList_resultDs_Grid" bindTarget="pur2610_poAslList_resultDs" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="item_code" editor="pur2610_poAslList_resultDs_GridLov" sortable="true" width="100"/>
+                    <a:column name="item_name" sortable="true" width="100"/>
+                    <a:column name="using_organization_name" editor="pur2610_poAslList_resultDs_GridLov" sortable="true" width="120"/>
+                    <a:column name="vendor_name" editor="pur2610_poAslList_resultDs_GridLov" sortable="true" width="100"/>
+                    <a:column name="vendor_site_code" editor="pur2610_poAslList_resultDs_GridLov" sortable="true" width="100"/>
+                    <a:column name="vendor_site_name" sortable="true" width="100"/>
+                    <a:column name="manufacturer_code" editor="pur2610_poAslList_resultDs_GridTF" sortable="true" width="100"/>
+                    <a:column name="manufacturer_name" editor="pur2610_poAslList_resultDs_GridTF" sortable="true" width="100"/>
+                    <a:column name="only_source_of_supply_flag" editor="pur2610_poAslList_resultDs_GridCb" sortable="true" width="60"/>
+                    <a:column name="data_lock_flag" editor="pur2610_poAslList_resultDs_GridCb" sortable="true" width="60"/>
+                    <a:column name="enabled_flag" editor="pur2610_poAslList_resultDs_GridCb" sortable="true" width="60"/>
+                    <a:column name="comments" editor="pur2610_poAslList_resultDs_GridTF" sortable="true" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="pur2610_poAslList_resultDs_GridLov"/>
+                    <a:checkBox id="pur2610_poAslList_resultDs_GridCb"/>
+                    <a:textField id="pur2610_poAslList_resultDs_GridTF"/>
+                    <a:numberField id="pur2610_poAslList_resultDs_GridNf" allowDecimals="true" allowNegative="false" decimalPrecision="4"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

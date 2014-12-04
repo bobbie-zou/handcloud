@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-27 下午10:59:14  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    lv.rfx_line_vendor_id,
+                    lv.rfx_header_id,
+                    rh.round,
+                    rh.version,
+                    lv.vendor_id,
+                    lv.vendor_code,
+                    lv.vendor_desc,
+                    lv.vendor_site_id,
+                    lv.vendor_address,
+                    lv.vendor_contact_id,
+                    lv.contact_person,
+                    lv.contact_mobile,
+                    lv.e_mail,
+                    lv.feedback_status,
+                    (SELECT
+                        scv.code_value_name
+                    FROM
+                        sys_code_values_vl scv,
+                        sys_codes_vl sc
+                    WHERE
+                        sc.code_id     = scv.code_id AND
+                        scv.code_value = lv.feedback_status AND
+                        sc.code        = 'PUR_RFX_VENDOR_FEEDBACK_STATUS'
+                    ) feedback_status_desc,
+                    lv.proposed_flag,
+                    lv.sms_schicken_flag,
+                    lv.comments,
+                    (SELECT
+                        NVL(SUM(NVL(fl.valid_fb_wholesale_price, 0)), 0)
+                    FROM
+                        pur_rfx_feedback_lines fl,
+                        pur_rfx_ln_items li,
+                        pur_rfx_feedback_headers fh
+                    WHERE
+                        fh.feedback_header_id = fl.feedback_header_id AND
+                        fh.cancel_flag        = 'N' AND
+                        fl.cancel_flag        = 'N' AND
+                        li.rfx_line_item_id   = fl.rfx_line_item_id AND
+                        li.rfx_header_id      = rh.rfx_header_id AND
+                        li.cancel_flag        = 'N' AND
+                        fh.rfx_header_id      = rh.rfx_header_id AND
+                        fh.vendor_id          = lv.vendor_id AND
+                        fh.rfx_round          = rh.round AND
+                        fh.rfx_version        = rh.version
+                    ) total_price,
+                    (SELECT
+                        NVL(SUM(NVL(fl.fb_total_whlsale_amount, 0)), 0)
+                    FROM
+                        pur_rfx_feedback_lines fl,
+                        pur_rfx_ln_items li,
+                        pur_rfx_feedback_headers fh
+                    WHERE
+                        fh.feedback_header_id = fl.feedback_header_id AND
+                        fh.cancel_flag        = 'N' AND
+                        fl.cancel_flag        = 'N' AND
+                        fh.rfx_header_id      = rh.rfx_header_id AND
+                        fh.vendor_id          = lv.vendor_id AND
+                        li.rfx_header_id      = rh.rfx_header_id AND
+                        fh.rfx_round          = rh.round AND
+                        fh.rfx_version        = rh.version AND
+                        li.rfx_line_item_id   = fl.rfx_line_item_id AND
+                        li.cancel_flag        = 'N'
+                    ) total_amount
+                FROM
+                    pur_rfx_ln_vendors lv,
+                    pur_rfx_headers rh
+                WHERE
+                    lv.rfx_header_id = ${/parameter/@rfx_header_id} AND
+                    lv.rfx_header_id = rh.rfx_header_id
+            ]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter inputPath="/parameter/@rfx_header_id"/>
+            </bm:parameters>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

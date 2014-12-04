@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qiuhaowen4053 $
+    $Date: 2013/06/25 08:50:18 $
+    $Revision: 1.3 $
+    $Purpose: 任务定义及授权
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="sys_2030_alert_rule_privilege_link" url="${/request/@context_path}/modules/sys/SYS2030/sys_alert_rule_privilege.screen"/>
+        <a:link id="sys_2030_alert_rule_parameters_link" url="${/request/@context_path}/modules/sys/SYS2030/sys_alert_rule_parameters.screen"/>
+        <script><![CDATA[ 
+            function sys2030_queryAlertRules(){
+                $('sys_2030_alert_rules_result_ds').query();
+            }
+           	function sys2030_resetAlertRules(){
+           		$('sys_2030_alert_rules_query_ds').reset();
+           	}
+            function sys2030_setParameters(value, record, name){
+                var alertRuleId = record.get('alert_rule_id');
+                if(alertRuleId){
+                    return '<a href="javascript:sys2030_setParametersInfo('+alertRuleId+')">${l:PARAMATER_DEFINED}</a>';
+                }else{
+                    return '';
+                }
+            }
+            
+            function sys2030_setParametersInfo(alertRuleId){
+                new Aurora.Window({id:'sys_alert_rules_parameters_window', url:$('sys_2030_alert_rule_parameters_link').getUrl()+'?alert_rule_id='+alertRuleId, title:'${l:PROJECT_PARAMATER_DEFINED}', height:420,width:700});
+            }
+            
+            function sys2030_setPrivilege(value, record, name){
+                var alertRuleId = record.get('alert_rule_id');
+                if(alertRuleId){
+                    return '<a href="javascript:sys2030_setPrivilegeInfo('+alertRuleId+')">${l:ROLE_GRANT}</a>';
+                }else{
+                    return '';
+                }
+            }
+            
+            function sys2030_setPrivilegeInfo(alertRuleId){
+                new Aurora.Window({id:'sys_alert_rule_privilege_window', url:$('sys_2030_alert_rule_privilege_link').getUrl()+'?alert_rule_id='+alertRuleId, title:'${l:PROJECT_ROLE_GRANT}', height:420,width:640});
+            }
+            
+            function sys2030_alertRuleCodeEdit(record,name){
+                if(record.isNew){
+                    return 'sys2030_alert_rule_code_grid_tf';
+                }else{
+                    return '';
+                }
+            }
+            
+            function sys2030_query_hook(value,ds){
+                var record=ds.getCurrentRecord();
+                record.set('query_hook',null);
+                record.set('query_hook',value);
+            }    
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys_2030_alert_rules_query_ds">
+                <a:fields>
+                    <a:field name="query_hook"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys_2030_alert_rules_result_ds" autoQuery="true" fetchAll="false" model="sys.SYS2030.sys_alert_rules" queryDataSet="sys_2030_alert_rules_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="alert_rule_code" required="true"/>
+                    <a:field name="event_name" lovGridHeight="300" lovHeight="460" lovService="sys.SYS2030.sys_alert_rules_event_lov" lovWidth="480" required="true" title="SYS_ALERT_RULES.SELECT_EVENT">
+                        <a:mapping>
+                            <a:map from="event_name" to="event_name"/>
+                            <a:map from="event_desc" to="event_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="sys_2030_alert_rules_grid" type="add" width="100"/>
+            <a:gridButton bind="sys_2030_alert_rules_grid" type="save" width="100"/>
+            <a:gridButton bind="sys_2030_alert_rules_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="sys_2030_alert_rules_query_ds" defaultQueryHint="请输入代码或名称" queryHook="sys2030_query_hook" resultTarget="sys_2030_alert_rules_result_ds" style="width:100%"/>
+        <a:grid id="sys_2030_alert_rules_grid" bindTarget="sys_2030_alert_rules_result_ds" marginHeight="160" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="alert_rule_code" align="center" editorFunction="sys2030_alertRuleCodeEdit" sortable="true" width="120"/>
+                <a:column name="description" align="left" editor="sys2030_description_grid_tf" width="150"/>
+                <a:column name="event_name" align="center" editor="sys2030_event_nme_lov" width="130"/>
+                <a:column name="event_desc" align="left" width="150"/>
+                <a:column name="enabled_flag" editor="sys2030_enabled_flag_cb" sortable="true" width="40"/>
+                <a:column name="alert_rule_id" align="center" prompt="SYS_ALERT_RULES.PARAMETER_DEFINE" renderer="sys2030_setParameters" width="60"/>
+                <a:column name="id" align="center" prompt="SYS_ALERT_RULES.ROLE_ASSIGN" renderer="sys2030_setPrivilege" width="60"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="sys2030_alert_rule_code_grid_tf" typeCase="upper"/>
+                <a:textField id="sys2030_description_grid_tf"/>
+                <a:checkBox id="sys2030_enabled_flag_cb"/>
+                <a:lov id="sys2030_event_nme_lov"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

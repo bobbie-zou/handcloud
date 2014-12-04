@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm"  >
+    <bm:fields>
+        <bm:field name="instance_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="INSTANCE_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID"/>
+        <bm:field name="company_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_NAME"/>
+        <bm:field name="workflow_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="WORKFLOW_ID"/>
+        <bm:field name="workflow_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="WORKFLOW_CODE"/>
+        <bm:field name="workflow_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="WORKFLOW_DESC"/>
+        <bm:field name="current_seq" databaseType="NUMBER" datatype="java.lang.Long" physicalName="CURRENT_SEQ"/>
+        <bm:field name="current_node_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CURRENT_NODE_DESC"/>
+        <bm:field name="status" databaseType="NUMBER" datatype="java.lang.Long" physicalName="STATUS"/>
+        <bm:field name="status_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="STATUS_DESC"/>
+        <bm:field name="last_approve_date" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="LAST_APPROVE_DATE"/>
+        <bm:field name="approve_user_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="APPROVE_USER_NAME"/>
+        <bm:field name="document_number" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DOCUMENT_NUMBER"/>
+        <bm:field name="display_read_only" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="can_cancel_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="graphic_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="GRAPHIC_ID"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	select t.instance_id,
+            		   t.company_id,
+            		   t.company_name,
+            		   t.workflow_id,
+            		   t.workflow_code,
+            		   t.workflow_desc,
+            		   t.current_seq,  
+            		    t.current_node_desc ,          		   
+            		   t.status,
+            		   t.status_desc,
+            		   t.last_approve_date,
+            		   t.approve_user_name,
+            		   t.document_number,
+            		   nvl(t.display_read_only,'null') display_read_only,
+            		   t.can_cancel_flag,
+            		     nvl((SELECT DISTINCT SGD.GRAPHIC_ID
+FROM   WFL_WORKFLOW_NODE WWN1,SYS_GRAPHICS_DETAIL SGD
+WHERE SGD.TABLE_ID(+) = WWN1.NODE_ID
+AND WWN1.WORKFLOW_ID = t.workflow_id AND SGD.GRAPHIC_ID is not NULL),-1) graphic_id
+                  from (select wi.instance_id,
+                  			   wi.company_id,
+                  			   (select f.company_code || '-' || f.company_short_name
+  								from fnd_companies_vl f where f.company_id=wi.company_id) as company_name,
+						       (select ww.workflow_id
+						          from wfl_workflow ww
+						         where ww.workflow_id = wi.workflow_id)as workflow_id,
+						       (select ww.workflow_code
+						          from wfl_workflow ww
+						         where ww.workflow_id = wi.workflow_id)as workflow_code,
+						       (select ww.workflow_desc
+						          from wfl_workflow ww
+						         where ww.workflow_id = wi.workflow_id)as workflow_desc,
+						       wi.current_seq,	
+						       wfl_workflow_pkg.get_current_node_desc(wi.instance_id) as current_node_desc,					       
+						       wi.status,		
+						       (select v.code_value_name
+				  			 	  from sys_codes sc,
+				       				   sys_code_values_vl v
+				       		     where sc.code_id = v.code_id
+				       		       and sc.code = 'WORKFLOW_STATUS'
+				       		       and v.enabled_flag = 'Y'
+				       		       and sc.enabled_flag = 'Y'
+				       		       and v.code_value = TO_CHAR(wi.status)) as status_desc,			       
+						       (select TO_CHAR(max(ar.creation_date),'yyyy-mm-dd hh24:mi:ss')
+						          from wfl_approve_record ar
+						         where ar.instance_id = wi.instance_id) as last_approve_date,
+						       wfl_workflow_pkg.get_approve_user_name(wi.instance_id)as approve_user_name,
+						       (select j.parameter_value
+								  from wfl_workflow_type_parameter z, wfl_workflow_instance_para j
+								 where z.parameter_code ='DOCUMENT_NUMBER'
+								and z.workflow_type_para_id = j.workflow_type_para_id and j.instance_id = wi.instance_id) document_number,
+								(select j.parameter_value
+								  from wfl_workflow_type_parameter z, wfl_workflow_instance_para j
+								 where z.parameter_code ='READ_ONLY_SCREEN'
+								and z.workflow_type_para_id = j.workflow_type_para_id and j.instance_id = wi.instance_id) display_read_only,
+								(select wfl_core_pkg.can_cancel_instance(
+												            		wi.instance_id,
+												            		${/session/@user_id}
+												        		) from dual) as can_cancel_flag
+								
+						  from wfl_workflow_instance wi
+						 where 
+   						    (exists(select ar.instance_id
+										  from wfl_approve_record ar
+										 where wi.instance_id = ar.instance_id
+										   and ar.created_by = ${/session/@user_id}
+										union
+										select z.instance_id
+										  from wfl_workflow_instance z
+										 where z.instance_id = wi.instance_id
+										   and z.created_by = ${/session/@user_id})
+						    or wi.created_by = ${/session/@user_id})) t
+					#WHERE_CLAUSE#
+					order by t.instance_id desc						    
+		    ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="document_number" queryExpression="t.document_number = ${@document_number}"/>
+        <bm:query-field name="workflow_id" queryExpression="t.workflow_id = ${@workflow_id}"/>
+        <bm:query-field name="company_id" queryExpression="t.company_id = ${@company_id}"/>
+        <bm:query-field name="status" queryExpression="t.status = ${@status}"/>
+    </bm:query-fields>
+</bm:model>

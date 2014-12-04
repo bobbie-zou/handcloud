@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-5 下午3:16:48  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="object_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="OBJECT_ID"/>
+        <bm:field name="object_code" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="120" forDisplay="true" forQuery="true" physicalName="OBJECT_CODE" prompt="对象编码"/>
+        <bm:field name="object_desc" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="200" forDisplay="true" forQuery="true" physicalName="OBJECT_DESC" prompt="对象描述"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="70" forDisplay="true" physicalName="ENABLED_FLAG" prompt="启用"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    x.object_id,
+                    x.object_code,
+                    x.object_desc,
+                    x.enabled_flag
+                FROM
+                    (SELECT
+                        'EMPLOYEE' object_category,
+                        ee.employee_id object_id,
+                        ee.employee_code object_code,
+                        ee.name object_desc,
+                        ee.enabled_flag
+                    FROM
+                        exp_employees ee
+                    WHERE
+                        ee.enabled_flag = 'Y'
+                    UNION
+                    SELECT
+                        'POSITION' object_category,
+                        v.position_id object_id,
+                        v.position_code object_code,
+                        v.description object_desc,
+                        v.enabled_flag
+                    FROM
+                        exp_org_position_vl v
+                    WHERE
+                        v.company_id    = ${@company_id} AND
+                        v.enabled_flag = 'Y'
+                    ) x #WHERE_CLAUSE#
+                ORDER BY
+                    x.object_code
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="x.object_category=${@object_category}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="object_code" queryExpression="object_code like &apos;%&apos;||${@object_code}||&apos;%&apos;"/>
+        <bm:query-field name="object_desc" queryExpression="object_desc like &apos;%&apos;||${@object_desc}||&apos;%&apos;"/>
+        <!-- <bm:query-field field="object_code" queryOperator="like"/> -->
+        <!-- <bm:query-field field="object_desc" queryOperator="like"/> -->
+    </bm:query-fields>
+</bm:model>

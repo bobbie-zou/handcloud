@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model   xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features">
+    <bm:fields>
+        <bm:field name="procedure_para_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PROCEDURE_PARA_ID"/>
+        <bm:field name="sequence_num" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SEQUENCE_NUM"/>
+        <bm:field name="parameter_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARAMETER_CODE"/>
+        <bm:field name="parameter_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARAMETER_DESC"/>
+        <bm:field name="parameter_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARAMETER_TYPE"/>
+        <bm:field name="parameter_value" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARAMETER_VALUE"/>
+        <bm:field name="workflow_type_para_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="WORKFLOW_TYPE_PARA_ID"/>
+        <bm:field name="workflow_type_para_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="WORKFLOW_TYPE_PARA_CODE"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	select pp.procedure_para_id,
+            		   pp.sequence_num,
+				       pp.parameter_code,
+				       pp.parameter_desc,
+				       np.parameter_type,
+				       np.parameter_value,
+				       np.wfl_type_para_id as workflow_type_para_id,
+				       (select tp.parameter_code
+				          from wfl_workflow_type_parameter tp
+				         where tp.workflow_type_para_id = np.wfl_type_para_id)as workflow_type_para_code
+				  from wfl_workflow_procedure_para pp,
+				       wfl_workflow_node_proc_para np
+				 where pp.procedure_id = ${@procedure_id}
+				   and np.node_procedure_id(+) = ${@node_procedure_id}
+				   and np.procedure_para_id(+) = pp.procedure_para_id
+				 order by pp.sequence_num
+		    ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            begin
+				wfl_workflow_pkg.save_wfl_node_procedure_para
+				(
+					p_node_procedure_id       => ${@node_procedure_id},
+					p_procedure_para_id       => ${@procedure_para_id},
+					p_parameter_type          => ${@parameter_type},
+					p_parameter_value         => ${@parameter_value},
+					p_type_para_id			  => ${@workflow_type_para_id},
+					p_user_id                 => ${/session/@user_id}
+				);
+			end;
+			]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

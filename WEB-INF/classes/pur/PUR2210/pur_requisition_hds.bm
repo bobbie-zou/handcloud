@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tony  
+    $Date: 2013-7-15 下午7:18:49  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    pur_requisition_header_id,
+                    company_id,
+                    (SELECT
+                        fv.COMPANY_SHORT_NAME
+                    FROM
+                        fnd_companies_vl fv
+                    WHERE
+                        fv.COMPANY_ID = h.company_id
+                    ) company_desc,
+                    requisition_person,
+                    pur_requisition_num,
+                    unit_id,
+                    (SELECT v.DESCRIPTION FROM exp_org_unit_vl v WHERE v.UNIT_ID = h.unit_id
+                    ) unit_desc,
+                    pur_requisition_type_id,
+                    (SELECT
+                        pv.DESCRIPTION
+                    FROM
+                        pur_requisition_types_vl pv
+                    WHERE
+                        pv.REQUISITION_TYPE_ID = h.pur_requisition_type_id
+                    ) pur_requisition_type_desc,
+                    currency_code,
+                    (SELECT
+                        gv.CURRENCY_NAME
+                    FROM
+                        gld_currency_vl gv
+                    WHERE
+                        gv.CURRENCY_CODE = h.currency_code
+                    ) currency_desc,
+                    exchange_rate_type,
+                    (SELECT
+                        tv.type_name
+                    FROM
+                        gld_exchangerate_types_vl tv
+                    WHERE
+                        tv.type_code = h.exchange_rate_type
+                    ) exchange_rate_desc,
+                    exchange_rate,
+                    TO_CHAR(requisition_date, 'yyyy-mm-dd') requisition_date,
+                    period_name,
+                    requisition_status,
+                    (SELECT
+                        cv.code_value_name
+                    FROM
+                        sys_code_values_v cv
+                    WHERE
+                        cv.code       = 'PUR_REQUISITION_STATUS' AND
+                        cv.code_value = h.requisition_status
+                    ) requisition_status_desc,
+                    demand_pool_finished_flag,
+                    (SELECT
+                        cv.code_value_name
+                    FROM
+                        sys_code_values_v cv
+                    WHERE
+                        cv.code       = 'PUR_REQ_DEMAND_POOL_FLAG' AND
+                        cv.code_value = NVL(h.demand_pool_finished_flag,'N')
+                    ) demand_pool_finished_desc,
+                    note,
+                    NVL(requisition_functional_amount,0) requisition_functional_amount,
+                    TO_CHAR(h.cancel_date, 'yyyy-mm-dd') cancel_date,
+                    h.cancel_by_id,
+                    (SELECT u.description FROM sys_user u WHERE u.user_id = h.cancel_by_id
+                    ) cancel_by_desc,
+                    template_id,
+                    (SELECT
+                        tv.template_desc
+                    FROM
+                        fnd_flex_templates_vl tv
+                    WHERE
+                        tv.template_id = h.template_id
+                    ) template_desc
+                FROM
+                    pur_requisition_hds h #WHERE_CLAUSE# AND
+                    h.company_id IN
+                    (SELECT
+                        fac.company_id
+                    FROM
+                        fnd_auth_company_v fac
+                    WHERE
+                        fac.session_id=${/session/@session_id}
+                    )
+                ORDER BY
+                    h.pur_requisition_num DESC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="1 = 1"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="pur_requisition_header_id" queryExpression="h.pur_requisition_header_id = ${@pur_requisition_header_id}"/>
+        <bm:query-field name="company_id" queryExpression="h.company_id = ${@company_id}"/>
+        <bm:query-field name="requisition_status" queryExpression="h.requisition_status = ${@requisition_status}"/>
+        <bm:query-field name="requisition_person" queryExpression="h.requisition_person like &apos;%&apos;||${@requisition_person}||&apos;%&apos;"/>
+        <bm:query-field name="pur_requisition_num" queryExpression="h.pur_requisition_num like &apos;%&apos;||${@pur_requisition_num}||&apos;%&apos;"/>
+        <bm:query-field name="requisition_date_from" queryExpression="trunc(h.requisition_date) &gt;= to_date(${@requisition_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="requisition_date_to" queryExpression="trunc(h.requisition_date) &lt;= to_date(${@requisition_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="unit_id" queryExpression="h.unit_id = ${@unit_id}"/>
+        <bm:query-field name="currency_code" queryExpression="h.currency_code = ${@currency_code}"/>
+        <bm:query-field name="pur_requisition_type_id" queryExpression="h.pur_requisition_type_id = ${@pur_requisition_type_id}"/>
+    </bm:query-fields>
+</bm:model>

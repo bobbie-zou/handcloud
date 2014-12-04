@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Mouse Chow  
+    $Date: 2012-6-6 下午02:02:23  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            SELECT *
+		  FROM (SELECT  y.line_number,
+					   T.EXPENSE_POLICIES_ID,
+					   T.PRIORITY,
+					   T.COMPANY_LEVEL_ID,
+					   F.DESCRIPTION COMPANY_LEVEL_CODE,
+					   F.DESCRIPTION COMPANY_LEVEL_ID_DISPLAY,
+					   T.EXPENSE_ITEM_ID,
+					   V.DESCRIPTION EXPENSE_ITEM_CODE,
+					   V.DESCRIPTION EXPENSE_ITEM_ID_DISPLAY,
+					   T.EXPENSE_ADDRESS,
+					   T.JOB_ID,
+					   E.DESCRIPTION EMPLOYEE_JOB_CODE,
+					   E.DESCRIPTION JOB_ID_DISPLAY,
+					   T.POSITION_ID,
+					   EO.DESCRIPTION POSITION_CODE,
+					   EO.DESCRIPTION POSITION_ID_DISPLAY,
+					   T.EMPLOYEE_LEVELS_ID,
+					   EE.DESCRIPTION EMPLOYEE_LEVELS_CODE,
+					   EE.DESCRIPTION EMPLOYEE_LEVELS_ID_DISPLAY,
+					   T.DEFAULT_FLAG,
+					   T.CURRENCY_CODE,
+					   T.EXPENSE_STANDARD,
+					   T.UPPER_LIMIT,
+					   T.LOWER_LIMIT,
+					   T.CHANGEABLE_FLAG AS YES_NO,
+					   T.START_DATE,
+					   T.END_DATE,
+					   T.COMMIT_FLAG,
+					   T.EVENT_NAME,
+					   (SELECT ET.EVENT_DESC
+						  FROM EVT_EVENT ET
+						 WHERE ET.EVENT_NAME = T.EVENT_NAME) EVENT_NAME_DISPLAY,
+					   T.place_type_id,
+					   (select pt.description
+						  from exp_policy_place_types_vl pt
+						 where pt.place_type_id = T.place_type_id) place_type,
+					   T.place_id,
+					   (select p.PLACE_DESC
+						  from exp_policy_places_vl p
+						 where p.place_id = T.place_id) place
+				  FROM EXP_EXPENSE_POLICIES   T,
+					   FND_COMPANY_LEVELS_VL  F,
+					   EXP_EXPENSE_ITEMS_VL   V,
+					   EXP_EMPLOYEE_JOBS_VL   E,
+					   EXP_EMPLOYEE_LEVELS_VL EE,
+					   EXP_ORG_POSITION_VL    EO,
+							   (select eep.expense_policies_id,
+									   l.line_number
+						  from exp_expense_policies eep,
+							   exp_report_headers   h,
+							   exp_report_lines     l,
+							   exp_report_dists     d,
+							   fnd_companies        c,
+							   exp_employee_assigns a
+						 where l.exp_report_line_id = d.exp_report_line_id
+						   and h.exp_report_header_id = l.exp_report_header_id
+						   and h.exp_report_header_id = ${@exp_report_header_id}
+						   and l.company_id = c.company_id
+						   and d.employee_id = a.employee_id
+						   and d.position_id = a.position_id
+						   and a.enabled_flag = 'Y'
+						   and (eep.company_level_id is null or
+							   eep.company_level_id = c.company_level_id)
+						   and (eep.expense_item_id is null or
+							   eep.expense_item_id = d.expense_item_id)
+						   and eep.currency_code = d.currency_code
+						   and (eep.position_id is null or
+							   eep.position_id = d.position_id)
+						   and (eep.job_id is null or eep.job_id = a.employee_job_id)
+						   and (eep.employee_levels_id is null or
+							   eep.employee_levels_id = a.employee_levels_id)
+						   and eep.start_date <= h.report_date
+						   and nvl(eep.end_date,
+								   h.report_date + 1) >= h.report_date
+						   and (eep.place_id is null or eep.place_id = l.place_id)
+						   and (eep.place_type_id is null or
+							   eep.place_type_id = l.place_type_id)) y
+				 WHERE T.COMPANY_LEVEL_ID = F.COMPANY_LEVEL_ID(+)
+				   AND T.EXPENSE_ITEM_ID = V.EXPENSE_ITEM_ID(+)
+				   AND T.JOB_ID = E.EMPLOYEE_JOB_ID(+)
+				   AND T.POSITION_ID = EO.POSITION_ID(+)
+				   AND T.EMPLOYEE_LEVELS_ID = EE.EMPLOYEE_LEVELS_ID(+)
+				   and t.expense_policies_id = y.expense_policies_id
+			  ) v #WHERE_CLAUSE#
+		 ORDER BY v.line_number,v.EXPENSE_ITEM_CODE,
+				  v.PRIORITY
+				  ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

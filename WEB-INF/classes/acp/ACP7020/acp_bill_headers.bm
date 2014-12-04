@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du $  
+    $Date: 2013-1-31 下午03:59:18 $  
+    $Revision: 1.0 $ 
+    $Purpose: 非寄销开票单头表 $
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" alias="abh" baseTable="ACP_BILL_HEADERS">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    h.header_id,
+                    h.bill_number,
+                    h.company_name,
+                    h.vendor_code,
+                    h.vendor_name,
+                    h.vendor_site_code,
+                    h.vendor_site_name,
+                    h.currency_code,
+                    h.amount,
+                    h.status,
+                    (SELECT
+                        code_value_name
+                    FROM
+                        sys_code_values_v
+                    WHERE
+                        code       = 'BILL_STATUS' AND
+                        code_value = h.status
+                    ) AS status,
+                    TO_CHAR(h.creation_date, 'yyyy-mm-dd hh24:mi:ss') AS creation_date,
+                    TO_CHAR(h.release_date, 'yyyy-mm-dd hh24:mi:ss') AS release_date,
+                    (SELECT description FROM sys_user u WHERE u.user_id = h.created_by
+                    ) AS created_by,
+                    h.vendor_desc,
+                    h.header_desc,
+                    h.data_source
+                FROM
+                    acp_bill_headers h #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="vendor_id" queryExpression="h.vendor_id = ${/session/@vendor_id}"/>
+    </bm:query-fields>
+    <bm:query-fields>
+        <bm:query-field name="header_id" queryExpression="h.header_id = ${@bill_header_id}"/>
+        <bm:query-field name="data_source" queryExpression="h.data_source = ${@data_source}"/>
+        <bm:query-field name="bill_number_from" queryExpression="h.bill_number &gt;= ${@bill_number_from}"/>
+        <bm:query-field name="bill_number_to" queryExpression="h.bill_number &lt;= ${@bill_number_to}"/>
+        <bm:query-field name="creation_date_from" queryExpression="h.creation_date&gt;= to_date(${@creation_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="creation_date_to" queryExpression="h.creation_date&lt;=to_date(${@creation_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+    </bm:query-fields>
+</bm:model>

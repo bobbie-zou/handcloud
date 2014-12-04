@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-4-2 下午02:32:54  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="expense_deposit_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="expense_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="bidder_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="bidder_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="bidder_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="receivable_amount" databaseType="NUMBER" datatype="java.lang.Double"/>
+        <bm:field name="received_amount" databaseType="NUMBER" datatype="java.lang.Double"/>
+        <bm:field name="currency_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="status" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="status_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="voucher_number" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    ed.expense_deposit_id,
+                    ed.expense_header_id,
+                    ed.bidder_id,
+                    b.bidder_code,
+                    b.bidder_desc,
+                    ed.receivable_amount,
+                    ed.received_amount,
+                    ed.currency_code,
+                    ed.status,
+                    (SELECT
+                        scv.code_value_name
+                    FROM
+                        sys_code_values_v scv
+                    WHERE
+                        scv.code                    = 'BID_EXPENSE_DEPOSIT_STATUS' AND
+                        scv.code_enabled_flag       = 'Y' AND
+                        scv.code_value_enabled_flag = 'Y' AND
+                        scv.code_value              = ed.status
+                    ) AS status_desc,
+                    ed.voucher_number
+                FROM
+                    bid_expense_deposits ed,
+                    bid_bidders_v b
+                WHERE
+                    ed.expense_header_id = ${/parameter/@expense_header_id} AND
+                    ed.bidder_id         = b.bidder_id(+)
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="expense_deposit_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@expense_deposit_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              BEGIN
+                bid_expense_pkg.create_expense_deposit
+                (
+                  o_expense_deposit_id=>${@expense_deposit_id},
+                  p_expense_header_id=>${@expense_header_id},
+                  p_bidder_id=>${@bidder_id},
+                  p_receivable_amount=>${@receivable_amount},
+                  p_received_amount=>${@received_amount},
+                  p_currency_code=>${@currency_code},
+                  p_status=>${@status},
+                  p_voucher_number=>${@voucher_number},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                bid_expense_pkg.modify_expense_deposit
+                (
+                  p_expense_deposit_id=>${@expense_deposit_id},
+                  p_bidder_id=>${@bidder_id},
+                  p_receivable_amount=>${@receivable_amount},
+                  p_received_amount=>${@received_amount},
+                  p_currency_code=>${@currency_code},
+                  p_status=>${@status},
+                  p_voucher_number=>${@voucher_number},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                bid_expense_pkg.delete_expense_deposit
+                (
+                  p_expense_deposit_id=>${@expense_deposit_id},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

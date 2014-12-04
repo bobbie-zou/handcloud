@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-11 下午1:27:02  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="bid5120_bidding_docm_create_link" url="${/request/@context_path}/modules/bid/BID5120/bid_bidding_docm_create.screen"/>
+        <a:link id="bid5120_bidding_docm_create_internal_link" url="${/request/@context_path}/modules/bid/BID5120/bid_bidding_docm_create_internal.screen"/>
+        <a:link id="bid5120_entrustment_detail_link" url="${/request/@context_path}/modules/bid/BID7070/bid_entrustment_detail.screen"/>
+        <a:link id="bid5120_entrustment_detail_internal_link" url="${/request/@context_path}/modules/bid/BID7030/bid_entrustment_detail.screen"/>
+        <script><![CDATA[
+            function bid5120Query() {
+                $('bid5120_entrustment_result_ds').query();
+            }
+            
+            function bid5120EntrustmentResultRender(value, record, name) {
+                var entrustment_header_id = record.get('entrustment_header_id');
+                if (name == 'bidding_docm') {
+                    return '<a href="javascript:bid5120BiddingDocmCreate(' + entrustment_header_id + ')">${l:BID_ENTRUSTMENT_HEADERS.BID}</a>';
+                } else if (name == 'entrustment_header_number') {
+                    return '<a href="javascript:bid5120EntrustmentDetail(' + entrustment_header_id + ')">' + value + '</a>';
+                }
+            
+            }
+            
+            function bid5120BiddingDocmCreate(entrustment_header_id) {
+                var user_type = '${/session/@user_type}';
+            
+                if (user_type == 'EXTERNAL') {
+                    new Aurora.Window({
+                        id: 'bid5120_bidding_docm_create_window',
+                        title: '${l:BID_ENTRUSTMENT_HEADERS.CREATE_BID}',
+                        url: $('bid5120_bidding_docm_create_link').getUrl() + '?entrustment_header_id=' + entrustment_header_id,
+                        fullScreen: true
+                    });
+                } else if (user_type == 'INTERNAL') {
+                    new Aurora.Window({
+                        id: 'bid5120_bidding_docm_create_window',
+                        title: '${l:BID_ENTRUSTMENT_HEADERS.CREATE_BID}',
+                        url: $('bid5120_bidding_docm_create_internal_link').getUrl() + '?entrustment_header_id=' + entrustment_header_id,
+                        fullScreen: true
+                    });
+                }
+            }
+            
+            function bid5120EntrustmentDetail(entrustment_header_id) {
+                var user_type = '${/session/@user_type}';
+            
+                if (user_type == 'EXTERNAL') {
+                    new Aurora.Window({
+                        id: 'bid5120_entrustment_detail_window',
+                        title: '${l:BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_APPLICATION_DETAIL}',
+                        url: $('bid5120_entrustment_detail_link').getUrl() + '?all_type=LATEST&entrustment_header_id=' + entrustment_header_id,
+                        fullScreen: true
+                    });
+                } else if (user_type == 'INTERNAL') {
+                    new Aurora.Window({
+                        id: 'bid5120_entrustment_detail_window',
+                        title: '${l:BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_APPLICATION_DETAIL}',
+                        url: $('bid5120_entrustment_detail_internal_link').getUrl()  + '?all_type=LATEST&entrustment_header_id=' + entrustment_header_id,
+                        fullScreen: true
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5120_bidding_methods_ds" lookupCode="BID_BIDDING_METHODS"/>
+            <a:dataSet id="bid5120_entrustment_status_ds" lookupCode="BID_ENTRUSTMENT_STATUS"/>
+            <a:dataSet id="bid5120_yes_no_ds" lookupCode="YES_OR_NO"/>
+            <a:dataSet id="bid5120_currency_code_ds" autoCount="false" autoQuery="true" fetchAll="true" model="public.currency_list"/>
+            <a:dataSet id="bid5120_entrustment_query_ds">
+                <a:fields>
+                    <a:field name="entrustment_type_desc" autoComplete="true" autoCompleteField="entrustment_type_desc" lovGridHeight="320" lovHeight="500" lovService="bid.public.bid_entrustment_types_lov" lovWidth="500" title="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TYPE_DESC">
+                        <a:mapping>
+                            <a:map from="entrustment_type_id" to="entrustment_type_id"/>
+                            <a:map from="entrustment_type_desc" to="entrustment_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bidding_method_desc" displayField="code_value_name" options="bid5120_bidding_methods_ds" returnField="bidding_method" valueField="code_value"/>
+                    <a:field name="status_desc" displayField="code_value_name" options="bid5120_entrustment_status_ds" returnField="status" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="bid5120_entrustment_result_ds" autoCount="true" autoPageSize="true" model="bid.BID5120.bid_entrustment_query" queryDataSet="bid5120_entrustment_query_ds"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="bid5120_entrustment_query_ds" resultTarget="bid5120_entrustment_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="entrustment_header_number" bindTarget="bid5120_entrustment_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_HEADER_NUMBER">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5120Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:lov name="entrustment_type_desc" bindTarget="bid5120_entrustment_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TYPE_DESC">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5120Query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:comboBox name="bidding_method_desc" bindTarget="bid5120_entrustment_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.BIDDING_METHOD">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5120Query"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:datePicker name="application_date_from" bindTarget="bid5120_entrustment_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICATION_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5120Query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="application_date_to" bindTarget="bid5120_entrustment_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICATION_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5120Query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="complete_date_from" bindTarget="bid5120_entrustment_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.COMPLETE_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5120Query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="complete_date_to" bindTarget="bid5120_entrustment_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.COMPLETE_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5120Query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="bid5120_entrustment_result_grid" autoAppend="false" bindTarget="bid5120_entrustment_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="bidding_docm" align="center" lock="true" prompt="BID_ENTRUSTMENT_LN_BIDDERS.RESPONDED_FLAG" renderer="bid5120EntrustmentResultRender" sortable="true" width="50"/>
+                    <a:column name="entrustment_header_number" align="center" lock="true" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_HEADER_NUMBER" renderer="bid5120EntrustmentResultRender" sortable="true" width="70"/>
+                    <a:column name="title" align="left" lock="true" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TITLE" width="150"/>
+                    <a:column name="round" align="left" prompt="BID_ENTRUSTMENT_HEADERS.ROUND" width="30"/>
+                    <a:column name="version" align="left" prompt="BID_ENTRUSTMENT_HEADERS.VERSION" width="30"/>
+                    <a:column name="applicant_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.APPLICANT" width="60"/>
+                    <a:column name="entrustment_type_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TYPE_DESC" width="80"/>
+                    <a:column name="application_date" align="center" prompt="BID_ENTRUSTMENT_HEADERS.APPLICATION_DATE" renderer="Aurora.formatDate" width="60"/>
+                    <a:column name="bid_closing_date" align="center" prompt="BID_ENTRUSTMENT_HEADERS.BID_CLOSING_DATE" renderer="Aurora.formatDate" width="60"/>
+                    <a:column name="company_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_COMPANY_DESC" width="80"/>
+                    <a:column name="bidding_method_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.BIDDING_METHOD" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

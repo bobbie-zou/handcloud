@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    position_id,
+                    unit_id,
+                    position_code,
+                    description position_desc,
+                    company_id,
+                    parent_position_id,
+                    employee_job_id,
+                    enabled_flag,
+                    sequence,
+                    creation_date,
+                    created_by,
+                    last_update_date,
+                    last_updated_by,
+                    client,
+                    data_source,
+                    data_source_id,
+                    data_source_code,
+                    data_source_name,
+                    (SELECT
+                        fc.COMPANY_CODE
+                    FROM
+                        fnd_companies_vl fc
+                    WHERE
+                        e.company_id = fc.company_id
+                    ) company_code,
+                    (SELECT
+                        fc.company_short_name
+                    FROM
+                        fnd_companies_vl fc
+                    WHERE
+                        e.company_id = fc.company_id
+                    ) company_desc,
+                    (SELECT
+                        pe.position_code
+                    FROM
+                        exp_org_position_vl pe
+                    WHERE
+                        pe.position_id = e.parent_position_id
+                    ) parent_position_code,
+                    (SELECT
+                        pe.description
+                    FROM
+                        exp_org_position_vl pe
+                    WHERE
+                        pe.position_id = e.parent_position_id
+                    ) parent_position_desc,
+                    (SELECT eou.unit_code FROM exp_org_unit_vl eou WHERE eou.unit_id = e.unit_id
+                    ) unit_code,
+                    (SELECT eou.unit_desc FROM exp_org_unit_vl eou WHERE eou.unit_id = e.unit_id
+                    ) unit_desc,
+                    (SELECT
+                        eej.employee_job_code
+                    FROM
+                        exp_employee_jobs_vl eej
+                    WHERE
+                        e.employee_job_id = eej.employee_job_id
+                    ) employee_job_code,
+                    (SELECT
+                        eej.description
+                    FROM
+                        exp_employee_jobs_vl eej
+                    WHERE
+                        e.employee_job_id = eej.employee_job_id
+                    ) employee_job_desc
+                FROM
+                    exp_org_position_vl e #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="position_code" queryExpression="position_code like &apos;%&apos;||${@position_code}||&apos;%&apos;"/>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+        <bm:query-field name="position_desc" queryExpression="position_desc like &apos;%&apos;||${@position_desc}||&apos;%&apos;"/>
+        <bm:query-field name="unit_id" queryExpression="unit_id = ${@unit_id}"/>
+        <bm:query-field name="employee_id" queryExpression="exists ( select 1 from exp_employee_assigns eea  where eea.employee_id=${@employee_id} and eea.company_id = op.company_id                                     and   eea.position_id = op.position_id                                     and   eea.enabled_flag=&apos;Y&apos;)"/>
+        <bm:query-field name="quick_value_position" queryExpression="(position_code like &apos;%&apos; || ${@quick_value_position} || &apos;%&apos; or exists (select 1 from fnd_descriptions fd where op.description_id=fd.description_id and fd.description_text like &apos;%&apos;||${@quick_value_position}||&apos;%&apos; and fd.language = ${/session/@lang})) and company_id = ${@company_id}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority client_alias="e" client_name="client">
+        <authority-segment source_alias="e" source_name="company_id" type="COMPANY"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+            var cx = Packages.aurora.javascript.Context.getCurrentContext();
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

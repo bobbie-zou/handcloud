@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-9-4 下午2:21:14  
+    $Revision: 1.0  
+    $Purpose: 业务单元LOV,需要进行用户权限过滤
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT *
+				  FROM (SELECT bu.business_unit_id,
+				               bu.business_unit_code,
+				               bu.business_unit_name,
+				               bu.business_group,
+				               (SELECT bg.business_group_name
+				                  FROM fnd_business_groups_vl bg
+				                 WHERE bg.business_group_code = bu.business_group) AS business_group_name,
+				               bu.company_id,
+				               (SELECT pb.company_full_name FROM fnd_companies_vl pb WHERE pb.company_id = bu.company_id) AS company_full_name,
+				               pcv.owner_business_group
+				          FROM fnd_business_units_vl bu,
+				               fnd_coop_partner_clients_vl pcv
+				         WHERE bu.business_group = pcv.coop_business_group
+				           and bu.enabled_flag = 'Y') v
+				 #WHERE_CLAUSE#
+				 ORDER BY v.business_unit_code    
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="business_unit_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="BUSINESS_UNIT_ID" prompt="FND_BUSINESS_UNITS.BUSINESS_UNIT_ID"/>
+        <bm:field name="business_unit_code" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="150" forDisplay="true" forQuery="true" physicalName="BUSINESS_UNIT_CODE" prompt="FND_BUSINESS_UNITS.BUSINESS_UNIT_CODE"/>
+        <bm:field name="business_unit_name" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="300" forDisplay="true" forQuery="true" physicalName="BUSINESS_UNIT_NAME" prompt="FND_BUSINESS_UNITS.BUSINESS_UNIT_NAME_ID"/>
+        <bm:field name="business_group" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BUSINESS_GROUP"/>
+        <bm:field name="business_group_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BUSINESS_GROUP_NAME" prompt="FND_BUSINESS_GROUPS.BUSINESS_GROUP_NAME_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID"/>
+        <bm:field name="company_full_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_FULL_NAME" prompt="FND_COMPANIES.FULL_NAME"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="company_id" queryExpression="v.company_id = ${@company_id}"/>
+        <bm:query-field name="business_unit_code" queryExpression="v.business_unit_code like &apos;%&apos;||trim(${@business_unit_code})||&apos;%&apos;"/>
+        <bm:query-field name="business_unit_name" queryExpression="v.business_unit_name like &apos;%&apos;||trim(${@business_unit_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+        <bm:data-filter expression="v.owner_business_group = ${/session/@business_group}"/>
+    </bm:data-filters>
+</bm:model>

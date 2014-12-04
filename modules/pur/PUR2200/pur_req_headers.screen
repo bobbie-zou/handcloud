@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tony  
+    $Date: 2013-7-15 下午6:48:38  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="pur2200_req_create_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_req_create.screen"/>
+        <a:link id="pur2200_req_edit_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_req_edit.screen"/>
+        <a:link id="pur2200_req_submit_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_req_submit.svc"/>
+        <a:link id="pur2200_req_cancel_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_req_cancel.svc"/>
+        <a:link id="pur2200_req_operation_record_link" url="${/request/@context_path}/modules/pur/public/pur_req_operation_record.screen"/>
+        <script><![CDATA[
+
+            // 查询
+            
+            function pur2200_result_query() {
+                $('pur2200_header_result_ds').query();
+            }
+            // 头链接
+            
+            function pur2200number_render(value, record, name) {
+                if (name == 'req_number') {
+                    var req_header_id = record.get('req_header_id');
+                    if (req_header_id) {
+                        return '<a href="javascript:pur2200_header_edit(' + req_header_id + ')">' + value + '</a>';
+                    }
+                }
+            }
+            
+            function pur2200_header_edit(id) {
+                var url = $('pur2200_req_edit_link').getUrl() + '?req_header_id=' + id;
+                new Aurora.Window({
+                    id: 'pur2200_header_edit_window',
+                    url: url,
+                    title: '${l:PUR_REQ_HEADERS.PUR_REQ_MAINTAIN}',
+                    fullScreen: true
+                });
+            }
+            // 采购申请创建
+            
+            function pur2200_create_requisition() {
+                new Aurora.Window({
+                    id: 'pur2200_create_window',
+                    url: $('pur2200_req_create_link').getUrl(),
+                    title: '${l:PUR_REQ_HEADERS.PUR_REQ_CREATE}',
+                    fullScreen: true
+                });
+            }
+            // 提交
+            
+            function pur2200_req_header_submit() {
+                var ds = $('pur2200_header_result_ds');
+                var records = ds.getSelected();
+                var datas = [];
+                if (records.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:AT_LEAST_CHOICE_ONE}!');
+                    return;
+                }
+                Aurora.showConfirm('${l:PROMPT}', '${l:DOCUMNET_SUBMIT_CONFIRM}？', function() {
+                    for (var i = 0;i < records.length;i++) {
+                        var data = {
+                            'req_header_id': records[i].get('req_header_id')
+                        };
+                        datas.push(data);
+                    }
+                    Aurora.Masker.mask(Ext.getBody());
+                    Aurora.request({
+                        url: $('pur2200_req_submit_link').getUrl(),
+                        para: datas,
+                        success: function(res) {
+                            ds.query();
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        failure: function(res) {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        error: function(res) {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        scope: this
+                    });
+                });
+            }
+            // 取消
+            
+            
+            function pur2200_req_header_cancel() {
+                var ds = $('pur2200_header_result_ds');
+                var records = ds.getSelected();
+                var datas = [];
+                if (records.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:AT_LEAST_CHOICE_ONE}!');
+                    return;
+                }
+                Aurora.showConfirm('${l:PROMPT}', '${l:PROMPTS.CONFIRM_CANCEL}', function() {
+                    for (var i = 0;i < records.length;i++) {
+                        var data = {
+                            'req_header_id': records[i].get('req_header_id')
+                        };
+                        datas.push(data);
+                    }
+                    Aurora.Masker.mask(Ext.getBody());
+                    Aurora.request({
+                        url: $('pur2200_req_cancel_link').getUrl(),
+                        para: datas,
+                        success: function(res) {
+                            ds.query();
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        failure: function(res) {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        error: function(res) {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        scope: this
+                    });
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur2200_req_type_ds" autoQuery="true" loadData="true" model="pur.public.pur_req_type"/>
+            <a:dataSet id="pur2200_req_status_ds" loadData="true" lookupCode="PUR_REQUISITION_STATUS"/>
+            <a:dataSet id="pur2200_header_query_ds">
+                <a:fields>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="company_short_name" lovGridHeight="350" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" title="SYS_COMPANY_PROMPTS.COMPANY_ID">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_short_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="req_number"/>
+                    <a:field name="creation_date_from"/>
+                    <a:field name="creation_date_to"/>
+                    <a:field name="unit_desc" lovGridHeight="350" lovHeight="500" lovService="public.exp_org_company_unit" lovWidth="700" title="SYS_COMPANY_PROMPTS.COMPANY_ID">
+                        <a:mapping>
+                            <a:map from="description" to="unit_desc"/>
+                            <a:map from="unit_id" to="unit_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pur_organization_name" lovGridHeight="350" lovHeight="500" lovService="public.pur_organization_lov" lovWidth="500" title="PUR_PUR_ORGS_INV_ORGS.PUR_ORGANIZATION_ID">
+                        <a:mapping>
+                            <a:map from="description" to="pur_organization_name"/>
+                            <a:map from="pur_organization_id" to="pur_organization_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="create_user" autoComplete="true" autoCompleteField="user_desc" lovGridHeight="350" lovHeight="500" lovService="public.sys_user_lov" lovWidth="500" title="PROMPTS.USER">
+                        <a:mapping>
+                            <a:map from="user_desc" to="create_user"/>
+                            <a:map from="user_id" to="created_by"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="req_type_name" displayField="description" options="pur2200_req_type_ds" returnField="req_type_id" valueField="requisition_type_id"/>
+                    <a:field name="status_display" displayField="code_value_name" options="pur2200_req_status_ds" returnField="status" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur2200_header_result_ds" autoCount="true" autoPageSize="true" model="pur.PUR2200.pur_req_headers" queryDataSet="pur2200_header_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="req_header_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="pur2200_create_requisition" text="PROMPT.INSERT" width="100"/>
+            <a:toolbarButton click="pur2200_req_header_submit" text="PROMPT.SUBMIT" width="100"/>
+            <a:toolbarButton click="pur2200_req_header_cancel" text="PROMPT.CANCEL" width="100"/>
+            <a:gridButton bind="pur2200_result_grid" type="excel" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="pur2200_header_query_ds" resultTarget="pur2200_header_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox column="3" labelWidth="100">
+                    <a:comboBox name="req_type_name" bindTarget="pur2200_header_query_ds" prompt="PUR_REQ_HEADERS.REQ_TYPE_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur2200_result_query"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:textField name="req_number" bindTarget="pur2200_header_query_ds" prompt="PUR_REQ_HEADERS.PUR_REQ_NUMBER">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur2200_result_query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:lov name="company_desc" bindTarget="pur2200_header_query_ds" prompt="SYS_COMPANY_PROMPTS.COMPANY_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur2200_result_query"/>
+                        </a:events>
+                    </a:lov>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox labelWidth="100">
+                    <a:lov name="unit_desc" bindTarget="pur2200_header_query_ds" prompt="EXP_ORG_UNIT.UNIT">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur2200_result_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="create_user" bindTarget="pur2200_header_query_ds" prompt="PUR_REQ_HEADERS.CREATED_BY">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur2200_result_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:datePicker name="creation_date_from" bindTarget="pur2200_header_query_ds" prompt="PROMPTS.CREATION_DATE_FROM">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur2200_result_query"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="creation_date_to" bindTarget="pur2200_header_query_ds" prompt="PROMPTS.CREATION_DATE_TO">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur2200_result_query"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:comboBox name="status_display" bindTarget="pur2200_header_query_ds" prompt="STATUS">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur2200_result_query"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:lov name="pur_organization_name" bindTarget="pur2200_header_query_ds" prompt="PUR_PUR_ORGS_INV_ORGS.PUR_ORGANIZATION_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur2200_result_query"/>
+                        </a:events>
+                    </a:lov>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="pur2200_result_grid" bindTarget="pur2200_header_result_ds" marginHeight="180" marginWidth="65" navBar="true">
+            <a:columns>
+                <a:column name="req_number" align="center" prompt="PUR_REQ_HEADERS.PUR_REQ_NUMBER" renderer="pur2200number_render" width="100"/>
+                <a:column name="req_type_name" align="center" prompt="PUR_REQ_HEADERS.REQ_TYPE_ID" width="100"/>
+                <a:column name="version_num" align="center" prompt="PUR_REQ_HEADERS.VERSION" width="50"/>
+                <a:column name="company_name" align="left" prompt="SYS_COMPANY_PROMPTS.COMPANY_ID" width="100"/>
+                <a:column name="unit_name" align="left" prompt="EXP_ORG_UNIT.UNIT" width="80"/>
+                <a:column name="pur_organization_name" align="left" prompt="PUR_REQ_HEADERS.PUR_ORGANIZATION_ID" width="100"/>
+                <a:column name="status" align="center" prompt="STATUS" width="60"/>
+                <a:column name="create_user" align="left" prompt="PUR_REQ_HEADERS.CREATED_BY" width="60"/>
+                <a:column name="creation_date" align="center" prompt="PUR_REQ_HEADERS.CREATION_DATE" width="120"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

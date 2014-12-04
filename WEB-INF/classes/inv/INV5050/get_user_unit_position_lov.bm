@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace  
+    $Date: 2013-11-10 上午9:54:40  
+    $Revision: 1.0  
+    $Purpose: 获取用户所在公司货部门的岗位
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+        select *
+          from (SELECT opv.position_id,
+				       opv.position_code,
+				       opv.description position_desc,
+				       opv.unit_id
+				  FROM exp_org_position_vl  opv,
+				       exp_employee_assigns eea,
+				       sys_user             su
+				 WHERE opv.position_id = eea.position_id
+				       AND opv.company_id = eea.company_id
+				       and su.user_id = ${/session/@user_id}
+				       AND eea.employee_id = su.employee_id
+				       AND eea.company_id = ${@company_id}
+				       AND (${@unit_id} is null or opv.UNIT_ID = ${@unit_id})) t
+			#WHERE_CLAUSE#
+			order by position_code
+       	]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="position_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="POSITION_ID"/>
+        <bm:field name="position_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="POSITION_CODE" prompt="EXP_ORG_POSITION.POSITION_CODE"/>
+        <bm:field name="position_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="POSITION_DESC" prompt="EXP_ORG_POSITION.POSITION_NAME"/>
+        <bm:field name="unit_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="UNIT_ID"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="position_code" queryExpression="position_code like &apos;%&apos;||upper(${@position_code})||&apos;%&apos;"/>
+        <bm:query-field name="position_desc" queryExpression="position_desc like &apos;%&apos;||${@position_desc}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

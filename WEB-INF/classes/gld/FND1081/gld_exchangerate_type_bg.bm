@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="bg_type_id"/>
+        <bm:field name="type_code" prompt="PROMPT.REFERENCE_CODE"/>
+        <bm:field name="type_name" prompt="PROMPT.REFERENCE_NAME"/>
+        <bm:field name="type_code_def" prompt="GLD_EXCHANGERATE_TYPES.TYPE_CODE"/>
+        <bm:field name="type_name_def" prompt="GLD_EXCHANGERATE_TYPES.TYPE_NAME"/>
+        <bm:field name="bg_enabled_flag" prompt="GLD_EXCHANGERATE_TYPES.ENABLED_FLAG"/>
+        <bm:field name="rate_method_code" prompt="GLD_EXCHANGERATE_TYPES.RATE_METHOD_CODE"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                select * from(SELECT
+                    t.bg_type_id,
+                    t.type_id,
+                    t.enabled_flag,
+                    t.business_group,
+                    t.company_id,
+                    t.business_unit_id,
+                    t.type_code,
+                    t.type_name,
+                    t.rate_method_code,
+                    t.bg_enabled_flag,
+                 	null as type_code_def,
+                 	null as type_name_def
+                FROM
+                    gld_exchangerate_types_bg_v t )
+                #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                gld_exchangerate_type_pkg.load_cloud_exchangerate_type
+                (   p_business_group   =>${/session/@business_group},
+    				p_company_id       =>null,
+    				p_business_unit_id =>null,
+    				p_user_id          =>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                gld_exchangerate_type_pkg.modify_exchangerate_types_bg
+                (
+                	 p_bg_type_id       =>${@bg_type_id},
+    				 p_enabled_flag     =>${@bg_enabled_flag},
+    				 p_user_id          =>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="type_code_name" queryExpression="(type_code like &apos;%&apos;||trim(UPPER(${@type_code_name}))||&apos;%&apos; or type_name like &apos;%&apos;||trim(${@type_code_name})||&apos;%&apos; or type_code_def like &apos;%&apos;||trim(UPPER(${@type_code_name}))||&apos;%&apos; or type_name_def like &apos;%&apos;||trim(${@type_code_name})||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="business_group=${/session/@business_group}"/>
+    </bm:data-filters>
+</bm:model>

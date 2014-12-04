@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <!-- <a:model-query model="wfl.wfl_business_rules" rootPath="wfl_business_rule_detail"/> --><![CDATA[
+        
+        
+        
+    ]]></a:init-procedure>
+    <a:view>
+        <a:link id="wfl2030_workflow_business_rule_detail_link" url="${/request/@context_path}/modules/wfl/WFL2030/wfl_business_rules_define_details.screen"/>
+        <script><![CDATA[
+            function wfl2030WorkflowBusinessRuleResultEditor(record, name) {
+                if (record.isNew) {
+                    return 'wfl2030_workflow_business_rule_result_tf2';
+                } else {
+                    return '';
+                }
+            }
+            
+            function wfl2030Query() {
+                $('wfl2030_workflow_business_rule_result_ds').query();
+            }
+            
+            function wfl2030WorkflowBusinessRuleResultRender(value, record, name) {
+                var business_rule_id = record.get('business_rule_id');
+                if (record.isNew) {
+                    return '';
+                } else {
+                    return '<a href="javascript:wfl2030WorkflowBusinessRuleDetail(' + business_rule_id + ')">' + '${l:PROMPT.DETAIL}' + '</a>';
+                }
+            }
+            
+            function wfl2030WorkflowBusinessRuleDetail(id) {
+                url = /*wfl_business_rules_define_details.screen*/
+                $('wfl2030_workflow_business_rule_detail_link').getUrl() + '?business_rule_id=' + id;
+                new Aurora.Window({
+                    id: 'wfl2030_workflow_business_rule_detail_window',
+                    url: url,
+                    fullScreen: true,
+                    title: '${l:PROMPT.DETAIL}'
+                });
+            }
+            
+            function wfl2030WorkflowBusinessRuleResultValidator(record, name, value) { //日期校验方法
+                if (name == 'start_date' || name == 'end_date') {
+                    var date_from = record.get('start_date');
+                    var date_to = record.get('end_date');
+                    if ( !! date_to) {
+                        if (!wfl2030WorkflowBusinessRuleCompareDate(date_from, date_to)) {
+                            return '${l:WFL2030.WORKFLOW_BUSINESS_RULE_RESULT_VALIDATE_HINT}'; //校验不通过返回字符串
+                        }
+                    }
+                    return true; //校验通过返回true
+                }
+            }
+            
+            function wfl2030WorkflowBusinessRuleCompareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function wfl2030WorkflowBusinessRuleResultOnUpdate(ds, record, name, value) {
+                if (name == 'start_date' || name == 'end_date') {
+                    record.validate((name == 'start_date') ? 'end_date' : 'start_date');
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl2030_workflow_category_ds" loadData="true" model="wfl.wfl_workflow_category"/>
+            <a:dataSet id="wfl2030_workflow_business_rule_query_ds">
+                <a:fields>
+                    <a:field name="bussiness_rule_code_from" prompt="WFL_BUSINESS_RULES.BUSINESS_RULE_CODE_FROM"/>
+                    <a:field name="bussiness_rule_code_to" prompt="WFL_BUSINESS_RULES.BUSINESS_RULE_CODE_TO"/>
+                    <a:field name="workflow_category_from_name" displayField="code_value_name" options="wfl2030_workflow_category_ds" prompt="WFL_BUSINESS_RULES.WORKFLOW_CATEGORY_FROM" returnField="workflow_category_from" valueField="code_value"/>
+                    <a:field name="workflow_category_to_name" displayField="code_value_name" options="wfl2030_workflow_category_ds" prompt="WFL_BUSINESS_RULES.WORKFLOW_CATEGORY_TO" returnField="workflow_category_to" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl2030_workflow_business_rule_result_ds" autoCount="true" autoQuery="true" fetchAll="false" model="wfl.wfl_business_rules" queryDataSet="wfl2030_workflow_business_rule_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="business_rule_code" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="workflow_category_code" displayField="code_value_name" options="wfl2030_workflow_category_ds" prompt="WFL_BUSINESS_RULES.WORKFLOW_CATEGORY" required="true" returnField="workflow_category" valueField="code_value"/>
+                    <a:field name="start_date" required="true" validator="wfl2030WorkflowBusinessRuleResultValidator"/>
+                    <a:field name="end_date" validator="wfl2030WorkflowBusinessRuleResultValidator"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="wfl2030WorkflowBusinessRuleResultOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="wfl2030_workflow_business_rule_result_grid" type="add" width="100"/>
+                <a:gridButton bind="wfl2030_workflow_business_rule_result_grid" type="save" width="100"/>
+                <a:gridButton bind="wfl2030_workflow_business_rule_result_grid" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="wfl2030_workflow_business_rule_query_ds" resultTarget="wfl2030_workflow_business_rule_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="bussiness_rule_code_from" bindTarget="wfl2030_workflow_business_rule_query_ds">
+                        <a:events>
+                            <a:event name="enterdown" handler="wfl2030Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="bussiness_rule_code_to" bindTarget="wfl2030_workflow_business_rule_query_ds">
+                        <a:events>
+                            <a:event name="enterdown" handler="wfl2030Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="workflow_category_from_name" bindTarget="wfl2030_workflow_business_rule_query_ds">
+                        <a:events>
+                            <a:event name="enterdown" handler="wfl2030Query"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:vBox labelWidth="100">
+                            <a:comboBox name="workflow_category_to_name" bindTarget="wfl2030_workflow_business_rule_query_ds">
+                                <a:events>
+                                    <a:event name="enterdown" handler="wfl2030Query"/>
+                                </a:events>
+                            </a:comboBox>
+                        </a:vBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="wfl2030_workflow_business_rule_result_grid" bindTarget="wfl2030_workflow_business_rule_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="business_rule_code" editorFunction="wfl2030WorkflowBusinessRuleResultEditor" width="100"/>
+                    <a:column name="description" editor="wfl2030_workflow_business_rule_result_tf" width="200"/>
+                    <a:column name="workflow_category_code" editor="wfl2030_workflow_business_rule_result_cmb" prompt="WFL_BUSINESS_RULES.WORKFLOW_CATEGORY" width="100"/>
+                    <a:column name="start_date" editor="wfl2030_workflow_business_rule_result_dp" renderer="Aurora.formatDate" width="80"/>
+                    <a:column name="end_date" editor="wfl2030_workflow_business_rule_result_dp" renderer="Aurora.formatDate" width="80"/>
+                    <a:column name="renderdetail" align="center" renderer="wfl2030WorkflowBusinessRuleResultRender" width="50"/>
+                </a:columns>
+                <a:editors>
+                    <a:datePicker id="wfl2030_workflow_business_rule_result_dp"/>
+                    <a:comboBox id="wfl2030_workflow_business_rule_result_cmb"/>
+                    <a:textField id="wfl2030_workflow_business_rule_result_tf"/>
+                    <a:textField id="wfl2030_workflow_business_rule_result_tf2" typeCase="upper"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

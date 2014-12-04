@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT c.contact_id,
+               c.supplier_id,
+               c.contact_name,
+               c.contact_sex,
+               c.id_type,
+               (SELECT scv.code_value_name
+                  FROM sys_code_values_v scv
+                 WHERE c.id_type = scv.code_value
+                       AND scv.code = 'FND_COM_SUP_INFOS.ID_TYPE') id_type_name,
+               c.id_number,
+               c.department,
+               c.position,
+               c.mobile_phone,
+               c.telephone,
+               c.email,
+               nvl(c.default_contact_flag,
+                   'N') default_contact_flag,
+               c.contact_comments,
+               nvl(c.enabled_flag,
+                   'N') enabled_flag
+          FROM fnd_com_sup_contacts c
+          WHERE EXISTS (SELECT 1
+          FROM fnd_com_sup_infos f,
+               pur_vendors       pv
+         WHERE f.company_id = pv.coop_company_id
+               AND f.supplier_id = ${@supplier_id}
+               AND pv.business_group = ${/session/@business_group})
+       AND c.supplier_id = ${@supplier_id})
+       #WHERE_CLAUSE# order by contact_id]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

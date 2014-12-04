@@ -1,0 +1,805 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-6-26 上午10:06:23  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <s:server-script import="fnd_flex_dynamic_page_link.js"/>
+        <s:server-script import="fnd_flex_dynamic_page_main.js"/>
+        <s:server-script import="fnd_flex_dynamic_page_appl_view.js"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="pur_req_demand_pool_batch_save_link" url="${/request/@context_path}/modules/pur/SACPUR5310/pur_req_demand_pool_save.svc"/>
+        <a:link id="pur_req_demand_pool_batch_submit_link" url="${/request/@context_path}/modules/pur/SACPUR5310/pur_req_demand_pool_submit.svc"/>
+        <div/>
+        <script><![CDATA[
+            function purReqDemandPoolGetPurMethodDesc(pur_method) {
+                var pur_method_ds = $('PUR_REQ_DEMAND_POOL_PUR_METHOD_ds');
+                var pur_method_recs = pur_method_ds.getAll();
+            
+                for (var i = 0;i < pur_method_recs.length;i++) {
+                    if (pur_method == pur_method_recs[i].get('code_value')) {
+                        return pur_method_recs[i].get('code_value_name');
+                    }
+                }
+                return '';
+            }
+            
+            function purReqDemandPoolOnLoad(ds) {
+                var recs = ds.getAll();
+            
+                for (var i = 0;i < recs.length;i++) {
+                    var status = recs[i].get('status');
+                    if (status != 'NEW') {
+                        continue;
+                    }
+                    var pur_method = recs[i].get('pur_method');
+                    var proposed_vendor_id = recs[i].get('proposed_vendor_id');
+                    var proposed_vendor_code = recs[i].get('proposed_vendor_code');
+                    var proposed_vendor_desc = recs[i].get('proposed_vendor_desc');
+                    var proposed_price = recs[i].get('proposed_price');
+                    var price = recs[i].get('price');
+                    var vendor_id = recs[i].get('vendor_id');
+                    var pa_count = recs[i].get('pa_count');
+                    var pur_agreement_id = recs[i].get('pur_agreement_id');
+                    var pur_agreement_id1 = recs[i].get('pur_agreement_id1');
+                    var pur_agreement_num1 = recs[i].get('pur_agreement_num1');
+                    var pa_vendor_id1 = recs[i].get('pa_vendor_id1');
+                    var pa_vendor_code1 = recs[i].get('pa_vendor_code1');
+                    var pa_vendor_desc1 = recs[i].get('pa_vendor_desc1');
+                    var pa_price1 = recs[i].get('pa_price1');
+                    var rfx_user_id = !Aurora.isEmpty(recs[i].get('rfx_user_id')) ? recs[i].get('rfx_user_id') : recs[i].get('default_rfx_user_id');
+                    var rfx_user_code = !Aurora.isEmpty(recs[i].get('rfx_user_id')) ? recs[i].get('rfx_user_code') : recs[i].get('default_rfx_user_code');
+                    var rfx_user_name = !Aurora.isEmpty(recs[i].get('rfx_user_id')) ? recs[i].get('rfx_user_name') : recs[i].get('default_rfx_user_name');
+            
+            
+                    if (Aurora.isEmpty(pur_method)) {
+                        if (!Aurora.isEmpty(proposed_vendor_id) && proposed_price > 0) {
+                            recs[i].set('pur_method', 'PURCHASE');
+                            recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('PURCHASE'));
+                            recs[i].set('vendor_id', proposed_vendor_id);
+                            recs[i].set('vendor_code', proposed_vendor_code);
+                            recs[i].set('vendor_desc', proposed_vendor_desc);
+                            recs[i].set('price', proposed_price);
+            
+                            if (pa_count == 1) {
+                                recs[i].set('pur_agreement_id', pur_agreement_id1);
+                                recs[i].set('pur_agreement_num', pur_agreement_num1);
+                                recs[i].set('pa_vendor_id', pa_vendor_id1);
+                                recs[i].set('pa_vendor_code', pa_vendor_code1);
+                                recs[i].set('pa_vendor_desc', pa_vendor_desc1);
+                                recs[i].set('pa_price', pa_price1);
+                            }
+                        } else {
+                            if (pa_count == 1) {
+                                recs[i].set('pur_method', 'PUR_AGREEMENT');
+                                recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('PUR_AGREEMENT'));
+                                recs[i].set('vendor_id', pa_vendor_id1);
+                                recs[i].set('vendor_code', pa_vendor_code1);
+                                recs[i].set('vendor_desc', pa_vendor_desc1);
+                                recs[i].set('price', pa_price1);
+                                recs[i].set('pur_agreement_id', pur_agreement_id1);
+                                recs[i].set('pur_agreement_num', pur_agreement_num1);
+                                recs[i].set('pa_vendor_id', pa_vendor_id1);
+                                recs[i].set('pa_vendor_code', pa_vendor_code1);
+                                recs[i].set('pa_vendor_desc', pa_vendor_desc1);
+                                recs[i].set('pa_price', pa_price1);
+                            } else if (pa_count == 0) {
+                                recs[i].set('pur_method', 'RFX');
+                                recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('RFX'));
+                                recs[i].set('rfx_user_id', rfx_user_id);
+                                recs[i].set('rfx_user_code', rfx_user_code);
+                                recs[i].set('rfx_user_name', rfx_user_name);
+            
+                            } else if (pa_count > 1) {
+                                recs[i].set('pur_method', 'PUR_AGREEMENT');
+                                recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('PUR_AGREEMENT'));
+                                recs[i].set('price', pa_price1);
+                                recs[i].set('pa_price', pa_price1);
+                            }
+                        }
+                    } else {
+                        if (pur_method == 'PURCHASE') {
+                            if (price == null || price <= 0 || vendor_id == null) {
+                                if (pa_count == 1) {
+                                    recs[i].set('pur_method', 'PUR_AGREEMENT');
+                                    recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('PUR_AGREEMENT'));
+                                    recs[i].set('vendor_id', pa_vendor_id1);
+                                    recs[i].set('vendor_code', pa_vendor_code1);
+                                    recs[i].set('vendor_desc', pa_vendor_desc1);
+                                    recs[i].set('price', pa_price1);
+                                    recs[i].set('pur_agreement_id', pur_agreement_id1);
+                                    recs[i].set('pur_agreement_num', pur_agreement_num1);
+                                    recs[i].set('pa_vendor_id', pa_vendor_id1);
+                                    recs[i].set('pa_vendor_code', pa_vendor_code1);
+                                    recs[i].set('pa_vendor_desc', pa_vendor_desc1);
+                                    recs[i].set('pa_price', pa_price1);
+                                } else if (pa_count == 0) {
+                                    recs[i].set('pur_method', 'RFX');
+                                    recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('RFX'));
+                                    recs[i].set('rfx_user_id', rfx_user_id);
+                                    recs[i].set('rfx_user_code', rfx_user_code);
+                                    recs[i].set('rfx_user_name', rfx_user_name);
+            
+                                } else if (pa_count > 1) {
+                                    recs[i].set('pur_method', 'PUR_AGREEMENT');
+                                    recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('PUR_AGREEMENT'));
+                                    recs[i].set('price', pa_price1);
+                                    recs[i].set('pa_price', pa_price1);
+                                }
+            
+                            }
+                            recs[i].set('pur_agreement_id', pur_agreement_id1);
+                            recs[i].set('pur_agreement_num', pur_agreement_num1);
+                            recs[i].set('pa_vendor_id', pa_vendor_id1);
+                            recs[i].set('pa_vendor_code', pa_vendor_code1);
+                            recs[i].set('pa_vendor_desc', pa_vendor_desc1);
+                            recs[i].set('pa_price', pa_price1);
+                        } else if (pur_method == 'INTERNAL_PURCHASE') {
+                            if (price == null || price <= 0 || pa_vendor_id1 == null) {
+            
+                                if (pa_count == 1) {
+                                    recs[i].set('pur_method', 'PUR_AGREEMENT');
+                                    recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('PUR_AGREEMENT'));
+                                    recs[i].set('vendor_id', pa_vendor_id1);
+                                    recs[i].set('vendor_code', pa_vendor_code1);
+                                    recs[i].set('vendor_desc', pa_vendor_desc1);
+                                    recs[i].set('price', pa_price1);
+                                    recs[i].set('pur_agreement_id', pur_agreement_id1);
+                                    recs[i].set('pur_agreement_num', pur_agreement_num1);
+                                    recs[i].set('pa_vendor_id', pa_vendor_id1);
+                                    recs[i].set('pa_vendor_code', pa_vendor_code1);
+                                    recs[i].set('pa_vendor_desc', pa_vendor_desc1);
+                                    recs[i].set('pa_price', pa_price1);
+                                } else if (pa_count == 0) {
+                                    recs[i].set('pur_method', 'RFX');
+                                    recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('RFX'));
+                                    recs[i].set('rfx_user_id', rfx_user_id);
+                                    recs[i].set('rfx_user_code', rfx_user_code);
+                                    recs[i].set('rfx_user_name', rfx_user_name);
+            
+                                } else if (pa_count > 1) {
+                                    recs[i].set('pur_method', 'PUR_AGREEMENT');
+                                    recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('PUR_AGREEMENT'));
+                                    recs[i].set('price', pa_price1);
+                                    recs[i].set('pa_price', pa_price1);
+                                }
+            
+                            }
+                            recs[i].set('pur_agreement_id', pur_agreement_id1);
+                            recs[i].set('pur_agreement_num', pur_agreement_num1);
+                            recs[i].set('pa_vendor_id', pa_vendor_id1);
+                            recs[i].set('pa_vendor_code', pa_vendor_code1);
+                            recs[i].set('pa_vendor_desc', pa_vendor_desc1);
+                            recs[i].set('pa_price', pa_price1);
+                        } else if (pur_method == 'PUR_AGREEMENT') {
+                            if (Aurora.isEmpty(pur_agreement_id)) {
+                                if (pa_count == 1) {
+                                    recs[i].set('vendor_id', pa_vendor_id1);
+                                    recs[i].set('vendor_code', pa_vendor_code1);
+                                    recs[i].set('vendor_desc', pa_vendor_desc1);
+                                    recs[i].set('price', pa_price1);
+                                    recs[i].set('pur_agreement_id', pur_agreement_id1);
+                                    recs[i].set('pur_agreement_num', pur_agreement_num1);
+                                    recs[i].set('pa_vendor_id', pa_vendor_id1);
+                                    recs[i].set('pa_vendor_code', pa_vendor_code1);
+                                    recs[i].set('pa_vendor_desc', pa_vendor_desc1);
+                                    recs[i].set('pa_price', pa_price1);
+                                } else if (pa_count == 0) {
+                                    if (!Aurora.isEmpty(proposed_vendor_id) && proposed_price > 0) {
+                                        recs[i].set('pur_method', 'PURCHASE');
+                                        recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('PURCHASE'));
+                                        recs[i].set('vendor_id', proposed_vendor_id);
+                                        recs[i].set('vendor_code', proposed_vendor_code);
+                                        recs[i].set('vendor_desc', proposed_vendor_desc);
+                                        recs[i].set('price', proposed_price);
+                                    } else {
+                                        recs[i].set('pur_method', 'RFX');
+                                        recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('RFX'));
+                                        recs[i].set('vendor_id', null);
+                                        recs[i].set('vendor_code', null);
+                                        recs[i].set('vendor_desc', null);
+                                        recs[i].set('price', null);
+            
+                                        recs[i].set('rfx_user_id', rfx_user_id);
+                                        recs[i].set('rfx_user_code', rfx_user_code);
+                                        recs[i].set('rfx_user_name', rfx_user_name);
+                                    }
+                                    recs[i].set('pur_agreement_id', null);
+                                    recs[i].set('pur_agreement_num', null);
+                                    recs[i].set('pa_vendor_id', null);
+                                    recs[i].set('pa_vendor_code', null);
+                                    recs[i].set('pa_vendor_desc', null);
+                                    recs[i].set('pa_price', null);
+                                } else if (pa_count > 1) {
+                                    recs[i].set('price', pa_price1);
+                                    recs[i].set('pa_price', pa_price1);
+                                }
+                            }
+                        } else if (pur_method == 'RFX') {
+                            if (pa_count == 1) {
+                                recs[i].set('pur_method', 'PUR_AGREEMENT');
+                                recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('PUR_AGREEMENT'));
+                                recs[i].set('vendor_id', pa_vendor_id1);
+                                recs[i].set('vendor_code', pa_vendor_code1);
+                                recs[i].set('vendor_desc', pa_vendor_desc1);
+                                recs[i].set('price', pa_price1);
+                                recs[i].set('pur_agreement_id', pur_agreement_id1);
+                                recs[i].set('pur_agreement_num', pur_agreement_num1);
+                                recs[i].set('pa_vendor_id', pa_vendor_id1);
+                                recs[i].set('pa_vendor_code', pa_vendor_code1);
+                                recs[i].set('pa_vendor_desc', pa_vendor_desc1);
+                                recs[i].set('pa_price', pa_price1);
+            
+                            } else if (pa_count > 1) {
+                                recs[i].set('pur_method', 'PUR_AGREEMENT');
+                                recs[i].set('pur_method_desc', purReqDemandPoolGetPurMethodDesc('PUR_AGREEMENT'));
+                                recs[i].set('price', pa_price1);
+                                recs[i].set('pa_price', pa_price1);
+                            } else {
+                                recs[i].set('rfx_user_id', rfx_user_id);
+                                recs[i].set('rfx_user_code', rfx_user_code);
+                                recs[i].set('rfx_user_name', rfx_user_name);
+                            }
+                        }
+                    }
+                    recs[i].dirty = false;
+                }
+            }
+            
+            
+            
+            function purReqDemandPoolOnUpdate(ds, rec, name, value, oldvalue) {
+                if (name == 'pur_method') {
+                    if (oldvalue == 'PURCHASE') {
+                        rec.set('vendor_id', '');
+                        rec.set('vendor_code', '');
+                        rec.set('vendor_desc', '');
+                        rec.set('price', '');
+            
+                        rec.getMeta().getField('vendor_id').setRequired(false);
+                        rec.getMeta().getField('vendor_code').setRequired(false);
+                        rec.getMeta().getField('vendor_desc').setRequired(false);
+                        rec.getMeta().getField('price').setRequired(false);
+                    } else if (oldvalue == 'INTERNAL_PURCHASE') {
+                        rec.set('vendor_id', '');
+                        rec.set('vendor_code', '');
+                        rec.set('vendor_desc', '');
+                        rec.set('price', '');
+            
+                        rec.getMeta().getField('vendor_id').setRequired(false);
+                        rec.getMeta().getField('vendor_code').setRequired(false);
+                        rec.getMeta().getField('vendor_desc').setRequired(false);
+                        rec.getMeta().getField('price').setRequired(false);
+                    } else if (oldvalue == 'PUR_AGREEMENT') {
+                        rec.set('pur_agreement_id', '');
+                        rec.set('pur_agreement_num', '');
+                        rec.set('pa_vendor_id', '');
+                        rec.set('pa_vendor_code', '');
+                        rec.set('pa_vendor_desc', '');
+                        rec.set('pa_price', '');
+                        rec.set('vendor_id', '');
+                        rec.set('vendor_code', '');
+                        rec.set('vendor_desc', '');
+                        rec.set('price', '');
+            
+                        rec.getMeta().getField('pur_agreement_id').setRequired(false);
+                        rec.getMeta().getField('pur_agreement_num').setRequired(false);
+                        rec.getMeta().getField('pa_vendor_id').setRequired(false);
+                        rec.getMeta().getField('pa_vendor_code').setRequired(false);
+                        rec.getMeta().getField('pa_vendor_desc').setRequired(false);
+                        rec.getMeta().getField('pa_price').setRequired(false);
+                        rec.getMeta().getField('vendor_id').setRequired(false);
+                        rec.getMeta().getField('vendor_code').setRequired(false);
+                        rec.getMeta().getField('vendor_desc').setRequired(false);
+                        rec.getMeta().getField('price').setRequired(false);
+                    } else if (oldvalue == 'RFX') {
+                        rec.set('rfx_user_id', '');
+                        rec.set('rfx_user_code', '');
+                        rec.set('rfx_user_name', '');
+            
+                        rec.getMeta().getField('rfx_user_id').setRequired(false);
+                        rec.getMeta().getField('rfx_user_code').setRequired(false);
+                        rec.getMeta().getField('rfx_user_name').setRequired(false);
+                    }
+            
+                    if (value == 'PURCHASE') {
+                        rec.set('vendor_id', rec.get('proposed_vendor_id'));
+                        rec.set('vendor_code', rec.get('proposed_vendor_code'));
+                        rec.set('vendor_desc', rec.get('proposed_vendor_desc'));
+                        rec.set('price', rec.get('proposed_price'));
+            
+                        rec.getMeta().getField('vendor_id').setRequired(true);
+                        rec.getMeta().getField('vendor_code').setRequired(true);
+                        //rec.getMeta().getField('vendor_desc').setRequired(true);
+                        rec.getMeta().getField('price').setRequired(true);
+                    } else if (value == 'PUR_AGREEMENT') {
+                        rec.set('vendor_id', rec.get('pa_vendor_id'));
+                        rec.set('vendor_code', rec.get('pa_vendor_code'));
+                        rec.set('vendor_desc', rec.get('pa_vendor_desc'));
+                        rec.set('price', rec.get('pa_price'));
+            
+                        rec.getMeta().getField('pur_agreement_id').setRequired(true);
+                        rec.getMeta().getField('pur_agreement_num').setRequired(true);
+                        rec.getMeta().getField('pa_vendor_id').setRequired(true);
+                        rec.getMeta().getField('pa_vendor_code').setRequired(true);
+                        rec.getMeta().getField('pa_vendor_desc').setRequired(true);
+                        rec.getMeta().getField('pa_price').setRequired(true);
+                        rec.getMeta().getField('vendor_id').setRequired(true);
+                        rec.getMeta().getField('vendor_code').setRequired(true);
+                        //rec.getMeta().getField('vendor_desc').setRequired(true);
+                        rec.getMeta().getField('price').setRequired(true);
+                    } else if (value == 'INTERNAL_PURCHASE') {
+                        rec.set('vendor_id', rec.get('proposed_vendor_id'));
+                        rec.set('vendor_code', rec.get('proposed_vendor_code'));
+                        rec.set('vendor_desc', rec.get('proposed_vendor_desc'));
+                        rec.set('price', rec.get('proposed_price'));
+            
+                        rec.getMeta().getField('vendor_id').setRequired(true);
+                        rec.getMeta().getField('vendor_code').setRequired(true);
+                        //rec.getMeta().getField('vendor_desc').setRequired(true);
+                        rec.getMeta().getField('price').setRequired(true);
+                    } else if (value == 'RFX') {
+                        //rec.getMeta().getField('rfx_user_id').setRequired(true);
+                        //rec.getMeta().getField('rfx_user_code').setRequired(true);
+                        //rec.getMeta().getField('rfx_user_name').setRequired(true);
+                    }
+                }
+            }
+            
+            function purReqDemandPoolRenderer(value, rec, name) {
+                if (name == 'price') {
+                    if (!Aurora.isEmpty(value)) {
+                        return Aurora.formatNumber(value, 8);
+                    }
+                    return value;
+                } else if (name == 'pa_price') {
+                    if (!Aurora.isEmpty(value)) {
+                        return Aurora.formatNumber(value, 8);
+                    }
+                    return value;
+                } else if (name == 'quantity_required') {
+                    if (!Aurora.isEmpty(value)) {
+                        return Aurora.formatNumber(value, 2);
+                    }
+                    return value;
+                } else if (name == 'proposed_price') {
+                    if (!Aurora.isEmpty(value)) {
+                        return Aurora.formatNumber(value, 8);
+                    }
+                    return value;
+                }
+            }
+            
+            function purReqDemandPoolEditor(rec, name) {
+                var pur_method = rec.get('pur_method');
+                var proposed_vendor_id = rec.get('proposed_vendor_id');
+                var pa_count = rec.get('pa_count');
+                var status = rec.get('status');
+                var rfx_created_flag = rec.get('rfx_created_flag');
+            
+                if (name == 'pur_method_desc') {
+                    if (status == 'DISTRIBUTED' && rfx_created_flag == 'Y') {
+                        return;
+                    }
+                    return 'pur_req_demand_pool_cmb';
+                } else if (name == 'pur_agreement_num') {
+                    if (pur_method == 'PUR_AGREEMENT') {
+                        return 'pur_req_demand_pool_lov';
+                    }
+                    return;
+                } else if (name == 'rfx_user_name') {
+                    if (pur_method == 'RFX') {
+                        return 'pur_req_demand_pool_lov';
+                    }
+                    return;
+                } else if (name == 'vendor_code') {
+                    if (pur_method == 'PURCHASE') {
+                        return 'pur_req_demand_pool_vendor_code_lov';
+                    } else if (pur_method == 'INTERNAL_PURCHASE'){
+                        return 'pur_req_demand_pool_vendor_code_lov';
+                    }
+                    return;
+                } else if (name == 'price') {
+                    if (pur_method == 'PURCHASE') {
+                        return 'pur_req_demand_pool_price_nf';
+                    } else if (pur_method == 'INTERNAL_PURCHASE') {
+                        return 'pur_req_demand_pool_price_nf';
+                    }
+                    return;
+                } else if (name == 'comments') {
+                    return 'pur_req_demand_pool_tf';
+                }
+            }
+            
+            function purReqDemandPoolGridOnCellclick(grid, row, name, rec) {
+                var company_id = rec.get('company_id');
+                var item_id = rec.get('item_id');
+                var untaxed_price = rec.get('untaxed_price');
+                
+            
+                if (name == 'pur_agreement_num') {
+                    var currency_code = rec.get('currency_code');
+                    rec.getField('pur_agreement_num').setLovPara('company_id', company_id);
+                    rec.getField('pur_agreement_num').setLovPara('item_id', item_id);
+                    rec.getField('pur_agreement_num').setLovPara('untaxed_price', untaxed_price);
+                    rec.getField('pur_agreement_num').setLovPara('currency_code', currency_code);
+                }
+            
+                if (name == 'vendor_code') {
+                    rec.getField('vendor_code').setLovPara('company_id', company_id);
+                }
+                if (name == 'rfx_user_name') {
+                    rec.getField('rfx_user_name').setLovPara('company_id', company_id);
+                    rec.getField('rfx_user_name').setLovPara('inv_organization_id', rec.get('inv_organization_id'));
+                }
+            }
+            
+            function purReqDemandPoolQuery() {
+                $('pur_req_demand_pool_result_ds').query();
+            }
+            
+            function purReqDemandPoolSave() {
+                var maintain_ds = $('pur_req_demand_pool_result_ds');
+            
+            
+                var maintain_recs = maintain_ds.getAll();
+            
+                if (maintain_recs.length > 0) {
+                    if (maintain_ds.validate()) {
+                        Aurora.Masker.mask(Ext.getBody(), '正在加载');
+            
+                        var data = [];
+                        for (var i = 0;i < maintain_recs.length;i++) {
+                            data.push(maintain_recs[i].data);
+                        }
+            
+                        Aurora.request({
+                            url: $('pur_req_demand_pool_batch_save_link').getUrl(),
+                            para: data,
+                            success: function() {
+                                Aurora.showMessage('提示', '已保存!', function() {
+                                    purReqDemandPoolQuery();
+                                });
+                            },
+                            failure: function() {
+                                return;
+                            },
+                            error: function() {
+                                return;
+                            }
+                        });
+            
+                        Aurora.Masker.unmask(Ext.getBody());
+                    }
+                }
+            }
+            
+            function purReqDemandPoolSubmit() {
+                var maintain_ds = $('pur_req_demand_pool_result_ds');
+                var maintain_recs = maintain_ds.getSelected();
+            
+                if (maintain_recs.length > 0) {
+                    if (maintain_ds.validate()) {
+                        Aurora.Masker.mask(Ext.getBody(), '正在加载');
+            
+                        var data = [];
+                        for (var i = 0;i < maintain_recs.length;i++) {
+                            data.push(maintain_recs[i].data);
+                        }
+            
+                        Aurora.showConfirm("提示", "确定提交？", function() {
+                            Aurora.request({
+                                url: $('pur_req_demand_pool_batch_submit_link').getUrl(),
+                                para: data,
+                                success: function() {
+                                    Aurora.showMessage('提示', '已提交!', function() {
+                                        purReqDemandPoolQuery();
+                                    });
+                                },
+                                failure: function() {
+                                    return;
+                                },
+                                error: function() {
+                                    return;
+                                }
+                            });
+                        }, function() {});
+            
+                        Aurora.Masker.unmask(Ext.getBody());
+                    }
+                }
+            }
+            
+            function pur5310_upload_render(value, record, name) {
+                var pool_id = record.get('pool_id');
+                if (!record.isNew && pool_id) {
+                    return '<a href="javascript:pur5310_upload_file(' + pool_id + ')">上传/下载</a>';
+                }
+            }
+            
+            function pur5310_upload_file(id) {
+                var url = "${/request/@context_path}/uploadFile.screen?table_name=PUR_REQ_DEMAND_POOL&header_id=" + id;
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                    id: 'pur5310_upload_window',
+                    width: 850,
+                    height: 500
+                });
+            }
+            
+            function formatNumber2(value, decimalprecision) {
+                if (Ext.isEmpty(value)) return '';
+            
+                value = String(value).replace(/,/g, '');
+                if (isNaN(value)) return '';
+                if (decimalprecision || decimalprecision === 0)
+            
+            
+                var point_value = value.split('.');
+                var in_length = (point_value.length == 2) ? '.' + point_value[1] : '';
+            
+            
+                if (in_length.length - 1 < decimalprecision) {
+            
+                    decimalprecision = in_length.length - 1
+                };
+                if (in_length.length == 0) {
+                    decimalprecision = 0;
+                }
+            
+                value = Number(value).toFixed(decimalprecision);
+            
+                var ps = value.split('.');
+                var sub = (ps.length == 2) ? '.' + ps[1] : '';
+            
+            
+                var whole = ps[0];
+                var r = /(\d+)(\d{3})/;
+                while (r.test(whole)) {
+                    whole = whole.replace(r, '$1' + ',' + '$2');
+                }
+            
+                Math.round()
+                v = whole + sub;
+                return v;
+            }
+            
+            function pur5310_formatNumber_render(value, record, name) {
+                return formatNumber2(value, 8);
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="PUR_REQ_DEMAND_POOL_PUR_METHOD_ds" lookupCode="PUR_REQ_DEMAND_POOL_PUR_METHOD"/>
+            <a:dataSet id="PUR_REQ_DEMAND_POOL_STATUS_ds" lookupCode="PUR_REQ_DEMAND_POOL_STATUS"/>
+            <a:dataSet id="pur_req_demand_pool_query_ds" autoCreate="true" model="pur.SACPUR5310.pur_req_demand_pool_maintain">
+                <a:fields>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_short_name" defaultValue="${/session/@default_company_desc}" lovGridHeight="350" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" required="true" title="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_code" to="company_code"/>
+                            <a:map from="company_short_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_id" defaultValue="${/session/@default_company_id}"/>
+                    <a:field name="company_code" defaultValue="${/session/@default_company_code}"/>
+                    <a:field name="vendor_code" autoComplete="true" autoCompleteField="vendor_code" lovGridHeight="350" lovHeight="500" lovService="public.pur_vendors_lov" lovWidth="500" title="供应商">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pur_method_desc" displayField="code_value_name" options="PUR_REQ_DEMAND_POOL_PUR_METHOD_ds" returnField="pur_method" valueField="code_value"/>
+                    <a:field name="status_desc" displayField="code_value_name" options="PUR_REQ_DEMAND_POOL_STATUS_ds" returnField="status" valueField="code_value"/>
+                    <a:field name="pur_req_created_by_name" autoComplete="true" autoCompleteField="user_desc" lovGridHeight="350" lovHeight="500" lovService="pur.SACPUR5310.pur_req_created_by_lov" lovWidth="500" title="询价员">
+                        <a:mapping>
+                            <a:map from="user_id" to="pur_req_created_by"/>
+                            <a:map from="user_name" to="pur_req_created_by_code"/>
+                            <a:map from="user_desc" to="pur_req_created_by_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_code" autoComplete="true" autoCompleteField="item_code" lovGridHeight="350" lovHeight="500" lovService="public.inv_system_master_org_items_lov" lovWidth="500" title="物料">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_category_code" autoComplete="true" autoCompleteField="item_catagory_code" lovGridHeight="350" lovHeight="500" lovService="public.inv_item_categories_lov" lovWidth="500" title="物料分类">
+                        <a:mapping>
+                            <a:map from="item_category_id" to="item_category_id"/>
+                            <a:map from="item_category_code" to="item_category_code"/>
+                            <a:map from="item_category_desc" to="item_category_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur_req_demand_pool_result_ds" autoCount="true" autoPageSize="true" model="pur.SACPUR5310.pur_req_demand_pool_maintain" queryDataSet="pur_req_demand_pool_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="pur_method_desc" displayField="code_value_name" options="PUR_REQ_DEMAND_POOL_PUR_METHOD_ds" required="true" returnField="pur_method" valueField="code_value"/>
+                    <a:field name="pur_agreement_num" autoComplete="true" autoCompleteField="pa_num" lovGridHeight="350" lovHeight="500" lovService="pur.SACPUR5310.con_purchase_agmt_lov" lovWidth="500" title="采购协议">
+                        <a:mapping>
+                            <a:map from="pa_header_id" to="pur_agreement_id"/>
+                            <a:map from="pa_num" to="pur_agreement_num"/>
+                            <a:map from="vendor_id" to="pa_vendor_id"/>
+                            <a:map from="vendor_code" to="pa_vendor_code"/>
+                            <a:map from="vendor_desc" to="pa_vendor_desc"/>
+                            <a:map from="untaxed_price" to="pa_price"/>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_desc" to="vendor_desc"/>
+                            <a:map from="untaxed_price" to="price"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="rfx_user_name" autoComplete="true" autoCompleteField="user_desc" lovGridHeight="350" lovHeight="500" lovService="public.rfx_user_lov" lovWidth="500" title="询价员">
+                        <a:mapping>
+                            <a:map from="user_id" to="rfx_user_id"/>
+                            <a:map from="user_name" to="rfx_user_code"/>
+                            <a:map from="user_desc" to="rfx_user_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_code" autoComplete="true" autoCompleteField="vendor_code" lovGridHeight="350" lovHeight="500" lovService="public.pur_vendors_lov" lovWidth="500" title="供应商">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_name" to="vendor_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="tax_included_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="purReqDemandPoolOnLoad"/>
+                    <a:event name="update" handler="purReqDemandPoolOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="purReqDemandPoolSave" text="保存" width="100"/>
+            <a:toolbarButton click="purReqDemandPoolSubmit" text="提交" width="100"/>
+            <a:gridButton bind="pur_req_demand_pool_result_grid" type="excel" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="pur_req_demand_pool_query_ds" resultTarget="pur_req_demand_pool_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox column="3" labelWidth="100">
+                    <a:lov name="company_name" bindTarget="pur_req_demand_pool_query_ds" prompt="公司">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField name="pur_req_num_from" bindTarget="pur_req_demand_pool_query_ds" prompt="采购申请号从">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="pur_req_num_to" bindTarget="pur_req_demand_pool_query_ds" prompt="采购申请号至">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:textField>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox labelWidth="100">
+                    <a:lov name="vendor_code" bindTarget="pur_req_demand_pool_query_ds" prompt="供应商编码">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:lov>
+                    <a:comboBox name="pur_method_desc" bindTarget="pur_req_demand_pool_query_ds" prompt="采购方式">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="status_desc" bindTarget="pur_req_demand_pool_query_ds" prompt="状态">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:lov name="pur_req_created_by_name" bindTarget="pur_req_demand_pool_query_ds" prompt="创建人">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:lov>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:lov name="item_code" bindTarget="pur_req_demand_pool_query_ds" prompt="物料编码">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField name="item_desc" bindTarget="pur_req_demand_pool_query_ds" prompt="物料描述">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:textField>
+                    <a:lov name="item_category_code" bindTarget="pur_req_demand_pool_query_ds" prompt="物料分类">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:lov>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:datePicker name="pur_req_creation_date_from" bindTarget="pur_req_demand_pool_query_ds" prompt="创建日期从">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="pur_req_creation_date_to" bindTarget="pur_req_demand_pool_query_ds" prompt="创建日期至">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="required_date_from" bindTarget="pur_req_demand_pool_query_ds" prompt="需求日期从">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="required_date_to" bindTarget="pur_req_demand_pool_query_ds" prompt="需求日期至">
+                        <a:events>
+                            <a:event name="enterdown" handler="purReqDemandPoolQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="pur_req_demand_pool_result_grid" bindTarget="pur_req_demand_pool_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:columns id="pur5310_grid_columns">
+                <a:column name="pur_req_num" align="left" lock="true" prompt="采购申请号" width="80"/>
+                <a:column name="pur_req_line_num" align="left" lock="true" prompt="行号" width="30"/>
+                <a:column name="pur_method_desc" align="left" editorFunction="purReqDemandPoolEditor" lock="true" prompt="采购方式" width="40"/>
+                <a:column name="rfx_user_name" align="left" editorFunction="purReqDemandPoolEditor" lock="true" prompt="询价员" width="50"/>
+                <a:column name="status_desc" align="left" lock="true" prompt="状态" width="50"/>
+                <a:column name="item_code" align="left" prompt="物料编码" width="80"/>
+                <a:column name="item_desc" align="left" prompt="物料描述" width="150"/>
+                <a:column name="pur_req_created_by_name" align="left" prompt="创建人" sortable="true" width="60"/>
+                <a:column name="note_to_receiver" align="left" prompt="通知接收人" width="60"/>
+                <a:column name="comments" align="left" editorFunction="purReqDemandPoolEditor" prompt="备注" width="60"/>
+                <a:column name="vendor_code" align="left" editorFunction="purReqDemandPoolEditor" prompt="供应商编码" width="50"/>
+                <a:column name="vendor_desc" align="left" prompt="供应商名称" width="150"/>
+                <a:column name="price" align="right" editorFunction="purReqDemandPoolEditor" prompt="单价" sortable="true" width="80"/>
+                <a:column name="currency_desc" align="left" prompt="币种" width="40"/>
+                <a:column name="exchange_rate" align="left" prompt="汇率" width="40"/>
+                <a:column name="tax_included_flag" align="center" prompt="含税" width="30"/>
+                <a:column name="tax_type_rate" align="left" prompt="税率" width="30"/>
+                <a:column name="pur_agreement_num" align="center" editorFunction="purReqDemandPoolEditor" prompt="采购协议编号" sortable="true" width="60"/>
+                <a:column name="pa_vendor_code" align="left" prompt="协议供应商编码" width="60"/>
+                <a:column name="pa_vendor_desc" align="left" prompt="协议供应商名称" width="150"/>
+                <a:column name="pa_price" align="right" prompt="协议单价" renderer="pur5310_formatNumber_render" width="80"/>
+                <a:column name="proposed_price" align="right" prompt="建议单价" renderer="pur5310_formatNumber_render" width="80"/>
+                <a:column name="company_desc" align="left" prompt="公司" width="150"/>
+                <a:column name="item_category_code" align="left" prompt="物料分类代码" width="80"/>
+                <a:column name="item_category_desc" align="left" prompt="物料分类描述" width="150"/>
+                <a:column name="quantity_required" align="right" prompt="需求数量" width="80"/>
+                <a:column name="uom" align="left" prompt="单位" sortable="true" width="40"/>
+                <a:column name="need_by_date" align="center" prompt="需求日期" renderer="Aurora.formatDate" width="60"/>
+                <!-- <a:column name="tax_included_flag" align="left" prompt="含税" width="30"/> -->
+                <a:column name="proposed_vendor_code" align="left" prompt="建议供应商编码" sortable="true" width="60"/>
+                <a:column name="proposed_vendor_desc" align="left" prompt="建议供应商名称" sortable="true" width="150"/>
+                <a:column name="proposed_net_price" align="right" prompt="建议税前单价" renderer="pur5310_formatNumber_render" width="80"/>
+                <a:column name="proposed_tax_amount" align="right" prompt="建议税额" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="proposed_total_amount" align="right" prompt="建议总额" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="proposed_functional_amount" align="right" prompt="建议本币金额" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="proposed_entered_amount" align="right" prompt="建议外币金额" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="pur_req_creation_date" align="center" prompt="创建日期" renderer="Aurora.formatDate" width="60"/>
+                <a:column name="data_source" align="left" prompt="数据来源" width="60"/>
+                <a:column name="note_approve" align="left" prompt="审批意见" width="150"/>
+                <a:column align="center" prompt="附件上传/下载" renderer="pur5310_upload_render" width="80"/>
+                <a:dynamicPage id="segmentMaintain" columns="pur5310_grid_columns" datasetid="pur_req_demand_pool_result_ds" pagetype="query" pkname="pool_id" type="grid"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="pur_req_demand_pool_tf"/>
+                <a:comboBox id="pur_req_demand_pool_cmb"/>
+                <a:lov id="pur_req_demand_pool_lov"/>
+                <a:lov id="pur_req_demand_pool_vendor_code_lov"/>
+                <a:numberField id="pur_req_demand_pool_price_nf" allowDecimals="true" allowNegative="false" decimalPrecision="8"/>
+            </a:editors>
+            <a:events>
+                <a:event name="cellclick" handler="purReqDemandPoolGridOnCellclick"/>
+            </a:events>
+        </a:grid>
+    </a:view>
+</a:screen>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-6-9 上午11:00:50  
+    $Revision: 1.0  
+    $Purpose: 物品主数据接收单位批量新增 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="inv2010_link_sys_item_inventory_batch_add_save" model="inv.INV2010.inv_sys_item_inventory_batch_add" modelaction="batch_update"/>
+        <script><![CDATA[
+        	//返回按钮执行的方法，关闭批量新增接收单位维护页面
+            function inv2010_sysItemInventoryBatchAddReturn() {
+                $('inv2010_link_sys_item_inventory_batch_add_window').close();
+            }
+            
+            //保存按钮执行的方法，AJAX请求批量新增接收单位
+            function inv2010_sysItemInventoryBatchAddSave() {
+                //获取并判断所有勾选的接收单位
+                var item_record = $('inv2010_sys_item_basics_create_ds').getCurrentRecord();
+                var records = $('inv2010_sys_item_inventory_batch_add_result_ds').getSelected();
+                if(records.length < 1){
+                    return false;
+                }
+                
+                //整理提交请求参数
+                var data = [];
+                for(var i=0;i<records.length;i++){
+                    var record = records[i];
+                    record.set('item_id','${/parameter/@item_id}');
+                    record.set('uom_of_purchasing', item_record.get('primary_uom'));
+                    record.set('_status', 'update'); //执行的方法
+                    data.push(record.data);
+                }
+                
+                //保存时提醒，提交AJAX请求
+                Aurora.showConfirm('${l:PROMPT}', '${l:ARE_YOU_SURE_OR_NOT_TO_SAVE}', function() {
+	                Aurora.request({
+	                    url: $('inv2010_link_sys_item_inventory_batch_add_save').getUrl(),
+	                    para: data,
+	                    success: inv2010_sysItemInventoryBatchAddReturn, //请求成功后关闭此页面
+	                    scope: this
+	                });
+                });
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv2010_sys_item_inventory_batch_add_query_ds">
+                <a:fields>
+                    <a:field name="organization_code_name"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv2010_sys_item_inventory_batch_add_result_ds" autoQuery="true" model="public.inv_organizations_lov" queryDataSet="inv2010_sys_item_inventory_batch_add_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="organization_code" prompt="INV_SYS_ITEMS.ITEM_INVENTORY_CODE"/>
+                    <a:field name="organization_name" prompt="INV_SYS_ITEMS.ITEM_INVENTORY_NAME"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:toolbarButton click="inv2010_sysItemInventoryBatchAddSave" text="HAP_SAVE" width="100"/>
+                <a:toolbarButton click="inv2010_sysItemInventoryBatchAddReturn" style="margin-left:20px;" text="HAP_BACK" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="inv2010_sys_item_inventory_batch_add_query_form" bindTarget="inv2010_sys_item_inventory_batch_add_query_ds" defaultQueryField="organization_code_name" defaultQueryHint="PLEASE_INPUT_ITEM_INVENTORY_CODE_OR_NAME" resultTarget="inv2010_sys_item_inventory_batch_add_result_ds" style="width:100%;border:none"/>
+            <a:grid id="inv2010_sys_item_inventory_organization_result_grid" bindTarget="inv2010_sys_item_inventory_batch_add_result_ds" height="340" navBar="true" showRowNumber="true" width="610">
+                <a:columns>
+                    <a:column name="organization_code" align="center" sortable="true" width="100"/>
+                    <a:column name="organization_name" sortable="true" width="200"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

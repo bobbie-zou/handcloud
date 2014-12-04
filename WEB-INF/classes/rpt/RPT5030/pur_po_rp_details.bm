@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-9-17 下午5:18:21  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="PUR_PO_RP_DETAILS">
+    <bm:fields>
+        <bm:field name="rp_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="RP_HEADER_ID" prompt="PUR_PO_RP_DETAILS.RP_HEADER_ID"/>
+        <bm:field name="rp_details_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="RP_DETAILS_ID" prompt="PUR_PO_RP_DETAILS.RP_DETAILS_ID"/>
+        <bm:field name="coop_company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COOP_COMPANY_ID" prompt="PUR_PO_RP_DETAILS.COOP_COMPANY_ID"/>
+        <bm:field name="item_category_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ITEM_CATEGORY_ID" prompt="PUR_PO_RP_DETAILS.ITEM_CATEGORY_ID"/>
+        <bm:field name="total_ratio"/>
+        <bm:field name="overall_ranking"/>
+        <bm:field name="total_amount"/>
+        <bm:field name="amount"/>
+        <bm:field name="last_total_amount"/>
+        <bm:field name="period_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PERIOD_NAME" prompt="PUR_PO_RP_DETAILS.PERIOD_NAME"/>
+        <bm:field name="last_period_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="LAST_PERIOD_NAME" prompt="PUR_PO_RP_DETAILS.LAST_PERIOD_NAME"/>
+        <bm:field name="item_category_name"/>
+        <bm:field name="item_category_code"/>
+        <bm:field name="coop_company_name"/>
+        <bm:field name="coop_company_full_name"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t1.rp_header_id,
+                    t1.rp_details_id,
+                    t1.coop_company_id,
+                    t1.item_category_id,
+                    t1.total_amount/10000 amount,
+                    ROUND(t1.total_ratio*100,2) total_ratio,
+                    t1.overall_ranking,
+                    TO_CHAR(t1.total_amount/10000, '9,999,999,999.0000') total_amount,
+                    TO_CHAR(t1.last_total_amount/10000, '9,999,999,999.0000') last_total_amount,
+                    t1.period_name,
+                    t1.last_period_name,
+                    (SELECT
+                        t2.category_name
+                    FROM
+                        mtl_categories_user_defined_vl t2
+                    WHERE
+                        t2.category_udf_id = t1.item_category_id
+                    ) item_category_name,
+                    (SELECT
+                        t4.category_code
+                    FROM
+                        mtl_categories_user_defined_vl t4
+                    WHERE
+                        t4.category_udf_id = t1.item_category_id
+                    ) item_category_code,
+                    (SELECT
+                        t3.short_name
+                    FROM
+                        pur_vendors_vl t3
+                    WHERE
+                        t3.vendor_id = t1.coop_company_id
+                    ) coop_company_name,
+                    (SELECT
+                        t3.full_name
+                    FROM
+                        pur_vendors_vl t3
+                    WHERE
+                        t3.vendor_id = t1.coop_company_id
+                    ) coop_company_full_name
+                FROM
+                    PUR_PO_RP_DETAILS t1 
+                #WHERE_CLAUSE#
+                order by t1.total_ratio desc
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:features>
+        <f:standard-who/>
+    </bm:features>
+    <bm:primary-key>
+        <bm:pk-field name="rp_details_id"/>
+    </bm:primary-key>
+    <bm:query-fields>
+        <bm:query-field field="rp_header_id" queryExpression="t1.rp_header_id = ${@rp_header_id}"/>
+        <bm:query-field name="total_transaction_amount_from" queryExpression="t1.total_amount &gt;= ${@total_transaction_amount_from}*10000"/>
+        <bm:query-field name="total_transaction_amount_to" queryExpression="t1.total_amount &lt;= ${@total_transaction_amount_to}*10000"/>
+        <bm:query-field name="total_ranking_from" queryExpression="t1.overall_ranking &gt;= ${@total_ranking_from}"/>
+        <bm:query-field name="total_ranking_to" queryExpression="t1.overall_ranking &lt;= ${@total_ranking_to}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter enforceOperations="query" expression="t1.rp_header_id = ${@rp_header_id}"/>
+    </bm:data-filters>
+</bm:model>

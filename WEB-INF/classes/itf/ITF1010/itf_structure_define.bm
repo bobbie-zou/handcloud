@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: Apr 17, 2014 2:47:11 PM  
+    $Revision: 1.0  
+    $Purpose: 结构定义
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        structure_id,
+                        interface_category_id,
+                        structure_code,
+                        structure_description_id,
+                        (SELECT
+                            fd.description_text
+                        FROM
+                            fnd_descriptions fd
+                        WHERE
+                            fd.description_id = i.structure_description_id AND
+                            fd.language       = ${/session/@lang}
+                        ) structure_desc,
+                        parent_structure_id,
+                        (SELECT
+                            ip.structure_code
+                        FROM
+                            itf_structures ip
+                        WHERE
+                            ip.structure_id = i.parent_structure_id
+                        ) parent_structure_code,
+                        itf_table_name,
+                        pk_name,
+                        parent_pk_name,
+                        sequence_name,
+                        comments,
+                        created_by,
+                        creation_date,
+                        last_updated_by,
+                        last_update_date
+                    FROM
+                        itf_structures i
+                    ) v #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+            begin
+            	itf_structure_pkg.insert_structure(x_structure_id          =>${@structure_id},
+												   p_interface_category_id =>${@interface_category_id},
+												   p_structure_code        =>${@structure_code},
+												   p_structure_desc        =>${@structure_desc},
+												   p_parent_structure_id   =>${@parent_structure_id},
+												   p_itf_table_name        =>${@itf_table_name},
+												   p_pk_name               =>${@pk_name},
+												   p_parent_pk_name        =>${@parent_pk_name},
+											       p_sequence_name         =>${@sequence_name},
+												   p_comments              =>${@comments},
+											       p_user_id               =>${/session/@user_id});
+            end;                                 
+            ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="structure_id" datatype="java.lang.Long" input="false" output="true" outputPath="@structure_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            begin
+            	itf_structure_pkg.update_structure(p_structure_id          =>${@structure_id},
+												   p_structure_desc        =>${@structure_desc},
+												   p_parent_structure_id   =>${@parent_structure_id},
+												   p_itf_table_name        =>${@itf_table_name},
+												   p_pk_name               =>${@pk_name},
+												   p_parent_pk_name        =>${@parent_pk_name},
+											       p_sequence_name         =>${@sequence_name},
+												   p_comments              =>${@comments},
+											       p_user_id               =>${/session/@user_id});
+            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+            begin
+            	itf_structure_pkg.delete_structure(p_structure_id          =>${@structure_id},
+											       p_user_id               =>${/session/@user_id});
+            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="structure_id" queryExpression="v.structure_id = ${@structure_id}"/>
+        <bm:query-field name="interface_category_id" queryExpression="v.interface_category_id = ${@interface_category_id}"/>
+    </bm:query-fields>
+</bm:model>

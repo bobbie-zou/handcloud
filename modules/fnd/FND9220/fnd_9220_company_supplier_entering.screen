@@ -1,0 +1,574 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru
+    $Date: 2014-8-29 上午9:43:23  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="fnd9220_companySupplierSave_link" url="${/request/@context_path}/modules/fnd/FND9220/fnd_9220_company_supplier_save.svc"/>
+        <a:link id="fnd9220_companySupplierContactSave_link" url="${/request/@context_path}/modules/fnd/FND9220/fnd_9220_company_supplier_contact_save.svc"/>
+        <a:link id="fnd9220_companySupplierUpload_link" url="${/request/@context_path}/uploadFile.screen"/>
+        <a:link id="fnd9220_attachment_file_upload_link" url="${/request/@context_path}/uploadFile.screen"/>
+        <a:link id="fnd9220_attachment_file_download_link" url="${/request/@context_path}/atm_download.svc"/>
+        <div/>
+        <script><![CDATA[
+            //关闭
+            
+            function fnd9220_companySupplier_cancelFun() {
+                $('fnd9220_company_supplier_entering_window').close();
+            }
+            //日期校验
+            
+            function fnd9220_compareDate(start, end) {
+            
+                if (typeof(start) == 'string') {
+                    start = new Date(start.replace(/-/g, "/"));
+                }
+            
+                if (typeof(end) == 'string') {
+                    end = new Date(end.replace(/-/g, "/"));
+                }
+            
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function fnd9220_operatingLicenseValidate_fun(record, name, value) {
+                if (name == 'operating_license_end_date') {
+                    var end = record.get('operating_license_end_date');
+                    var sysdate = new Date();
+                    sysdate.toLocaleDateString();
+                    if ( !! end) {
+                        if (!fnd9220_compareDate(sysdate, end)) {
+                            return '${l:FND9220.OPERATING_LICENSE_END_DATE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function fnd9220_onCompanySupplierContactsDs_submitsuccessFun() {
+                $('fnd9220_companySupplierContacts_ds').query();
+            }
+            
+            function fnd9220_onCompanySupplierAccountsDs_submitsuccessFun() {
+                $('fnd9220_companySupplierAccounts_ds').query();
+            }
+            
+            function fnd9220_onCompanySupplierFinancesDs_submitsuccessFun() {
+                $('fnd9220_companySupplierFinances_ds').query();
+            }
+            
+            function fnd9220_onCompanySupplierAddressesDs_submitsuccessFun() {
+                $('fnd9220_companySupplierAddresses_ds').query();
+            }
+            
+            function fnd9220_onCompanySupplierAttachmentsDs_submitsuccessFun() {
+                $('fnd9220_companySupplierAttachments_ds').query();
+            }
+            
+            
+            //保存
+            
+            function fnd9220_companySupplier_saveFun() {
+                $('fnd9220_companySupplier_saveBtu').disable();
+                $('fnd9220_companySupplier_cancelBtu').disable();
+                var companySupplierInfo_ds = $('fnd9220_companySupplierInfo_ds');
+                var contact_ds = $('fnd9220_companySupplierContacts_ds');
+                var account_ds = $('fnd9220_companySupplierAccounts_ds');
+                var addresses_ds = $('fnd9220_companySupplierAddresses_ds');
+                var finance_ds = $('fnd9220_companySupplierFinances_ds');
+                var attachment_ds = $('fnd9220_companySupplierAttachments_ds');
+                var companySupplierInfo_record = companySupplierInfo_ds.getCurrentRecord();
+                if (!companySupplierInfo_ds.validate() || !contact_ds.validate() || !account_ds.validate() || !addresses_ds.validate() || !finance_ds.validate() || !attachment_ds.validate()) {
+                    $('fnd9220_companySupplier_saveBtu').enable();
+                    $('fnd9220_companySupplier_cancelBtu').enable();
+                    return;
+                }
+            
+                var data = companySupplierInfo_record.data;
+                data['contacts'] = contact_ds.getJsonData();
+                data['accounts'] = account_ds.getJsonData();
+                data['addresses'] = addresses_ds.getJsonData();
+                data['finances'] = finance_ds.getJsonData();
+                data['attachments'] = attachment_ds.getJsonData();
+            
+            
+                Aurora.request({
+                    url: $('fnd9220_companySupplierSave_link').getUrl(),
+                    para: data,
+                    success: function(result) {
+                        fnd9220_companySupplier_submitSuccessFun();
+                    },
+                    failure: function() {
+                        $('fnd9220_companySupplier_saveBtu').enable();
+                        $('fnd9220_companySupplier_cancelBtu').enable();
+                    },
+                    error: function() {
+                        $('fnd9220_companySupplier_saveBtu').enable();
+                        $('fnd9220_companySupplier_cancelBtu').enable();
+                    },
+                    scope: this
+                });
+            
+            }
+            
+            //供应商保存成功
+            
+            function fnd9220_companySupplier_submitSuccessFun() {
+                $('fnd9220_companySupplier_saveBtu').enable();
+                $('fnd9220_companySupplier_cancelBtu').enable();
+                Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SAVE_SUCCESS}!', function() {
+                    $('fnd9220_companySupplierInfo_ds').query();
+                    $('fnd9220_companySupplierContacts_ds').query();
+                    $('fnd9220_companySupplierAccounts_ds').query();
+                    $('fnd9220_companySupplierFinances_ds').query();
+                    $('fnd9220_companySupplierAddresses_ds').query();
+                    $('fnd9220_companySupplierAttachments_ds').query();
+                });
+            }
+            
+            
+            //联系人保存
+            function fnd9220_companySupplierContacts_saveFun(){
+                $('fnd9220_companySupplier_saveBtu').disable();
+                $('fnd9220_companySupplier_cancelBtu').disable();
+                
+                var companySupplierInfo_ds = $('fnd9220_companySupplierInfo_ds');
+                var contact_ds = $('fnd9220_companySupplierContacts_ds');
+                
+                 var companySupplierInfo_record = companySupplierInfo_ds.getCurrentRecord();
+                if (!companySupplierInfo_ds.validate() || !contact_ds.validate() ) {
+                    $('fnd9220_companySupplier_saveBtu').enable();
+                    $('fnd9220_companySupplier_cancelBtu').enable();
+                    return;
+                }
+            
+                var data = companySupplierInfo_record.data;
+                data['contacts'] = contact_ds.getJsonData();
+            
+            
+                Aurora.request({
+                    url: $('fnd9220_companySupplierContactSave_link').getUrl(),
+                    para: data,
+                    success: function(result) {
+                        fnd9220_companySupplier_submitSuccessFun();
+                    },
+                    failure: function() {
+                        $('fnd9220_companySupplier_saveBtu').enable();
+                        $('fnd9220_companySupplier_cancelBtu').enable();
+                    },
+                    error: function() {
+                        $('fnd9220_companySupplier_saveBtu').enable();
+                        $('fnd9220_companySupplier_cancelBtu').enable();
+                    },
+                    scope: this
+                });
+            }
+            //附件上传和下载
+            
+            function fnd9220_upload_renderer(value, record, name) {
+                var attachment_id = record.get('attachment_id'); //附件ID
+                if (attachment_id) {
+                    return '<a href="' + $('fnd9220_attachment_file_download_link').getUrl() + '?attachment_id=' + attachment_id + '">' + value + '</a>';
+                }
+            }
+            
+            
+            //年份不可编辑
+            
+            function fnd9220_yearPeriod_ef(record, name) {
+                if (record.isNew) {
+                    return 'fnd9220_yearPeriod_nf';
+                }
+                return;
+            }
+            
+            
+            //地点tab事件
+            
+            function fnd9220_addressesCellClick_fun(grid, row, name, record) {
+                //国家、地区、城市级联更新
+                if (Ext.isEmpty(record.get('country_name')) || record.get('country_name') == undefined) {
+                    record.set('country_code', '');
+                    record.getField("province_name").setLovService('');
+                    record.getField("city_name").setLovService('');
+            
+                    record.getField('province_name').setReadOnly(true);
+                    record.getField('city_name').setReadOnly(true);
+                } else {
+                    var temp_string = record.get('country_code');
+                    record.getField("city_name").setLovService('');
+                    record.getField("province_name").setLovService('public.fnd_region_province_lov');
+                    record.getField("province_name").setLovPara('country_code', temp_string);
+            
+                    record.getField('province_name').setReadOnly(false);
+                }
+                if (Ext.isEmpty(record.get('province_name')) || record.get('province_name') == undefined) {
+                    record.set('province_id', '');
+                    record.getField("city_name").setLovService('');
+            
+                    record.getField('city_name').setReadOnly(true);
+                } else {
+                    record.getField("city_name").setLovService('public.fnd_region_city_lov');
+                    record.getField("city_name").setLovPara('province_id', record.get('province_id'));
+                    record.getField('city_name').setReadOnly(false);
+                }
+            
+            }
+            
+            //附件新增
+            
+            function fnd9220_attachment_add_fun() {
+                new Aurora.Window({
+                    id: 'fnd9220_attachment_file_upload_link_window',
+                    title: '${l:HAP_UPLOAD_TITLE}',
+                    url: $('fnd9220_attachment_file_upload_link').getUrl() + '?header_id=${/parameter/@supplier_id}&table_name=FND_COM_SUP_INFOS',
+                    width: 610,
+                    height: 500
+                }).on('close', function() { //关闭附件上传页面，执行的方法，刷新附件信息grid
+                    $('fnd9220_companySupplierAttachments_ds').query();
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd9220_domesticForeignRelation_ds" lookupCode="FND_COM_SUP_INFOS.DF_RELATION"/>
+            <a:dataSet id="fnd9220_supplierCategory_ds" lookupCode="FND_COM_SUP_INFOS.SUPPLIER_CATEGORY"/>
+            <a:dataSet id="fnd9220_enterpriseNature_ds" lookupCode="FND_COM_SUP_INFOS.ENTERPRISE_NATURE"/>
+            <a:dataSet id="fnd9220_taxpayerType_ds" lookupCode="FND_COM_SUP_INFOS.TAXPAYER_TYPE"/>
+            <a:dataSet id="fnd9220_factoryNature_ds" lookupCode="FND_COM_SUP_INFOS.FACTORY_NATURE"/>
+            <a:dataSet id="fnd9220_IsoCertificate_ds" lookupCode="FND_COM_SUP_INFOS.CERTIFICATE"/>
+            <a:dataSet id="fnd9220_idType_ds" lookupCode="FND_COM_SUP_INFOS.ID_TYPE"/>
+            <a:dataSet id="fnd9220_sex_ds" lookupCode="PUR_SEX"/>
+            <!-- INFORMATION HEAD -->
+            <a:dataSet id="fnd9220_companySupplierInfo_ds" autoQuery="true" model="fnd.FND9220.fnd_9220_company_supplier_info" queryUrl="${/request/@context_path}/autocrud/fnd.FND9220.fnd_9220_company_supplier_info/query?supplier_id=${/parameter/@supplier_id}">
+                <a:fields>
+                    <a:field name="supplier_id"/>
+                    <a:field name="business_group"/>
+                    <a:field name="company_id"/>
+                    <a:field name="company_code" prompt="FND_COMPANY.COMPANY_CODE" readOnly="true"/>
+                    <a:field name="company_full_name" prompt="FND_COMPANIES.FULL_NAME" readOnly="true"/>
+                    <a:field name="company_short_name" prompt="FND_COMPANIES.SHORT_NAME" readOnly="true"/>
+                    <a:field name="domestic_foreign_relation"/>
+                    <a:field name="domestic_foreign_relation_name" displayField="code_value_name" options="fnd9220_domesticForeignRelation_ds" required="true" returnField="domestic_foreign_relation" valueField="code_value"/>
+                    <a:field name="supplier_categroy"/>
+                    <a:field name="supplier_categroy_name" displayField="code_value_name" options="fnd9220_supplierCategory_ds" required="true" returnField="supplier_categroy" valueField="code_value"/>
+                    <a:field name="enterprise_nature"/>
+                    <a:field name="enterprise_nature_name" displayField="code_value_name" options="fnd9220_enterpriseNature_ds" required="true" returnField="enterprise_nature" valueField="code_value"/>
+                    <a:field name="tax_id_number"/>
+                    <a:field name="taxpayer_type"/>
+                    <a:field name="taxpayer_type_name" displayField="code_value_name" options="fnd9220_taxpayerType_ds" required="true" returnField="taxpayer_type" valueField="code_value"/>
+                    <a:field name="d_b_code"/>
+                    <a:field name="website"/>
+                    <a:field name="post_code"/>
+                    <a:field name="zone_code"/>
+                    <a:field name="fax_no"/>
+                    <a:field name="official_telephone"/>
+                    <a:field name="customer_service_phone"/>
+                    <a:field name="contact_email"/>
+                    <a:field name="factory_nature"/>
+                    <a:field name="factory_nature_name" displayField="code_value_name" options="fnd9220_factoryNature_ds" returnField="factory_nature" valueField="code_value"/>
+                    <a:field name="factory_area"/>
+                    <a:field name="iso9001_flag"/>
+                    <a:field name="iso9001_display" displayField="code_value_name" options="fnd9220_IsoCertificate_ds" returnField="iso9001_flag" valueField="code_value"/>
+                    <a:field name="iso14000_flag"/>
+                    <a:field name="iso14000_display" displayField="code_value_name" options="fnd9220_IsoCertificate_ds" returnField="iso14000_flag" valueField="code_value"/>
+                    <a:field name="other_certificate"/>
+                    <a:field name="business_scope"/>
+                    <a:field name="agent_brand"/>
+                    <a:field name="main_business"/>
+                    <a:field name="partner_info"/>
+                    <a:field name="service_item"/>
+                    <a:field name="comments"/>
+                    <a:field name="supply_abstract"/>
+                </a:fields>
+            </a:dataSet>
+            <!-- CONTACT -->
+            <a:dataSet id="fnd9220_companySupplierContacts_ds" autoQuery="true" model="fnd.FND9220.fnd_9220_com_sup_contacts" queryUrl="${/request/@context_path}/autocrud/fnd.FND9220.fnd_9220_com_sup_contacts/query?supplier_id=${/parameter/@supplier_id}" selectable="true">
+                <a:fields>
+                    <a:field name="contact_id"/>
+                    <a:field name="supplier_id" defaultValue="${/parameter/@supplier_id}"/>
+                    <a:field name="contact_name" required="true" requiredMessage="${l:FND_COM_SUP_CONTACTS.CONTACT_NAME}${l:PROMPT.INPUT}"/>
+                    <a:field name="contact_sex"/>
+                    <a:field name="contact_sex_name" displayField="code_value_name" options="fnd9220_sex_ds" returnField="contact_sex" valueField="code_value"/>
+                    <a:field name="id_type"/>
+                    <a:field name="id_type_name" displayField="code_value_name" options="fnd9220_idType_ds" returnField="id_type" valueField="code_value"/>
+                    <a:field name="id_number"/>
+                    <a:field name="department"/>
+                    <a:field name="position"/>
+                    <a:field name="mobile_phone" required="true" requiredMessage="${l:FND_COM_SUP_CONTACTS.MOBIL}${l:PROMPT.INPUT}"/>
+                    <a:field name="telephone"/>
+                    <a:field name="email"/>
+                    <a:field name="default_contact_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="contact_comments"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="fnd9220_onCompanySupplierContactsDs_submitsuccessFun"/>
+                </a:events>
+            </a:dataSet>
+            <!-- ACCOUNTS -->
+            <a:dataSet id="fnd9220_companySupplierAccounts_ds" autoQuery="true" model="fnd.FND9220.fnd_9220_com_sup_accounts" queryUrl="${/request/@context_path}/autocrud/fnd.FND9220.fnd_9220_com_sup_accounts/query?supplier_id=${/parameter/@supplier_id}" selectable="true">
+                <a:fields>
+                    <a:field name="account_id"/>
+                    <a:field name="supplier_id" defaultValue="${/parameter/@supplier_id}"/>
+                    <a:field name="bank_code" lovHeight="500" lovService="pur.public.csh_banks_lov" lovWidth="500" title="FND9220.BANK_LOV_TITLE">
+                        <a:mapping>
+                            <a:map from="bank_code" to="bank_code"/>
+                            <a:map from="bank_name" to="bank_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bank_branch_name"/>
+                    <a:field name="bank_account_name"/>
+                    <a:field name="bank_account_number"/>
+                    <a:field name="primary_account_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="fnd9220_onCompanySupplierAccountsDs_submitsuccessFun"/>
+                </a:events>
+            </a:dataSet>
+            <!-- FINANCE -->
+            <a:dataSet id="fnd9220_companySupplierFinances_ds" autoQuery="true" model="fnd.FND9220.fnd_9220_com_sup_finances" queryUrl="${/request/@context_path}/autocrud/fnd.FND9220.fnd_9220_com_sup_finances/query?supplier_id=${/parameter/@supplier_id}" selectable="true">
+                <a:fields>
+                    <a:field name="finance_id"/>
+                    <a:field name="supplier_id" defaultValue="${/parameter/@supplier_id}"/>
+                    <a:field name="year_period" required="true" requiredMessage="${l:FND_COM_SUP_FINANCES.YEAR_PERIOD}${l:PROMPT.INPUT}"/>
+                    <a:field name="total_assets" required="true" requiredMessage="${l:FND_COM_SUP_FINANCES.TOTAL_ASSETS}${l:PROMPT.INPUT}"/>
+                    <a:field name="total_liabilities" required="true" requiredMessage="${l:FND_COM_SUP_FINANCES.TOTAL_LIABILITIES}${l:PROMPT.INPUT}"/>
+                    <a:field name="current_assets" required="true" requiredMessage="${l:FND_COM_SUP_FINANCES.CURRENT_ASSETS}${l:PROMPT.INPUT}"/>
+                    <a:field name="current_liabilities" required="true" requiredMessage="${l:FND_COM_SUP_FINANCES.CURRENT_LIABILITIES}${l:PROMPT.INPUT}"/>
+                    <a:field name="revenue" required="true" requiredMessage="${l:FND_COM_SUP_FINANCES.REVENUE}${l:PROMPT.INPUT}"/>
+                    <a:field name="net_profit" required="true" requiredMessage="${l:FND_COM_SUP_FINANCES.NET_PROFIT}${l:PROMPT.INPUT}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="fnd9220_onCompanySupplierFinancesDs_submitsuccessFun"/>
+                </a:events>
+            </a:dataSet>
+            <!-- ADDRESS -->
+            <a:dataSet id="fnd9220_companySupplierAddresses_ds" autoQuery="true" model="fnd.FND9220.fnd_9220_com_sup_addresses" queryUrl="${/request/@context_path}/autocrud/fnd.FND9220.fnd_9220_com_sup_addresses/query?supplier_id=${/parameter/@supplier_id}" selectable="true">
+                <a:fields>
+                    <a:field name="address_id"/>
+                    <a:field name="supplier_id" defaultValue="${/parameter/@supplier_id}"/>
+                    <a:field name="country_code"/>
+                    <a:field name="country_name" lovHeight="500" lovService="public.fnd_country_lov" lovWidth="500" required="true" requiredMessage="${l:FND_COM_SUP_ADDRESSES.COUNTRY_CODE}${l:PROMPT.INPUT}" title="FND_COM_SUP_ADDRESSES.COUNTRY_CODE_CHOOSE">
+                        <a:mapping>
+                            <a:map from="country_code" to="country_code"/>
+                            <a:map from="country_name" to="country_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="province_id"/>
+                    <a:field name="province_name" lovHeight="500" lovWidth="500" readOnly="true" title="FND_COM_SUP_ADDRESSES.PROVINCE_CHOOSE">
+                        <a:mapping>
+                            <a:map from="province_id" to="province_id"/>
+                            <a:map from="province_name" to="province_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="city_id"/>
+                    <a:field name="city_name" lovHeight="500" lovWidth="500" readOnly="true" title="FND_COM_SUP_ADDRESSES.CITY_CHOOSE">
+                        <a:mapping>
+                            <a:map from="city_id" to="city_id"/>
+                            <a:map from="city_name" to="city_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="address_detail_desc" required="true" requiredMessage="${l:FND_COM_SUP_ADDRESSES.ADDRESS_DETAIL_ID}${l:PROMPT.INPUT}"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="fnd9220_onCompanySupplierAddressesDs_submitsuccessFun"/>
+                </a:events>
+            </a:dataSet>
+            <!-- ATTACHMENTS -->
+            <a:dataSet id="fnd9220_companySupplierAttachments_ds" autoQuery="true" model="public.fnd_attachment_file_mgr" queryUrl="${/request/@context_path}/autocrud/public.fnd_attachment_file_mgr/query?table_name=FND_COM_SUP_INFOS&amp;pk_value=${/parameter/@supplier_id}" selectable="true">
+                <a:fields>
+                    <a:field name="atm_line_id"/>
+                    <a:field name="line_name"/>
+                    <a:field name="atm_desc"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton id="fnd9220_companySupplier_saveBtu" click="fnd9220_companySupplier_saveFun" style="margin-left:20px;" text="HAP_SAVE" width="100"/>
+                <a:toolbarButton id="fnd9220_companySupplier_cancelBtu" click="fnd9220_companySupplier_cancelFun" text="PROMPT.CLOSE" width="100"/>
+            </a:screenTopToolbar>
+            <a:vBox>
+                <a:hBox labelWidth="120">
+                    <a:textField name="company_code" bindTarget="fnd9220_companySupplierInfo_ds"/>
+                    <a:textField name="company_full_name" bindTarget="fnd9220_companySupplierInfo_ds"/>
+                    <a:textField name="company_short_name" bindTarget="fnd9220_companySupplierInfo_ds"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:comboBox name="supplier_categroy_name" bindTarget="fnd9220_companySupplierInfo_ds" prompt="PUR_VENDORS.VENDOR_CATEGORY" readOnly="false"/>
+                    <a:comboBox name="domestic_foreign_relation_name" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.DOMESTIC_FOREIGN_RELATION" readOnly="false"/>
+                    <a:textField name="d_b_code" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.D_B_CODE" readOnly="false"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:comboBox name="enterprise_nature_name" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.ENTERPRISE_NATURE" readOnly="false"/>
+                    <a:comboBox name="taxpayer_type_name" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.TAXPAYER_IDENTIFICATION" readOnly="false"/>
+                    <a:textField name="tax_id_number" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.TAX_ID_NUMBER" readOnly="false"/>
+                </a:hBox>
+            </a:vBox>
+            <a:tabPanel marginWidth="100">
+                <a:tabs>
+                    <a:tab prompt="FND9220.BASIC_INFORMATION" width="100">
+                        <a:fieldSet style="margin-top:10px;margin-left:2px;" title="FND9220.BASIC_INFORMATION">
+                            <a:hBox labelWidth="120">
+                                <a:textField name="post_code" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.POST_CODE" readOnly="false"/>
+                                <a:textField name="zone_code" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.ZONE_CODE" readOnly="false"/>
+                                <a:textField name="fax_no" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.FAX_NO" readOnly="false"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textField name="official_telephone" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.OFFICAL_TELEPHONE" readOnly="false"/>
+                                <a:textField name="customer_service_phone" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.CUSTOMER_SERVICE_PHONE" readOnly="false" width="150"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textField name="website" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.WEBSITE" readOnly="false" width="430"/>
+                            </a:hBox>
+                        </a:fieldSet>
+                        <a:fieldSet style="margin-top:10px;margin-left:2px;" title="FND9220.BUSINESS_FIELDSET_TITLE">
+                            <a:hBox labelWidth="120">
+                                <a:comboBox name="factory_nature_name" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.FACTORY_NATURE" readOnly="false"/>
+                                <a:numberField name="factory_area" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.FACTORY_AREA" readOnly="false"/>
+                                <a:comboBox name="iso9001_display" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.ISO9001_FLAG" readOnly="false"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:comboBox name="iso14000_display" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.ISO14000_FLAG" readOnly="false"/>
+                                <a:textField name="other_certificate" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.OTHER_CERTIFICATE" readOnly="false"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textArea name="supply_abstract" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.SUPPLY_ABSTRACT" readOnly="false" width="704"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textArea name="business_scope" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.BUSINESS_SCOPE" readOnly="false" width="704"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textArea name="agent_brand" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.AGENT_BRAND" readOnly="false" width="704"/>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:textArea name="comments" bindTarget="fnd9220_companySupplierInfo_ds" prompt="FND_COM_SUP_INFOS.COMMENTS" readOnly="false" width="704"/>
+                            </a:hBox>
+                        </a:fieldSet>
+                    </a:tab>
+                    <a:tab prompt="FND9220.CONTACT_INFORMATION" width="100">
+                        <a:grid autoAppend="false" bindTarget="fnd9220_companySupplierContacts_ds" height="300" marginWidth="104" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button click="fnd9220_companySupplierContacts_saveFun" text="PROMPT.SAVE"/>
+                                <a:button type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="contact_name" align="left" editor="fnd9220_contact_tf" prompt="FND_COM_SUP_CONTACTS.CONTACT_NAME" width="65"/>
+                                <a:column name="contact_sex_name" align="left" editor="fnd9220_contact_cbx" prompt="FND_COM_SUP_CONTACTS.SEX" width="40"/>
+                                <a:column name="id_type_name" align="left" editor="fnd9220_contact_cbx" prompt="FND_COM_SUP_CONTACTS.ID_TYPE" width="60"/>
+                                <a:column name="id_number" align="left" editor="fnd9220_contact_tf" prompt="FND_COM_SUP_CONTACTS.ID_NUMBER" width="120"/>
+                                <a:column name="department" align="left" editor="fnd9220_contact_tf" prompt="FND_COM_SUP_CONTACTS.DEPARTMENT" width="80"/>
+                                <a:column name="position" align="left" editor="fnd9220_contact_tf" prompt="FND_COM_SUP_CONTACTS.POSITION" width="80"/>
+                                <a:column name="mobile_phone" align="left" editor="fnd9220_contact_tf" prompt="FND_COM_SUP_CONTACTS.MOBIL" width="100"/>
+                                <a:column name="telephone" align="left" editor="fnd9220_contact_tf" prompt="FND_COM_SUP_CONTACTS.PHONE" width="100"/>
+                                <a:column name="email" align="left" editor="fnd9220_contact_tf" prompt="FND_COM_SUP_CONTACTS.EMAIL" width="120"/>
+                                <a:column name="default_contact_flag" align="center" editor="fnd9220_contact_cb" prompt="FND_COM_SUP_CONTACTS.DEFAULT_CONTACT_FLAG" width="65"/>
+                                <a:column name="contact_comments" align="left" editor="fnd9220_contact_tf" prompt="FND_COM_SUP_CONTACTS.CONTACT_COMMENTS" width="90"/>
+                                <a:column name="enabled_flag" align="center" editor="fnd9220_contact_cb" prompt="FND_COM_SUP_CONTACTS.ENABLED_FLAG" width="40"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="fnd9220_contact_tf"/>
+                                <a:comboBox id="fnd9220_contact_cbx"/>
+                                <a:checkBox id="fnd9220_contact_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="FND9220.ACCOUNT_INFORMATION" width="100">
+                        <a:grid autoAppend="false" bindTarget="fnd9220_companySupplierAccounts_ds" height="300" marginWidth="104" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="save"/>
+                                <a:button type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="bank_code" align="center" editor="fnd9220_account_lov" prompt="FND_COM_SUP_ACCOUNTS.BANK_CODE" width="60"/>
+                                <a:column name="bank_name" align="left" prompt="FND_COM_SUP_ACCOUNTS.BANK_NAME" width="80"/>
+                                <a:column name="bank_branch_name" align="left" editor="fnd9220_account_tf" prompt="FND_COM_SUP_ACCOUNTS.OPENING_BANK_NAME" width="120"/>
+                                <a:column name="bank_account_name" align="left" editor="fnd9220_account_tf" prompt="FND_COM_SUP_ACCOUNTS.BANK_ACCOUNT_NAME" width="100"/>
+                                <a:column name="bank_account_number" align="left" editor="fnd9220_account_tf" prompt="FND_COM_SUP_ACCOUNTS.BANK_ACCOUNT" width="120"/>
+                                <a:column name="primary_account_flag" align="center" editor="fnd9220_account_cb" prompt="FND_COM_SUP_ACCOUNTS.PRIMARY_ACCOUNT_FLAG" width="60"/>
+                                <a:column name="enabled_flag" align="center" editor="fnd9220_account_cb" prompt="FND_COM_SUP_ACCOUNTS.ENABLED_FLAG" width="60"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="fnd9220_account_lov"/>
+                                <a:textField id="fnd9220_account_tf"/>
+                                <a:checkBox id="fnd9220_account_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="FND9220.ADDRESS_INFORMATION" width="100">
+                        <a:grid id="fnd9220_site_grid" autoAppend="false" bindTarget="fnd9220_companySupplierAddresses_ds" height="300" marginWidth="104" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="save"/>
+                                <a:button type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="country_name" align="left" editor="fnd9220_site_lov" prompt="FND_COM_SUP_ADDRESSES.COUNTRY_CODE" width="120"/>
+                                <a:column name="province_name" align="left" editor="fnd9220_site_lov" prompt="FND_COM_SUP_ADDRESSES.PROVINCE_ID" width="100"/>
+                                <a:column name="city_name" align="left" editor="fnd9220_site_lov" prompt="FND_COM_SUP_ADDRESSES.CITY_ID" width="100"/>
+                                <a:column name="address_detail_desc" align="left" editor="fnd9220_site_tf" prompt="FND_COM_SUP_ADDRESSES.ADDRESS_DETAIL_ID" width="150"/>
+                                <a:column name="post_code" align="left" editor="fnd9220_site_tf" prompt="FND_COM_SUP_ADDRESSES.POST_CODE" width="60"/>
+                                <a:column name="address_comments" align="left" editor="fnd9220_site_tf" prompt="FND_COM_SUP_ADDRESSES.ADDRESS_COMMENTS" width="150"/>
+                                <a:column name="enabled_flag" align="center" editor="fnd9220_site_cb" prompt="FND_COM_SUP_ADDRESSES.ENABLED_FLAG" width="60"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="fnd9220_site_lov"/>
+                                <a:textField id="fnd9220_site_tf"/>
+                                <a:checkBox id="fnd9220_site_cb"/>
+                            </a:editors>
+                            <a:events>
+                                <a:event name="cellclick" handler="fnd9220_addressesCellClick_fun"/>
+                            </a:events>
+                        </a:grid>
+                    </a:tab>
+                    <!-- <a:tab prompt="FND9220.FINANCIAL_SITUATION" width="100">
+                        <a:grid id="fnd9220_companySupplierFinances_grid" bindTarget="fnd9220_companySupplierFinances_ds" height="300" marginWidth="104" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="save"/>
+                                <a:button type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="year_period" align="center" editorFunction="fnd9220_yearPeriod_ef" prompt="FND_COM_SUP_FINANCES.YEAR_PERIOD" width="80"/>
+                                <a:column name="total_assets" align="center" editor="fnd9220_number_nf" prompt="FND_COM_SUP_FINANCES.TOTAL_ASSETS" width="80"/>
+                                <a:column name="total_liabilities" align="center" editor="fnd9220_number_nf" prompt="FND_COM_SUP_FINANCES.TOTAL_LIABILITIES" width="80"/>
+                                <a:column name="current_assets" align="center" editor="fnd9220_number_nf" prompt="FND_COM_SUP_FINANCES.CURRENT_ASSETS" width="80"/>
+                                <a:column name="current_liabilities" align="center" editor="fnd9220_number_nf" prompt="FND_COM_SUP_FINANCES.CURRENT_LIABILITIES" width="80"/>
+                                <a:column name="revenue" align="center" editor="fnd9220_number_nf" prompt="FND_COM_SUP_FINANCES.REVENUE" width="80"/>
+                                <a:column name="net_profit" align="right" editor="fnd9220_number_nf" prompt="FND_COM_SUP_FINANCES.NET_PROFIT" width="80"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:numberField id="fnd9220_yearPeriod_nf"/>
+                                <a:numberField id="fnd9220_number_nf" allowDecimals="true" decimalPrecision="2"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab> -->
+                    <a:tab prompt="FND9220.ATTACHMENT_INFORMATION" width="100">
+                        <a:grid autoAppend="false" bindTarget="fnd9220_companySupplierAttachments_ds" height="300" marginWidth="104" navBar="true">
+                            <a:toolBar>
+                                <a:button click="fnd9220_attachment_add_fun" icon="${/request/@context_path}/images/add.gif" text="HAP_NEW"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="file_name" align="left" renderer="fnd9220_upload_renderer" sortable="true" width="250"/>
+                                <a:column name="file_size" align="center" sortable="true" width="100"/>
+                                <a:column name="upload_user" align="center" prompt="上传人" sortable="true" width="50"/>
+                                <a:column name="upload_date" align="center" prompt="上传时间" sortable="true" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-24 下午7:26:23  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <s:server-script import="fnd_flex_dynamic_page_link.js"/>
+        <s:server-script import="fnd_flex_dynamic_page_main.js"/>
+        <s:server-script import="fnd_flex_dynamic_page_appl_view.js"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="pur5110_rfx_create_link" url="${/request/@context_path}/modules/pur/SACPUR5110/pur_rfx_maintain.screen"/>
+        <a:link id="pur5110_rfx_purchase_link" url="${/request/@context_path}/modules/pur/SACPUR5110/pur_rfx_purchase.svc"/>
+        <script><![CDATA[
+        	var pur5110_default_company_id = '${/session/@default_company_id}';
+        	var pur5110_default_company_desc = '${/session/@default_company_desc}';
+        	var pur5110_default_inv_organization_id = '${/session/@default_inv_organization_id}';
+        	var pur5110_default_inv_organization_desc = '${/session/@default_inv_organization_desc}';
+        	
+        	
+        
+			function pur5110_query(){
+					$('pur5110_rfx_create_lines_ds').removeAll();
+			 	    $('pur5110_req_demand_pool_result_ds').query();
+			}
+
+			function pur5110_req_demand_pool_query_ds_update(ds, record, name, value, oldvalue){
+			    if(name == "company_id"){
+	                record.set('inv_organization_id','');
+	                record.set('inv_organization_desc','');
+	                record.getField('inv_organization_desc').setLovPara('company_id', value);
+	                record.getField('item_code').setLovPara('company_id', value);
+	            }
+	            if(name == 'inv_organization_id'){
+	                record.set('item_id','');
+	                record.set('item_code','');
+	                record.set('item_desc','');
+	            	record.getField('item_code').setLovPara('inv_organization_id', value);
+	            } 
+			}
+			
+			function pur5110_req_demand_pool_result_select(dataSet, record) {
+                var create_lines_ds=$('pur5110_rfx_create_lines_ds');
+                if(Ext.isEmpty(create_lines_ds.find("pool_id",record.get("pool_id")))){
+                	var newRecord = new Aurora.Record(record.data);
+                	create_lines_ds.add(newRecord);
+                }
+            }
+            
+            function pur5110_req_demand_pool_result_unselect(dataSet, record) {
+                var create_lines_ds=$('pur5110_rfx_create_lines_ds');
+                var removeRecord = create_lines_ds.find("pool_id",record.get("pool_id"));
+                create_lines_ds.remove(removeRecord);
+            }
+            
+            function pur5110_req_demand_pool_result_grid_render(){
+                var dataSet=$("pur5110_req_demand_pool_result_ds");
+                var create_lines_ds=$('pur5110_rfx_create_lines_ds');
+                var records=dataSet.getAll();
+                
+                for (var i=0;i<records.length;i++){
+                    var create_lines_ds_record=create_lines_ds.find("pool_id",records[i].get("pool_id"));
+                    if(!Ext.isEmpty(create_lines_ds_record)){
+                        dataSet.select(records[i]);
+                    }
+                }
+            }
+            
+            function pur5110_create_rfx(){
+             	var rfx_create_lines_ds = $('pur5110_rfx_create_lines_ds');
+             	var records = rfx_create_lines_ds.getAll();
+             	if(Aurora.isEmpty(records)||Aurora.isEmpty(records.length)||records.length<1){
+             	    Aurora.showMessage('提示', '请选择行!');
+             	    return;
+             	}
+             	var old_company_id;
+             	var old_currency_code;
+             	var old_tax_included_flag;
+             	for(var i=0;i<records.length;i++){
+             	    var company_id = records[i].get('company_id');
+             	    var tax_included_flag = records[i].get('tax_included_flag');
+             		if(i==0||Aurora.isEmpty(old_currency_code)){
+             		    old_currency_code = records[i].get('currency_code');
+             			old_company_id = company_id;   
+             			old_tax_included_flag = tax_included_flag;
+             		}
+             		if(!Aurora.isEmpty(records[i].get('currency_code'))&&old_currency_code!=records[i].get('currency_code')){
+             		    Aurora.showMessage('提示', '所选行包含不同币种，不能创建RFx单据!');
+             		    return;
+             		}
+             		if(company_id!=old_company_id){
+             		    Aurora.showMessage('提示', '所选行包含不同公司，不能创建RFx单据!');
+             		    return;
+             		}
+             		if(tax_included_flag!=old_tax_included_flag){
+             		 	Aurora.showMessage('提示', '所选行包含不同含税标识，不能创建RFx单据!');
+             		    return; 
+             		}
+             	}
+             	
+             	new Aurora.Window({
+        	       id:'pur51101_rfx_maintain_window',
+        	       title:'RFx创建',
+        	       url:$('pur5110_rfx_create_link').getUrl()+'?company_id='+old_company_id+'&created_flag=Y&currency_code='+old_currency_code,
+        	       fullScreen:true
+        	    }).on('beforeclose', pur5110_query);
+            }
+            
+            function pur5110_req_demand_pool_result_grid_ef(record,name){
+                if(name == 'vendor_desc'){
+                 	var filing_wholesale_price = record.get('filing_wholesale_price');
+                 	if(!Aurora.isEmpty(filing_wholesale_price)){
+                 	    record.getField('vendor_desc').setLovPara('company_id', record.get('company_id'));
+                 	    record.getField('vendor_desc').setLovPara('inv_organization_id', record.get('inv_organization_id'));
+                 	    record.getField('vendor_desc').setLovPara('pur_ln_type', record.get('pur_ln_type'));
+                 	    record.getField('vendor_desc').setLovPara('item_id', record.get('item_id'));
+                 	    record.getField('vendor_desc').setLovPara('currency_code', record.get('currency_code'));
+                 	    record.getField('vendor_desc').setLovPara('tax_included_flag', record.get('tax_included_flag'));
+                 	 	return 'pur5110_vendor_desc_lov';   
+                 	}
+                 	return '';
+                }
+            }
+            
+            function pur5110_purchase_rfx(){
+             	var records = $('pur5110_rfx_create_lines_ds').getAll();
+             	if(Aurora.isEmpty(records)||records.length==0){
+             	    Aurora.showMessage('提示', '请选择行!');
+             		return; 
+             	} 
+             	var param = {};
+             	var data = [];
+             	for(var i=0;i<records.length;i++){
+             	 	var record = records[i];
+             	 	var filing_wholesale_price = record.get('filing_wholesale_price');
+             	 	var item_desc = record.get('item_desc');
+             	 	var vendor_id = record.get('vendor_id');
+             	 	if(Aurora.isEmpty(filing_wholesale_price)){
+                 	 	Aurora.showMessage('提示', '物料【'+item_desc+'】没有报备单价!');
+                 	 	return; 
+                 	}
+                 	if(Aurora.isEmpty(vendor_id)){
+                 	 	Aurora.showMessage('提示', '物料【'+item_desc+'】没有选择供应商!');
+                 	 	return; 
+                 	}
+                 	data.push(record.data);
+             	}
+             	param.data = data;
+             	Aurora.showConfirm('提示', '确认单一来源采购？', function() {
+	                 Aurora.Masker.mask(Ext.getBody(), '正在加载...');
+	             	 Aurora.request({
+                        url: $('pur5110_rfx_purchase_link').getUrl(),
+                        para: param,
+                        success: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            Aurora.showMessage('提示', '单一来源采购成功!',function(){pur5110_query();});
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            return;
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            return;
+                        }
+	             	 });
+	             });    
+            }
+            
+            function formatNumber2(value, decimalprecision) {
+                if (Ext.isEmpty(value)) return '';
+            
+                value = String(value).replace(/,/g, '');
+                if (isNaN(value)) return '';
+                if (decimalprecision || decimalprecision === 0)
+            
+            
+                var point_value = value.split('.');
+                var in_length = (point_value.length == 2) ? '.' + point_value[1] : '';
+            
+            
+                if (in_length.length - 1 < decimalprecision) {
+            
+                    decimalprecision = in_length.length - 1
+                };
+                if (in_length.length == 0) {
+                    decimalprecision = 0;
+                }
+            
+                value = Number(value).toFixed(decimalprecision);
+            
+                var ps = value.split('.');
+                var sub = (ps.length == 2) ? '.' + ps[1] : '';
+            
+            
+                var whole = ps[0];
+                var r = /(\d+)(\d{3})/;
+                while (r.test(whole)) {
+                    whole = whole.replace(r, '$1' + ',' + '$2');
+                }
+            
+                Math.round()
+                v = whole + sub;
+                return v;
+            }
+            
+            function pur5110_formatNumber_render(value,record,name){
+                return formatNumber2(value, 8);
+            }
+
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5110_rfx_create_lines_ds"/>
+            <a:dataSet id="pur5110_req_demand_pool_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_id"/>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="public.fnd_companies_lov" lovWidth="500" title="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_short_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="inv_organization_id"/>
+                    <a:field name="inv_organization_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="public.inv_organizations_lov" lovWidth="500" title="库存组织">
+                        <a:mapping>
+                            <a:map from="organization_id" to="inv_organization_id"/>
+                            <a:map from="organization_name" to="inv_organization_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_category_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="public.inv_item_categories_lov" lovWidth="500" title="物料分类">
+                        <a:mapping>
+                            <a:map from="item_category_id" to="item_category_id"/>
+                            <a:map from="item_category_desc" to="item_category_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_code" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="public.inv_system_items_lov" lovWidth="500" title="物料">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_desc" to="item_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_desc" readOnly="true"/>
+                    <a:field name="need_by_date_from"/>
+                    <a:field name="need_by_date_to"/>
+                    <a:field name="pur_req_num_from"/>
+                    <a:field name="pur_req_num_to"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur5110_req_demand_pool_query_ds_update"/>
+                    <!-- <a:event name="load" handler="pur5110_req_demand_pool_query_ds_load"/> -->
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur5110_req_demand_pool_result_ds" autoCount="true" autoPageSize="true" autoQuery="false" fetchAll="false" model="pur.SACPUR5110.pur_req_demand_pool_query" queryDataSet="pur5110_req_demand_pool_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="pool_id"/>
+                    <a:field name="tax_included_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="vendor_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="pur.SACPUR5110.pur_rfx_filing_vendor_lov" lovWidth="500" title="供应商">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_desc" to="vendor_desc"/>
+                            <a:map from="feedback_wholesale_price" to="filing_wholesale_price"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="select" handler="pur5110_req_demand_pool_result_select"/>
+                    <a:event name="unselect" handler="pur5110_req_demand_pool_result_unselect"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <!-- <a:defaultScreen> -->
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="pur5110_create_rfx" style="margin-left:20px;" text="创建" width="100"/>
+            <a:toolbarButton click="pur5110_purchase_rfx" style="margin-left:20px;" text="单一来源采购" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="pur5110_req_demand_pool_query_ds" resultTarget="pur5110_req_demand_pool_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:lov name="company_desc" bindTarget="pur5110_req_demand_pool_query_ds" prompt="公司">
+                    <a:events>
+                        <a:event name="enterdown" handler="pur5110_query"/>
+                    </a:events>
+                </a:lov>
+                <a:textField name="pur_req_num_from" bindTarget="pur5110_req_demand_pool_query_ds" prompt="申请号从">
+                    <a:events>
+                        <a:event name="enterdown" handler="pur5110_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="pur_req_num_to" bindTarget="pur5110_req_demand_pool_query_ds" prompt="申请号至">
+                    <a:events>
+                        <a:event name="enterdown" handler="pur5110_query"/>
+                    </a:events>
+                </a:textField>
+                <!-- <a:button click="pur5110_query" prompt="查询"/> -->
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox labelWidth="100">
+                    <a:lov name="inv_organization_desc" bindTarget="pur5110_req_demand_pool_query_ds" prompt="库存组织">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5110_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="item_category_desc" bindTarget="pur5110_req_demand_pool_query_ds" prompt="物料分类">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5110_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="item_code" bindTarget="pur5110_req_demand_pool_query_ds" prompt="物料编码">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5110_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField name="item_desc" bindTarget="pur5110_req_demand_pool_query_ds" prompt="物料描述"/>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:datePicker name="need_by_date_from" bindTarget="pur5110_req_demand_pool_query_ds" prompt="需求日期从">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5110_query"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="need_by_date_to" bindTarget="pur5110_req_demand_pool_query_ds" prompt="需求日期至">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5110_query"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="pur5110_req_demand_pool_result_grid" bindTarget="pur5110_req_demand_pool_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:columns id="pur5110_grid_columns">
+                <a:column name="pur_req_num" align="left" lock="true" prompt="采购申请号" width="50"/>
+                <a:column name="company_desc" align="left" lock="true" prompt="公司" width="60"/>
+                <a:column name="item_code" align="left" lock="true" prompt="物料编码" width="60"/>
+                <a:column name="item_desc" align="left" lock="true" prompt="物料描述" width="80"/>
+                <a:column name="pur_req_created_by_name" align="left" prompt="创建人" width="60"/>
+                <a:column name="note_to_receiver" align="left" prompt="通知接收人" width="60"/>
+                <a:column name="comments" align="left" prompt="备注" width="60"/>
+                <a:column name="filing_wholesale_price" align="right" prompt="报备单价" renderer="pur5110_formatNumber_render" width="50"/>
+                <a:column name="vendor_desc" align="left" editorFunction="pur5110_req_demand_pool_result_grid_ef" prompt="供应商" width="100"/>
+                <a:column name="inv_organization_desc" align="left" prompt="库存组织" width="80"/>
+                <a:column name="item_category_desc" align="left" prompt="物料分类" width="80"/>
+                <a:column name="item_note" align="left" prompt="物料说明" width="80"/>
+                <a:column name="item_parameter_config" align="left" prompt="参数配置" width="80"/>
+                <a:column name="tax_included_flag" align="center" prompt="含税" width="30"/>
+                <a:column name="tax_type_rate" align="center" prompt="税率" width="30"/>
+                <a:column name="uom_desc" align="left" prompt="单位" width="30"/>
+                <a:column name="currency_desc" align="left" prompt="币种" width="30"/>
+                <!-- <a:column name="exchange_rate" align="left" prompt="汇率" width="30"/> -->
+                <a:column name="quantity_required" align="left" prompt="数量" width="50"/>
+                <a:column name="need_by_date_desc" align="left" prompt="需求日期" width="60"/>
+                <a:dynamicPage id="segmentMaintain" columns="pur5110_grid_columns" datasetid="pur5110_req_demand_pool_result_ds" pagetype="query" pkname="pool_id" type="grid"/>
+            </a:columns>
+            <a:editors>
+                <a:lov id="pur5110_vendor_desc_lov"/>
+            </a:editors>
+            <a:events>
+                <a:event name="render" handler="pur5110_req_demand_pool_result_grid_render"/>
+            </a:events>
+        </a:grid>
+        <!-- </a:defaultScreen> -->
+        <script><![CDATA[
+        	function pur5110_req_demand_pool_query_ds_init(){
+	         	var record = $('pur5110_req_demand_pool_query_ds').getCurrentRecord();
+	         	if(!Aurora.isEmpty(pur5110_default_company_id)){
+	         	 	record.set('company_id',pur5110_default_company_id);
+	         	 	record.set('company_desc',pur5110_default_company_desc);
+	         	 	record.getField('inv_organization_desc').setLovPara('company_id', pur5110_default_company_id);
+	         	}
+	         	if(!Aurora.isEmpty(pur5110_default_inv_organization_id)){
+	         	 	//record.set('inv_organization_id',pur5110_default_inv_organization_id);
+	         	 	//record.set('inv_organization_desc',pur5110_default_inv_organization_desc);
+	         	 	record.getField('item_code').setLovPara('inv_organization_id', pur5110_default_inv_organization_id);
+	         	}
+	        }
+	        
+	       Aurora.onReady(function(){ 
+	           pur5110_req_demand_pool_query_ds_init();
+	       });
+        ]]></script>
+    </a:view>
+</a:screen>

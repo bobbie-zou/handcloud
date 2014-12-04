@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-8-7 下午7:31:17  
+    $Revision: 1.0  
+    $Purpose: 下一节点审批人表（客户化二开表）
+-->
+<bm:model xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="CUX_WFL_NODE_APPROVAL">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT 
+                	v.instance_id,
+                	v.node_id,
+                	v.new_node_id,
+                	v.record_id,
+                    v.seq_number,
+                    v.employee_id,
+                    v.enabled_flag,
+                    v.user_name,
+                    v.employee_name
+                FROM
+                    (SELECT
+                    	na.instance_id,
+                    	na.node_id,
+                    	na.new_node_id,
+                    	na.record_id,
+                        na.seq_number,
+                        na.employee_id,
+                        na.enabled_flag,
+                        su.user_name,
+                        ee.name AS employee_name
+                    FROM
+                        cux_wfl_node_approval na,
+                        sys_user su,
+                        exp_employees ee
+                    WHERE
+                        na.employee_id           = su.user_id AND
+                        su.employee_id           = ee.employee_id AND
+                        (
+                            su.end_date IS NULL OR
+                            sysdate BETWEEN su.start_date AND su.end_date
+                        )
+                         AND exists (select 1
+                  from exp_employee_assigns ea,
+                       exp_org_position     op
+                 where ea.position_id = op.position_id
+                       and ea.enabled_flag = 'Y'
+                       and op.enabled_flag = 'Y'
+                       AND (${@company_id} IS NULL OR EXISTS
+                        (SELECT 1
+                               FROM fnd_companies fc
+                              WHERE fc.start_date_active <= trunc(SYSDATE)
+                                    AND (fc.end_date_active IS NULL OR fc.end_date_active >= trunc(SYSDATE))
+                                    AND op.company_id = fc.company_id
+                              START WITH fc.company_id = ${@company_id}
+                             CONNECT BY fc.parent_company_id = PRIOR fc.company_id))
+                       and (op.unit_id = ${@unit_id} or ${@unit_id} is null)
+                       and ea.employee_id = ee.employee_id)
+                        AND
+                        na.record_id = ${@record_id}
+                    ) v #WHERE_CLAUSE#
+                ORDER BY
+                    v.seq_number
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+    			begin
+    			  wfl_core_pkg.cux_update_node_approval
+					  (
+					    p_instance_id   => ${@instance_id},
+					    p_node_id    	=> ${@new_node_id},
+					    p_record_id     => ${@record_id},
+					    p_employee_id	=> ${@employee_id},
+					    p_user_id		=> ${/session/@user_id}
+					  );
+    			end;
+    		]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="instance_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="node_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="new_node_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="record_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="seq_number" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SEQ_NUMBER" prompt="CUX_WFL_NODE_APPROVAL.SEQ_NUMBER"/>
+        <bm:field name="employee_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="EMPLOYEE_ID" prompt="CUX_WFL_NODE_APPROVAL.EMPLOYEE_ID"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="CUX_WFL_NODE_APPROVAL.ENABLED_FLAG"/>
+        <bm:field name="user_name" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false"/>
+        <bm:field name="employee_name" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="username_employee_position_name" queryExpression="v.user_name like &apos;%&apos;||UPPER(trim(${@username_employee_position_name}))||&apos;%&apos; or v.employee_name like &apos;%&apos;||trim(${@username_employee_position_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

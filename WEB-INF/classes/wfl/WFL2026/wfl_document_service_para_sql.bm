@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm"  >
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select b.service_para_id,
+       b.service_id,
+       b.sequence_num,
+       b.parameter_code,
+       b.parameter_desc,
+       a.document_service_id,
+       a.parameter_type,
+       a.parameter_value,
+       a.wfl_type_para_id,
+       (select z.PARAMETER_CODE
+          from wfl_workflow_type_parameter z
+         where z.workflow_type_para_id = a.wfl_type_para_id) wfl_type_para_code
+  from wfl_document_service_para a, wfl_workflow_service_para b,wfl_document_services c
+ where a.service_para_id(+) = b.service_para_id
+ and  a.document_service_id=c.document_service_id(+)
+ and  c.workflow_id(+)=${/parameter/@workflow_id}
+ and b.service_id =${/parameter/@service_id}
+ and a.document_service_id(+)=${/parameter/@document_service_id}
+ ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            begin
+				wfl_workflow_pkg.save_wfl_doc_service_para(p_document_service_id => ${@document_service_id},
+                                         p_service_para_id     => ${@service_para_id},
+                                         p_parameter_type      => ${@parameter_type},
+                                         p_parameter_value     => ${@parameter_value},
+                                         p_wfl_type_para_id    => ${@wfl_type_para_id},
+                                         p_user_id            => ${/session/@user_id});
+			end;
+			]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="service_para_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SERVICE_PARA_ID" required="true"/>
+        <bm:field name="document_service_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="DOCUMENT_SERVICE_ID"/>
+        <bm:field name="service_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SERVICE_ID" required="true"/>
+        <bm:field name="sequence_num" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SEQUENCE_NUM" required="true"/>
+        <bm:field name="parameter_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARAMETER_CODE" required="true"/>
+        <bm:field name="parameter_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARAMETER_DESC"/>
+        <bm:field name="parameter_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARAMETER_TYPE"/>
+        <bm:field name="parameter_value" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARAMETER_VALUE"/>
+        <bm:field name="wfl_type_para_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="WFL_TYPE_PARA_ID"/>
+        <bm:field name="wfl_type_para_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="WFL_TYPE_PARA_CODE"/>
+    </bm:fields>
+</bm:model>

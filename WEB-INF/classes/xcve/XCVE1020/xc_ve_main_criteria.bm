@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lichenguang  
+    $Date: 2011-11-10 上午08:04:35  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:e="aurora.service.exception" xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="XC_VE_MAIN_CRITERIA" defaultOrderBy="main_criterion_code">
+    <bm:fields>
+        <bm:field name="main_criterion_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="MAIN_CRITERION_ID" prompt="XC_VE_MAIN_CRITERIA.MAIN_CRITERION_ID"/>
+        <bm:field name="main_criterion_code" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="200" forDisplay="true" forQuery="true" physicalName="MAIN_CRITERION_CODE" prompt="XC_VE_MAIN_CRITERIA.MAIN_CRITERION_CODE"/>
+        <bm:field name="description_id" databaseType="NUMBER" datatype="java.lang.Long" multiLanguage="true" multiLanguageDescField="description" physicalName="DESCRIPTION_ID" prompt="XC_VE_MAIN_CRITERIA.DESCRIPTION_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID" prompt="XC_VE_MAIN_CRITERIA.COMPANY_ID"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="XC_VE_MAIN_CRITERIA.ENABLED_FLAG"/>
+        <bm:field name="description" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="350" forDisplay="true" forInsert="false" forQuery="true" forUpdate="false" prompt="XC_VE_MAIN_CRITERIA.MAIN_CRITERION_DESC"/>
+        <bm:field name="company_desc" expression="(select f.COMPANY_SHORT_NAME from fnd_companies_vl f where f.company_id = t1.company_id)" forInsert="false" forUpdate="false" prompt="FND_COMPANIES.COMPANY_SHORT_NAME"/>
+    </bm:fields>
+    <bm:features>
+        <f:standard-who/>
+        <f:multi-language-storage/>
+        <o:sequence-pk/>
+    </bm:features>
+    <bm:primary-key>
+        <bm:pk-field name="main_criterion_id"/>
+    </bm:primary-key>
+    <bm:data-filters>
+        <bm:data-filter name="company_id" enforceOperations="query" expression="t1.company_id=${@company_id}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="main_criterion_id" queryExpression="main_criterion_id=${@main_criterion_id}"/>
+        <bm:query-field name="enabled_flag" queryExpression="enabled_flag=${@enabled_flag}"/>
+        <bm:query-field name="main_criterion_code" queryExpression="main_criterion_code like &apos;%&apos;||${@main_criterion_code}||&apos;%&apos;"/>
+        <bm:query-field name="description" queryExpression="exists (select 1 from fnd_descriptions fd where t1.description_id=fd.description_id and fd.description_text like &apos;%&apos;||${@description}||&apos;%&apos; and fd.language = ${/session/@lang})"/>
+        <bm:query-field name="ve_template_id" queryExpression="exists (select 1 from xc_ve_template_mc_asgn ma where t1.main_criterion_id=ma.main_criterion_id and ma.ve_template_id=${@ve_template_id})"/>
+        <bm:query-field name="code_name" queryExpression="(main_criterion_code like &apos;%&apos;||${@code_name}||&apos;%&apos;  or exists (select 1 from fnd_descriptions fd where t1.description_id=fd.description_id and fd.description_text like &apos;%&apos;||${@code_name}||&apos;%&apos; and fd.language = ${/session/@lang})) and enabled_flag = &apos;Y&apos;"/>
+    </bm:query-fields>
+    <e:exception-descriptor-config>
+        <e:exception-descriptor exception="java.sql.SQLException" handleClass="aurora.database.SQLExceptionDescriptor">
+            <e:error-message code="1" message="考评指标代码不能重复！"/>
+        </e:exception-descriptor>
+    </e:exception-descriptor-config>
+</bm:model>

@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" model="gld.gld_currency_vl" rootPath="currency_list"/>
+        <!--<a:model-query autoCount="false" defaultWhereClause=" t1.company_id=${/session/@company_id} order by  t1.expense_requisition_type_code" fetchAll="true" model="expm.exp_expense_req_types_vl" rootPath="type_list"/>-->
+    </a:init-procedure>
+    <a:view>
+        <a:link id="exp_requisition_query_csh_payment_req_readonly_link" url="${/request/@context_path}/modules/expm/public/exp_requisition_query_csh_payment_req_readonly.screen"/>
+        <a:link id="exp_report_query_req_link_1" url="${/request/@context_path}/modules/expm/public/exp_report_query_req.screen"/>
+        <a:link id="exp_requisition_readonly_wfl_link_2" url="${/request/@context_path}/modules/expm/public/exp_requisition_readonly_wfl.screen"/>
+        <a:link id="exp_report_query_link_1" model="expm.exp_requisition_finance_query" modelaction="query"/>
+        <a:link id="exp_report_query_link_2" model="expm.exp_req_com_finance_query" modelaction="query"/>
+        <script><![CDATA[
+        
+				function queryFunction(){
+	                var all_company_flag=$('finance_query_ds').getAt(0).get('all_company_flag');
+	                if(all_company_flag=='N'){
+	                	$('finance_result_ds').setQueryUrl($('exp_report_query_link_1').getUrl());
+	                }else{
+		                $('finance_result_ds').setQueryUrl($('exp_report_query_link_2').getUrl());
+	                }
+    				$('finance_result_ds').query();
+    			}
+    			
+    			function resetFunction(){
+    			    $('finance_query_ds').getCurrentRecord().getField('payee_name').setReadOnly(true);
+    				$('finance_query_ds').reset();
+    			}
+    			
+				function updateFunction(dataSet,record,name,value){
+					if(name == 'payee_category'){
+						var title = '';
+						record.set('payee_name','');	
+						if(value == 'EMPLOYEE'){
+							title = '${l:EXP_EMPLOYEES.QUERY}';
+							record.getMeta().getField('payee_name').setLovService('expm.exp_employee_req_lov');
+			                record.getMeta().getField('payee_name').setReadOnly(false);
+						} else if(value == 'CUSTOMER'){
+							title = '${l:CUSTOMER_QUERY}';
+							record.getMeta().getField('payee_name').setLovService('expm.exp_customer_req_lov');
+							record.getMeta().getField('payee_name').setReadOnly(false);
+						} else if(value == 'VENDER'){
+							title = '${l:VENDER_SEARCH}';
+							record.getMeta().getField('payee_name').setLovService('expm.exp_vender_req_lov');
+						    record.getMeta().getField('payee_name').setReadOnly(false);
+						}else {
+							record.getMeta().getField('payee_name').setLovService('');
+							record.getMeta().getField('payee_name').setReadOnly(true);
+							
+						}
+						record.getMeta().getField('payee_name').setTitle(title);
+					}else if(name == 'payee_name'){
+						if(value == ''){
+							record.set('payee_id','');						
+						}
+					}
+				}	
+				
+				function payeeCodeCommitFuncton(lov,r1,r2){
+					var value = $('finance_query_ds').getAt(0).get('payee_category');
+					if(value == 'EMPLOYEE'){
+						r1.set('payee_id',r2.get('employee_id'));
+					} else if(value == 'CUSTOMER'){
+						r1.set('payee_id',r2.get('customer_id'));
+					} else{
+						r1.set('payee_id',r2.get('vender_id'));
+					}
+				}		
+				
+				function reqNumRenderer(value,record,name){
+					return '<a href="javascript:reqNumNewWindow(' + record.get('exp_requisition_header_id') + ',' + record.get('exp_requisition_type_id') + ',' + record.get('employee_id') +');">' + value + '</a>';
+				}
+				
+				function reqNumNewWindow(exp_requisition_header_id,exp_requisition_type_id,employee_id,company_id){
+					var url=/*exp_requisition_readonly_wfl.screen*/$('exp_requisition_readonly_wfl_link_2').getUrl()+'?head_id='+exp_requisition_header_id  + '&canUploadFlag=false';
+					//window.open(url,'','fullscreen=no,resizable=yes,width=1024,height=620');
+					new Aurora.Window({
+						url:url,
+						width:960,
+						height:620
+					});
+				}
+				
+				function viewFunction(){
+					var records = $('finance_result_ds').getSelected();					
+					if(records.length != 1){
+						Aurora.showInfoMessage('${l:PROMPT}','${l:PROMPT.PLEASE_SELECT_ONE}',null,250,100);
+						return ;
+					}
+					new Aurora.Window({
+						url:/*exp_report_query_req.screen*/$('exp_report_query_req_link_1').getUrl()+'?exp_requisition_header_id='+records[0].get('exp_requisition_header_id'),
+						title:'',
+						id:'exp_report_query_req_screen',
+						width:1000,
+						height:600
+					});
+				}
+				
+				function requisitionFunction(){
+					var records = $('finance_result_ds').getSelected();					
+					if(records.length != 1){
+						Aurora.showInfoMessage('${l:PROMPT}','${l:PROMPT.PLEASE_SELECT_ONE}',null,250,100);
+						return ;
+					}
+					new Aurora.Window({
+						url:/*exp_requisition_query_csh_payment_req_readonly.screen*/$('exp_requisition_query_csh_payment_req_readonly_link').getUrl()+'?head_id='+records[0].get('exp_requisition_header_id'),
+						title:'',
+						id:'exp_requisition_query_csh_payment_req_readonly_screen',
+						width:1000,
+						height:600
+					});
+				}
+			
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="status_list_finance_ds" lookupCode="EXP_EXPENSE_REPORT_STATUS"/>
+            <!-- <a:dataSet id="payment_object_list_ds" lookupCode="PAYMENT_OBJECT"/> -->
+            <a:dataSet id="currency_list_ds">
+                <a:datas dataSource="/model/currency_list"/>
+            </a:dataSet>
+            <!--<a:dataSet id="type_list_ds">
+                <a:datas dataSource="/model/type_list"/>
+            </a:dataSet>-->
+            <a:dataSet id="close_list_ds" lookupCode="EXP_REQUISITION_CLOSE_STATUS"/>
+            <a:dataSet id="finance_query_ds">
+                <a:fields>
+                    <a:field name="type_item_display" autoComplete="true" autoCompleteField="description" lovHeight="500" lovService="expm.exp_expense_req_types_lov" lovWidth="530" prompt="EXP_REQUISITION_HEADERS.EXP_REQUISITION_TYPE_ID" title="EXP_REQUISITION_HEADERS.EXP_REQUISITION_TYPE_ID">
+                        <a:mapping>
+                            <a:map from="expense_requisition_type_id" to="type_item"/>
+                            <a:map from="description" to="type_item_display"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="type_item"/>
+                    <a:field name="employee_id_display" lovAutoQuery="true" lovGridHeight="320" lovHeight="440" lovService="exp.exp_company_employees_v_namecode" lovWidth="500" prompt="EXP_REQUISITION_HEADERS.EMPLOYEE_ID">
+                        <a:mapping>
+                            <a:map from="name_code" to="employee_id_display"/>
+                            <a:map from="employee_id" to="employee_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="requisition_date_from" prompt="EXP_REQUISITION_HEADERS.REQUISITION_DATE_FROM"/>
+                    <a:field name="requisition_date_to" prompt="EXP_REQUISITION_HEADERS.REQUISITION_DATE_TO"/>
+                    <a:field name="requisition_number" prompt="EXP_REQUISITION_HEADERS.EXP_REQUISITION_NUMBER"/>
+                    <a:field name="currency_name" displayField="currency_name" options="currency_list_ds" prompt="EXP_REQUISITION_HEADERS.CURRENCY_CODE" returnField="currency_code" valueField="currency_code"/>
+                    <!--  <a:field name="payee_category_display" displayField="code_value_name" options="payment_object_list_ds" prompt="EXP_REQUISITION_HEADERS.PAYEE_CATEGORY" returnField="payee_category" valueField="code_value"/>
+                    <a:field name="payee_category"/>
+                    <a:field name="payee_name" autoComplete="true" autoCompleteField="code_name" lovGridHeight="300" lovHeight="420" lovWidth="720" prompt="EXP_REQUISITION_HEADERS.PAYEE_ID" readOnly="true">
+                        <a:mapping>
+                            <a:map from="code_name" to="payee_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="payee_id"/> -->
+                    <a:field name="requisition_amount_from" prompt="EXP_REQUISITION_HEADERS.REQUISITION_AMOUNT_FROM"/>
+                    <a:field name="requisition_amount_to" prompt="EXP_REQUISITION_HEADERS.REQUISITION_AMOUNT_TO"/>
+                    <a:field name="requisition_status_display" displayField="code_value_name" options="status_list_finance_ds" prompt="EXP_REQUISITION_HEADERS.REQUISITION_STATUS" returnField="requisition_status" valueField="code_value"/>
+                    <a:field name="isclosed_display" displayField="code_value_name" options="close_list_ds" prompt="EXP_REQUISITION_HEADERS.EXP_REQUISITION_CLOSE_STATUS" returnField="isclosed" valueField="code_value"/>
+                    <a:field name="isclosed"/>
+                    <a:field name="all_company_flag" checkedValue="Y" defaultValue="N" prompt="CONTAIN_SUB_COMPANY" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="updateFunction"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="finance_result_ds" model="expm.exp_requisition_finance_query" pageSize="15" queryDataSet="finance_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="exp_requisition_number" prompt="EXP_REQUISITION_HEADERS.EXP_REQUISITION_NUMBER"/>
+                    <a:field name="type_description" prompt="EXP_REQUISITION_HEADERS.EXP_REQUISITION_TYPE_ID"/>
+                    <a:field name="employee_name" prompt="EXP_REQUISITION_HEADERS.EMPLOYEE_ID"/>
+                    <a:field name="requisition_date" prompt="EXP_REQUISITION_HEADERS.REQUISITION_DATE"/>
+                    <a:field name="currency_name" prompt="EXP_REQUISITION_HEADERS.CURRENCY_CODE"/>
+                    <a:field name="quarter_num" prompt="EXP_REQUISITION_LINES.REQUISITION_AMOUNT"/>
+                    <a:field name="quarter_num_fun" prompt="EXP_REQUISITION_LINES.REQUISITION_FUNCTIONAL_AMOUNT"/>
+                    <a:field name="usedamount" prompt="EXP_REQUISITION_RELEASE.REQ_RELEASE_AMOUNT"/>
+                    <a:field name="usedquanlity" prompt="EXP_REQUISITION_RELEASE.REQ_RELEASE_QUANTITY"/>
+                    <!-- <a:field name="payee_category_name" prompt="EXP_REQUISITION_HEADERS.PAYEE_CATEGORY"/>
+                    <a:field name="payee_name" prompt="EXP_REQUISITION_HEADERS.PAYEE_ID"/> -->
+                    <a:field name="requisition_status" prompt="EXP_REQUISITION_HEADERS.REQUISITION_STATUS"/>
+                    <a:field name="description" prompt="EXP_REQUISITION_HEADERS.DESCRIPTION"/>
+                    <a:field name="isclose" prompt="EXP_REQUISITION_HEADERS.EXP_REQUISITION_CLOSE_STATUS"/>
+                    <a:field name="exp_requisition_header_id"/>
+                    <a:field name="requisition_status_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:form column="4" labelWidth="100" style="margin:10px;" title="EXP_REQUISITION_HEADERS.QUERY" width="950">
+            <a:textField name="requisition_number" bindTarget="finance_query_ds"/>
+            <a:lov name="type_item_display" bindTarget="finance_query_ds"/>
+            <a:datePicker name="requisition_date_from" bindTarget="finance_query_ds"/>
+            <a:datePicker name="requisition_date_to" bindTarget="finance_query_ds"/>
+            <a:lov name="employee_id_display" bindTarget="finance_query_ds"/>
+            <a:comboBox name="currency_name" bindTarget="finance_query_ds"/>
+            <!-- <a:comboBox name="payee_category_display" bindTarget="finance_query_ds"/>
+            <a:lov name="payee_name" bindTarget="finance_query_ds">
+                <a:events>
+                    <a:event name="commit" handler="payeeCodeCommitFuncton"/>
+                </a:events>
+            </a:lov> -->
+            <a:numberField name="requisition_amount_from" bindTarget="finance_query_ds"/>
+            <a:numberField name="requisition_amount_to" bindTarget="finance_query_ds"/>
+            <a:comboBox name="requisition_status_display" bindTarget="finance_query_ds"/>
+            <a:comboBox name="isclosed_display" bindTarget="finance_query_ds"/>
+            <a:checkBox name="all_company_flag" bindTarget="finance_query_ds" prompt="CONTAIN_SUB_COMPANY"/>
+        </a:form>
+        <a:hBox style="margin:10px;">
+            <a:button click="queryFunction" text="PROMPT.QUERY"/>
+            <a:button click="resetFunction" text="PROMPT.RESET"/>
+        </a:hBox>
+        <a:hBox style="margin-left:10px;margin-top:10px;">
+            <a:button click="viewFunction" text="EXP_REQUISITION_HEADERS.VIEW_EXP_REPORT"/>
+            <a:button click="requisitionFunction" text="EXP_REQUISITION_LINES.CSH_PAYMENT_REQUISITION"/>
+        </a:hBox>
+        <a:grid bindTarget="finance_result_ds" height="400" navBar="true" style="margin:10px;" width="950">
+            <a:toolBar>
+                <a:button type="excel"/>
+            </a:toolBar>
+            <a:columns>
+                <a:column name="exp_requisition_number" align="center" renderer="reqNumRenderer" width="120"/>
+                <a:column name="type_description" align="center" width="120"/>
+                <a:column name="employee_name" align="center" width="120"/>
+                <a:column name="requisition_date" align="center" width="80"/>
+                <a:column name="currency_name" align="center" width="60"/>
+                <a:column name="quarter_num" align="right" width="60"/>
+                <a:column name="quarter_num_fun" align="right" width="80"/>
+                <a:column name="usedamount" align="right" width="110"/>
+                <a:column name="usedquanlity" align="right" width="110"/>
+                <!-- <a:column name="payee_category_name" align="center" width="80"/>
+                <a:column name="payee_name" align="center" width="80"/> -->
+                <a:column name="requisition_status" align="center" width="80"/>
+                <a:column name="description" align="center" width="80"/>
+                <a:column name="isclose" align="center" width="80"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

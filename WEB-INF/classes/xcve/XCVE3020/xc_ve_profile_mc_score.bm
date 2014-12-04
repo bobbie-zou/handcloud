@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-5 下午3:16:48  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="vendor_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="VENDOR_NAME"/>
+        <bm:field name="item_group_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_GROUP_CODE"/>
+        <bm:field name="item_group_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_GROUP_DESC"/>
+        <bm:field name="criterion_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CRITERION_DESC"/>
+        <bm:field name="period_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PERIOD_NAME"/>
+        <bm:field name="score" databaseType="NUMBER" datatype="java.lang.Double" physicalName="SCORE"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+				select (select r.company_full_name
+				          from hsp_sys_vender_reg r
+				         where r.user_id = s.vendor_id) vendor_name,
+				       (select a.mtlgrp
+				          from xc_mmrmtlgroup_mv a
+				         where a.mmrmtlgroupid = s.item_group_id
+				           and a.client = '800') item_group_code,
+				       (select b.mtlgrptext from xc_mmrmtlgrouptrl_mv b where b.mmrmtlgroupid=s.item_group_id and b.language='zh_CN') item_group_desc,
+				       s.main_criterion_desc criterion_desc,
+				       p.period_name,
+				       decode(s.graph_comparison_weight, 0, 0, (s.score / s.graph_comparison_weight * 100)) score
+				  from xc_ve_profile_mc_score s,
+				       xc_ve_profiles         p,
+				       gld_periods            gp
+				 where s.ve_profile_id = p.ve_profile_id
+				   and p.period_name = gp.period_name
+				   and gp.period_set_code =
+				       (select b.period_set_code
+				          from gld_set_of_books b
+				         where b.set_of_books_id =
+				               (select c.set_of_books_id
+				                  from fnd_companies c
+				                 where c.company_id = ${/session/@company_id}))
+				   and p.company_id = ${/session/@company_id}
+				   and p.ve_template_id = ${@ve_template_id}
+				   and p.status = 'ESTIMATED'
+				   and p.available_flag = 'Y'
+				   and s.item_group_id = ${@item_group_id}
+				   and s.main_criterion_id = ${@main_criterion_id}
+				   and gp.internal_period_num >= ${@internal_period_num_from}
+				   and gp.internal_period_num <= ${@internal_period_num_to}
+				 order by s.vendor_id,
+				          s.item_group_id,
+				          s.main_criterion_code,
+				          gp.internal_period_num
+    		]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duxiaofu4653 $
+    $Date: 2014/02/21 06:12:28 $
+    $Revision: 1.8 $
+    $Purpose: “汇率定义”功能的详细定义页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <script><![CDATA[
+            var fnd1090_mode = $('fnd1090_gld_exchange_rate_ds').getCurrentRecord().get('rate_method_code');
+            var fnd1090_currency_code = $('fnd1090_gld_exchange_rate_ds').getCurrentRecord().get('currency_code');
+            var fnd1090_type_code = $('fnd1090_gld_exchange_rate_ds').getCurrentRecord().get('type_code');
+            
+            function fnd1090_gridDataUpdate(ds, record, name, value) {
+                record.set('currency_code', fnd1090_currency_code);
+                record.set('type_code', fnd1090_type_code);
+                record.set('company_id' ,$('fnd1090_gld_exchange_rate_ds').getCurrentRecord().get('company_id'));
+            }
+            
+            function fnd1090_gridDataAdd(ds, record, index) {
+                var dateField = record.getMeta().getField('conversion_date');
+                var periodField = record.getMeta().getField('period_name');
+            
+                if (fnd1090_mode == 'PERIOD') {
+                    periodField.setRequired(true);
+                }
+                if (fnd1090_mode == 'DAILY') {
+                    dateField.setRequired(true);
+                }
+            }
+            
+            function fnd1090_returnback() {
+                if ($('fnd1090_gld_exchange_rate_detail_grid_ds').isModified()) {
+                    Aurora.showConfirm('${l:PROMPT_MESSAGE}', '${l:SYS_PROMPT.WINDOW_CLOSE_CONFIRM}', function() {
+                        $('fnd1090_gld_exchange_rate_detail_window').close();
+                    });
+                } else {
+                    $('fnd1090_gld_exchange_rate_detail_window').close();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd1090_quotation_ds" lookupCode="EXCHANGE_RATE_QUOTATION"/>
+            <!-- <a:dataSet id="fnd1090_gld_exchange_rate_detail_fs_ds" autocreate="true">
+                <a:fields>
+                    <a:field name="currency_code" defaultvalue="${/parameter/@currency_code}" readonly="true"/>
+                    <a:field name="currency_name" defaultvalue="${/parameter/@currency_name}" readonly="true"/>
+                    <a:field name="type_code" defaultValue="${/parameter/@type_code}" readonly="true"/>
+                    <a:field name="method_name" defaultValue="${/parameter/@rate_method_code}" readonly="true"/>
+                    <a:field name="currency_code_frn" defaultValue="${/parameter/@currency_code_frn}" readonly="true"/>
+                    <a:field name="period_from" defaultValue="${/parameter/@period_from}" readonly="true"/>
+                    <a:field name="period_to" defaultValue="${/parameter/@period_to}" readonly="true"/>
+                    <a:field name="date_from" defaultValue="${/parameter/@date_from}" readonly="true"/>
+                    <a:field name="date_to" defaultValue="${/parameter/@date_to}" readonly="true"/>
+                </a:fields>
+            </a:dataSet> -->
+            <a:dataSet id="fnd1090_gld_exchange_rate_detail_grid_ds" autoQuery="true" fetchAll="false" model="gld.gld_exchange_rates_detail" queryDataSet="fnd1090_gld_exchange_rate_ds" selectable="true" submitUrl="${/request/@context_path}/autocrud/gld.FND1090.gld_exchange_rate_detail_update/batch_update">
+                <!--queryUrl="${/request/@context_path}/autocrud/fnd.fnd_weekday_rules/query?ORDER_FIELD=weekday_number&amp;calendar_id=${/parameter/@calendar_id}" -->
+                <a:fields>
+                    <!-- lov携带参数，防止选出和本币相同的货币-->
+                    <a:field name="to_currency" autoComplete="true" autoCompleteField="quick_to_currency" lovGridHeight="300" lovHeight="460" lovService="gld.gld_currency_lov?currency_code_frn=${/parameter/@currency_code}" lovWidth="490" required="true" title="GLD_EXCHANGE_RATES.TO_CURRENCY_CODE">
+                        <a:mapping>
+                            <a:map from="currency_code" to="to_currency"/>
+                            <a:map from="currency_name" to="currency_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="quotation_display" displayField="code_value_name" options="fnd1090_quotation_ds" required="true" returnField="exchange_rate_quotation" valueField="code_value"/>
+                    <a:field name="period_name" lovGridHeight="300" lovHeight="460" lovService="gld.gld_period_lov" lovWidth="490" title="GLD_EXCHANGE_RATE_DETAILS.PERIOD_NAME">
+                        <a:mapping>
+                            <a:map from="period_name" to="period_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="date_from" readonly="true"/>
+                    <a:field name="date_to" readonly="true"/>
+                    <a:field name="currency_volume" required="true"/>
+                    <a:field name="conversion_rate" required="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd1090_gridDataUpdate"/>
+                    <a:event name="add" handler="fnd1090_gridDataAdd"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="fnd1090_gld_exchange_rate_gird" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="fnd1090_gld_exchange_rate_gird" type="save" width="100"/>
+                <a:gridButton bind="fnd1090_gld_exchange_rate_gird" type="delete" width="100"/>
+                <a:gridButton bind="fnd1090_gld_exchange_rate_gird" type="clear" width="100"/>
+                <a:gridButton click="fnd1090_returnback" text="HAP_BACK" width="100"/>
+            </a:screenTopToolbar>
+            <a:form title="GLD_EXCHANGE_RATE.TITLE">
+                <a:hBox labelWidth="90">
+                    <a:textField name="currency_code" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_CURRENCY.CURRENCY_CODE" readOnly="true"/>
+                    <a:textField name="currency_name" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_CURRENCY.CURRENCY_NAME" readOnly="true"/>
+                </a:hBox>
+                <a:hBox labelWidth="90">
+                    <a:textField name="type_code" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGERATE_TYPES.TYPE_CODE" readOnly="true"/>
+                    <a:textField name="rate_method_code" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGE_RATE_DETAILS.EXCHANGE_TYPE" readOnly="true"/>
+                </a:hBox>
+            </a:form>
+            <a:grid id="fnd1090_gld_exchange_rate_gird" bindTarget="fnd1090_gld_exchange_rate_detail_grid_ds" height="360" navBar="true" width="1000">
+                <a:columns>
+                    <a:column name="to_currency" align="center" editor="fnd1090_gerg_lov" prompt="GLD_EXCHANGE_RATES.TO_CURRENCY_CODE" sortable="true" width="150"/>
+                    <a:column name="currency_name" align="left" prompt="GLD_CURRENCY.CURRENCY_NAME" sortable="true" width="150"/>
+                    <a:column name="currency_volume" align="right" editor="fnd1090_gerg_nf" prompt="GLD_EXCHANGE_RATE_DETAILS.CURRENCY_VOLUME" sortable="true" width="150"/>
+                    <a:column name="conversion_rate" align="right" editor="fnd1090_rate_nf" prompt="GLD_EXCHANGE_RATE_DETAILS.CONVERSION_RATE" sortable="true" width="150"/>
+                    <a:column name="quotation_display" align="center" editor="fnd1090_gerg_cmb" prompt="GLD_EXCHANGE_RATE_DETAILS.QUOTATION" width="150"/>
+                    <a:column name="conversion_date" align="center" editor="fnd1090_gerg_dp" prompt="GLD_EXCHANGE_RATE_DETAILS.CONVERSION_DATE" renderer="Aurora.formatDate" sortable="true" width="100"/>
+                    <a:column name="period_name" align="center" editor="fnd1090_gerg_lov" prompt="GLD_EXCHANGE_RATE_DETAILS.PERIOD_NAME" sortable="true" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="fnd1090_gerg_lov"/>
+                    <a:numberField id="fnd1090_gerg_nf"/>
+                    <a:numberField id="fnd1090_rate_nf" decimalPrecision="4"/>
+                    <a:comboBox id="fnd1090_gerg_cmb"/>
+                    <a:datePicker id="fnd1090_gerg_dp"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+        <script><![CDATA[
+            //隐藏列
+            
+            function fnd1090_hideRows() {
+                var grid = $('fnd1090_gld_exchange_rate_gird');
+                if (fnd1090_mode == 'PERIOD') {
+                    grid.hideColumn('conversion_date');
+                } else if (fnd1090_mode == 'DAILY') {
+                    grid.hideColumn('period_name');
+                } else {
+                    grid.hideColumn('conversion_date');
+                    grid.hideColumn('period_name');
+                }
+            }
+            
+            fnd1090_hideRows();
+        ]]></script>
+    </a:view>
+</a:screen>

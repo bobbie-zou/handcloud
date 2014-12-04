@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-6-9 上午10:05:54  
+    $Revision: 1.0  
+    $Purpose: 物料主数据附件信息维护BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="record_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="attachment_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="file_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="file_size" databaseType="NUMBER" datatype="java.lang.Double"/>
+        <bm:field name="table_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="item_id" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="note" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="item_id" queryExpression="v.item_id = ${@item_id}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.record_id,
+                    v.attachment_id,
+                    v.file_name,
+                    v.file_size,
+                    v.table_name,
+                    v.item_id,
+                    v.note,
+                    v.enabled_flag
+                FROM
+                    (SELECT
+                        faa.attachment_id,
+                        faa.file_name,
+                        round(faa.file_size/1024/1024,2) as file_size,
+                        aam.record_id,
+                        aam.table_name,
+                        aam.table_pk_value as item_id,
+                        aam.note,
+                        aam.enabled_flag
+                    FROM
+                        fnd_atm_attachment faa,
+                        fnd_atm_attachment_multi aam
+                    WHERE
+                        faa.attachment_id = aam.attachment_id AND
+                        aam.table_name    = 'INV_SYSTEM_ITEMS'
+                    ) v #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                begin
+    			  inv_system_items_pkg.update_sys_item_attachment
+					  (
+					    p_record_id				=> ${@record_id},
+					    p_note					=> ${@note},
+					    p_enabled_flag			=> ${@enabled_flag},
+					    p_user_id               => ${/session/@user_id}
+					  );
+    			end;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

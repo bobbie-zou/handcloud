@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-2-25 下午7:17:59  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select * from (
+select ti.tmpl_instance_id,
+       ti.appl_table_id,
+       t.appl_table_name,
+       t.appl_table_desc,
+       ft.template_id,
+       ft.tmpl_group_id,
+       ft.template_code,
+       ft.compiled_flag,
+       ti.level_type,
+       ti.version,
+       ti.enabled_flag,
+       (select fc.framework_type
+          from fnd_flex_tmpl_groups fg, fnd_flex_tmpl_categories fc
+         where fg.tmpl_category_id = fc.tmpl_category_id
+           and fg.tmpl_group_id = ft.tmpl_group_id) framework_type,
+       ft.template_desc,
+       ft.sys_flag,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = ft.sys_flag
+           and sc.code = 'FND_FLEX_SYS_FLAG') sys_flag_desc,
+       ti.released_flag,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = ti.released_flag
+           and sc.code = 'YES_NO') released_flag_desc
+  from fnd_flex_tmpl_instances ti,
+       fnd_flex_appl_tables_vl t,
+       fnd_flex_templates_t_vl      ft
+ where ft.template_id = ti.template_id 
+   and ti.appl_table_id = t.appl_table_id
+   and ti.level_type = 'SYS'
+   and ti.lasted_version_flag = 'Y'
+   and ti.template_id = ${/parameter/@template_id}) t
+    #WHERE_CLAUSE# 
+  order by template_code
+   ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    fnd_flex_tmpl_instance_pkg.create_sys_instance(x_tmpl_instance_id => ${@tmpl_instance_id},
+                                x_version          => ${@version},
+                                p_template_id      => ${@template_id},
+                                p_appl_table_id    => ${@appl_table_id},
+                                p_user_id          => ${/session/@user_id});
+                    
+                END;
+            ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="tmpl_instance_id" input="false" output="true"/>
+                <bm:parameter name="version" input="false" output="true"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    fnd_flex_tmpl_instance_pkg.modified_tmpl_instance(p_tmpl_instance_id => ${@tmpl_instance_id},
+                    		      p_version          => ${@version},
+                                  p_enabled_flag     => ${@enabled_flag},
+                                  p_user_id 		 => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="tmpl_instance_id" queryExpression="tmpl_instance_id=${@tmpl_instance_id}"/>
+        <bm:query-field name="template_id" queryExpression="template_id=${@template_id}"/>
+        <bm:query-field name="version" queryExpression="version=${@version}"/>
+        <bm:query-field name="appl_table_id" queryExpression="appl_table_id=${@appl_table_id}"/>
+        <bm:query-field name="level_type" queryExpression="level_type=${@level_type}"/>
+        <bm:query-field name="company_id" queryExpression="company_id=${@company_id}"/>
+        <bm:query-field name="template_code" queryExpression="template_code like &apos;%&apos;||${@template_code}||&apos;%&apos;"/>
+        <bm:query-field name="template_desc" queryExpression="template_desc like &apos;%&apos;||${@template_desc}||&apos;%&apos;"/>
+        <bm:query-field name="quick_value" queryExpression="(template_code like &apos;%&apos;||upper(${@quick_value})||&apos;%&apos; or template_desc like &apos;%&apos;||${@quick_value}||&apos;%&apos;)"/>
+    </bm:query-fields>
+</bm:model>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2014-2-20 上午10:54:00  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        s.vendor_site_id,
+                        s.vendor_id,
+                        s.site_name,
+                        s.address,
+                        s.address_comments
+                    FROM
+                        pur_vendors_v v,
+                        pur_vendor_sites_vl s,
+                        fnd_business_units bu,
+                        fnd_companies_vl fcv,
+                        (SELECT
+                            fc.company_id
+                        FROM
+                            fnd_companies_vl fc
+                        WHERE
+                            fc.business_group = ${/session/@business_group}
+                        ) f
+                    WHERE
+                        v.vendor_id       = s.vendor_id AND
+                        s.org_id          = bu.business_unit_id AND
+                        v.coop_company_id = fcv.company_id(+) AND
+                        bu.company_id     = f.company_id
+                    GROUP BY
+                        s.vendor_site_id,
+                        s.vendor_id,
+                        s.site_name,
+                        s.address,
+                        s.address_comments
+                    ) t1 #WHERE_CLAUSE#
+                ORDER BY
+                    t1.vendor_site_id
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="vendor_site_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_SITE_ID"/>
+        <bm:field name="vendor_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_ID"/>
+        <bm:field name="site_name" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="250" forDisplay="true" forQuery="true" physicalName="SITE_NAME" prompt="PUR_VENDOR_SITES.SITE_NAME_ID" queryWidth="300"/>
+        <bm:field name="address" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="250" forDisplay="true" forQuery="true" physicalName="ADDRESS" prompt="PUR_VENDOR_SITES.ADDRESS_ID" queryWidth="300"/>
+        <bm:field name="address_comments" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="250" forDisplay="true" physicalName="ADDRESS_COMMENTS" prompt="PUR_VENDOR_SITES.ADDRESS_COMMENTS" queryWidth="300"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="vendor_id" queryExpression="vendor_id=${@vendor_id}"/>
+        <bm:query-field name="site_name" queryExpression="site_name like &apos;%&apos;||${@site_name}||&apos;%&apos;"/>
+        <bm:query-field name="address" queryExpression="address like &apos;%&apos;||${@address}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

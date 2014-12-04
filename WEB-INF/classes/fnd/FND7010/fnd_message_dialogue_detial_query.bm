@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: huyijun 
+    $Date: 2013-5-21 下午04:25:29  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            SELECT *
+			  FROM (SELECT m1.message_from,
+			               m1.message_to,
+			               'right' type,
+			               m1.message_id,
+			               r.source_user_id,
+			               (SELECT u.description FROM sys_user u WHERE u.user_id = m1.message_from) user_name,
+			               m1.content,
+			               to_char(m1.send_date, 'yyyy-mm-dd HH24:mi:ss') send_date
+			          FROM fnd_user_message_recipients r,
+			               fnd_user_messages           m1
+			         WHERE r.dialogue_id = ${/parameter/@dialogue_id}
+			               AND r.message_id = m1.message_id
+			               AND r.source_user_id = ${/session/@user_id}
+			               AND r.message_from = ${/session/@user_id}
+			               AND r.message_to = ${/parameter/@opposite_id}
+			               AND r.delete_flag = 'N'
+			        UNION
+			        SELECT m2.message_from,
+			               m2.message_to,
+			               'left' type,
+			               m2.message_id,
+			               m2.message_to source_user_id,
+			               (SELECT u.description FROM sys_user u WHERE u.user_id = m2.message_from) user_name,
+			               m2.content,			               
+			               to_char(m2.send_date, 'yyyy-mm-dd HH24:mi:ss') send_date
+			          FROM fnd_user_message_recipients t,
+			               fnd_user_messages           m2
+			         WHERE t.dialogue_id = ${/parameter/@dialogue_id}
+			               AND t.message_id = m2.message_id
+			               AND t.message_to = ${/session/@user_id}
+			               AND t.message_from = ${/parameter/@opposite_id}
+			               AND t.source_user_id = ${/session/@user_id}
+			               AND t.delete_flag = 'N') t
+			 ORDER BY send_date
+ 			]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

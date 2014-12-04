@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-25 下午7:34:51  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <s:server-script import="fnd_flex_dynamic_tools.js"/>
+        <s:server-script import="fnd_flex_dynamic_page_main.js"/>
+        <s:server-script import="fnd_flex_dynamic_grid_expanded.js"/>
+        <a:model-query fetchAll="true" model="public.pur_rfx_types_list" rootPath="pur51601_rfx_types_source"/>
+        <a:model-query fetchAll="true" model="public.csh_payment_methods_list" rootPath="pur51601_payment_methods_source"/>
+        <a:model-query fetchAll="true" model="public.currency_list" rootPath="pur51601_currency_source"/>
+        <a:model-query fetchAll="true" model="public.fnd_tax_type_code_lov" rootPath="pur51601_tax_type_code_source"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="pur51601_rfx_round_link" url="${/request/@context_path}/modules/pur/PUR5160/pur_rfx_rounds.screen"/>
+        <a:link id="pur51601_rfx_save_link" url="${/request/@context_path}/modules/pur/PUR5160/pur_rfx_save.svc"/>
+        <a:link id="pur51601_rfx_round_svc_link" url="${/request/@context_path}/modules/pur/PUR5160/pur_rfx_round.svc"/>
+        <script><![CDATA[
+        	
+        	function pur51601_rfx_save() {
+	             var header_ds = $('pur51601_rfx_headers_ds');
+	             var vendor_ds = $('pur51601_rfx_ln_vendors_ds');
+	             var attachments_ds = $('pur51601_rfx_ln_attachments');
+	             var header_record = header_ds.getCurrentRecord();
+	             if(!header_ds.validate()){
+	              	return;   
+	             }
+	             if(!vendor_ds.validate()){
+	              	return;   
+	             }
+	             if(!attachments_ds.validate()){
+	              	return;   
+	             }         
+	             
+	             var data = header_record.data; 
+	             
+	              
+	             data['vendors'] = vendor_ds.getJsonData();
+	             data['attachments'] = attachments_ds.getJsonData();
+	             pur51601_mask(); 
+	             Aurora.request({
+	                url: $('pur51601_rfx_save_link').getUrl(),
+	                para: data,
+	                success: function(result) {
+	                    pur51601_unmask();
+	                    Aurora.showMessage('${l:PROMPT}', '${l:PUR5140.RFX_SAVE_SUCCESSFULLY}',function(){pur51601_window_reload();});
+	                },
+	                failure: function() {
+	                    pur51601_unmask();
+	                    return;
+	                },
+	                error: function() {
+	                    pur51601_unmask();
+	                    return;
+	                }
+	             });
+	        } 
+	        
+	        function pur51601_window_reload(){
+	         	var url = $('pur51601_rfx_round_link').getUrl();
+	         	    
+	         	var header_record = $('pur51601_rfx_headers_ds').getCurrentRecord();
+	         	var rfx_header_id = header_record.get('rfx_header_id');
+	         	url += '?rfx_header_id='+rfx_header_id;
+	         	$('pur51601_rfx_round_window').load(url); 
+	        }
+	        
+	        function pur51601_rfx_round(){
+	          	 var header_ds = $('pur51601_rfx_headers_ds');
+	             var vendor_ds = $('pur51601_rfx_ln_vendors_ds');
+	             var attachments_ds = $('pur51601_rfx_ln_attachments');
+	             var header_record = header_ds.getCurrentRecord();
+	             
+	             if(!header_ds.validate()){
+	              	return;   
+	             }
+	             if(!vendor_ds.validate()){
+	              	return;   
+	             }
+	             if(!attachments_ds.validate()){
+	              	return;   
+	             }
+	             
+	             var data = header_record.data; 
+	             
+	             data['vendors'] = vendor_ds.getJsonData(); 
+	             data['attachments'] = attachments_ds.getJsonData();  
+	             Aurora.showConfirm('${l:PROMPT}', '${l:PUR5150.RFX_RELEASE_NEXT_ROUND_CONFIRM}', function() {
+	                 pur51601_mask();
+	             	 Aurora.request({
+                        url: $('pur51601_rfx_round_svc_link').getUrl(),
+                        para: data,
+                        success: function() {
+                            pur51601_unmask();
+                            Aurora.showMessage('${l:PROMPT}', '${l:PUR5150.RFX_RELEASE_NEXT_ROUND_SUCCESSFULLY}',function(){pur51601_reback();});
+                        },
+                        failure: function() {
+                            pur51601_unmask();
+                            return;
+                        },
+                        error: function() {
+                            pur51601_unmask();
+                            return;
+                        }
+	             	 });
+	             });    
+	         }
+	         
+        	function pur51601_reback() {
+	        	$('pur51601_rfx_round_window').close();
+	        }
+        	
+        	function pur51601_rfx_ln_vendors_ds_load(ds){
+        	 	var records = ds.getAll();
+        	 	for(var i=0;i<records.length;i++){
+        	 	    var vendor_id = records[i].get('vendor_id');
+        	 	    if(!Aurora.isEmpty(vendor_id)){
+        	 			records[i].getField('contact_person').setLovPara('vendor_id', vendor_id);
+        	 	    }
+        	 	}   
+        	}
+        	
+        	function pur51601_rfx_ln_vendors_ds_update(ds, record, name, value, oldvalue){
+        	    if(name=="vendor_id"){
+        	     	record.set('contact_id','');
+        		    record.set('contact_person','');
+        		    record.set('contact_mobile','');
+        		    record.set('e_mail','');
+        			record.getField('contact_person').setLovPara('vendor_id', value);    
+        	    }
+        	}
+        	
+        	function pur51601_mask(){
+        	 	 Aurora.Masker.mask($('pur51601_rfx_round_window').wrap, '${l:LOADING}');   
+        	}
+        	
+        	function pur51601_unmask(){
+        	 	 Aurora.Masker.unmask($('pur51601_rfx_round_window').wrap);   
+        	}
+        	
+        	//上传附件
+        	function pur51601_atch_num_rd(value,record,name){
+        	    var ds = $('pur51601_rfx_ln_attachments');
+        	    var line_num = ds.indexOf(record);
+        	    return (line_num + 1) * 10;
+        	}
+        	
+        	function pur51601_upload_render(value,record,name){
+        	    var atm_line_id = record.get('atm_line_id');
+        	    if(!record.isNew && atm_line_id){
+        	        return '<a href="javascript:pur51601_upload_file(' + atm_line_id + ')">${l:UPLOADFILE.SCREEN.TITLE}</a>';
+        	    }
+        	}
+        	
+        	function pur51601_upload_file(id){
+        	    var url = "${/request/@context_path}/uploadFile.screen?table_name=FND_ATM_LINES&header_id=" + id;
+        	    new Aurora.Window({
+        	        url:url,
+        	        title:'${l:ATM.UPLOAD_ATTCHMENT}',
+        	        id:'pur51601_upload_window',
+        	        width:850,
+        	        height:500
+        	    }).on('beforeclose',function(){
+        	        $('pur51601_rfx_ln_attachments').query();
+        	    });
+        	}
+        	
+        	//比较两个日期的大小
+        	function pur51601_compareDate(start,end){
+        	            	       	    
+        	    if(typeof(start) == 'string'){
+        	        start = new Date(start.replace(/-/g,"/"));
+        	    }
+        	    
+        	    if(typeof(end) == 'string'){
+        	        end = new Date(end.replace(/-/g,"/"));
+        	    }
+
+        	    if(start > end){
+        	        return false;
+        	    }
+        	    return true;
+        	}
+        	
+        	//发布日期校验
+        	function pur51601_release_dateValidator(record,name,value){
+        	    if(name == 'feedback_start_time' || name == 'feedback_end_time'){
+        	        var start = record.get('feedback_start_time');
+        	        var end = record.get('feedback_end_time');
+        	        var sysdate = record.get('sysdate');      	    
+        	                	        
+        	        if(!!end){
+        	            if(!pur51601_compareDate(start,end)){
+        	                return '${l:PUR5120.QUOTATION_START_END_DATE_ERROR}';
+        	            }
+        	            if(!pur51601_compareDate(sysdate,end)){
+        	                return '${l:PUR5150.QUOTATION_START_END_ERROR}';
+        	            }
+        	        }
+        	        return true;
+        	    }
+        	}
+        	
+        	function pur51601_vendors_grid_cellclick(grid, row, name, record){
+        	 	var head_record = $('pur51601_rfx_headers_ds').getCurrentRecord();
+                var company_id = head_record.get('company_id');
+                if (name == 'vendor_code') {
+                    record.getField('vendor_code').setLovPara('company_id', company_id);
+                }
+        	}
+        	
+        
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur51601_rfx_category_ds" lookupCode="PUR_RFX_CATEGORY"/>
+            <a:dataSet id="pur51601_rfx_method_ds" lookupCode="PUR_RFX_METHOD"/>
+            <a:dataSet id="pur51601_rfx_auction_direction_ds" lookupCode="PUR_RFX_AUCTION_DIRECTION"/>
+            <a:dataSet id="pur51601_rfx_auction_rule_ds" lookupCode="PUR_RFX_AUCTION_RULE"/>
+            <a:dataSet id="pur51601_rfx_open_rule_ds" lookupCode="PUR_RFX_OPEN_RULE"/>
+            <a:dataSet id="pur51601_rfx_ranking_rule_ds" lookupCode="PUR_RFX_RANKING_RULE"/>
+            <a:dataSet id="pur51601_rfx_auction_ranking_ds" lookupCode="PUR_RFX_AUCTION_RANKING"/>
+            <a:dataSet id="pur51601_pur_ln_type_ds" lookupCode="PUR_REQ_LINE_PURCHASE_TYPE"/>
+            <a:dataSet id="pur51601_rfx_types_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/pur51601_rfx_types_source"/>
+            </a:dataSet>
+            <a:dataSet id="pur51601_payment_method_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/pur51601_payment_methods_source"/>
+            </a:dataSet>
+            <a:dataSet id="pur51601_currency_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/pur51601_currency_source"/>
+            </a:dataSet>
+            <a:dataSet id="pur51601_tax_type_code_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/pur51601_tax_type_code_source"/>
+            </a:dataSet>
+            <a:dataSet id="pur51601_rfx_headers_ds" autoQuery="true" model="pur.PUR5160.pur_rfx_headers" queryUrl="${/request/@context_path}/autocrud/pur.PUR5160.pur_rfx_headers/query?rfx_header_id=${/parameter/@rfx_header_id}">
+                <a:fields>
+                    <a:field name="rfx_header_id"/>
+                    <a:field name="tax_type_rate"/>
+                    <a:field name="place_of_delivery"/>
+                    <a:field name="round" readOnly="true"/>
+                    <a:field name="status_desc" readOnly="true"/>
+                    <a:field name="feedback_range"/>
+                    <a:field name="created_by"/>
+                    <a:field name="created_by_desc" readOnly="true"/>
+                    <a:field name="creation_date_desc" readOnly="true"/>
+                    <a:field name="issued_date_desc" readOnly="true"/>
+                    <a:field name="feedback_start_time" required="true" validator="pur51601_release_dateValidator"/>
+                    <a:field name="feedback_end_time" required="true" validator="pur51601_release_dateValidator"/>
+                    <a:field name="comments"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur51601_rfx_ln_items_ds" autoQuery="true" fetchAll="true" model="pur.SACPUR5110.pur_rfx_ln_items" queryUrl="${/request/@context_path}/autocrud/pur.SACPUR5110.pur_rfx_ln_items/query?rfx_header_id=${/parameter/@rfx_header_id}">
+                <a:fields>
+                    <a:field name="rfx_line_item_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur51601_rfx_ln_vendors_ds" autoQuery="true" model="pur.SACPUR5110.pur_rfx_ln_vendors" queryUrl="${/request/@context_path}/autocrud/pur.SACPUR5110.pur_rfx_ln_vendors/query?rfx_header_id=${/parameter/@rfx_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="vendor_id"/>
+                    <a:field name="vendor_code" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="public.pur_vendors_lov" lovWidth="500" required="true" title="PUR5120.VENDOR">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_name" to="vendor_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_desc"/>
+                    <a:field name="contact_id"/>
+                    <a:field name="contact_person" autoComplete="true" autoCompleteField="linkman_name" lovGridHeight="320" lovHeight="450" lovService="public.pur_sys_vendor_cantacts_lov" lovWidth="800" title="PUR_RFX_LN_VENDORS.CONTACT_PERSON">
+                        <a:mapping>
+                            <a:map from="contact_id" to="contact_id"/>
+                            <a:map from="linkman_name" to="contact_person"/>
+                            <a:map from="mobile_phone" to="contact_mobile"/>
+                            <a:map from="email" to="e_mail"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="contact_mobile"/>
+                    <a:field name="e_mail"/>
+                    <a:field name="sms_schicken_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur51601_rfx_ln_vendors_ds_update"/>
+                    <a:event name="load" handler="pur51601_rfx_ln_vendors_ds_load"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur51601_rfx_ln_attachments" autoQuery="true" bindTarget="pur51601_rfx_headers_ds" model="public.fnd_atm_lines" queryUrl="${/request/@context_path}/autocrud/public.fnd_atm_lines/query?source_table_name=PUR_RFX_HEADERS&amp;source_pk_value=${/parameter/@rfx_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="atm_line_id"/>
+                    <a:field name="line_number"/>
+                    <a:field name="atm_desc"/>
+                    <a:field name="source_table_name" defaultValue="PUR_RFX_HEADERS"/>
+                    <a:field name="source_pk_value" defaultValue="${/parameter/@rfx_header_id}"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur51601_rfx_save" style="margin-left:20px;" text="HAP_SAVE" width="100"/>
+                <a:toolbarButton click="pur51601_rfx_round" text="PUR5150.RELEASE_NEXT" width="100"/>
+                <a:toolbarButton id="pur51601_reback_button" click="pur51601_reback" text="HAP_BACK" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100">
+                <a:vBox>
+                    <a:textField name="rfx_number" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="title" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="open_rule_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="currency_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="round" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:dateTimePicker name="feedback_start_time" bindTarget="pur51601_rfx_headers_ds"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:textField name="company_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="rfx_method_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="ranking_rule_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="exchange_rate" allowNegative="false" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="created_by_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:dateTimePicker name="feedback_end_time" bindTarget="pur51601_rfx_headers_ds"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:textField name="rfx_type_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="auction_direction_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="auction_ranking_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="tax_included_flag" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="creation_date_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="template_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:textField name="rfx_category_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="auction_rule_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="payment_method_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="tax_type_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="status_desc" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                    <a:textField name="place_of_delivery" bindTarget="pur51601_rfx_headers_ds" readOnly="true"/>
+                </a:vBox>
+            </a:hBox>
+            <a:hBox padding="0">
+                <a:textArea name="comments" bindTarget="pur51601_rfx_headers_ds" height="60" marginWidth="360"/>
+            </a:hBox>
+        </a:defaultScreen>
+        <a:tabPanel height="400" marginWidth="130">
+            <a:tabs>
+                <a:tab prompt="PUR5120.ITEM_DETIAL">
+                    <a:grid id="pur51601_rfx_ln_items_grid" bindTarget="pur51601_rfx_ln_items_ds" height="350" marginWidth="140" navBar="true" showRowNumber="true">
+                        <a:columns>
+                            <a:column name="pur_ln_type_desc" align="left" lock="true" prompt="PUR_RFX_LN_ITEMS.PUR_LN_TYPE" width="50"/>
+                            <a:column name="inv_organization_desc" align="left" prompt="PUR_RFX_LN_ITEMS.INV_ORGANIZATION_ID" width="100"/>
+                            <a:column name="item_category_desc" align="left" prompt="PUR_RFX_LN_ITEMS.ITEM_CATEGORY_ID" width="100"/>
+                            <a:column name="item_code" align="left" prompt="PUR_RFX_LN_ITEMS.ITEM_CODE" width="80"/>
+                            <a:column name="item_desc" align="left" prompt="PUR_RFX_LN_ITEMS.ITEM_DESC" width="100"/>
+                            <a:column name="item_note" align="left" prompt="PUR_RFX_LN_ITEMS.ITEM_NOTE" width="100"/>
+                            <a:column name="item_parameter_config" align="left" prompt="PUR_RFX_FEEDBACK_LINES.ITEM_PARAMETER_CONFIG" width="60"/>
+                            <a:column name="quantity" align="left" prompt="PUR_RFX_LN_ITEMS.QUANTITY" width="40"/>
+                            <a:column name="uom_desc" align="left" prompt="PUR_RFX_FEEDBACK_LINES.UOM_CODE" width="40"/>
+                            <a:column name="need_by_date" align="left" prompt="PUR_RFX_FEEDBACK_LINES.NEED_BY_DATE" renderer="Aurora.formatDate" width="60"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab>
+                <a:tab prompt="PUR5120.VENDOR_LIST">
+                    <a:grid id="pur51601_vendors_grid" bindTarget="pur51601_rfx_ln_vendors_ds" height="350" marginWidth="140" navBar="true">
+                        <a:toolBar>
+                            <a:button type="add"/>
+                            <a:button type="delete"/>
+                        </a:toolBar>
+                        <a:columns>
+                            <a:column name="vendor_code" align="left" editor="pur51601_vendor_code_lov" prompt="PUR_RFX_LN_VENDORS.VENDOR_CODE" width="100"/>
+                            <a:column name="vendor_desc" align="left" prompt="PUR_RFX_LN_VENDORS.VENDOR_DESC" width="150"/>
+                            <a:column name="contact_person" align="left" editor="pur51601_contact_person_lov" prompt="PUR_RFX_LN_VENDORS.CONTACT_PERSON" width="100"/>
+                            <a:column name="contact_mobile" align="left" prompt="PUR_RFX_LN_VENDORS.CONTACT_MOBILE" width="100"/>
+                            <a:column name="e_mail" align="left" prompt="PUR_RFX_LN_VENDORS.E_MAIL" width="100"/>
+                            <a:column name="sms_schicken_flag" align="center" editor="pur51601_sms_schicken_flag_ck" prompt="PUR_RFX_LN_VENDORS.SMS_SCHICKEN_FLAG" width="100"/>
+                        </a:columns>
+                        <a:editors>
+                            <a:lov id="pur51601_vendor_code_lov"/>
+                            <a:lov id="pur51601_contact_person_lov"/>
+                            <a:checkBox id="pur51601_sms_schicken_flag_ck" checkedValue="Y" uncheckedValue="N"/>
+                        </a:editors>
+                        <a:events>
+                            <a:event name="cellclick" handler="pur51601_vendors_grid_cellclick"/>
+                        </a:events>
+                    </a:grid>
+                </a:tab>
+                <a:tab prompt="PUR5120.ATM_FILE_LIST">
+                    <a:grid id="pur51601_atch_grid" bindTarget="pur51601_rfx_ln_attachments" height="350" marginWidth="140" navBar="true">
+                        <a:toolBar>
+                            <a:button type="add"/>
+                            <a:button type="delete"/>
+                        </a:toolBar>
+                        <a:columns>
+                            <a:column name="line_number" align="center" prompt="FND_ATM_LINES.LINE_NUMBER" renderer="pur51601_atch_num_rd" width="50"/>
+                            <a:column name="atm_file" align="left" prompt="FND_ATM_LINES.ATM_FILE" width="300"/>
+                            <a:column name="atm_desc" align="left" editor="pur51601_atch_desc_tf" prompt="FND_ATM_LINES.ATM_DESC" width="150"/>
+                            <a:column name="upload_user_desc" align="center" prompt="FND_ATM_LINES.UPLOAD_USER_NAME" width="100"/>
+                            <a:column name="upload_date" align="center" prompt="FND_ATM_LINES.UPLOAD_DATE" width="100"/>
+                            <a:column align="center" prompt="UPLOADFILE.SCREEN.TITLE" renderer="pur51601_upload_render" width="100"/>
+                        </a:columns>
+                        <a:editors>
+                            <a:textField id="pur51601_atch_desc_tf" maxLength="500"/>
+                        </a:editors>
+                    </a:grid>
+                </a:tab>
+            </a:tabs>
+        </a:tabPanel>
+        <flex-segment dataset="pur51601_rfx_ln_items_ds" grid="pur51601_rfx_ln_items_grid" headerIdPath="/parameter/@rfx_header_id" headerTableName="PUR_RFX_HEADERS" pageType="query" templateFieldName="template_id" type="grid_expanded"/>
+    </a:view>
+</a:screen>

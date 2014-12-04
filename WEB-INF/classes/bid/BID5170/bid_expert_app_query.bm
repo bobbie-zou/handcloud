@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-14 下午06:48:43  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        t.expert_app_header_id,
+                        t.expert_app_header_number,
+                        t.full_name,
+                        t.creation_date,
+                        e.employee_code,
+                        t.employee_id,
+                        t.status,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_v scv
+                        WHERE
+                            scv.code                    = 'BID_EXPERT_APPLY_STATUS' AND
+                            scv.code_enabled_flag       = 'Y' AND
+                            scv.code_value_enabled_flag = 'Y' AND
+                            scv.code_value              = t.status
+                        ) AS status_desc,
+                        t.expert_type,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_v scv
+                        WHERE
+                            scv.code                    = 'BID_EXPERT_TYPES' AND
+                            scv.code_enabled_flag       = 'Y' AND
+                            scv.code_value_enabled_flag = 'Y' AND
+                            scv.code_value              = t.expert_type
+                        ) AS expert_type_desc
+                    FROM
+                        bid_expert_app_headers t,
+                        exp_employees e
+                    WHERE
+                        e.employee_id(+) = t.employee_id AND
+                        t.status         = 'SUBMITTED' AND
+                        t.expert_type    = 'INTERNAL'
+                    UNION ALL
+                    SELECT
+                        t.expert_app_header_id,
+                        t.expert_app_header_number,
+                        t.full_name,
+                        t.creation_date,
+                        NULL AS employee_code,
+                        t.employee_id,
+                        t.status,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_v scv
+                        WHERE
+                            scv.code                    = 'BID_EXPERT_APPLY_STATUS' AND
+                            scv.code_enabled_flag       = 'Y' AND
+                            scv.code_value_enabled_flag = 'Y' AND
+                            scv.code_value              = t.status
+                        ) AS status_desc,
+                        t.expert_type,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_v scv
+                        WHERE
+                            scv.code                    = 'BID_EXPERT_TYPES' AND
+                            scv.code_enabled_flag       = 'Y' AND
+                            scv.code_value_enabled_flag = 'Y' AND
+                            scv.code_value              = t.expert_type
+                        ) AS expert_type_desc
+                    FROM
+                        bid_expert_app_headers t
+                    WHERE
+                        t.status      = 'SUBMITTED' AND
+                        t.expert_type = 'EXTERNAL'
+                    ) #WHERE_CLAUSE#
+                ORDER BY
+                    expert_app_header_number DESC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="expert_app_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="EXPERT_APP_HEADER_ID" prompt="BID_EXPERT_APP_HEADERS.EXPERT_APP_HEADER_ID"/>
+        <bm:field name="expert_app_header_number" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="EXPERT_APP_HEADER_NUMBER" prompt="BID_EXPERT_APP_HEADERS.EXPERT_APP_HEADER_NUMBER"/>
+        <bm:field name="full_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FULL_NAME" prompt="BID_EXPERT_APP_HEADERS.FULL_NAME"/>
+        <bm:field name="creation_date" databaseType="DATE" datatype="java.util.Date" physicalName="CREATION_DATE" prompt="BID_EXPERT_APP_HEADERS.CREATION_DATE"/>
+        <bm:field name="employee_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="EMPLOYEE_CODE"/>
+        <bm:field name="employee_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="EMPLOYEE_ID" prompt="BID_EXPERT_APP_HEADERS.EMPLOYEE_ID"/>
+        <bm:field name="status" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="STATUS" prompt="BID_EXPERT_APP_HEADERS.STATUS"/>
+        <bm:field name="expert_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="EXPERT_TYPE" prompt="BID_EXPERT_APP_HEADERS.EXPERT_TYPE"/>
+        <bm:field name="expert_type_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="status_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="expert_app_header_number" queryExpression="expert_app_header_number like &apos;%&apos;||${@expert_app_header_number}||&apos;%&apos;"/>
+        <bm:query-field name="date_from" queryExpression="creation_date &gt;= to_date(${@date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="date_to" queryExpression="creation_date &lt;= to_date(${@date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+        <bm:query-field field="expert_type" queryOperator="="/>
+    </bm:query-fields>
+</bm:model>

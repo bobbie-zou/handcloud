@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <model-query defaultWhereClause="company_id = ${/session/@company_id}" fetchAll="true" model="wfl.WFL1050.wfl_workflow_companies_vl" rootPath="company_code"/>
+    </a:init-procedure>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+            function onQuery(){
+            	$('wfl_workflow_start_result_ds').query();
+            }
+            
+            function onReset(){
+            	$('wfl_workflow_start_query_ds').reset();
+            }
+            
+  /*          function onDelete(){
+            	var ds = $('wfl_workflow_start_result_ds');
+                var selectedRecords = ds.getSelected();
+                if(selectedRecords.length < 1){
+                	Aurora.showMessage('提示','请选择一条数据!');
+                }else{
+	                for(var i = 0; i < selectedRecords.length; i++){
+	                    selectedRecords[i].set('_status','delete')                     
+	                }
+	            	var confirm = new Aurora.showConfirm("提示","确认删除数据？",function(){confirm.close();ds.remove(selectedRecords);});
+                }
+            }*/
+            
+            function editorFunction_workflow(record, name){
+            	if(record.isNew){
+            		if(name=='inv_org_desc'){
+            			return 'lov';
+            		}
+            		if(name=='workflow_code'){
+            			return 'lov';
+            		}
+            		if(name=='period_name'){
+            			return 'lov';
+            		}
+            	}else{
+            		return '';
+            	}
+            }
+            
+/*            function onUpdate(ds,record,name,value,oldvalue){
+            	var period_name =  record.getMeta().getField('period_name'); 
+            	var inv_org_id = record.get('inv_org_id');
+            	if(name=="inv_org_desc"){
+            		if(value){
+	            		period_name.setLovPara('inv_org_id',inv_org_id);
+            		}else{
+	            		period_name.setLovPara('inv_org_id',null);
+        			}
+            	}
+            }*/
+                        
+            function startWorkFlow(value,record, name){
+                if(!record.isNew){
+	                var wid = record.get('workflow_start_id');
+	                var status = record.get('workflow_status');
+	                if(status==1||status==10){//运行和审批通过状态，不能点击“启动”按钮
+	                	return '';
+	                }else{
+		                return '<button type="button" style="width:50px;height:23px;" onclick="javascript:openStartWorkFlow('+wid+')">启动</button>'
+	                }
+                }
+                return '';
+            }
+            
+            //提交时，锁屏
+            function lockScreen(){
+            	Aurora.Masker.mask(Ext.getBody(),'正在加载'); 
+            }
+            
+            //提交完成后，解锁
+            function unLockScreen(){
+            	Aurora.Masker.unmask(Ext.getBody());
+            }
+            
+            function openStartWorkFlow(wid){
+            	var user_id = ${/session/@user_id};
+            	
+            	//在提交请求的过程中锁屏
+            	lockScreen();
+            	
+            	Aurora.request({url:'wfl_workflow_start_control.svc',
+                                para:{workflow_start_id:wid,
+                                	user_id:user_id
+                            	},
+                                success:function(){
+                                    //解锁
+                                	unLockScreen();
+                                	Aurora.showMessage('提示','操作成功',onQuery);
+                                },
+                                failure:function(){
+                                	unLockScreen();
+                                },
+                                error:function(){
+                                	unLockScreen();
+                                },
+                                scope:this
+                              });
+            }
+            
+            ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl_company_ds">
+                <a:datas dataSource="/model/company_code"/>
+                <a:fields>
+                    <a:field name="company_short_name" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="workflow_status_ds" lookupCode="WORKFLOW_STATUS"/>
+            <a:dataSet id="wfl_workflow_start_query_ds">
+                <a:fields>
+                    <a:field name="inv_org_desc" lovGridHeight="280" lovHeight="400" lovService="wfl.WFL3020.wfl_workflow_inv_org_lov?company_id=${/session/@company_id}" lovWidth="480" title="库存组织">
+                        <a:mapping>
+                            <a:map from="inventory_organization_id" to="inv_org_id"/>
+                            <a:map from="description" to="inv_org_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="period_name" lovGridHeight="280" lovHeight="400" lovService="wfl.wfl_workflow_period_name_lov?company_id=${/session/@company_id}" lovWidth="480" title="期间">
+                        <a:mapping>
+                            <a:map from="period_name" to="period_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="workflow_status_desc" displayField="code_value_name" options="workflow_status_ds" returnField="workflow_status" valueField="code_value"/>
+                </a:fields>
+                <!--                <a:events>
+                    <a:event name="update" handler="onUpdate"/>
+                </a:events>-->
+            </a:dataSet>
+            <a:dataSet id="wfl_workflow_start_result_ds" autoQuery="true" model="wfl.wfl_workflow_start" queryDataSet="wfl_workflow_start_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="workflow_code" lovGridHeight="320" lovHeight="400" lovService="wfl.wfl_company_workflow_vl" lovWidth="480" required="true" title="工作流代码">
+                        <a:mapping>
+                            <a:map from="workflow_id" to="workflow_id"/>
+                            <a:map from="workflow_code" to="workflow_code"/>
+                            <a:map from="workflow_desc" to="workflow_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="inv_org_desc" lovGridHeight="280" lovHeight="400" lovService="wfl.WFL3020.wfl_workflow_inv_org_lov?company_id=${/session/@company_id}" lovWidth="480" required="true" title="库存组织">
+                        <a:mapping>
+                            <a:map from="inventory_organization_id" to="inv_org_id"/>
+                            <a:map from="description" to="inv_org_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="period_name" lovGridHeight="280" lovHeight="400" lovService="wfl.wfl_workflow_period_name_lov?company_id=${/session/@company_id}" lovWidth="480" required="true" title="期间">
+                        <a:mapping>
+                            <a:map from="period_name" to="period_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:gridButton bind="wfl_workflow_start_result_grid" type="add" width="100"/>
+            <a:gridButton bind="wfl_workflow_start_result_grid" type="save" width="100"/>
+            <a:toolbarButton click="onQuery" text="HAP_QUERY" width="100"/>
+            <a:toolbarButton click="onReset" text="HAP_RESET" width="100"/>
+        </a:screenTopToolbar>
+        <a:form column="4" marginWidth="40">
+            <a:textField name="company_short_name" bindTarget="wfl_company_ds" prompt="公司"/>
+            <a:lov name="inv_org_desc" bindTarget="wfl_workflow_start_query_ds" prompt="库存组织"/>
+            <a:lov name="period_name" bindTarget="wfl_workflow_start_query_ds" prompt="期间"/>
+            <a:comboBox name="workflow_status_desc" bindTarget="wfl_workflow_start_query_ds" prompt="状态"/>
+        </a:form>
+        <a:grid id="wfl_workflow_start_result_grid" bindTarget="wfl_workflow_start_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:toolBar>
+                <a:button type="add"/>
+                <!--                   <a:button click="onDelete" icon="../../images/remove.png" text="HAP_DELETE"/>-->
+                <a:button type="save"/>
+                <!--<a:button click="onDelete" icon="../../images/remove.png" text="HAP_DELETE"/>-->
+            </a:toolBar>
+            <a:columns>
+                <a:column name="workflow_code" editorFunction="editorFunction_workflow" prompt="工作流代码" width="120"/>
+                <a:column name="workflow_desc" prompt="工作流描述" width="200"/>
+                <a:column name="inv_org_desc" editorFunction="editorFunction_workflow" prompt="库存组织" width="120"/>
+                <a:column name="period_name" editorFunction="editorFunction_workflow" prompt="期间" width="80"/>
+                <a:column name="workflow_status_desc" prompt="状态" width="120"/>
+                <a:column name="workflow_button" align="center" prompt="启动" renderer="startWorkFlow" width="120"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="textField"/>
+                <a:textField id="textField_up" typeCase="upper"/>
+                <a:checkBox id="checkBox_ef"/>
+                <a:lov id="lov"/>
+                <a:comboBox id="comboBox_sc"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

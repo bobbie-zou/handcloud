@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="wfl_workflow_node_link" url="${/request/@context_path}/modules/wfl/WFL1040/wfl_workflow_node.screen"/>
+        <a:link id="wfl_workflow_end_procedure_edit_link" url="${/request/@context_path}/modules/wfl/WFL1040/wfl_workflow_end_procedure_edit.screen"/>
+        <a:link id="wfl_document_service_para_link" url="${/request/@context_path}/modules/wfl/WFL1040/wfl_document_service_para.screen"/>
+        <div/>
+        <script><![CDATA[
+            function onQuery() {
+                $('wfl_workflow_result_ds').query();
+            }
+            
+            function onReset() {
+                $('wfl_workflow_query_ds').reset();
+            }
+            
+            function defineWorkFlowNode(value, record, name) {
+                if (!record.isNew) {
+                    var id = record.get('workflow_id');
+                    var sub_category = record.get('sub_category');
+                    return '<a href="javascript:openWorkFlowNodePage(' + id + ',\'' + sub_category + '\')">工作流节点定义</a>';
+                }
+                return '';
+            }
+            
+            function openWorkFlowNodePage(id, sub) {
+                new Aurora.Window({
+                    id: 'wfl_workflow_node_window',
+                    url: $('wfl_workflow_node_link').getUrl() + '?workflow_id=' + id + '&sub_category=' + sub,
+                    title: '工作流节点定义',
+                    fullScreen: true
+                });
+            }
+            
+            function graphicWorkFlowNode(value, record, name) {
+                if (!record.isNew) {
+                    var id = record.get('workflow_id');
+                    return '<a href="javascript:opengrapicNodePage(' + id + ')">工作流节点图形</a>';
+                }
+                return '';
+            
+            }
+            
+            function opengrapicNodePage(id) {
+                new Aurora.Window({
+                    id: 'wfl_workflow_node_graphics',
+                    url: '${/request/@context_path}/sys_graphics_preview.screen?workflow_id=' + id,
+                    title: '工作流节点图形',
+                    fullScreen: true
+                });
+            }
+            
+            function editorFunction_workflow(record, name) {
+                if (record.isNew) {
+                    if (name == 'sub_category_desc') {
+                        return 'comboBox_sc';
+                    }
+                    if (name == 'workflow_type_code') {
+                        return 'lov';
+                    }
+                    if (name == 'workflow_code') {
+                        return 'textField_up';
+                    }
+                    if (name == 'can_cancel') {
+                        return 'checkBox_ef';
+                    }
+                } else {
+                    var sub_category = record.get('sub_category');
+                    if (name == 'can_cancel' && sub_category == 'MAIN_PROCESS') {
+                        return 'checkBox_ef';
+                    } else {
+                        return '';
+                    }
+                }
+            }
+            
+            function graphicWorkFlowProcedure(value, record, name) {
+                if (!record.isNew) {
+                    var id = record.get('workflow_id');
+                    var sub_category = record.get('sub_category');
+                    if (sub_category == "MAIN_PROCESS") {
+                        return '<a href="javascript:openWorkFlowProcedure(' + id + ',\'' + sub_category + '\')">工作流结束过程定义</a>';
+                    }
+                }
+                return '';
+            }
+            
+            function openWorkFlowProcedure(id, sub) {
+                new Aurora.Window({
+                    id: 'wfl_workflow_Procedure',
+                    url: $('wfl_workflow_end_procedure_edit_link').getUrl() + '?workflow_id=' + id + '&sub_category=' + sub,
+                    title: '工作流结束过程定义',
+                    fullScreen: true
+                });
+            }
+            
+            function defineServicePara(value, record, name) {
+                if (!record.isNew) {
+                    var id = record.get('workflow_id');
+                    document_service_id
+                    var service_id = record.get('service_id');
+                    var document_service_id = record.get('document_service_id');
+                    if (document_service_id != null) {
+            
+                        return '<a href="javascript:openServiceParaPage(' + id + ',' + service_id + ',' + document_service_id + ')">工作流页面参数定义</a>';
+                    } else {
+                        return '';
+                    }
+                }
+                return '';
+            }
+            
+            function openServiceParaPage(id, service_id, document_service_id) {
+                new Aurora.Window({
+                    id: 'wfl_document_service_para_window',
+                    url: $('wfl_document_service_para_link').getUrl() + '?workflow_id=' + id + '&service_id=' + service_id + '&document_service_id=' + document_service_id,
+                    title: '工作流页面参数定义',
+                    fullScreen: true
+                });
+            }
+            
+            function onUpdateNodeActPara(ds, record, name, value, oldvalue) {
+                //如果"参数类型"的值发生改变，则将"参数值","类型参数代码"的值清空
+                if (name == "service_name") {
+                    record.set('service_parameter', null);
+                }
+            }
+            
+            function returnRenderer() {
+                $('wfl_workflow_result_ds').query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sub_category_ds" lookupCode="SUB_CATEGORY"/>
+            <a:dataSet id="wfl_workflow_query_ds">
+                <a:fields>
+                    <a:field name="workflow_type_code" autoComplete="true" autoCompleteField="workflow_type_code" lovGridHeight="350" lovHeight="500" lovService="wfl.WFL1040.wfl_workflow_type_lov" lovWidth="500" title="工作流类型">
+                        <a:mapping>
+                            <a:map from="workflow_type_id" to="workflow_type_id"/>
+                            <a:map from="workflow_type_code" to="workflow_type_code"/>
+                            <a:map from="workflow_type_desc" to="workflow_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="sub_category_desc" displayField="code_value_name" options="sub_category_ds" returnField="sub_category" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl_workflow_result_ds" autoPageSize="true" autoQuery="true" model="wfl.WFL1040.wfl_workflow" queryDataSet="wfl_workflow_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="workflow_code" maxLength="200" required="true"/>
+                    <a:field name="workflow_desc" maxLength="2000"/>
+                    <a:field name="sub_category_desc" displayField="code_value_name" options="sub_category_ds" required="true" returnField="sub_category" valueField="code_value"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="can_cancel" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="workflow_type_code" lovGridHeight="320" lovHeight="440" lovService="wfl.WFL1040.wfl_workflow_type_lov" lovWidth="480" required="true" title="工作流类型">
+                        <a:mapping>
+                            <a:map from="workflow_type_id" to="workflow_type_id"/>
+                            <a:map from="workflow_type_code" to="workflow_type_code"/>
+                            <a:map from="workflow_type_desc" to="workflow_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="service_name" autoComplete="true" autoCompleteField="service_name" lovGridHeight="350" lovHeight="500" lovService="wfl.WFL1040.wfl_workflow_service_lov" lovWidth="500" title="工作流类型">
+                        <a:mapping>
+                            <a:map from="service_id" to="service_id"/>
+                            <a:map from="service_name" to="service_name"/>
+                            <a:map from="service_desc" to="service_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="onUpdateNodeActPara"/>
+                    <a:event name="submitsuccess" handler="returnRenderer"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="wfl_workflow_procedure_result_grid" type="add" width="100"/>
+            <a:gridButton bind="wfl_workflow_procedure_result_grid" type="save" width="100"/>
+            <a:gridButton bind="wfl_workflow_procedure_result_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="wfl_workflow_query_ds" resultTarget="wfl_workflow_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox column="4" labelWidth="100">
+                    <a:lov name="workflow_type_code" bindTarget="wfl_workflow_query_ds" prompt="工作流类型">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField name="workflow_code" bindTarget="wfl_workflow_query_ds" prompt="工作流代码" typeCase="upper">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="workflow_desc" bindTarget="wfl_workflow_query_ds" prompt="工作流描述">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="sub_category_desc" bindTarget="wfl_workflow_query_ds" prompt="主从属性">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:hBox>
+            </a:formToolBar>
+        </a:queryForm>
+        <a:grid id="wfl_workflow_procedure_result_grid" bindTarget="wfl_workflow_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="workflow_type_code" editorFunction="editorFunction_workflow" prompt="工作流类型代码" width="80"/>
+                <a:column name="workflow_type_desc" prompt="工作流类型描述" width="80"/>
+                <a:column name="workflow_code" editorFunction="editorFunction_workflow" prompt="工作流代码" width="100"/>
+                <a:column name="workflow_desc" editor="textField" prompt="工作流描述" width="150"/>
+                <a:column name="sub_category_desc" align="center" editorFunction="editorFunction_workflow" prompt="工作流主从属性" width="70"/>
+                <a:column name="enabled_flag" editor="checkBox_ef" prompt="启用" width="40"/>
+                <a:column name="can_cancel" editorFunction="editorFunction_workflow" prompt="可收回" width="40"/>
+                <a:column name="workflow_node" align="center" prompt="工作流节点定义" renderer="defineWorkFlowNode" width="70"/>
+                <a:column name="workflow_grapice" align="center" prompt="工作流节点图形" renderer="graphicWorkFlowNode" width="70"/>
+                <a:column name="workflow_procedure" align="center" prompt="工作流结束过程定义" renderer="graphicWorkFlowProcedure" width="80"/>
+                <a:column name="service_name" editor="lov" prompt="页面名称" width="220"/>
+                <a:column name="service_desc" prompt="页面描述" width="100"/>
+                <a:column name="service_parameter" align="center" prompt="工作流页面参数定义" renderer="defineServicePara" width="100"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="textField"/>
+                <a:textField id="textField_up" typeCase="upper"/>
+                <a:checkBox id="checkBox_ef"/>
+                <a:lov id="lov"/>
+                <a:comboBox id="comboBox_sc"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

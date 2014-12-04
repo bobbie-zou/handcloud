@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-1-28 上午10:49:18  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        h.asn_number,
+                        l.asn_line_id,
+                        (SELECT
+                            pvv.full_name
+                        FROM
+                            pur_vendors_vl pvv
+                        WHERE
+                            pvv.vendor_id = h.vendor_id
+                        ) AS vendor_name,
+                        (SELECT
+                            vsv.site_name
+                        FROM
+                            pur_vendor_sites_vl vsv
+                        WHERE
+                            vsv.vendor_site_id = h.vendor_site_id
+                        ) AS vendor_site_name,
+                        (SELECT
+                            fl.location_code
+                        FROM
+                            fnd_locations fl
+                        WHERE
+                            fl.location_id = h.location_id
+                        ) AS location_code,
+                        (SELECT
+                            fl.description
+                        FROM
+                            fnd_locations fl
+                        WHERE
+                            fl.location_id = h.location_id
+                        ) AS location_name,
+                        (SELECT
+                            iov.inv_organization_code
+                        FROM
+                            inv_organizations_vl iov
+                        WHERE
+                            iov.inv_organization_id = h.ship_to_organization_id
+                        ) AS ship_to_organization_code,
+                        (SELECT
+                            iov.description
+                        FROM
+                            inv_organizations_vl iov
+                        WHERE
+                            iov.inv_organization_id = h.ship_to_organization_id
+                        ) AS ship_to_organization_name,
+                        h.coop_company_id AS company_id,
+                        (SELECT
+                            fcv.company_code
+                        FROM
+                            fnd_companies_vl fcv
+                        WHERE
+                            fcv.company_id = h.coop_company_id
+                        ) AS company_code,
+                        (SELECT
+                            fcv.company_full_name
+                        FROM
+                            fnd_companies_vl fcv
+                        WHERE
+                            fcv.company_id = h.coop_company_id
+                        ) AS company_name,
+                        TO_CHAR(h.ship_date, 'yyyy-mm-dd') AS ship_date,
+                        TO_CHAR(h.expected_date, 'yyyy-mm-dd') AS expected_date,
+                        l.asn_line_num,
+                        l.shipment_num,
+                        l.release_num,
+                        l.reversion_num,
+                        TO_CHAR(l.need_by_date, 'yyyy-mm-dd') AS need_by_date,
+                        l.agent_name,
+                        l.item_code,
+                        l.item_name,
+                        l.ship_quantity,
+                        l.receive_quantity,
+                        l.returned_quantity,
+                        l.ship_quantity - l.receive_quantity AS ship_not_receive,
+                        l.unit_price,
+                        l.uom_code AS unit_meas_lookup_code,
+                        TO_CHAR(l.creation_date, 'yyyy-mm-dd hh24:mi:ss') AS creation_date,
+                        h.comments AS header_desc,
+                        l.comments AS line_desc,
+                        (SELECT
+                            code_value_name
+                        FROM
+                            sys_code_values_v
+                        WHERE
+                            code       = 'INV_ASN_LINES_STATUS' AND
+                            code_value = l.status
+                        ) AS status,
+                        (SELECT
+                            code_value_name
+                        FROM
+                            sys_code_values_v
+                        WHERE
+                            code       = 'YES_NO' AND
+                            code_value = pll.consigned_flag
+                        ) AS consigned_flag_desc,
+                        pll.consigned_flag,
+                        l.lots_num,
+                        TO_CHAR(l.lots_validity_date, 'yyyy-mm-dd') lots_validity_date,
+                        l.invoice_num,
+                        l.serial_num,
+                        h.data_source,
+                        (SELECT
+                            NVL(siv.display_item_code, siv.item_code)
+                        FROM
+                            mtl_item_partners vi,
+                            mtl_system_items_vl siv
+                        WHERE
+                            vi.partner_item_id = siv.item_id AND
+                            vi.item_id         = l.item_id AND
+                            vi.partner_way     = 'SUPPLY' AND
+                            vi.business_group  = h.coop_business_group
+                        ) vendor_item_code,
+                        (SELECT
+                            siv.item_name
+                        FROM
+                            mtl_item_partners vi,
+                            mtl_system_items_vl siv
+                        WHERE
+                            vi.partner_item_id = siv.item_id AND
+                            vi.item_id         = l.item_id AND
+                            vi.partner_way     = 'SUPPLY' AND
+                            vi.business_group  = h.coop_business_group
+                        ) vendor_item_name
+                    FROM
+                        inv_asn_headers h,
+                        inv_asn_lines l,
+                        pur_line_locations_all pll
+                    WHERE
+                        h.asn_header_id    = l.asn_header_id AND
+                        l.line_location_id = pll.pur_line_location_id
+                    ) v #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="asn_number" queryExpression="asn_number like &apos;%&apos;||trim(${@asn_number})||&apos;%&apos;"/>
+        <bm:query-field name="asn_number_from" queryExpression="asn_number &gt;=${@asn_number}"/>
+        <bm:query-field name="asn_number_to" queryExpression="asn_number &lt;=${@asn_number_to}"/>
+        <bm:query-field name="company_id" queryExpression="company_id=${@company_id}"/>
+        <bm:query-field name="segment1" queryExpression="segment1 like &apos;%&apos;||trim(${@segment1})||&apos;%&apos;"/>
+        <bm:query-field name="segment1_from" queryExpression="segment1 &gt;=${@segment1_from}"/>
+        <bm:query-field name="segment1_to" queryExpression="segment1 &lt;=${@segment1_to}"/>
+        <bm:query-field name="vendor_id" queryExpression="vendor_id=${@vendor_id}"/>
+        <bm:query-field name="transaction_type" queryExpression="transaction_type=${@transaction_type}"/>
+        <bm:query-field name="asn_line_number" queryExpression="asn_line_num = ${@asn_line_number}"/>
+        <bm:query-field name="asn_line_num_from" queryExpression="asn_line_num &gt;=${@asn_line_num_from}"/>
+        <bm:query-field name="asn_line_num_to" queryExpression="asn_line_num &lt;=${@order_num_to}"/>
+        <bm:query-field name="user_name" queryExpression="description like &apos;%&apos;||${@user_name}||&apos;%&apos;"/>
+        <bm:query-field name="item_id" queryExpression="item_id=${@item_id}"/>
+        <bm:query-field name="transaction_date_from" queryExpression="transaction_date &gt;=${@transaction_date_from}"/>
+        <bm:query-field name="transaction_date_to" queryExpression="transaction_date &lt;=${@transaction_date_to}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority foundation_code="INV_ASN">
+        <authority-segment source_alias="v" source_name="company_id" type="COMPANY"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

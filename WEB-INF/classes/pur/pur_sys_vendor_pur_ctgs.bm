@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-9-2 下午2:10:09  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="PUR_SYS_VENDOR_PUR_CTGS">
+    <bm:fields>
+        <bm:field name="vendor_pur_category_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_PUR_CATEGORY_ID" prompt="PUR_SYS_VENDOR_PUR_CTGS.VENDOR_PUR_CATEGORY_ID"/>
+        <bm:field name="vendor_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_ID" prompt="PUR_SYS_VENDOR_PUR_CTGS.VENDOR_ID"/>
+        <bm:field name="purchase_category_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PURCHASE_CATEGORY_ID" prompt="PUR_SYS_VENDOR_PUR_CTGS.PURCHASE_CATEGORY_ID"/>
+        <bm:field name="purchase_category_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="purchase_category_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="PUR_SYS_VENDOR_PUR_CTGS.ENABLED_FLAG"/>
+    </bm:fields>
+    <bm:features>
+        <f:standard-who/>
+        <o:sequence-pk sequenceName="PUR_SYS_VENDOR_PUR_CTG_S"/>
+    </bm:features>
+    <bm:primary-key>
+        <bm:pk-field name="vendor_pur_category_id"/>
+    </bm:primary-key>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        vpc.vendor_pur_category_id,
+                        vpc.vendor_id,
+                        vpc.purchase_category_id,
+                        ppc.purchase_category_code,
+                        fd.description_text AS purchase_category_name,
+                        vpc.enabled_flag
+                    FROM
+                        pur_sys_vendor_pur_ctgs vpc,
+                        pur_purchase_categories ppc,
+                        fnd_descriptions fd
+                    WHERE
+                        vpc.purchase_category_id = ppc.purchase_category_id(+) AND
+                        ppc.category_name_id     = fd.description_id(+) AND
+                        fd.language              = ${/session/@lang}
+                    ) #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="vendor_pur_category_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@vendor_pur_category_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              BEGIN
+                pur_sys_vendor_pkg.pur_sys_vendor_pur_ctg_insert
+                (
+                  x_vendor_pur_category_id=>${@vendor_pur_category_id},
+                  p_vendor_id=>${../../@vendor_id},
+                  p_purchase_category_id=>${@purchase_category_id},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                pur_sys_vendor_pkg.pur_sys_vendor_pur_ctg_update
+                (
+                  p_vendor_pur_category_id=>${@vendor_pur_category_id},
+                  p_purchase_category_id=>${@purchase_category_id},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                pur_sys_vendor_pkg.pur_sys_vendor_pur_ctg_delete
+                (
+                  p_vendor_pur_category_id=>${@vendor_pur_category_id},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field field="vendor_id" queryOperator="="/>
+    </bm:query-fields>
+</bm:model>

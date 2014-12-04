@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qiuhaowen4053 $
+    $Date: 2013/06/21 01:57:12 $
+    $Revision $
+    $Purpose: JOB计划定义-JOB计划定义 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure><![CDATA[
+    ]]></a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function sys2040_closeJobSchedule(){
+                $('sys_alert_rule_jobs_job_schedule_window').close();
+            } 
+
+            function sys2040_saveJobSchedule(){
+                var record = $('sys2040_alert_rule_jobs_job_schedule_ds').getCurrentRecord();
+                $('sys2040_alert_rule_jobs_job_schedule_ds').submit();
+            }
+
+            function sys2040_onRadioChange(radio, newValue, oldValue){
+                var record = $('sys2040_alert_rule_jobs_job_schedule_ds').getCurrentRecord(); 
+                if(newValue == 'Y'){
+                    record.set('hour',null);
+                    record.set('minute',null);
+                    record.set('second',null);
+                    record.getMeta().getField('hour').setReadOnly(true);
+                    record.getMeta().getField('minute').setReadOnly(true);
+                    record.getMeta().getField('second').setReadOnly(true);
+                    record.getMeta().getField('hour').setRequired(false);
+                }else{
+                    record.getMeta().getField('hour').setReadOnly(false);
+                    record.getMeta().getField('minute').setReadOnly(false);
+                    record.getMeta().getField('second').setReadOnly(false);
+                    record.getMeta().getField('hour').setRequired(true);
+                }
+            }
+            
+            function sys2040_setMessage(){
+            	var records = $('sys2040_message_ds').getNewRecrods();
+            	records[0].set('message','${l:JOB_MESSAGE}');
+            }
+            
+            function sys2040_submitSuccess(ds,res){
+            	sys2040_closeJobSchedule();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys2040_current_time" loadData="true" model="sys.SYS2040.sys_datetime_for_alert_rule_jobs_job_schedule"/>
+            <a:dataSet id="sys2040_message_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="message" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys2040_alert_rule_job_codes_info_ds" loadData="true" model="sys.SYS2040.sys_alert_rule_job_codes">
+                <a:fields>
+                    <a:field name="job_code_code" readOnly="true"/>
+                    <a:field name="description" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys2040_alert_rule_jobs_job_schedule_ds" loadData="true" model="sys.SYS2040.sys_alert_rule_jobs_job_schedule" submitUrl="${/request/@context_path}/autocrud/sys.SYS2040.sys_alert_rule_jobs_job_schedule_save/batch_update">
+                <a:fields>
+                    <a:field name="job_code_id" defaultValue="${/parameter/@job_code_id}"/>
+                    <a:field name="job_code_code" readOnly="true"/>
+                    <a:field name="next_date" required="true"/>
+                    <a:field name="description" readOnly="true"/>
+                    <a:field name="last_date" readOnly="true"/>
+                    <a:field name="total_time" readOnly="true"/>
+                    <a:field name="failures" readOnly="true"/>
+                    <a:field name="is_running" readOnly="true"/>
+                    <a:field name="is_broken" readOnly="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="sys2040_submitSuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet column="2" title="SYS_ALERT_RULE_JOB_CODES.JOB_SCHEDULE" width="680">
+                <a:textField name="job_code_code" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" width="195"/>
+                <a:textField name="description" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" width="195"/>
+            </a:fieldSet>
+            <a:fieldSet column="4" title="SYS_ALERT_RULE_JOBS_JOB_SCHEDULE.RUN_INTERVAL" width="680">
+                <a:radio name="one_time_flag" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" layout="vertical" width="60">
+                    <a:items>
+                        <a:item label="SYS_ALERT_RULE_JOBS_JOB_SCHEDULE.PEIRODICITY" value="N"/>
+                        <a:item label="SYS_ALERT_RULE_JOBS_JOB_SCHEDULE.ONE_TIME" value="Y"/>
+                    </a:items>
+                    <a:events>
+                        <a:event name="change" handler="sys2040_onRadioChange"/>
+                    </a:events>
+                </a:radio>
+                <a:numberField name="hour" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" width="50"/>
+                <a:numberField name="minute" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" width="50"/>
+                <a:numberField name="second" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" width="50"/>
+            </a:fieldSet>
+            <a:fieldSet column="2" title="SYS_ALERT_RULE_JOBS.CURRENT_STATE" width="680">
+                <a:vBox>
+                    <a:textField name="next_date" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" width="195"/>
+                    <a:textArea name="message" bindTarget="sys2040_message_ds" height="90" prompt="SYS_ALERT_RULE_JOBS.MESSAGE" width="195"/>
+                </a:vBox>
+                <a:vBox labelWidth="90">
+                    <a:textField name="last_date" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" width="195"/>
+                    <a:textField name="total_time" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" width="195"/>
+                    <a:textField name="failures" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" width="195"/>
+                    <a:hBox prompt="SYS_ALERT_RULE_JOBS.IS_RUNNING">
+                        <a:radio name="is_running" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" prompt="" width="68">
+                            <a:items>
+                                <a:item label="HAP_YES" value="Y"/>
+                                <a:item label="HAP_NO" value="N"/>
+                            </a:items>
+                        </a:radio>
+                        <a:radio name="is_broken" bindTarget="sys2040_alert_rule_jobs_job_schedule_ds" width="68">
+                            <a:items>
+                                <a:item label="HAP_YES" value="Y"/>
+                                <a:item label="HAP_NO" value="N"/>
+                            </a:items>
+                        </a:radio>
+                    </a:hBox>
+                </a:vBox>
+            </a:fieldSet>
+        </a:screenBody>
+        <div class="win-toolbar" style="width:700px;height:40px;">
+            <a:hBox style="float:right;margin-right:8px;margin-top:5px;">
+                <a:button click="sys2040_saveJobSchedule" text="HAP_SAVE"/>
+                <a:button click="sys2040_closeJobSchedule" text="HAP_CLOSE"/>
+            </a:hBox>
+        </div>
+        <script><![CDATA[
+			sys2040_setMessage();
+            function init(){
+                var timeRecord = $('sys2040_current_time').getCurrentRecord();
+                var jobScheduleRecord = $('sys2040_alert_rule_jobs_job_schedule_ds').getCurrentRecord();
+                var nextDate = jobScheduleRecord.get('next_date');
+                if(nextDate == undefined || nextDate == '' ){
+                    jobScheduleRecord.set('next_date',timeRecord.get('cur_time'));
+                }
+
+                var oneTimeFlag = jobScheduleRecord.get('one_time_flag');
+                if(oneTimeFlag != undefined && oneTimeFlag == 'Y'){
+                    jobScheduleRecord.set('hour',null);
+                    jobScheduleRecord.set('minute',null);
+                    jobScheduleRecord.set('second',null);
+                    jobScheduleRecord.getMeta().getField('hour').setReadOnly(true);
+                    jobScheduleRecord.getMeta().getField('minute').setReadOnly(true);
+                    jobScheduleRecord.getMeta().getField('second').setReadOnly(true);
+                    jobScheduleRecord.getMeta().getField('hour').setRequired(false);
+                }else{
+                    jobScheduleRecord.getMeta().getField('hour').setRequired(true);
+                }
+            }
+            init(); 
+
+
+        ]]></script>
+    </a:view>
+</a:screen>

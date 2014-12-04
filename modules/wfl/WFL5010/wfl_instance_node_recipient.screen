@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc" trace="true">
+    <a:init-procedure>
+        <model-query autocount="false" fetchall="true" model="wfl.WFL5010.wfl_recipient_user_num" rootpath="user_count"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="wfl_workflow_instance_para_link" url="${/request/@context_path}/modules/wfl/WFL5010/wfl_workflow_instance_para.screen"/>
+        <div/>
+        <script><![CDATA[
+            function assignWorkflow(value, record, name) {
+                if (!record.isNew) {
+                    var id = record.get('instance_id');
+                    var nid = record.get('node_id');
+                    var rid = record.get('record_id');
+                    var document_num_c = record.get('document_num');
+                    var wfl_id = record.get('workflow_id');
+                    // return '<a href="javascript:openWorkFlowRecipientPage('+id+','+nid+','+rid+','+wfl_id+')">'+document_num_c+'</a>'
+                    return '<a href="javascript:openWorkFlowRecipientPage(' + id + ',' + nid + ',' + rid + ',' + wfl_id + ')" ; style= "color:red ;text-decoration:underline;">明细</a>';
+                }
+                return '';
+            }
+            
+            function openWorkFlowRecipientPage(id, nid, rid, wfl_id) {
+                new Aurora.Window({
+                    id: 'wfl_workflow_instance_para_window',
+                    url: $('wfl_workflow_instance_para_link').getUrl()+'?instance_id=' + id + '&node_id=' + nid + '&record_id=' + rid + '&workflow_id=' + wfl_id,
+                    title: '工作流待办事项',
+                    height: 500,
+                    width: 860,
+                    fullScreen: true
+                });
+            }
+            
+            function queryMetaData() {
+                $("wfl_instance_node_recipient_result_ds").query();
+            }
+            
+            function onReset() {
+                $('wfl_document_number_ds').reset();
+            }
+            
+            function loadFunction(ds) {
+                $('document_num_id').select(0);
+                $('document_num_id').focus();
+            }
+        ]]></script>
+        <a:switch test="/model/user_count/record/@num">
+            <a:case value="0">
+                <table align="center" style="margin-top:50px">
+                    <tr>
+                        <td style="font-size:20px;"><![CDATA[
+                        	您当前没有待办事项
+                        ]]></td>
+                    </tr>
+                </table>
+            </a:case>
+            <a:case>
+                <a:dataSets>
+                    <a:dataSet id="wfl_document_number_ds">
+                        <a:fields>
+                            <a:field name="document_num"/>
+                        </a:fields>
+                    </a:dataSet>
+                    <a:dataSet id="wfl_instance_node_recipient_result_ds" autoPageSize="true" autoQuery="true" model="wfl.WFL5010.wfl_instance_node_recipient" pageSize="10" queryDataSet="wfl_document_number_ds" selectable="false">
+                        <a:events>
+                            <a:event name="load" handler="loadFunction"/>
+                        </a:events>
+                    </a:dataSet>
+                </a:dataSets>
+                <a:screenTopToolbar>
+                    <a:screenTitle/>
+                </a:screenTopToolbar>
+                <!-- <table align="default" style="margin:5px">
+                    <tr>
+                        <td align="center" height="null" valign="middle" width="20">
+                            <img src="${/request/@context_path}/images/workflow.gif"/>
+                        </td>
+                        <td align="center" height="null" style="font-size:9pt; color:gray" valign="middle" width="120"><![CDATA[
+                        	您共有${/model/user_count/record/@num}件待办事项
+                        ]]></td>
+                    </tr>
+                </table> -->
+                <a:queryForm bindTarget="wfl_document_number_ds" resultTarget="wfl_instance_node_recipient_result_ds" style="width:100%;border:none">
+                    <a:formToolBar>
+                        <a:hBox column="3" labelWidth="100">
+                            <a:textField name="document_num" id="document_num_id" bindTarget="wfl_document_number_ds" prompt="单据号" typeCase="UPPER">
+                                <a:events>
+                                    <a:event name="enterdown" handler="queryMetaData"/>
+                                </a:events>
+                            </a:textField>
+                        </a:hBox>
+                    </a:formToolBar>
+                </a:queryForm>
+                <a:grid id="wfl_instance_node_recipient_result_grid" autoFocus="false" bindTarget="wfl_instance_node_recipient_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+                    <a:columns>
+                        <a:column name="company_code" align="left" prompt="公司代码" width="47"/>
+                        <a:column name="company_short_name" align="left" prompt="公司名称" width="85"/>
+                        <a:column name="workflow_desc" align="left" prompt="工作流名称" width="110"/>
+                        <a:column name="node_desc" align="left" prompt="节点名称" width="100"/>
+                        <a:column name="document_num" align="left" prompt="单据号" width="100"/>
+                        <a:column name="create_by_desc" align="center" prompt="发起人" width="60"/>
+                        <a:column name="details" align="center" prompt="明细" renderer="assignWorkflow" width="40"/>
+                        <a:column name="creation_date_fmt" align="center" prompt="到达时间" width="80"/>
+                        <a:column name="note" align="left" prompt="单据说明" width="150"/>
+                    </a:columns>
+                </a:grid>
+            </a:case>
+        </a:switch>
+    </a:view>
+</a:screen>

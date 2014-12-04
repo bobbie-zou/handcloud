@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: jessen  
+    $Date: 2011-9-8 下午1:40:05  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="exp_employee_group_assign_link" url="${/request/@context_path}/modules/exp/EXP1050/exp_employee_group_assign.screen"/>
+        <div/>
+        <script><![CDATA[
+            
+            function onLov2Blur(com){
+                var rec = $('emp_assign_ds').getCurrentRecord();
+                var meta = rec.getMeta();
+                var lovField = meta.getField('position_code');
+                lovField.setLovPara('company_id', rec.get('company_id'));
+            }
+            
+            function on_emp_assign_ds_add(ds,r,idx){
+                r.set('employee_id','${/parameter/@employee_id}');
+            }
+            
+            function EXP2390_lov1EditFun(record,name){
+                if(record.isNew){
+                    return 'lov1';
+                }
+                return '';
+            }
+            
+            function EXP2390_lov2EditFun(record,name){
+                if(record.isNew){
+                    return 'lov2';
+                }
+                return '';
+            }
+            
+            function employeeGroupAssign(value,record, name){
+                if(!record.isNew && record.get('enabled_flag') == 'Y'){
+                    var employeeId = '${/parameter/@employee_id}';
+                    var companyId = record.get('company_id');
+                    return '<a href="javascript:employeeGroupAssignInfo('+employeeId+','+companyId+')">${l:EXP_EMPLOYEE_ASSIGN.EMPLOYEE_GROUP_ASSIGN}</a>';
+                }else{
+                    return '';
+                }
+            }
+            
+            function employeeGroupAssignInfo(employeeId,companyId){
+                new Aurora.Window({id:'exp_employee_group_assign_window', url:/*exp_employee_group_assign.screen*/$('exp_employee_group_assign_link').getUrl()+'?employee_id='+employeeId+'&company_id='+companyId, title:'${l:EXP_EMPLOYEE_ASSIGN.EMPLOYEE_GROUP_ASSIGN}', height:496,width:520});
+            }
+            
+            ]]></script>
+        <a:dataSets>
+            <a:dataSet id="cur_emp_ds" autoCreate="true"/>
+            <a:dataSet id="emp_assign_ds" model="exp.FND2390.exp_sub_employee_assign_query" queryDataSet="cur_emp_ds" selectable="true" submitUrl="${/request/@context_path}/modules/fnd/FND2390/exp_sub_employee_assign_save_control.svc">
+                <a:fields>
+                    <a:field name="company_code" autoComplete="true" lovHeight="500" lovService="exp.FND2390.exp_sub_valid_company_lov?company_id=${/session/@company_id}" lovWidth="500" required="true" title="FND_COMPANIES.COMPANY_CODE">
+                        <a:mapping>
+                            <a:map from="company_code" to="company_code"/>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_short_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="primary_position_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="position_code" autoComplete="true" lovHeight="500" lovService="exp.FND2390.exp_sub_employee_assign_position_lov" lovWidth="600" required="true" title="EXP_EMPLOYEE.EMPLOYEE_ASSIGN">
+                        <a:mapping>
+                            <a:map from="position_code" to="position_code"/>
+                            <a:map from="position_name" to="position_name"/>
+                            <a:map from="job_name" to="job_name"/>
+                            <a:map from="position_id" to="position_id"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="on_emp_assign_ds_add"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" row="1" title="EXP_EMPLOYEE.EMPLOYEE_ASSIGN" width="700">
+                <a:textField name="employee_code" bindTarget="cur_emp_ds" prompt="EXP_EMPLOYEES.EMPLOYEE_CODE" readOnly="true"/>
+                <a:textField name="name" bindTarget="cur_emp_ds" prompt="EXP_EMPLOYEES.NAME" readOnly="true"/>
+            </a:form>
+            <a:grid bindTarget="emp_assign_ds" height="350" navBar="true" navBarType="complex" width="700">
+                <a:columns>
+                    <a:column name="company_code" align="center" editorFunction="EXP2390_lov1EditFun" prompt="FND_COMPANIES.COMPANY_CODE" width="70"/>
+                    <a:column name="company_name" align="center" prompt="FND_COMPANIES.COMPANY_SHORT_NAME_ID"/>
+                    <a:column name="position_code" align="center" editorFunction="EXP2390_lov2EditFun" prompt="EXP_EMPLOYEE_ASSIGN.POSITION_CODE" width="70"/>
+                    <a:column name="position_name" prompt="EXP_EMPLOYEE_ASSIGN.POSITION_NAME" width="100"/>
+                    <a:column name="job_name" align="center" prompt="EXP_EMPLOYEE_ASSIGN.JOB_NAME"/>
+                    <a:column name="primary_position_flag" align="center" editor="cb2" prompt="FND_COMPANIES.CHIEF_POSITION_ID" width="50"/>
+                    <a:column name="enabled_flag" align="center" editor="cb2" prompt="EXP_EMPLOYEES.ENABLED_FLAG" width="50"/>
+                    <a:column name="employee_group" align="center" prompt="EXP_EMPLOYEE_ASSIGN.EMPLOYEE_GROUP_DEFINE" renderer="employeeGroupAssign"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="cb2"/>
+                    <a:lov id="lov1"/>
+                    <a:lov id="lov2">
+                        <a:events>
+                            <a:event name="blur" handler="onLov2Blur"/>
+                        </a:events>
+                    </a:lov>
+                </a:editors>
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="save"/>
+                    <a:button type="clear"/>
+                </a:toolBar>
+            </a:grid>
+        </a:screenBody>
+        <script><![CDATA[
+        
+            var rec=$('cur_emp_ds').getCurrentRecord();
+            var r=$('emp_ds').getCurrentRecord();
+            rec.set('employee_code',r.get('employee_code'));
+            rec.set('employee_id',r.get('employee_id'));
+            rec.set('name',r.get('name'));
+            $('emp_assign_ds').query();
+            
+        ]]></script>
+    </a:view>
+</a:screen>

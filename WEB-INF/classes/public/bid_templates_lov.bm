@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-3-8 下午3:01:32  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        t.template_id,
+                        t.template_code,
+                        t.template_desc,
+                        t.flexfield_group_id,
+                        ta.entrustment_type_id
+                    FROM
+                        fnd_flex_templates_vl t,
+                        bid_entrustment_tmpl_assign ta,
+                        fnd_flex_temp_instances ti,
+                        fnd_flex_appl_tables_vl atv
+                    WHERE
+                        t.flexfield_group_id = ta.template_group_id AND
+                        t.enabled_flag       = 'Y' AND
+                        t.compiled_flag      = 'Y' AND
+                        ti.template_id       = t.template_id AND
+                        atv.appl_table_id    = ti.appl_table_id AND
+                        atv.appl_table_name  = 'BID_ENTRUSTMENT_HEADERS' AND
+                        NOT EXISTS
+                        (SELECT
+                            1
+                        FROM
+                            bid_entrustment_tmpl_except te
+                        WHERE
+                            te.excepted_template_id       = t.template_id AND
+                            te.entrustment_tmpl_assign_id = ta.entrustment_tmpl_assign_id
+                        )
+                    ) t #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter inputPath="/session/@lang"/>
+            </bm:parameters>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="template_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="TEMPLATE_ID"/>
+        <bm:field name="template_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="TEMPLATE_CODE" prompt="模版代码"/>
+        <bm:field name="template_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="TEMPLATE_DESC" prompt="模版描述"/>
+        <bm:field name="entrustment_type_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ENTRUSTMENT_TYPE_ID"/>
+        <bm:field name="flexfield_group_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="FLEXFIELD_GROUP_ID"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="flexfield_group_id" queryExpression="t.flexfield_group_id = ${@flexfield_group_id}"/>
+        <bm:query-field name="entrustment_type_id" queryExpression="t.entrustment_type_id = ${@entrustment_type_id}"/>
+        <bm:query-field name="template_code" queryExpression="t.template_code like &apos;%&apos;||${@template_code}||&apos;%&apos;"/>
+        <bm:query-field name="template_desc" queryExpression="t.template_desc like &apos;%&apos;||${@template_desc}||&apos;%&apos;"/>
+        <bm:query-field name="quick_value" queryExpression="t.template_code like &apos;%&apos;||${@quick_value}||&apos;%&apos; or t.template_desc like &apos;%&apos;||${@quick_value}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

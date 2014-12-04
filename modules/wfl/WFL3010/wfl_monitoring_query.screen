@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+            function onQuery() {
+                var wfl_monitoring_result_ds = $('wfl_monitoring_result_ds');
+                wfl_monitoring_result_ds.setQueryParameter('company_id', '${/session/@company_id}');
+                wfl_monitoring_result_ds.query();
+            }
+            
+            function onReset() {
+                $('wfl_monitoring_query_ds').reset();
+            }
+            
+            function graphicsRenderer(value, record, name) {
+            
+                if (!record.isNew) {
+                    var graphic_id = record.get('graphic_id');
+                    if (graphic_id == -1) {
+                        return '图形未定义';
+                    } else {
+                        var workflow_id = record.get('workflow_id');
+                        var instance_id = record.get('instance_id');
+                        return '<a href=\"javascript:showGraphics(' + graphic_id + ',' + instance_id + ',' + workflow_id + ')\">查看</a>';
+                    }
+                } else {
+                    return '';
+                }
+            }
+            
+            function showGraphics(v, i, w) {
+                new Aurora.Window({
+                    id: 'graphicsWindow',
+                    url: '${/request/@context_path}/sys_graphics.screen?instance_id=' + i + '&graphics_id=' + v + '&workflow_id=' + w,
+                    title: '流程图',
+                    fullScreen: true
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl_monitoring_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="workflow_code" lovGridHeight="320" lovHeight="440" lovService="wfl.WFL3010.wfl_workflow_lov_company?sub_category=MAIN_PROCESS" lovWidth="480" title="工作流选择">
+                        <a:mapping>
+                            <a:map from="workflow_id" to="workflow_id"/>
+                            <a:map from="workflow_code" to="workflow_code"/>
+                            <a:map from="workflow_desc" to="workflow_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="workflow_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl_monitoring_result_ds" autoPageSize="true" autoQuery="false" model="wfl.WFL3010.wfl_monitoring_query" queryDataSet="wfl_monitoring_query_ds"/>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="wfl_monitoring_query_ds" resultTarget="wfl_monitoring_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox column="3" labelWidth="100">
+                    <a:lov name="workflow_code" bindTarget="wfl_monitoring_query_ds" prompt="工作流代码" typeCase="upper">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField name="workflow_desc" bindTarget="wfl_monitoring_query_ds" prompt="工作流描述">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:textField>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox column="3" labelWidth="100">
+                    <a:textField name="node_desc" bindTarget="wfl_monitoring_query_ds" prompt="当前节点">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="approve_user_name" bindTarget="wfl_monitoring_query_ds" prompt="当前审批人">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="approve_user_post" bindTarget="wfl_monitoring_query_ds" prompt="当前审批人岗位">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:textField>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="wfl_monitoring_result_grid" bindTarget="wfl_monitoring_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="graphics_id" align="center" prompt="流程图" renderer="graphicsRenderer" width="60"/>
+                <a:column name="workflow_code" prompt="工作流代码" width="100"/>
+                <a:column name="workflow_desc" prompt="工作流描述" width="100"/>
+                <a:column name="current_seq" align="center" prompt="当前节点序号" width="50"/>
+                <a:column name="current_node_desc" prompt="当前节点描述" width="150"/>
+                <a:column name="last_approve_date" align="center" prompt="上一节点审批时间" width="60"/>
+                <a:column name="company_code" prompt="公司代码" width="50"/>
+                <a:column name="company_short_name" prompt="公司名称" width="120"/>
+                <a:column name="approve_user_code" align="center" prompt="当前审批人代码" width="60"/>
+                <a:column name="approve_user_name" prompt="当前审批人姓名" width="80"/>
+                <a:column name="approve_user_post" prompt="当前审批人岗位" width="80"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

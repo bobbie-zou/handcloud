@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lily  
+    $Date: 2013-7-6 下午1:21:36  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <s:server-script import="fnd_flex_dynamic_page_link.js"/>
+        <s:server-script import="fnd_flex_dynamic_page_main.js"/>
+        <s:server-script import="fnd_flex_dynamic_page_appl_view.js"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="pur7120_rfx_details_link" url="${/request/@context_path}/modules/pur/PUR7110/pur_rfx_details.screen"/>
+        <script><![CDATA[
+    	
+    		function pur7120_query(){
+    		    $('pur7120_rep_pool_man_result_ds').query();
+    		}
+    	
+    		//比较两个日期的大小
+        	function pur7120_compareDate(start,end){
+        	    if(start > end){
+        	        return false;
+        	    }
+        	    return true;
+        	}
+    	
+    		//需求日期校验
+        	function pur7120_need_by_dateValidator(record,name,value){
+        	    if(name == 'need_by_date_from' || name == 'need_by_date_to'){
+        	        var start = record.get('need_by_date_from');
+        	        var end = record.get('need_by_date_to');
+        	        
+        	        if(!!end){
+        	            if(!pur7120_compareDate(start,end)){
+        	                return '${l:PUR_NEED_BY_DATE_COMPARE_ERROR}';
+        	            }
+        	        }
+        	        return true;
+        	    }
+        	}
+        	
+        	//承诺日期校验
+        	function pur7120_promised_dateValidator(record,name,value){
+        	    if(name == 'promised_date_from' || name == 'promised_date_to'){
+        	        var start = record.get('promised_date_from');
+        	        var end = record.get('promised_date_to');
+        	        
+        	        if(!!end){
+        	            if(!pur7120_compareDate(start,end)){
+        	                return '${l:PUR_PROMISE_DATE_COMPARE_ERROR}';
+        	            }
+        	        }
+        	        return true;
+        	    }
+        	}
+        	
+        	//RFX编号链接
+        	function pur7120_rfx_render(value,record,name){
+        	    var rfx_header_id = record.get('rfx_header_id');
+        	    return '<a href="javascript:pur7120_rfx_window(' + rfx_header_id + ')">' + value + '</a>';
+        	}
+        	
+        	function pur7120_rfx_window(id){
+        	    var window_id;
+        	    var url;
+        	    window_id = 'pur71101_rfx_details_window';
+        	    url = $('pur7120_rfx_details_link').getUrl();
+        	    url += '?rfx_header_id=' + id;
+        	    new Aurora.Window({
+        	        id:window_id,
+        	        title:'${l:MODULES/PUR/PUR7130/PUR_RFX_DETAILS.SCREEN.TITLE}',
+        	        url:url,
+        	        fullScreen:true
+        	    }).on('beforeclose',pur7120_query);
+        	}
+        	
+        	function formatNumber2(value, decimalprecision) {
+                if (Ext.isEmpty(value)) return '';
+            
+                value = String(value).replace(/,/g, '');
+                if (isNaN(value)) return '';
+                if (decimalprecision || decimalprecision === 0)
+            
+            
+                var point_value = value.split('.');
+                var in_length = (point_value.length == 2) ? '.' + point_value[1] : '';
+            
+            
+                if (in_length.length - 1 < decimalprecision) {
+            
+                    decimalprecision = in_length.length - 1
+                };
+                if (in_length.length == 0) {
+                    decimalprecision = 0;
+                }
+            
+                value = Number(value).toFixed(decimalprecision);
+            
+                var ps = value.split('.');
+                var sub = (ps.length == 2) ? '.' + ps[1] : '';
+            
+            
+                var whole = ps[0];
+                var r = /(\d+)(\d{3})/;
+                while (r.test(whole)) {
+                    whole = whole.replace(r, '$1' + ',' + '$2');
+                }
+            
+                Math.round()
+                v = whole + sub;
+                return v;
+            }
+            
+            function pur71201_formatNumber_render(value,record,name){
+                return formatNumber2(value, 8);
+            }
+        	
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur7120_rep_pool_man_query_ds">
+                <a:fields>
+                    <a:field name="company_desc" autoComplete="true" lovGridHeight="300" lovHeight="480" lovService="public.fnd_companies_lov" lovWidth="600" title="PRU5170.COMPANY_QUERY">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_short_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="rfx_number"/>
+                    <a:field name="item_code" autoComplete="true" lovGridHeight="350" lovHeight="500" lovService="public.inv_system_items_lov" lovWidth="660" title="PUR5170.ITEM_QUERY">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_desc" to="item_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_code" autoComplete="true" lovGridHeight="350" lovHeight="500" lovService="public.pur_vendors_lov" lovWidth="500" title="PUR5170.VENDOR_QUERY">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_name" to="vendor_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_desc"/>
+                    <a:field name="item_category" autoComplete="true" lovGridHeight="350" lovHeight="500" lovService="public.inv_item_categories_lov" lovWidth="500" title="PUR5170.ITEM_CATEGORY_QUERY">
+                        <a:mapping>
+                            <a:map from="item_category_id" to="item_category_id"/>
+                            <a:map from="item_category_desc" to="item_category"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_note"/>
+                    <a:field name="need_by_date_from" validator="pur7120_need_by_dateValidator"/>
+                    <a:field name="need_by_date_to" validator="pur7120_need_by_dateValidator"/>
+                    <a:field name="promised_date_from" validator="pur7120_promised_dateValidator"/>
+                    <a:field name="promised_date_to" validator="pur7120_promised_dateValidator"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur7120_rep_pool_man_result_ds" model="pur.PUR7120.pur_report_pool_manage" queryDataSet="pur7120_rep_pool_man_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="tax_included_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="pur7120_rep_pool_man_grid" text="HAP_EXPORT" type="excel" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="pur7120_rep_pool_man_query_ds" resultTarget="pur7120_rep_pool_man_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:textField style="width:100%;display:none"/>
+                <a:hBox>
+                    <a:lov name="company_desc" prompt="PUR_RFX_FILING_POOL.COMPANY_ID"/>
+                    <a:textField name="rfx_number" prompt="PUR_RFX_HEADERS.RFX_NUMBER"/>
+                    <a:lov name="item_code" prompt="PUR_RFX_FILING_POOL.ITEM_CODE"/>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox labelWidth="100">
+                    <a:lov name="vendor_code" prompt="PUR_RFX_FILING_POOL.VENDOR_CODE"/>
+                    <a:textField name="item_desc" prompt="PUR_RFX_FILING_POOL.ITEM_DESC"/>
+                    <a:lov name="item_category" prompt="PUR_RFX_FILING_POOL.ITEM_CATEGORY_ID"/>
+                    <a:textField name="item_note" prompt="PUR_RFX_FILING_POOL.ITEM_NOTE"/>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:datePicker name="need_by_date_from" prompt="PUR5120.DEMAND_DATE_FROM"/>
+                    <a:datePicker name="need_by_date_to" prompt="PUR5120.DEMAND_DATE_TO"/>
+                    <a:datePicker name="promised_date_from" prompt="PUR5170.PROMISE_DATE_FROM"/>
+                    <a:datePicker name="promised_date_to" prompt="PUR5170.PROMISE_DATE_TO"/>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="pur7120_rep_pool_man_grid" bindTarget="pur7120_rep_pool_man_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns id="pur7120_rep_pool_man_grid_columns">
+                <a:column name="item_category" align="left" prompt="PUR_RFX_FILING_POOL.ITEM_CATEGORY_ID" width="60"/>
+                <a:column name="item_code" align="left" prompt="PUR_RFX_FILING_POOL.ITEM_CODE" width="100"/>
+                <a:column name="item_desc" align="left" prompt="PUR_RFX_FILING_POOL.ITEM_DESC" width="100"/>
+                <a:column name="item_note" align="left" prompt="PUR_RFX_FILING_POOL.ITEM_NOTE" width="100"/>
+                <a:column name="quantity" align="right" prompt="PUR_RFX_FILING_POOL.QUANTITY" width="60"/>
+                <a:column name="uom_desc" align="left" prompt="PUR_RFX_FILING_POOL.UOM_CODE" width="60"/>
+                <a:column name="vendor_code" align="left" prompt="PUR_RFX_FILING_POOL.VENDOR_CODE" width="100"/>
+                <a:column name="vendor_desc" align="left" prompt="PUR_RFX_FILING_POOL.VENDOR_DESC" width="100"/>
+                <a:column name="exchange_rate" align="left" prompt="PUR_RFX_FILING_POOL.EXCHANGE_RATE" width="60"/>
+                <a:column name="currency_desc" align="left" prompt="PUR_RFX_FILING_POOL.CURRENCY_CODE" width="80"/>
+                <a:column name="tax_included_flag" align="left" prompt="PUR_RFX_FILING_POOL.TAX_INCLUDED_FLAG" width="80"/>
+                <a:column name="tax_type_desc" align="left" prompt="PUR5120.TAX_TYPE" width="80"/>
+                <a:column name="fb_net_retail_price" align="right" prompt="PUR_RFX_FILING_POOL.FB_NET_RETAIL_PRICE" renderer="pur71201_formatNumber_render" width="80"/>
+                <a:column name="fb_net_retail_amount" align="right" prompt="PUR_RFX_FILING_POOL.FB_NET_RETAIL_AMOUNT" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="fb_tax_retail_amount" align="right" prompt="PUR_RFX_FILING_POOL.FB_TAX_RETAIL_AMOUNT" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="fb_total_retail_amount" align="right" prompt="PUR_RFX_FILING_POOL.FB_TOTAL_RETAIL_AMOUNT" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="fb_net_wholesale_price" align="right" prompt="PUR_RFX_FILING_POOL.FB_NET_WHOLESALE_PRICE" renderer="pur71201_formatNumber_render" width="80"/>
+                <a:column name="fb_net_wholesale_amount" align="right" prompt="PUR_RFX_FILING_POOL.FB_NET_WHOLESALE_AMOUNT" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="fb_tax_wholesale_amount" align="right" prompt="PUR_RFX_FILING_POOL.FB_TAX_WHOLESALE_AMOUNT" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="fb_total_whlsale_amount" align="right" prompt="PUR_RFX_FILING_POOL.FB_TOTAL_WHLSALE_AMOUNT" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="functional_retail_amount" align="right" prompt="PUR_RFX_FILING_POOL.FUNCTIONAL_RETAIL_AMOUNT" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="functional_wholesale_amount" align="right" prompt="PUR_RFX_FILING_POOL.FUNCTIONAL_WHOLESALE_AMOUNT" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="entered_retail_amount" align="right" prompt="PUR_RFX_FILING_POOL.ENTERED_RETAIL_AMOUNT" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="entered_wholesale_amount" align="right" prompt="PUR_RFX_FILING_POOL.ENTERED_WHOLESALE_AMOUNT" renderer="Aurora.formatMoney" width="80"/>
+                <a:column name="feedback_expiry_date_from" align="left" prompt="PUR_RFX_FILING_POOL.FEEDBACK_EXPIRY_DATE_FROM" renderer="Aurora.formatDate" width="100"/>
+                <a:column name="feedback_expiry_date_to" align="left" prompt="PUR_RFX_FILING_POOL.FEEDBACK_EXPIRY_DATE_TO" renderer="Aurora.formatDate" width="100"/>
+                <a:column name="need_by_date" align="left" prompt="PUR_RFX_FILING_POOL.NEED_BY_DATE" renderer="Aurora.formatDate" width="100"/>
+                <a:column name="promised_date" align="left" prompt="PUR_RFX_FILING_POOL.PROMISED_DATE" renderer="Aurora.formatDate" width="100"/>
+                <a:column name="inv_organization_desc" align="left" prompt="PUR_RFX_FILING_POOL.INV_ORGANIZATION_ID" width="100"/>
+                <a:column name="company_desc" align="left" prompt="PUR_RFX_FILING_POOL.COMPANY_ID" width="100"/>
+                <a:column name="pur_req_num" align="left" prompt="PUR_RFX_LN_ITEMS.PUR_REQ_NUM" width="120"/>
+                <a:column name="rfx_number" align="left" prompt="PUR_RFX_HEADERS.RFX_NUMBER" renderer="pur7120_rfx_render" width="120"/>
+                <a:column name="data_source" align="left" prompt="PUR_RFX_FILING_POOL.DATA_SOURCE" width="80"/>
+                <a:dynamicPage id="segmentMaintain" columns="pur7120_rep_pool_man_grid_columns" datasetid="pur7120_rep_pool_man_result_ds" pagetype="query" pkname="filing_pool_id" type="grid"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

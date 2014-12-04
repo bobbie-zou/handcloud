@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: likun1919 $
+    $Date: 2013/01/09 01:49:52 $
+    $Revision: 1.1.1.1 $
+    $Purpose: 对应 gld_exchangerate_types 表的bm
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="type_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="type_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="GLD_EXCHANGERATE_TYPES.TYPE_CODE"/>
+        <bm:field name="rate_method_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="GLD_EXCHANGERATE_TYPES.RATE_METHOD_CODE"/>
+        <!-- <bm:field name="rate_method_code_display" databaseType="VARCHAR2" datatype="java.lang.String" expression="rate_method_code" forInsert="false" forUpdate="false" prompt="GLD_EXCHANGERATE_TYPES.RATE_METHOD_CODE"/> -->
+        <!-- <bm:field name="rate_method_code_display" prompt="GLD_EXCHANGERATE_TYPES.RATE_METHOD_CODE"/> -->
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="GLD_EXCHANGERATE_TYPES.ENABLED_FLAG"/>
+        <bm:field name="type_name_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <!-- <bm:field name="type_name" databaseType="VARCHAR2" datatype="java.lang.String" expression="description_text" prompt="GLD_EXCHANGERATE_TYPES.TYPE_NAME"/> -->
+        <bm:field name="type_name" prompt="GLD_EXCHANGERATE_TYPES.TYPE_NAME"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="type_code_name" queryExpression="(ge.type_code like &apos;%&apos;||trim(UPPER(${@type_code_name}))||&apos;%&apos; or fd.description_text like &apos;%&apos;||trim(${@type_code_name})||&apos;%&apos;)"/>
+        <bm:query-field field="type_id" queryOperator="="/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="ge.type_name_id = fd.description_id"/>
+        <bm:data-filter expression="fd.language     = ${/session/@lang}"/>
+    </bm:data-filters>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    ge.type_id,
+                    ge.type_code,
+                    ge.rate_method_code,
+                    ge.type_name_id,
+                    ge.enabled_flag,
+                    fd.description_text as type_name
+                FROM
+                    gld_exchangerate_types ge,
+                    fnd_descriptions fd
+                #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+         BEGIN
+  gld_exchangerate_type_pkg.insert_gld_exchangerate_type(p_type_code        => ${@type_code},
+                                                         p_type_name        => ${@type_name},
+                                                         p_rate_method_code => ${@rate_method_code},
+                                                         p_enabled_flag     => ${@enabled_flag},
+                                                         p_user_id  		=> ${/session/@user_id},
+                                                         o_type_id          =>${@type_id});
+END;
+        ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="type_id" output="true" outputPath="@type_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+     BEGIN
+  gld_exchangerate_type_pkg.update_gld_exchangerate_type(p_type_code        => ${@type_code},
+                                                         p_type_name        => ${@type_name},
+                                                         p_enabled_flag     => ${@enabled_flag},
+                                                         p_rate_method_code=>${@rate_method_code},
+                                                         p_user_id		  	=> ${/session/@user_id});
+END;
+
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

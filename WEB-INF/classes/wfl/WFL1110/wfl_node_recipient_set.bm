@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:e="aurora.service.exception" xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="WFL_WORKFLOW_ASSIGN_RULE">
+    <bm:fields>
+        <bm:field name="assign_rule_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ASSIGN_RULE_ID" prompt="WFL_WORKFLOW_ASSIGN_RULE.ASSIGN_RULE_ID"/>
+        <bm:field name="node_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="NODE_ID" prompt="WFL_WORKFLOW_ASSIGN_RULE.NODE_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID" prompt="WFL_WORKFLOW_ASSIGN_RULE.COMPANY_ID"/>
+        <bm:field name="sequence_num" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SEQUENCE_NUM" prompt="WFL_WORKFLOW_ASSIGN_RULE.SEQUENCE_NUM"/>
+        <bm:field name="approval_rule" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="APPROVAL_RULE" prompt="WFL_WORKFLOW_ASSIGN_RULE.APPROVAL_RULE"/>
+        <bm:field name="approval_rule_desc" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false"/>
+        <bm:field name="parameter_url" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false"/>
+        <bm:field name="parameter_type" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false"/>
+        <bm:field name="parameter_value_id1" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PARAMETER_VALUE_ID1" prompt="WFL_WORKFLOW_ASSIGN_RULE.PARAMETER_VALUE_ID1"/>
+        <bm:field name="parameter_value_code1" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARAMETER_VALUE_CODE1" prompt="WFL_WORKFLOW_ASSIGN_RULE.PARAMETER_VALUE_CODE1"/>
+        <bm:field name="parameter_value_desc1" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false"/>
+        <bm:field name="company_name" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false"/>
+    </bm:fields>
+    <bm:features>
+        <f:standard-who/>
+        <o:sequence-pk/>
+    </bm:features>
+    <bm:primary-key>
+        <bm:pk-field name="assign_rule_id"/>
+    </bm:primary-key>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+				select t.assign_rule_id,
+				       t.node_id,
+				       t.company_id,
+				       (select  r.company_code||'_'||r.company_short_name from fnd_companies_vl r where r.company_id=  t.company_id) as   company_name,
+				       t.sequence_num,
+				       t.approval_rule,
+				       (select wr.description
+				          from wfl_workflow_rules wr
+				         where wr.rule_code = t.approval_rule) as approval_rule_desc,
+				       (select wr.parameter_1_type
+				          from wfl_workflow_rules wr
+				         where wr.rule_code = t.approval_rule) as parameter_type,
+				       (select wr.parameter_1_url
+				          from wfl_workflow_rules wr
+				         where wr.rule_code = t.approval_rule) as parameter_url,
+				       t.parameter_value_id1,
+				       t.parameter_value_code1,
+				       (select v.description
+				          from (select e.employee_id as id,
+				                       e.employee_code as code,
+				                       e.name as description,
+				                       'APPOINTED_EMPLOYEE' as approval_rule
+				                  from wfl_employee_vl e
+				                union 
+				                select p.position_id as id,
+				                       p.position_code as code,
+				                       p.description,
+				                       'APPOINTED_POSITION' as approval_rule
+				                  from wfl_position_vl p ) v
+				                where v.id = t.parameter_value_id1
+				                  and v.approval_rule = t.approval_rule ) as parameter_value_desc1				                      
+				  from wfl_workflow_assign_rule t
+				 where  t.node_id = ${@node_id}
+				 and ((t.company_id = ${/parameter/@company_id}) or (select n.system_maintain_flag from wfl_workflow_node n where n.node_id = t.node_id) = 'Y')				 
+				 order by t.sequence_num		
+			]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

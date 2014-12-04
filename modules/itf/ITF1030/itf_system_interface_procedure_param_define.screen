@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: Apr 25, 2014 11:06:20 AM  
+    $Revision: 1.0  
+    $Purpose: 系统级接口过程参数定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="i.system_procedure_id = ${/parameter/@system_procedure_id}" fetchAll="true" model="itf.ITF1030.itf_system_interface_procedure_define" rootPath="itf1030_system_interface_procedure_rs"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+        	function itf1030_SystemInterfaceProcedureParameterDefineEditor(record, name) {
+                if (name == 'parameter_object_code') {
+                    var parameter_object_type = record.get('parameter_object_type');
+                    var parameter_object_code_field = record.getField('parameter_object_code');
+                    if (parameter_object_type != undefined) {
+                        switch (parameter_object_type) {
+                        case 'PARAMETER':
+                            var parameter_param_mapping = [{
+                                from: 'system_dfn_parameter_id',
+                                to: 'parameter_object_id'
+                            }, {
+                                from: 'parameter_code',
+                                to: 'parameter_object_code'
+                            }, {
+                                from: 'parameter_desc',
+                                to: 'parameter_object_desc'
+                            }];
+                            parameter_object_code_field.setLovService('itf.ITF1030.itf_system_interface_parameter_param_lov');
+                            parameter_object_code_field.setLovPara('system_interface_id', ${/parameter/@system_interface_id});
+                            parameter_object_code_field.setMapping(parameter_param_mapping);
+                            break;
+                        case 'STRUCTURE':
+                            var structure_param_mapping = [{
+                                from: 'system_field_id',
+                                to: 'parameter_object_id'
+                            }, {
+                                from: 'field_code',
+                                to: 'parameter_object_code'
+                            }, {
+                                from: 'field_desc',
+                                to: 'parameter_object_desc'
+                            }];
+                            parameter_object_code_field.setLovService('itf.ITF1030.itf_system_interface_structure_param_lov');
+                            parameter_object_code_field.setLovPara('system_interface_id', ${/parameter/@system_interface_id});
+                            parameter_object_code_field.setMapping(structure_param_mapping);
+                            break;
+                        }
+                        return 'itf1030_system_interface_procedure_parameter_grid_lov';
+                    } else {
+                        return '';
+                    }
+                }
+            }
+            
+            function itf1030_systemInterfaceProcedureParamDefineBack() {
+                $('itf1030_system_interface_procedure_param_define_window').close();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="itf1030_param_obj_type_ds" loadData="true" lookupCode="ITF_PARAM_OBJ_TYPE"/>
+            <a:dataSet id="itf1030_system_interface_procedure_ds" model="itf.ITF1030.itf_system_interface_procedure_define">
+                <a:datas dataSource="/model/itf1030_system_interface_procedure_rs"/>
+                <a:fields>
+                    <a:field name="system_procedure_code" readOnly="true"/>
+                    <a:field name="system_procedure_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="itf1030_system_interface_procedure_parameter_query_ds">
+                <a:fields>
+                    <a:field name="system_interface_id" defaultValue="${/parameter/@system_interface_id}"/>
+                    <a:field name="system_procedure_id" defaultValue="${/parameter/@system_procedure_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="itf1030_system_interface_procedure_parameter_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="true" model="itf.ITF1030.itf_system_interface_procedure_param_define" queryDataSet="itf1030_system_interface_procedure_parameter_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="procedure_id" defaultValue="${/parameter/@procedure_id}"/>
+                    <a:field name="parameter_object_type"/>
+                    <a:field name="parameter_object_type_display" displayField="code_value_name" options="itf1030_param_obj_type_ds" required="true" returnField="parameter_object_type" valueField="code_value"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" required="true" uncheckedValue="N"/>
+                    <a:field name="parameter_object_id"/>
+                    <a:field name="parameter_object_desc"/>
+                    <a:field name="parameter_object_code" lovGridHeight="320" lovHeight="450" lovWidth="500" title="ITF_ITF_PRO_PARAMETERS.PARAMETER_OBJECT"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="itf1030_system_interface_procedure_parameter_grid" style="margin-left:20px;" type="add" width="100"/>
+            <a:gridButton bind="itf1030_system_interface_procedure_parameter_grid" type="save" width="100"/>
+            <a:gridButton bind="itf1030_system_interface_procedure_parameter_grid" type="delete" width="100"/>
+            <a:gridButton click="itf1030_systemInterfaceProcedureParamDefineBack" text="PROMPT.RETURN" width="100"/>
+        </a:screenTopToolbar>
+        <a:screenBody>
+            <a:hBox>
+                <a:label name="system_procedure_code" bindTarget="itf1030_system_interface_procedure_ds" prompt="ITF_ITF_PROCEDURES.PROCEDURE_CODE" width="100"/>
+                <a:label name="system_procedure_desc" bindTarget="itf1030_system_interface_procedure_ds" prompt="ITF_ITF_PROCEDURES.PROCEDURE_DESC" width="100"/>
+            </a:hBox>
+            <a:grid id="itf1030_system_interface_procedure_parameter_grid" bindTarget="itf1030_system_interface_procedure_parameter_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+                <a:columns>
+                    <a:column name="parameter_object_type_display" prompt="ITF_ITF_PRO_PARAMETERS.PARAMETER_OBJECT_TYPE" width="60"/>
+                    <a:column name="parameter_object_code" prompt="ITF_ITF_PRO_PARAMETERS.PARAMETER_OBJECT_CODE" width="80"/>
+                    <a:column name="parameter_object_desc" prompt="ITF_ITF_PRO_PARAMETERS.PARAMETER_OBJECT_DESC" width="120"/>
+                    <a:column name="enabled_flag" align="center" editor="itf1030_system_interface_procedure_parameter_grid_chb" prompt="PROMPT.ENABLED_FLAG" width="40"/>
+                </a:columns>
+                <a:editors>
+                    <a:comboBox id="itf1030_system_interface_procedure_parameter_grid_cmb"/>
+                    <a:checkBox id="itf1030_system_interface_procedure_parameter_grid_chb"/>
+                    <a:lov id="itf1030_system_interface_procedure_parameter_grid_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

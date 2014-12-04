@@ -1,0 +1,475 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace 
+    $Date: 2013-12-11 下午03:46:54  
+    $Revision: 1.0  
+    $Purpose: 物品主数据创建
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="inv5050_item_application_lns_save_link" url="${/request/@context_path}/modules/inv/INV5050/inv_item_application_lns_save.svc"/>
+        <a:link id="inv5050_link_sys_item_basic_info" url="modules/inv/INV5050/inv_item_application_basic_info.screen"/>
+        <a:link id="inv5050_link_sys_item_basic_info_view" url="modules/inv/INV5050/inv_item_application_basic_info_view.screen"/>
+        <script><![CDATA[
+        	//加载事件
+        	function inv5050_item_application_lns_init(){
+        	    var record = $('inv5050_item_application_hds').getCurrentRecord();
+        	    var lns_record = $('inv5050_item_application_lns_item_hds_ds').getCurrentRecord();
+        	    if(record.get('primary_inv_org_id')){
+        	        lns_record.set('primary_inv_org_id', record.get('primary_inv_org_id'));
+        	        lns_record.set('primary_inv_org_desc', record.get('primary_inv_org_desc'));
+        	    }
+        	}
+        	
+        	function inv5050_setTabEnabled(){
+        	    $('inv5050_item_application_lns_tab').setEnabled(0);
+        	    $('inv5050_item_application_lns_tab').setEnabled(1);
+        	    $('inv5050_item_application_lns_tab').setEnabled(2);
+        	    $('inv5050_item_application_lns_tab').selectTab(0);
+        	}
+        	
+        	//保存事件
+        	function inv5050_item_application_lns_save(){
+        	    var item_application_line_id;
+        	    if($('inv5050_item_application_lns_item_hds_ds').validate()&&$('inv5050_item_application_org_ds').validate()){
+	        	    var hds_lns = $('inv5050_item_application_lns_item_hds_ds').getCurrentRecord();
+	        	    var inv_org_lns = $('inv5050_item_application_org_ds').getJsonData(false);
+	        	    var inv_category_lns = $('inv5050_item_application_category_ds').getJsonData(false);
+	        	    var inv_file_lns = $('inv5050_item_application_atm_file_ds').getJsonData(false);
+	        	    
+	        	    Aurora.request({
+	        	        url:$('inv5050_item_application_lns_save_link').getUrl(),
+	        	        para:{
+							'item_application_line_id'    :hds_lns.get('item_application_line_id'),
+							'item_application_header_id'  :hds_lns.get('item_application_header_id'),
+							'item_name'          		  :hds_lns.get('item_name'),
+							'description'                 :hds_lns.get('description'),
+							'item_type_id'                :hds_lns.get('item_type_id'),
+							'expense_item_id'             :hds_lns.get('expense_item_id'),
+							'item_specs'                  :hds_lns.get('item_specs'),
+							'item_model'                  :hds_lns.get('item_model'),
+							'primary_uom'                 :hds_lns.get('primary_uom'),
+							'secondary_uom_enabled'       :hds_lns.get('secondary_uom_enabled'),
+							'secondary_uom'               :hds_lns.get('secondary_uom'),
+							'conversion'                  :hds_lns.get('conversion'),
+							'gross_weight'                :hds_lns.get('gross_weight'),
+							'net_weight'                  :hds_lns.get('net_weight'),
+							'uom_of_weight'               :hds_lns.get('uom_of_weight'),
+							'enabled_flag'                :hds_lns.get('enabled_flag'),
+							'version_num'                 :hds_lns.get('version_num'),
+							'lot_numbering_rule'          :hds_lns.get('lot_numbering_rule'),
+							'item_manage_method'          :hds_lns.get('item_manage_method'),
+							'quota_manage_type'           :hds_lns.get('quota_manage_type'),
+							'comments'                    :hds_lns.get('comments'),
+							'primary_inv_org_id'          :hds_lns.get('primary_inv_org_id'),
+							'attribute_protection_flag'   :hds_lns.get('attribute_protection_flag'),
+							'taxable_flag'                :hds_lns.get('taxable_flag'),
+							'default_tax_type_id'         :hds_lns.get('default_tax_type_id'),
+							'manual_description_flag'     :hds_lns.get('manual_description_flag'),
+	        	            'inv_org_lns':inv_org_lns,
+	        	            'inv_category_lns':inv_category_lns,
+	        	            'inv_file_lns':inv_file_lns,
+	        	            '_status':hds_lns.isNew?'insert':'update'
+	        	        },
+	        	        scope:this,
+	        	        success:function(res){
+	        	            if(res.result.item_application_line_id){
+	        	                item_application_line_id = res.result.item_application_line_id;
+	        	                inv5050_setTabEnabled();
+	        	            }else{
+	        	                item_application_line_id = hds_lns.get('item_application_line_id');
+	        	            }
+	        	            
+	        	            $('inv5050_item_application_lns_item_hds_ds').setQueryParameter('item_application_line_id', item_application_line_id);
+	        	            $('inv5050_item_application_lns_item_hds_ds').query();
+	        	            $('inv5050_item_application_org_ds').setQueryParameter('item_application_line_id', item_application_line_id);
+	        	            $('inv5050_item_application_org_ds').query();
+	        	            $('inv5050_item_application_category_ds').setQueryParameter('item_application_line_id', item_application_line_id);
+	        	            $('inv5050_item_application_category_ds').query();
+		                    $('inv5050_item_application_atm_file_ds').setQueryParameter('table_name', 'INV_ITEM_APPLICATION_LNS_FILE');
+		                    $('inv5050_item_application_atm_file_ds').setQueryParameter('pk_value', item_application_line_id);
+	        	            $('inv5050_item_application_atm_file_ds').query();
+	        	        }
+	        	    });
+        	    }
+        	}
+        	
+        	//返回事件
+        	function inv5050_item_application_lns_back(){
+        	    $('inv5050_item_application_lns_create_win').close();
+        	}
+        	
+        	//物品主数据头ds更新事件
+        	function inv5050_item_application_lns_item_hds_update_handler(ds, record, name, value, oldvalue){
+        	    //启用辅单位描述变更
+        	    if(name == 'secondary_uom_enabled_display'){
+        	        if(!value){
+        	            record.set('secondary_uom_enabled', '');
+        	        }
+        	    }
+        	    
+        	    //启用辅单位编码变更
+        	    if(name == 'secondary_uom_enabled'){
+        	        record.set('secondary_uom', '');
+        	        record.set('secondary_uom_desc', '');
+        	        record.set('conversion', '');
+        	        
+        	        if(value){
+        	            if(value == 'Y'){
+        	                record.getField('secondary_uom_desc').setReadOnly(false);
+	        	            record.getField('secondary_uom_desc').setRequired(true);
+	        	            record.getField('conversion').setReadOnly(false);
+        	            }else{
+	        	            record.getField('secondary_uom_desc').setReadOnly(true);
+	        	            record.getField('secondary_uom_desc').setRequired(false);
+	        	            record.getField('conversion').setReadOnly(true);
+        	            }
+        	        }else{
+        	            record.getField('secondary_uom_desc').setReadOnly(true);
+        	            record.getField('secondary_uom_desc').setRequired(false);
+        	            record.getField('conversion').setReadOnly(true);
+        	            
+        	        }
+        	    }
+        	    
+        	    //是否计税描述变更
+        	    if(name == 'taxable_flag_display'){
+        	        if(!value){
+        	            record.set('taxable_flag', '');
+        	        }
+        	    }
+        	    
+        	    //是否计税代码变更
+        	    if(name == 'taxable_flag'){
+        	        record.set('default_tax_type_desc', '');
+        	        record.set('default_tax_type_id', '');
+        	        
+        	        if(value == 'Y'){
+        	            record.getField('default_tax_type_desc').setReadOnly(false);
+        	        }else{
+        	            record.getField('default_tax_type_desc').setReadOnly(true);
+        	        }
+        	    }
+        	    
+        	    //物品类型描述变更
+        	    if(name == 'item_type_desc'){
+        	        if(!value){
+        	            record.set('item_type_id', '');
+        	            record.set('coding_method', '');
+        	        }
+        	    }
+        	    
+        	    //物品类型对应编码方式变更
+        	    if(name == 'coding_method'){
+        	        //简单编码
+        	        if(value == 'SIMPLIFIED'){
+        	            //手工修改描述字段只读
+        	            record.getField('manual_description_flag_display').setReadOnly(true);
+        	        }else if(value == 'ADVANCED'){
+        	            //手工修改描述字段可选
+        	            record.getField('manual_description_flag_display').setReadOnly(false);
+        	            // alert(record.get('coding_rule'));
+        	            // if(record.get('coding_rule')){
+        	                // inv5050_item_type_advanced_handle(record);
+        	            // }
+        	        }
+        	    }
+        	    
+        	    if(name == 'coding_rule'){
+        	        if(value){
+        	            inv5050_item_type_advanced_handle(record);
+        	        }
+        	    }
+        	}
+        	
+        	function inv5050_item_type_advanced_handle(record){
+				
+                //高级物品类型时，类型，编码，描述都只读
+                record.getMeta().getField('item_type_desc').setReadOnly(true);
+                record.getMeta().getField('item_code').setReadOnly(true);
+                record.getMeta().getField('item_name').setReadOnly(true);
+                
+                
+                //设置物品基础信息打开第一个TAB页的地址
+                // $('inv2010_inv_sys_item_tabPanel').items[0].ref = $('inv2010_link_sys_item_basic_info').getUrl() + '?temp_instance_id=' + parseFloat(record.get('coding_rule')) + '&item_type_id=' + record.get('item_type_id');
+				//物品基础信息TAB页可用
+                // $('inv2010_inv_sys_item_tabPanel').setEnabled(0);
+                
+                $('inv5050_item_application_lns_tab').openTab($('inv5050_link_sys_item_basic_info').getUrl() + '?temp_instance_id=' + parseFloat(record.get('coding_rule')) + '&item_type_id=' + record.get('item_type_id') +'&item_application_header_id=${/parameter/@item_application_header_id}', '物品信息');
+                // //选中物品基础信息TAB页
+                // $('inv2010_inv_sys_item_tabPanel').selectTab(0);
+            }
+            
+            //物品配置清单保存成功
+            function inv5050_inv_item_config_submit_success_handler(res){
+                var item_application_line_id = res.result.item_application_line_id;
+                var ds = $('inv5050_item_application_lns_item_hds_ds');
+                ds.setQueryParameter('item_application_line_id', item_application_line_id);
+                ds.setQueryParameter('item_application_header_id', '${/parameter/@item_application_header_id}');
+                ds.query();
+                                
+                $('inv5050_item_application_lns_tab').setEnabled(0);
+                $('inv5050_item_application_lns_tab').setEnabled(1);
+                $('inv5050_item_application_lns_tab').setEnabled(2);
+                
+                $('inv5050_item_application_lns_tab').selectTab(0);
+            }
+        	
+        	//物品主数据头ds加载完成事件
+        	function inv5050_item_application_lns_item_hds_load_handler(ds){
+        	    record = ds.getCurrentRecord();
+        	    var secondary_uom_enabled = record.get('secondary_uom_enabled');
+        	    var taxable_flag = record.get('taxable_flag');
+        	    
+        	    if(secondary_uom_enabled == 'Y'){
+        	        record.getField('secondary_uom_desc').setReadOnly(false);
+		            record.getField('secondary_uom_desc').setRequired(true);
+		            record.getField('conversion').setReadOnly(false);
+        	    }else{
+        	        record.getField('secondary_uom_desc').setReadOnly(true);
+    	            record.getField('secondary_uom_desc').setRequired(false);
+    	            record.getField('conversion').setReadOnly(true);
+        	    }
+        	    
+        	    if(taxable_flag == 'Y'){
+        	    	record.getField('default_tax_type_desc').setReadOnly(false);
+        	    }else{
+        	    	record.getField('default_tax_type_desc').setReadOnly(true);
+        	    }
+        	    
+        	    if(!record.isNew){
+        	        record.getField('item_type_desc').setReadOnly(true);
+        	    }
+        	}
+        	
+        	//物品行采购品类新增
+        	function inv5050_item_application_lns_category_add(){
+        	    new Aurora.Window({
+        	        id:'inv5050_item_application_lns_category_add_wid',
+        	        title:'采购品类选择',
+        	        url:$('inv5050_item_application_lns_category_add_link').getUrl(),
+        	        width:600,
+        	        height:600
+        	    });
+        	}
+        	
+        	//附件信息TAB页，附件名称的渲染方法，点击附件名称的超链，可以下载该附件
+            function inv5050_sysItemAttachmentFileNameRenderer(value, record, name) {
+                var attachment_id = record.get('attachment_id');
+                var file_name = record.get('file_name');
+                if (attachment_id) {
+                    return '<a href="' + $('inv2010_sys_item_attachment_file_download_link').getUrl() + '?attachment_id=' + attachment_id + '">' + file_name + '</a>';
+                }
+            }
+            
+            //附件上传按钮事件
+            function inv5050_item_application_lns_atm_file_upload(){
+                var item_application_line_id = $('inv5050_item_application_lns_item_hds_ds').getCurrentRecord().get('item_application_line_id');
+                new Aurora.Window({
+                    id:'inv5050_item_application_lns_atm_file_upload_win',
+                    title:'附件上传',
+                    url:$('inv5050_item_application_lns_file_upload_link').getUrl()+'?pkvalue='+item_application_line_id+'&table_name=INV_ITEM_APPLICATION_LNS_FILE',
+                    width:500,
+                    height:500
+                });
+                $('inv5050_item_application_lns_atm_file_upload_win').on('close', function(){
+                    $('inv5050_item_application_atm_file_ds').setQueryParameter('table_name', 'INV_ITEM_APPLICATION_LNS_FILE');
+                    $('inv5050_item_application_atm_file_ds').setQueryParameter('pk_value', item_application_line_id);
+                    $('inv5050_item_application_atm_file_ds').query();
+                });
+            }
+            
+            function inv5050_item_application_org_info_renderer(value, record, name){
+                return '<a href="javascript:void(0);">组织级信息</a>';
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv50501_yes_or_no_ds" lookupCode="YES_OR_NO"/>
+            <a:dataSet id="inv5050_item_manage_method_ds" lookupCode="ITEM_MANAGE_METHOD"/>
+            <a:dataSet id="inv5050_item_quota_type_ds" lookupCode="ITEM_QUOTA_TYPE"/>
+            <a:dataSet id="inv5050_item_application_lns_item_hds_ds" autoCreate="true" model="inv.inv_item_application_lns">
+                <a:fields>
+                    <a:field name="item_application_header_id" defaultValue="${/parameter/@item_application_header_id}"/>
+                    <a:field name="coding_method"/>
+                    <a:field name="coding_rule"/>
+                    <a:field name="item_type_desc" lovHeight="500" lovLabelWidth="110" lovService="public.inv_sys_item_type_lov" lovWidth="550" required="true" title="物品类型选择">
+                        <a:mapping>
+                            <a:map from="item_type_code_desc" to="item_type_desc"/>
+                            <a:map from="coding_method" to="coding_method"/>
+                            <a:map from="item_type_id" to="item_type_id"/>
+                            <a:map from="coding_rule" to="coding_rule"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_code" readOnly="true"/>
+                    <a:field name="primary_inv_org_id"/>
+                    <a:field name="primary_inv_org_desc" lovHeight="500" lovLabelWidth="100" lovService="inv.INV5050.inv_organization_lov" lovWidth="600" required="true" title="主库存组织选择">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="primary_inv_org_id"/>
+                            <a:map from="description" to="primary_inv_org_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_name" required="true"/>
+                    <a:field name="item_manage_method"/>
+                    <a:field name="item_manage_method_display" displayField="code_value_name" options="inv5050_item_manage_method_ds" required="true" returnField="item_manage_method" valueField="code_value"/>
+                    <a:field name="primary_uom"/>
+                    <a:field name="primary_uom_desc" lovHeight="500" lovService="public.fnd_uom_codes_lov" lovWidth="500" required="true" title="主计量单位选择">
+                        <a:mapping>
+                            <a:map from="uom_code" to="primary_uom"/>
+                            <a:map from="uom_desc" to="primary_uom_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="secondary_uom_enabled" defaultValue="N"/>
+                    <a:field name="secondary_uom_enabled_display" displayField="code_value_name" options="inv50501_yes_or_no_ds" required="true" returnField="secondary_uom_enabled" valueField="code_value"/>
+                    <a:field name="secondary_uom"/>
+                    <a:field name="secondary_uom_desc" lovHeight="500" lovService="public.fnd_uom_codes_lov" lovWidth="500" readOnly="true" required="true" title="辅计量单位选择">
+                        <a:mapping>
+                            <a:map from="uom_code" to="secondary_uom"/>
+                            <a:map from="uom_desc" to="secondary_uom_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="conversion" readOnly="true"/>
+                    <a:field name="manual_description_flag_display" displayField="code_value_name" options="inv50501_yes_or_no_ds" readOnly="true" returnField="manual_modify_flag" valueField="code_value"/>
+                    <a:field name="quota_manage_type_display" displayField="code_value_name" options="inv5050_item_quota_type_ds" returnField="quota_manage_type" valueField="code_value"/>
+                    <!--计税、税种-->
+                    <a:field name="taxable_flag" defaultValue="N"/>
+                    <a:field name="taxable_flag_display" displayField="code_value_name" options="inv50501_yes_or_no_ds" required="true" returnField="taxable_flag" valueField="code_value"/>
+                    <a:field name="default_tax_type_id"/>
+                    <a:field name="default_tax_type_desc" lovHeight="500" lovService="public.fnd_tax_type_code_lov" lovWidth="500" readOnly="true" title="税种选择">
+                        <a:mapping>
+                            <a:map from="description" to="default_tax_type_desc"/>
+                            <a:map from="tax_type_id" to="default_tax_type_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enabled_flag" defaultValue="Y"/>
+                    <a:field name="version_num" defaultValue="1.0"/>
+                    <a:field name="attribute_protection_flag" defaultValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="inv5050_item_application_lns_item_hds_load_handler"/>
+                    <a:event name="update" handler="inv5050_item_application_lns_item_hds_update_handler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="inv5050_item_application_org_ds" autoCount="true" model="inv.inv_item_application_inv_org" selectable="true">
+                <a:fields>
+                    <a:field name="inv_org_code" lovHeight="500" lovLabelWidth="100" lovService="inv.INV5050.get_user_authorization_inv_org_lov" lovWidth="550" required="true" title="库存组织选择">
+                        <a:mapping>
+                            <a:map from="inv_org_id" to="inv_org_id"/>
+                            <a:map from="inv_org_code" to="inv_org_code"/>
+                            <a:map from="inv_org_desc" to="inv_org_desc"/>
+                            <a:map from="data_source_code" to="data_source_code"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv5050_item_application_category_ds" autoCount="true" model="inv.inv_item_application_categrs" selectable="true">
+                <a:fields>
+                    <a:field name="purchase_category_id"/>
+                    <a:field name="purchase_category_code"/>
+                    <a:field name="purchase_category_desc"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv5050_item_application_atm_file_ds" autoCount="true" model="public.fnd_attachment_file_mgr">
+                <a:fields>
+                    <a:field name="file_name" prompt="INV_SYS_ITEMS.ATTACHMENT_NAME"/>
+                    <a:field name="file_size" prompt="INV_SYS_ITEMS.ATTACHMENT_SIZE"/>
+                    <a:field name="note" prompt="INV_SYS_ITEMS.ATTACHMENT_COMMENT"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="SYS_CODE.ENABLED_FLAG" uncheckedValue="N"/>
+                    <a:field name="note" maxLength="2000"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:hBox>
+                <a:toolbarButton click="inv5050_item_application_lns_save" style="margin-left:0px;" text="HAP_SAVE" width="100"/>
+                <a:toolbarButton click="inv5050_item_application_lns_back" style="margin-left:20px;" text="HAP_BACK" width="100"/>
+            </a:hBox>
+            <a:fieldSet title="物品主数据信息" width="1100">
+                <a:hBox labelWidth="110">
+                    <a:lov name="item_type_desc" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="物品类型" width="150"/>
+                    <a:lov name="primary_inv_org_desc" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="主库存组织" width="418"/>
+                    <a:textField name="lot_numbering_rule" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="批号规则" width="150"/>
+                </a:hBox>
+                <a:hBox labelWidth="110">
+                    <a:textField name="item_code" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="物品代码" width="150"/>
+                    <a:textField name="item_name" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="物品描述" width="418"/>
+                    <a:comboBox name="manual_description_flag_display" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="手工修改描述" width="150"/>
+                </a:hBox>
+                <a:hBox labelWidth="110">
+                    <a:comboBox name="item_manage_method_display" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="管理方式" width="150"/>
+                    <a:comboBox name="quota_manage_type_display" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="配额方式" width="150"/>
+                    <a:comboBox name="taxable_flag_display" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="是否计税" width="150"/>
+                    <a:lov name="default_tax_type_desc" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="缺省税种" width="150"/>
+                </a:hBox>
+                <a:hBox labelWidth="110">
+                    <a:lov name="primary_uom_desc" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="主计量单位" width="150"/>
+                    <a:comboBox name="secondary_uom_enabled_display" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="启用辅单位" width="150"/>
+                    <a:lov name="secondary_uom_desc" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="辅计量单位" width="150"/>
+                    <a:numberField name="conversion" allowDecimals="true" allowNegative="false" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="基准转换率 " width="150"/>
+                </a:hBox>
+                <a:hBox labelWidth="110">
+                    <a:textField name="item_specs" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="规格" width="418"/>
+                    <a:textField name="item_model" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="型号" width="418"/>
+                </a:hBox>
+                <a:hBox labelWidth="110">
+                    <a:textArea name="comments" bindTarget="inv5050_item_application_lns_item_hds_ds" prompt="物品备注" width="950"/>
+                </a:hBox>
+            </a:fieldSet>
+            <a:tabPanel id="inv5050_item_application_lns_tab" marginHeight="320" width="1100">
+                <a:tabs>
+                    <a:tab disabled="true" prompt="库存组织信息" width="120">
+                        <a:grid bindTarget="inv5050_item_application_org_ds" height="290" navBar="true" style="margin:10px auto;" width="1070">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="inv_org_code" align="center" editor="inv5050_item_application_org_grid_lov" prompt="库存组织代码" width="200"/>
+                                <a:column name="inv_org_desc" prompt="库存组织名称" width="250"/>
+                                <a:column name="data_source_code" align="center" prompt="外部系统" width="200"/>
+                                <a:column name="org_info" align="center" prompt="组织级信息" renderer="inv5050_item_application_org_info_renderer" width="300"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="inv5050_item_application_org_grid_lov"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab disabled="true" prompt="采购品类信息" width="120">
+                        <a:grid bindTarget="inv5050_item_application_category_ds" height="290" navBar="true" style="margin:10px auto;" width="1070">
+                            <a:toolBar>
+                                <a:button click="inv5050_item_application_lns_category_add" icon="${/request/@context_path}/images/add.gif" text="HAP_NEW"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="purchase_category_code" align="center" prompt="采购品类代码" width="500"/>
+                                <a:column name="purchase_category_desc" prompt="采购品类名称" width="500"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab disabled="true" prompt="附件信息" width="120">
+                        <a:grid bindTarget="inv5050_item_application_atm_file_ds" height="290" navBar="true" style="margin:10px auto;" width="1070">
+                            <a:toolBar>
+                                <a:button click="inv5050_item_application_lns_atm_file_upload" icon="${/request/@context_path}/images/atm_file_mgr_btn.png" text="新增/删除"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="file_name" renderer="inv5050_sysItemAttachmentFileNameRenderer" sortable="true" width="300"/>
+                                <a:column name="file_size" align="right" sortable="true" width="150"/>
+                                <a:column name="note" align="left" editor="inv5050_sys_item_attachment_note_tf" sortable="true" width="200"/>
+                                <a:column name="enabled_flag" align="center" editor="inv5050_sys_item_attachment_enabled_flag_cb" sortable="true" width="70"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="inv5050_sys_item_attachment_note_tf"/>
+                                <a:checkBox id="inv5050_sys_item_attachment_enabled_flag_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <!-- <a:tab disabled="true" prompt="物品属性信息" width="120"/> -->
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+        <script><![CDATA[
+        	Aurora.onReady(function(){
+        	    inv5050_item_application_lns_init();
+        	});
+        ]]></script>
+    </a:view>
+</a:screen>

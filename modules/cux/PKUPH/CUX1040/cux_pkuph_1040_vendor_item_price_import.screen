@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-7-3 上午10:55:29  
+    $Revision: 1.0  
+    $Purpose: 供应商产品定义，批量导入页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure><![CDATA[
+    ]]></a:init-procedure>
+    <a:view>
+        <a:link id="cux_pkuph_1040_vendor_item_import_upload_link" url="${/request/@context_path}/modules/cux/PKUPH/CUX1040/cux_pkuph_1040_vendor_item_price_import_upload.screen"/>
+        <a:link id="cux_pkuph_1040_vendor_item_import_error_link" url="${/request/@context_path}/modules/cux/PKUPH/CUX1040/cux_pkuph_1040_vendor_item_price_import_error.screen"/>
+        <a:link id="cux_pkuph_1040_vendor_item_import_temp_data_submit_link" url="${/request/@context_path}/modules/cux/PKUPH/CUX1040/cux_pkuph_1040_vendor_item_price_import_temp_data_submit.svc"/>
+        <a:link id="cux_pkuph_1040_vendor_item_import_temp_data_check_link" url="${/request/@context_path}/modules/cux/PKUPH/CUX1040/cux_pkuph_1040_vendor_item_price_import_temp_data_check.svc"/>
+        <script><![CDATA[
+            var isUpload = false;
+            var isChecked = false;
+            var isSubmit = false;
+            
+            
+            function cuxPkuph1040_vendorItemPriceLoadData() {
+                new Aurora.Window({
+                    id: 'cux_pkuph_1040_vendor_item_import_upload_window',
+                    url: $('cux_pkuph_1040_vendor_item_import_upload_link').getUrl(),
+                    title: '${l:CUX_PKUPH_VENDOR_ITEM_PRICE.BATCH_IMPORT}',
+                    width: 450,
+                    height: 300
+                });
+            }
+            
+            function cuxPkuph1040_vendorItemImportCheckData() {
+                var allData = $('cuxPkuph1040_vendor_item_import_temp_ds').getAll();
+                if (allData.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '当前无需要核对的数据!');
+                    return;
+                } else {
+                    isChecked = true;
+                    Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+                    Aurora.request({
+                        url: $('cux_pkuph_1040_vendor_item_import_temp_data_check_link').getUrl(),
+                        para: {},
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '核对完成!');
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function cuxPkuph1040_vendorItemImportSubmitData() {
+                var allData = $('cuxPkuph1040_vendor_item_import_temp_ds').getAll();
+                var errorLines = $('cuxPkuph1040_vendor_item_import_error_ds').getAll().length;
+                if (allData.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '当前无提交的数据!');
+                } else {
+                    if (errorLines > 0) {
+                        Aurora.showMessage('${l:PROMPT}', '请数据核对正确后再提交!');
+                        return;
+                    } else {
+                        Aurora.request({
+                            url: $('cux_pkuph_1040_vendor_item_import_temp_data_submit_link').getUrl(),
+                            para: {},
+                            success: function() {
+                                Aurora.showMessage('${l:PROMPT}', '提交成功!', function() {
+                                    $('cuxPkuph1040_vendor_item_import_error_ds').query();
+                                    $('cuxPkuph1040_vendor_item_import_temp_ds').query();
+                                });
+                            },
+                            scope: this
+                        });
+                    }
+                }
+            }
+            
+            function cuxPkuph1040_vendorItemImportErrorData() {
+                new Aurora.Window({
+                    id: 'cux_pkuph_1040_vendor_item_import_error_link_window',
+                    url: $('cux_pkuph_1040_vendor_item_import_error_link').getUrl(),
+                    title: '供应商产品报价导入错误信息',
+                    width: 930,
+                    height: 450
+                });
+            }
+            
+            function cuxPkuph1040_vendorItemImportTempDsLoad(ds) {
+                var length = ds.getAll().length;
+                if (length > 0) {
+                    isUpload = true;
+                }
+            }
+            
+            function cuxPkuph1040_vendorItemImportRrrorDsLoad(ds) {
+                var error_lines = ds.getAll().length;
+                if (error_lines > 0) {
+                    isChecked = true;
+                    $('cuxPkuph1040_vendorItemImportSubmitData_btn').enable();
+                    $('cuxPkuph1040_vendorItemImportErrorData_btn').enable();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="cuxPkuph1040_vendor_item_import_error_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="cux.PKUPH.CUX1040.cux_pkuph_1040_vendor_item_price_import_error_query">
+                <a:events>
+                    <a:event name="load" handler="cuxPkuph1040_vendorItemImportRrrorDsLoad"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="cuxPkuph1040_vendor_item_import_temp_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="cux.PKUPH.CUX1040.cux_pkuph_1040_vendor_item_price_import_temp_query">
+                <a:events>
+                    <a:event name="load" handler="cuxPkuph1040_vendorItemImportTempDsLoad"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="cuxPkuph1040_vendorItemPriceLoadData" style="margin-left:20px;" text="PROMPT.LOADDATA" width="100"/>
+                <a:toolbarButton click="cuxPkuph1040_vendorItemImportCheckData" style="margin-left:20px;" text="PROMPT.CHECK" width="100"/>
+                <a:toolbarButton id="cuxPkuph1040_vendorItemImportSubmitData_btn" click="cuxPkuph1040_vendorItemImportSubmitData" style="margin-left:20px;" text="PROMPT.SUBMIT" width="100"/>
+                <a:toolbarButton id="cuxPkuph1040_vendorItemImportErrorData_btn" click="cuxPkuph1040_vendorItemImportErrorData" style="margin-left:20px;" text="PROMPT.ERROR" width="100"/>
+                <div style="margin-left:15px;margin-top:17px;">
+                    <a href="${/request/@context_path}/modules/cux/PKUPH/CUX1010/import_template.zip">
+                        <h5><![CDATA[导入模板下载 ]]></h5>
+                    </a>
+                </div>
+            </a:screenTopToolbar>
+            <a:grid id="cuxPkuph1040_vendor_item_import_temp_ds_grid" autoAppend="false" bindTarget="cuxPkuph1040_vendor_item_import_temp_ds" marginHeight="100" marginWidth="70" navBar="true" style="margin-top:5px;">
+                <a:columns>
+                    <a:column name="line_number" align="center" prompt="行号" sortable="true" width="60"/>
+                    <a:column name="pkuph_code" align="center" prompt="北医编码" sortable="true" width="100"/>
+                    <a:column name="pkuph_inter_code" align="center" prompt="北大国际编码" sortable="true" width="100"/>
+                    <a:column name="pkuph_flag" align="center" prompt="是否人民" sortable="true" width="80"/>
+                    <a:column name="choose_flag" align="center" prompt="是否选中" sortable="true" width="80"/>
+                    <a:column name="item_type" align="center" prompt="产品分类" sortable="true" width="80"/>
+                    <a:column name="item_std_name" align="center" prompt="标准名称" sortable="true" width="100"/>
+                    <a:column name="item_name" align="center" prompt="产品名称" sortable="true" width="100"/>
+                    <a:column name="item_model" align="center" prompt="型号" sortable="true" width="100"/>
+                    <a:column name="item_specs" align="center" prompt="规格" sortable="true" width="100"/>
+                    <a:column name="item_brand" align="center" prompt="品牌" sortable="true" width="100"/>
+                    <a:column name="unit_uom" align="center" prompt="计量单位" sortable="true" width="80"/>
+                    <a:column name="manufacturer_name" align="center" prompt="生产商名称" sortable="true" width="100"/>
+                    <a:column name="supplier_name" align="center" prompt="供应商名称" sortable="true" width="100"/>
+                    <a:column name="contact_name" align="center" prompt="联系人" sortable="true" width="100"/>
+                    <a:column name="contact_phone" align="center" prompt="联系电话" sortable="true" width="100"/>
+                    <a:column name="low_price" align="right" prompt="底价" sortable="true" width="80"/>
+                    <a:column name="bidding_price" align="right" prompt="中标价" sortable="true" width="80"/>
+                    <a:column name="hospital_price" align="right" prompt="医院售价" sortable="true" width="80"/>
+                    <a:column name="comments" align="left" prompt="备注" sortable="true" width="100"/>
+                    <a:column name="charge_comments" align="left" prompt="收费不收费" sortable="true" width="100"/>
+                    <a:column name="product_structure" align="left" prompt="产品性能结构及组成" sortable="true" width="100"/>
+                    <a:column name="product_scope" align="left" prompt="产品适用范围" sortable="true" width="100"/>
+                    <a:column name="management_categories" align="center" prompt="管理类别" sortable="true" width="100"/>
+                    <a:column name="product_registration_num" align="center" prompt="产品注册号" sortable="true" width="100"/>
+                    <a:column name="yieldly" align="left" prompt="生产地" sortable="true" width="100"/>
+                    <a:column name="nurse_flag" align="center" prompt="是否属护理" sortable="true" width="100"/>
+                    <a:column name="document_comments" align="left" prompt="交质文件" sortable="true" width="100"/>
+                    <a:column name="packaging_unit" align="center" prompt="包装单位（箱）" sortable="true" width="100"/>
+                    <a:column name="delivery_certificate" align="center" prompt="目前使用的医院供货证明（三个月内）" sortable="true" width="100"/>
+                    <a:column name="problem_comments" align="left" prompt="问题说明" sortable="true" width="100"/>
+                    <a:column name="medical_ins_chc_code" align="left" prompt="医保收费码" sortable="true" width="100"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-7 下午3:53:51  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="bid.BID5040.bid_entrustment_create_init" rootPath="bid5040_entrustment_create_rp"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            var bid5040_currency_code_change_flag = false;
+            var bid5040_currency_name_change_flag = false;
+            
+            function bid5040EntrustmentCreateOnLoad(ds) {
+                var header_rec = ds.getCurrentRecord();
+                var entrustment_header_id = header_rec.get('entrustment_header_id');
+                var company_id = header_rec.get('company_id');
+                if (!Aurora.isEmpty(company_id)) {
+                    header_rec.getField('applicant_desc').setLovPara('company_id', company_id);
+            
+                    header_rec.set('using_company_id', header_rec.get('company_id'));
+                    header_rec.set('using_company_code', header_rec.get('company_code'));
+                    header_rec.set('using_company_desc', header_rec.get('company_desc'));
+                }
+            }
+            
+            function bid5040EntrustmentCreateOnUpdate(ds, record, name, value, oldvalue) {
+                if (name == "company_id") {
+                    record.set('applicant_id', '');
+                    record.set('applicant_desc', '');
+            
+                    if (!Aurora.isEmpty(value)) {
+                        record.getMeta().getField('applicant_desc').setReadOnly(false);
+                        record.getField('applicant_desc').setLovPara('company_id', value);
+                    } else {
+                        record.getMeta().getField('applicant_desc').setReadOnly(true);
+                    }
+                }
+                if (name == "using_company_id") {
+                    record.set('inv_organization_id', '');
+                    record.set('inv_organization_desc', '');
+            
+                    if (!Aurora.isEmpty(value)) {
+                        record.getMeta().getField('inv_organization_desc').setReadOnly(false);
+                        record.getField('inv_organization_desc').setLovPara('company_id', value);
+                    } else {
+                        record.getMeta().getField('inv_organization_desc').setReadOnly(true);
+                    }
+            
+                    bid5040_currency_code_change_flag = true;
+                    bid5040_currency_name_change_flag = true;
+                    record.set('exchange_rate', 1);
+                } else if (name == "entrustment_type_id") {
+                    record.set('tendering_tmpl_id', '');
+                    record.set('tendering_tmpl_desc', '');
+                    record.getMeta().getField('tendering_tmpl_desc').setReadOnly(false);
+                    record.getField('tendering_tmpl_desc').setLovPara('entrustment_type_id', value);
+                } else if (name == "functional_currency_code") {
+                    if (bid5040_currency_code_change_flag == true) {
+                        record.set('currency_code', value);
+            
+                        bid5040_currency_code_change_flag = false;
+                    }
+                } else if (name == "functional_currency_name") {
+                    if (bid5040_currency_name_change_flag == true) {
+                        record.set('currency_name', value);
+            
+                        bid5040_currency_name_change_flag = false;
+                    }
+                }else if (name == "currency_code"){
+                    var functional_currency_code = record.get('functional_currency_code');
+                    if (functional_currency_code != value) {
+                        record.getMeta().getField('exchange_rate').setReadOnly(false);
+                        record.getMeta().getField('exchange_rate').setRequired(true);
+                        record.set('exchange_rate', '');
+                    } else {
+                        record.getMeta().getField('exchange_rate').setReadOnly(true);
+                        record.getMeta().getField('exchange_rate').setRequired(false);
+                        record.set('exchange_rate', 1);
+                    }
+                }
+            }
+            
+            function bid5040EntrustmentCreateOnSubmitsuccess(ds, res) {
+                Aurora.showMessage('提示', '招标申请已创建！', function() {
+                    var entrustment_header_id = res.result.entrustment_header_id;
+                    new Aurora.Window({
+                        id: 'bid5040_entrustment_edit_window',
+                        title: '招标申请维护',
+                        url: $('bid5040_entrustment_edit_link').getUrl() + '?entrustment_header_id=' + entrustment_header_id,
+                        fullScreen: true
+                    });
+            
+                    $('bid5040_entrustment_create_window').close();
+                });
+            }
+            
+            function bid5040EntrustmentCreateSave() {
+                var header_ds = $("bid5040_create_bid_entrustment_header_ds");
+                var header_rec = header_ds.getCurrentRecord();
+            
+                if (!header_ds.validate()) {
+                    return;
+                }
+            
+                if (Aurora.isEmpty(header_rec.get('entrustment_header_id'))) {
+                    header_rec.isNew = true;
+                    header_ds.submit();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5040_create_bid_bidding_methods_ds" lookupCode="BID_BIDDING_METHODS"/>
+            <a:dataSet id="bid5040_create_yes_no_ds" lookupCode="YES_OR_NO"/>
+            <a:dataSet id="bid5040_create_bid_currency_list_ds" autoCount="false" fetchAll="true" loadData="true" model="public.currency_list"/>
+            <a:dataSet id="bid5040_create_bid_entrustment_header_ds" model="bid.BID5040.bid_entrustment_headers">
+                <a:datas dataSource="/model/bid5040_entrustment_create_rp"/>
+                <a:fields>
+                    <a:field name="entrustment_header_id"/>
+                    <a:field name="entrustment_header_number"/>
+                    <a:field name="entrustment_type_id" required="true"/>
+                    <a:field name="entrustment_type_desc" autoComplete="true" autoCompleteField="entrustment_type_desc" lovGridHeight="320" lovHeight="500" lovService="bid.public.bid_entrustment_types_lov" lovWidth="500" required="true" title="申请类型">
+                        <a:mapping>
+                            <a:map from="entrustment_type_id" to="entrustment_type_id"/>
+                            <a:map from="entrustment_type_desc" to="entrustment_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="title" required="true"/>
+                    <a:field name="company_id" required="true"/>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="company_full_name" lovGridHeight="320" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" required="true" title="申请公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="applicant_id" required="true"/>
+                    <a:field name="applicant_desc" autoComplete="true" autoCompleteField="employee_name" lovGridHeight="320" lovHeight="500" lovService="bid.public.exp_employees_lov" lovWidth="500" required="true" title="申请人">
+                        <a:mapping>
+                            <a:map from="employee_id" to="applicant_id"/>
+                            <a:map from="employee_name" to="applicant_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="application_date" required="true"/>
+                    <a:field name="using_company_id" required="true"/>
+                    <a:field name="using_company_code" required="true"/>
+                    <a:field name="using_company_desc" autoComplete="true" autoCompleteField="company_full_name" lovGridHeight="320" lovHeight="500" lovService="bid.public.bid_company_lov" lovWidth="500" required="true" title="使用公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="using_company_id"/>
+                            <a:map from="company_code" to="using_company_code"/>
+                            <a:map from="company_full_name" to="using_company_desc"/>
+                            <a:map from="functional_currency_code" to="functional_currency_code"/>
+                            <a:map from="functional_currency_name" to="functional_currency_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="inv_organization_id" required="true"/>
+                    <a:field name="inv_organization_desc" autoComplete="true" autoCompleteField="organization_name" lovGridHeight="320" lovHeight="500" lovService="public.inv_organizations_lov" lovWidth="500" readOnly="true" required="true" title="库存组织">
+                        <a:mapping>
+                            <a:map from="organization_id" to="inv_organization_id"/>
+                            <a:map from="organization_name" to="inv_organization_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pur_organization_id" required="true"/>
+                    <a:field name="pur_organization_desc" autoComplete="true" autoCompleteField="pur_organization_name" lovGridHeight="320" lovHeight="500" lovService="public.pur_organization_lov" lovWidth="500" required="true" title="采购组织">
+                        <a:mapping>
+                            <a:map from="pur_organization_id" to="pur_organization_id"/>
+                            <a:map from="pur_organization_name" to="pur_organization_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="suggested_bidding_method" required="true"/>
+                    <a:field name="suggested_bidding_method_desc" displayField="code_value_name" options="bid5040_create_bid_bidding_methods_ds" required="true" returnField="suggested_bidding_method" valueField="code_value"/>
+                    <a:field name="winning_bidder_maxcount" required="true"/>
+                    <a:field name="suggested_qty_of_bidders"/>
+                    <a:field name="authorized_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="margin_required_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="bidder_qualified_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="tax_included_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="tax_type_id" required="true"/>
+                    <a:field name="tax_type_code" autoComplete="true" autoCompleteField="tax_type_code" lovGridHeight="350" lovHeight="500" lovService="public.fnd_tax_type_code_lov" lovWidth="500" required="true" title="税率">
+                        <a:mapping>
+                            <a:map from="tax_type_id" to="tax_type_id"/>
+                            <a:map from="tax_type_code" to="tax_type_code"/>
+                            <a:map from="tax_type_rate" to="tax_type_rate"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="currency_code" required="true"/>
+                    <a:field name="currency_name" displayField="currency_name" options="bid5040_create_bid_currency_list_ds" required="true" returnField="currency_code" valueField="currency_code"/>
+                    <!-- <a:field name="tendering_tmpl_id"/>
+                    <a:field name="tendering_tmpl_desc" autoComplete="true" autoCompleteField="quick_value" lovGridHeight="320" lovHeight="500" lovService="public.bid_templates_lov" lovWidth="500" readOnly="true" title="招标模版">
+                        <a:mapping>
+                            <a:map from="template_id" to="tendering_tmpl_id"/>
+                            <a:map from="template_desc" to="tendering_tmpl_desc"/>
+                        </a:mapping>
+                    </a:field> -->
+                    <!-- <a:field name="authorized_flag_desc" displayField="code_value_name" options="bid5040_create_yes_no_ds" returnField="authorized_flag" valueField="code_value"/> -->
+                    <!-- <a:field name="margin_required_flag_desc" displayField="code_value_name" options="bid5040_create_yes_no_ds" returnField="margin_required_flag" valueField="code_value"/> -->
+                    <!-- <a:field name="bidder_qualified_flag_desc" displayField="code_value_name" options="bid5040_create_yes_no_ds" returnField="bidder_qualified_flag" valueField="code_value"/> -->
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="bid5040EntrustmentCreateOnLoad"/>
+                    <a:event name="update" handler="bid5040EntrustmentCreateOnUpdate"/>
+                    <a:event name="submitsuccess" handler="bid5040EntrustmentCreateOnSubmitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid5040EntrustmentCreateSave" text="保存" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100">
+                <a:vBox labelWidth="100">
+                    <a:label name="entrustment_header_number" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="申请编号"/>
+                    <a:textField name="title" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="申请事项"/>
+                    <a:lov name="using_company_desc" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="使用公司"/>
+                    <a:numberField name="winning_bidder_maxcount" allowDecimals="false" allowNegative="false" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="最大中标数"/>
+                    <a:checkBox name="authorized_flag" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="自主招标"/>
+                    <a:lov name="tax_type_code" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="报价税率代码"/>
+                    <a:label name="functional_amount" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="本币金额"/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:lov name="entrustment_type_desc" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="申请类型"/>
+                    <a:lov name="company_desc" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="申请公司"/>
+                    <a:lov name="inv_organization_desc" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="库存组织"/>
+                    <a:numberField name="suggested_qty_of_bidders" allowDecimals="false" allowNegative="false" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="建议参与数"/>
+                    <a:checkBox name="margin_required_flag" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="要求保证金"/>
+                    <a:label name="tax_type_rate" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="报价税率"/>
+                    <a:label name="entered_amount" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="原币金额"/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:label name="round" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="轮次"/>
+                    <a:lov name="applicant_desc" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="申请人"/>
+                    <a:lov name="pur_organization_desc" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="采购组织"/>
+                    <a:datePicker name="complete_date" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="交付日期"/>
+                    <a:checkBox name="bidder_qualified_flag" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="资审状态"/>
+                    <a:comboBox name="currency_name" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="币种"/>
+                    <a:label/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:label name="version" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="版本"/>
+                    <a:datePicker name="application_date" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="申请日期"/>
+                    <a:comboBox name="suggested_bidding_method_desc" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="建议招标方式"/>
+                    <a:numberField name="necessary_lead_time" allowDecimals="false" allowNegative="false" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="提前期(天)"/>
+                    <a:checkBox name="tax_included_flag" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="报价含税"/>
+                    <a:numberField name="exchange_rate" allowDecimals="true" allowFormat="true" allowNegative="false" bindTarget="bid5040_create_bid_entrustment_header_ds" prompt="汇率" readOnly="true"/>
+                    <a:label/>
+                </a:vBox>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:textArea name="comments" bindTarget="bid5040_create_bid_entrustment_header_ds" height="40" prompt="申请摘要" width="750"/>
+            </a:hBox>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

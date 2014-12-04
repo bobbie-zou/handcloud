@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-4-24 下午3:35:39  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        l.client_licence_id,
+                        l.client_id,
+                        l.licence_id,
+                        c.licence_code,
+                        c.licence_name,
+                        TO_CHAR(l.start_date, 'YYYY-MM-DD') start_date,
+                        TO_CHAR(l.end_date, 'YYYY-MM-DD') end_date,
+                        l.enabled_flag
+                    FROM
+                        fnd_client_licence l,
+                        fnd_licences_vl c
+                    WHERE
+                        l.licence_id = c.licence_id AND
+                        l.client_id  = ${@client_id}
+                    ) v #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:query-sql><![CDATA[
+	            BEGIN
+				  fnd_clients_pkg.create_fnd_client_licence(o_client_licence_id => ${@client_licence_id},
+				                                            p_client_id         => ${@client_id},
+				                                            p_licence_id        => ${@licence_id},
+				                                            p_start_date        => to_date(${@start_date},'YYYY-MM-DD'),
+				                                            p_end_date          => to_date(${@end_date},'YYYY-MM-DD'),
+				                                            p_enabled_flag      => ${@enabled_flag},
+				                                            p_user_id           => ${/session/@user_id});
+				END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+	            BEGIN
+				  fnd_clients_pkg.modify_fnd_client_licence(p_client_licence_id => ${@client_licence_id},
+				                                            p_start_date        => to_date(${@start_date},'YYYY-MM-DD'),
+				                                            p_end_date          => to_date(${@end_date},'YYYY-MM-DD'),
+				                                            p_enabled_flag      => ${@enabled_flag},
+				                                            p_user_id           => ${/session/@user_id});
+				END;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="licence_code" queryExpression="licence_code like &apos;%&apos;||upper(trim(${@licence_code}))||&apos;%&apos;"/>
+        <bm:query-field name="licence_name" queryExpression="licence_name like &apos;%&apos;||trim(${@licence_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

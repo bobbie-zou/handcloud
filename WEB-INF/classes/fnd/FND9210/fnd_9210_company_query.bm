@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-8-28 涓婂崍10:28:25  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            SELECT *
+  FROM (SELECT f.company_id,
+               f.company_code,
+               f.email,
+               f.enterprise_scale_code,
+               (SELECT sc.code_value_name
+                  FROM sys_code_values_v sc
+                 WHERE sc.code_value = f.enterprise_scale_code
+                       AND sc.code = 'FND_COMPANIES.ENTERPRISE_SCALE') enterprise_scale_desc,
+               f.company_full_name,
+               f.company_short_name,
+               f.business_license_number,
+               f.registered_country_code,
+               (SELECT fc.description FROM fnd_country_code_vl fc WHERE fc.country_code = f.registered_country_code) registered_country_name,
+               f.registered_province_id,
+               (SELECT r.description FROM fnd_region_code_vl r WHERE r.region_id = f.registered_province_id) registered_province_desc,
+               f.registered_city_id,
+               (SELECT r.description FROM fnd_region_code_vl r WHERE r.region_id = f.registered_city_id) registered_city_desc,
+               to_char(f.business_license_end_date,
+                       'YYYY-MM-DD') business_license_end_date,
+               nvl(f.business_license_forever,
+                   'N') business_license_forever,
+               f.address,
+               f.telephone,
+               f.national_organization_code,
+               f.business_scope,
+               f.registered_currency_code,
+       (select gc.currency_name from gld_currency_vl gc where gc.currency_code = f.registered_currency_code) registered_currency_name,
+               f.registered_capital,
+               f.fax_no,
+               nvl(f.require_flag,'N') require_flag,
+       nvl(f.supply_flag,'N') supply_flag,
+       nvl(f.service_flag,'N') service_flag,
+               f.legal_rep_of_ownership,
+               (SELECT s.code_value_name
+                  FROM sys_code_values_v s
+                 WHERE s.code_value = f.legal_rep_of_ownership
+                       AND s.code = 'LEGAL_REP_OF_OWNERSHIP') legal_rep_of_ownership_desc,
+               f.legal_rep_name,
+               f.legal_rep_identity_num,
+               f.legal_rep_identity_type,
+               (SELECT s.code_value_name
+                  FROM sys_code_values_v s
+                 WHERE s.code_value = f.legal_rep_identity_type
+                       AND s.code = 'SYS_IDENTITY_CARD_TYPES') legal_rep_identity_type_desc,
+               f.legal_rep_phone,
+               nvl(f.agent_flag,'N') agent_flag,
+               f.agent_name,
+               f.agent_identity_num,
+               f.agent_identity_type,
+               (SELECT s.code_value_name
+                  FROM sys_code_values_v s
+                 WHERE s.code_value = f.agent_identity_type
+                       AND s.code = 'SYS_IDENTITY_CARD_TYPES') agent_identity_type_desc,
+               f.agent_phone,
+               f.default_user_id,
+       s.user_name default_user_name,
+       f.default_password
+  FROM sys_user         s,
+       fnd_companies_vl f
+ WHERE f.default_user_id = s.user_id(+) 
+ and (EXISTS (SELECT 1
+                          FROM sys_role sr
+                         WHERE sr.role_type = 'GROUP_ADMIN'
+                               AND sr.role_id = ${/session/@role_id}) OR EXISTS
+                (SELECT 1
+                   FROM fnd_user_authority t,
+                        fnd_companies_vl   fc
+                  WHERE fc.company_id = f.company_id
+                        AND t.assign_id = fc.company_id
+                        AND t.authority_type = 'COMPANY'
+                        AND t.user_id = ${/session/@user_id}))
+ and  f.business_group = ${/session/@business_group}
+        )
+          #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            BEGIN
+  fnd_companies_pkg.update_fnd_company(p_company_id                 => ${@company_id},
+                                       p_business_group             => ${/session/@business_group},
+                                       p_email                      => ${@email},
+                                       p_company_short_name         => ${@company_short_name},
+                                       p_company_full_name          => ${@company_full_name},
+                                       p_enterprise_scale_code      => ${@enterprise_scale_code},
+                                       p_business_license_number    => ${@business_license_number},
+                                       p_registered_country_code    => ${@registered_country_code},
+                                       p_registered_province_id     => ${@registered_province_id},
+                                       p_registered_city_id         => ${@registered_city_id},
+                                       p_business_license_end_date  => to_date(${@business_license_end_date},'YYYY-MM-DD'),
+                                       p_business_license_forever   => ${@business_license_forever},
+                                       p_address                    => ${@address},
+                                       p_telephone                  => ${@telephone},
+                                       p_national_organization_code => ${@national_organization_code},
+                                       p_business_scope             => ${@business_scope},
+                                       p_registered_currency_code   => ${@registered_currency_code},
+                                       p_registered_capital         => ${@registered_capital},
+                                       p_fax_no                     => ${@fax_no},
+                                       p_legal_rep_of_ownership     => ${@legal_rep_of_ownership},
+                                       p_legal_rep_name             => ${@legal_rep_name},
+                                       p_legal_rep_identity_num     => ${@legal_rep_identity_num},
+                                       p_legal_rep_identity_type    => ${@legal_rep_identity_type},
+                                       p_legal_rep_phone            => ${@legal_rep_phone},
+                                       p_agent_name                 => ${@agent_name},
+                                       p_agent_identity_num         => ${@agent_identity_num},
+                                       p_agent_identity_type        => ${@agent_identity_type},
+                                       p_agent_phone                => ${@agent_phone},
+                                       p_require_flag               => ${@require_flag},
+                                       p_supply_flag                => ${@supply_flag},
+                                       p_service_flag               => ${@service_flag},
+                                       p_user_id                    => ${/session/@user_id});
+END;
+]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+        <bm:query-field name="company_code" queryExpression="company_code like &apos;%&apos;||trim(${@company_code})||&apos;%&apos;"/>
+        <bm:query-field name="email" queryExpression="email like &apos;%&apos;||trim(${@email})||&apos;%&apos;"/>
+        <bm:query-field name="company_full_name" queryExpression="company_full_name like &apos;%&apos;||trim(${@company_full_name})||&apos;%&apos;"/>
+        <bm:query-field name="business_license_number" queryExpression="business_license_number like &apos;%&apos;||trim(${@business_license_number})||&apos;%&apos;"/>
+        <bm:query-field name="legal_rep_name" queryExpression="legal_rep_name like &apos;%&apos;||trim(${@legal_rep_name})||&apos;%&apos;"/>
+        <bm:query-field name="agent_name" queryExpression="agent_name like &apos;%&apos;||trim(${@agent_name})||&apos;%&apos;"/>
+        <bm:query-field name="enterprise_scale_code" queryExpression="enterprise_scale_code = ${@enterprise_scale_code}"/>
+    </bm:query-fields>
+</bm:model>

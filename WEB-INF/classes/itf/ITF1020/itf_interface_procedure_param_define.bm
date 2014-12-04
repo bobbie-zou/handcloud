@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: Apr 25, 2014 5:12:11 PM  
+    $Revision: 1.0  
+    $Purpose: 接口过程参数定义
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    pro_parameter_id,
+                    procedure_id,
+                    parameter_object_type,
+                    parameter_object_id,
+                    DECODE(parameter_object_type, 'PARAMETER',
+                    (SELECT
+                        iidp.parameter_code
+                    FROM
+                        itf_itf_dfn_parameters_vl iidp
+                    WHERE
+                        iidp.parameter_id = i.parameter_object_id AND
+                        iidp.interface_id = ${/parameter/@interface_id}
+                    ), 'STRUCTURE',
+                    (SELECT
+                        isfv.field_code
+                    FROM
+                        itf_itf_structure_fields iisf,
+                        itf_structure_fields_vl isfv
+                    WHERE
+                        iisf.itf_field_id = i.parameter_object_id AND
+                        iisf.field_id     = isfv.field_id
+                    )) parameter_object_code,
+                    DECODE(parameter_object_type, 'PARAMETER',
+                    (SELECT
+                        iidp.parameter_desc
+                    FROM
+                        itf_itf_dfn_parameters_vl iidp
+                    WHERE
+                        iidp.parameter_id = i.parameter_object_id AND
+                        iidp.interface_id = ${/parameter/@interface_id}
+                    ), 'STRUCTURE',
+                    (SELECT
+                        isfv.field_desc
+                    FROM
+                        itf_itf_structure_fields iisf,
+                        itf_structure_fields_vl isfv
+                    WHERE
+                        iisf.itf_field_id = i.parameter_object_id AND
+                        iisf.field_id     = isfv.field_id
+                    )) parameter_object_desc,
+                    enabled_flag,
+                    created_by,
+                    creation_date,
+                    last_updated_by,
+                    last_update_date
+                FROM
+                    itf_itf_pro_parameters i #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+            begin
+            	itf_interface_pkg.insert_itf_procedure_param(x_pro_parameter_id      =>${@pro_parameter_id},
+					                                         p_procedure_id          =>${@procedure_id},
+					                                         p_parameter_object_type =>${@parameter_object_type},
+					                                         p_parameter_object_id   =>${@parameter_object_id},
+					                                         p_enabled_flag          =>${@enabled_flag},
+					                                         p_user_id               =>${/session/@user_id});
+            end;                                 
+            ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="pro_parameter_id" datatype="java.lang.Long" input="false" output="true" outputPath="@pro_parameter_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            begin
+            	itf_interface_pkg.update_itf_procedure_param(p_pro_parameter_id      =>${@pro_parameter_id},
+					                                         p_parameter_object_type =>${@parameter_object_type},
+					                                         p_parameter_object_id   =>${@parameter_object_id},
+					                                         p_enabled_flag          =>${@enabled_flag},
+					                                         p_user_id               =>${/session/@user_id});
+            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+            begin
+            	itf_interface_pkg.delete_itf_procedure_param(p_pro_parameter_id =>${@pro_parameter_id},
+                                       						 p_user_id          =>${/session/@user_id});
+            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="pro_parameter_id" queryExpression="i.pro_parameter_id = ${@pro_parameter_id}"/>
+        <bm:query-field name="procedure_id" queryExpression="i.procedure_id = ${@procedure_id}"/>
+    </bm:query-fields>
+</bm:model>

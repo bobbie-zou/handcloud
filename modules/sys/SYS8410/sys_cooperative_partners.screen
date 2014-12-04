@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-4 下午2:21:42  
+    $Revision: 1.0  
+    $Purpose: 合作邀约-合作伙伴
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <a:link id="sys8410_coopPartnerInviteReq_link" url="${/request/@context_path}/modules/sys/SYS8410/sys_cooperative_partner_invite.screen"/>
+        <a:link id="sys8410_vendorPartner_link" url="${/request/@context_path}/modules/sys/SYS8410/sys_vendor_partners.screen"/>
+        <a:link id="sys8410_clientInfo_link" url="${/request/@context_path}/modules/sys/SYS8410/sys_cooperative_partner_client_info.screen"/>
+        <a:link id="sys8410_vendorInfo_link" url="${/request/@context_path}/modules/sys/SYS8410/sys_cooperative_partner_vendor_info.screen"/>
+        <script><![CDATA[
+            //初始化
+            function sys8410_init(){
+                if(Ext.isEmpty(${/session/@vendor_id})){
+                    $('sys8410_coopPartner_grid').hideColumn('vendor_partner');
+                }
+            }
+            //查询
+            
+            function sys8410_coopPartner_queryFun() {
+                $('sys8410_coopPartner_resultDs').query();
+            }
+            
+            //邀请
+            
+            
+            function sys8410_inviteFun() {
+                new Aurora.Window({
+                    url: $('sys8410_coopPartnerInviteReq_link').getUrl(),
+                    id: 'sys8410_coopPartnerInvite_window',
+                    title: '${l:SYS_COOPERATIVE_PARTNERS.INVITET}',
+                    width: 920,
+                    height: 480
+                });
+            }
+            //供应商合作伙伴
+            function sys8410_vendorPartner_rendererFun(value, record, name){
+                return '<a href="javascript:sys8410_vendorPartner_openFun(\'' + record.get('partner_code') + '\')">${l:PUR_VENDOR_PARTNER.VIEW_TITLE}</a>';
+            }
+            
+            function sys8410_vendorPartner_openFun(client){
+                new Aurora.Window({
+                    url: $('sys8410_vendorPartner_link').getUrl()+'?client='+client,
+                    id: 'sys8410_vendor_partner_window',
+                    title: '${l:PUR_VENDOR_PARTNER.VIEW_TITLE}',
+                    width: 820,
+                    height: 420
+                });
+            }
+            
+            function sys8410_partnerView_rendererFun(value, record, name){
+                if(record.get('partner_type') == 'VENDOR'){
+                    return '<a href="javascript:sys8410_partnerView_openVendor(' + record.get('partner_id') + ')">'+value+'</a>';
+                }else if(record.get('partner_type') == 'CLIENT'){
+                    return '<a href="javascript:sys8410_partnerView_openClient(\'' + record.get('partner_code') + '\')">'+value+'</a>';
+                }
+            }
+            
+            function sys8410_partnerView_openClient(client){
+                new Aurora.Window({
+                    url: $('sys8410_clientInfo_link').getUrl()+'?client='+client,
+                    id: 'sys8410_client_partner_window',
+                    title: '${l:SYS_COOPERATIVE_PARTNERS.PARTNER_INFO}',
+                    width: 920,
+                    height: 500
+                });
+            }
+            
+            function sys8410_partnerView_openVendor(vendor_id) {
+                new Aurora.Window({
+                    url: $('sys8410_vendorInfo_link').getUrl() + '?vendor_id=' + vendor_id,
+                    id: 'pur5660_vendor_detail_win',
+                    title: '供应商查询明细',
+                    fullScreen: true
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys8410_coopPartner_queryDs" model="sys.SYS8410.sys_cooperative_partners"/>
+            <a:dataSet id="sys8410_coopPartner_resultDs" autoCount="true" model="sys.SYS8410.sys_cooperative_partners" queryDataSet="sys8410_coopPartner_queryDs" selectable="true">
+                <a:fields>
+                    <a:field name="remark_desc" prompt="SYS_COOPERATIVE_PARTNERS.REMARK_DESC" required="true"/>
+                    <a:field name="comments" prompt="SYS_COOPERATIVE_PARTNERS.COMMENTS"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="sys8410_coopPartner_grid" type="save" width="100"/>
+                <a:gridButton bind="sys8410_coopPartner_grid" type="delete" width="100"/>
+                <a:toolbarButton click="sys8410_inviteFun" text="SYS_COOPERATIVE_PARTNERS.INVITE" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="sys8410_coopPartner_queryDs" resultTarget="sys8410_coopPartner_resultDs" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="remark_desc" bindTarget="sys8410_coopPartner_queryDs" prompt="SYS_COOPERATIVE_PARTNERS.REMARK_DESC">
+                            <a:events>
+                                <a:event name="enterdown" handler="sys8410_coopPartner_queryFun"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="sys8410_coopPartner_grid" bindTarget="sys8410_coopPartner_resultDs" marginHeight="200" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="partner_code" align="center" prompt="SYS_COOPERATIVE_PARTNERS.PARTNER_CODE" renderer="sys8410_partnerView_rendererFun" sortable="true" width="120"/>
+                    <a:column name="remark_desc" align="center" sortable="true" width="200"/>
+                    <a:column name="comments" align="center" editor="sys8410_coopParnter_tf" sortable="true" width="300"/>
+                    <a:column name="vendor_partner" align="center" renderer="sys8410_vendorPartner_rendererFun" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="sys8410_coopParnter_tf"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+        <script><![CDATA[
+        sys8410_init();
+        ]]></script>
+    </a:view>
+</a:screen>

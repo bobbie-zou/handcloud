@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace  
+    $Date: 2013-6-7 下午1:48:06  
+    $Revision: 1.0  
+    $Purpose: 附件信息管理 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="record_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="attachment_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="file_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="file_size" databaseType="NUMBER" datatype="java.lang.Double"/>
+        <bm:field name="table_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="table_pk_value" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="note" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="upload_date" databaseType="DATE" datatype="java.util.Date"/>
+        <bm:field name="upload_user_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="file_download_link" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.record_id,
+                    v.attachment_id,
+                    v.file_name,
+                    v.file_size,
+                    v.table_name,
+                    v.table_pk_value,
+                    v.note,
+                    v.upload_date,
+                    v.upload_user_name,
+                    v.file_download_link
+                FROM
+                    (SELECT
+                        faa.attachment_id,
+                        faa.file_name,
+                        ROUND(faa.file_size/1024/1024,4) AS file_size,
+                        aam.record_id,
+                        aam.table_name,
+                        aam.table_pk_value,
+                        aam.note,
+                        aam.enabled_flag,
+                        faa.creation_date AS upload_date,
+                        su.description AS upload_user_name,
+                        srm_common_pkg.get_atm_file_href(${@pk_value}, ${@table_name}, ${/request/@context_path},faa.attachment_id, ${/session/@user_id}) AS file_download_link
+                    FROM
+                        fnd_atm_attachment faa,
+                        fnd_atm_attachment_multi aam,
+                        sys_user su
+                    WHERE
+                        faa.attachment_id  = aam.attachment_id AND
+                        aam.table_name     = 'BID_EXPERTS' AND
+                        aam.table_pk_value =
+                        (SELECT
+                            be.expert_id
+                        FROM
+                            bid_experts be,
+                            exp_employees ee,
+                            sys_user su2
+                        WHERE
+                            be.employee_id = ee.employee_id AND
+                            ee.employee_id = su2.employee_id AND
+                            su2.user_id    = ${/session/@user_id}
+                        ) AND
+                        aam.enabled_flag = 'Y' AND
+                        faa.created_by   = su.user_id(+)
+                    ) v #WHERE_CLAUSE#
+                ORDER BY
+                    v.upload_date DESC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

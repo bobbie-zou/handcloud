@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-7-24 上午10:33:43  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="purchase_category_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CATEGORY_ID"/>
+        <bm:field name="expanded" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="purchase_category_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CATEGORY_CODE"/>
+        <bm:field name="category_name_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="PUR_PURCHASE_CATEGORIES.CATEGORY_NAME_ID"/>
+        <bm:field name="purchase_category_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CATEGORY_NAME"/>
+        <bm:field name="uom_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="PUR_PURCHASE_CATEGORIES.UOM_CODE"/>
+        <bm:field name="uom_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="PUR_PURCHASE_CATEGORIES.UOM_NAME"/>
+        <bm:field name="flexfield_instance_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="PUR_PURCHASE_CATEGORIES.FLEXFIELD_INSTANCE_ID"/>
+        <bm:field name="flexfield_instance_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="PUR_PURCHASE_CATEGORIES.FLEXFIELD_INSTANCE_CODE"/>
+        <bm:field name="category_level" databaseType="NUMBER" datatype="java.lang.Long" prompt="PUR_PURCHASE_CATEGORIES.CATEGORY_LEVEL"/>
+        <bm:field name="parent_category_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="PUR_PURCHASE_CATEGORIES.PARENT_CATEGORY_ID"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="PUR_PURCHASE_CATEGORIES.ENABLED_FLAG"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    purchase_category_id,
+                    expanded,
+                    purchase_category_code,
+                    category_name_id,
+                    purchase_category_name,
+                    uom_code,
+                    uom_name,
+                    flexfield_instance_id,
+                    flexfield_instance_code,
+                    category_level,
+                    parent_category_id,
+                    enabled_flag
+                FROM
+                    (SELECT
+                        ppc.purchase_category_id,
+                        'N' AS expanded,
+                        ppc.purchase_category_code,
+                        ppc.category_name_id,
+                        (SELECT
+                            fd.description_text
+                        FROM
+                            fnd_descriptions fd
+                        WHERE
+                            ppc.category_name_id = fd.description_id AND
+                            fd.language          = ${/session/@lang} AND
+                            fd.ref_table         = 'PUR_PURCHASE_CATEGORIES' AND
+                            fd.ref_field         = 'PURCHASE_CATEGORY_NAME'
+                        ) AS purchase_category_name,
+                        ppc.uom_code,
+                        (SELECT
+                            fd.description_text
+                        FROM
+                            fnd_uom_codes uc,
+                            fnd_descriptions fd
+                        WHERE
+                            uc.uom_code       = ppc.uom_code AND
+                            fd.description_id = uc.description_id AND
+                            fd.language       = ${/session/@lang} AND
+                            fd.ref_table      = 'FND_UOM_CODES' AND
+                            fd.ref_field      = 'DESCRIPTION_ID'
+                        ) AS uom_name,
+                        ppc.flexfield_instance_id,
+                        (SELECT
+                            ftv.template_code
+                        FROM
+                            fnd_flex_templates_vl ftv,
+                            fnd_flex_tmpl_instances fti
+                        WHERE
+                            ftv.template_id      = fti.template_id AND
+                            fti.tmpl_instance_id = ppc.flexfield_instance_id
+                        ) AS flexfield_instance_code,
+                        ppc.category_level,
+                        ppc.parent_category_id,
+                        ppc.enabled_flag
+                    FROM
+                        pur_purchase_categories ppc
+                    ORDER BY
+                        ppc.purchase_category_code ASC
+                    ) t
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="purchase_category_id" input="false" output="true" outputpath="@purchase_category_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+    			begin
+				  pur_purchase_category_pkg.create_purchase_category(p_purchase_category_code => ${@purchase_category_code},
+				                                                     p_purchase_category_name => ${@purchase_category_name},
+				                                                     p_uom_code               => ${@uom_code},
+				                                                     p_flexfield_instance_id  => ${@flexfield_instance_id},
+				                                                     p_category_level         => ${@category_level},
+				                                                     p_parent_category_id     => ${@parent_category_id},
+				                                                     p_enabled_flag           => ${@enabled_flag},
+				                                                     p_user_id                => ${/session/@user_id},
+				                                                     o_purchase_category_id   => ${@purchase_category_id});
+				end;
+    		]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+    			begin
+				  pur_purchase_category_pkg.modify_pruchase_category(p_purchase_category_id   => ${@purchase_category_id},
+				                                                     p_purchase_category_code => ${@purchase_category_code},
+				                                                     p_purchase_category_name => ${@purchase_category_name},
+				                                                     p_uom_code               => ${@uom_code},
+				                                                     p_flexfield_instance_id  => ${@flexfield_instance_id},
+				                                                     p_category_level         => ${@category_level},
+				                                                     p_parent_category_id     => ${@parent_category_id},
+				                                                     p_enabled_flag           => ${@enabled_flag},
+				                                                     p_user_id                => ${/session/@user_id});
+				end;
+    		]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <!-- <bm:query-fields>
+        <bm:query-field field="parent_category_id" queryOperator="="/>
+        <bm:query-field field="purchase_category_code" queryExpression="purchase_category_code like &apos;%&apos;|| ${@purchase_category_code} || &apos;%&apos;"/>
+        <bm:query-field field="purchase_category_name" queryExpression="purchase_category_name like &apos;%&apos;|| ${@purchase_category_name} || &apos;%&apos;"/>
+    </bm:query-fields> -->
+</bm:model>

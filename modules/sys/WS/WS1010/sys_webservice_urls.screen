@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: YePJ  
+    $Date: 2014-9-24 下午21:45:05  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" defaultWhereClause="t1.web_service_id=${/parameter/@web_service_id}" fetchAll="false" model="sys.WS.WS1010.sys_webservice_urls" rootPath="ws1010_web_service_url_default_rootpath"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="ws1010_webservice_url_edit_link" url="${/request/@context_path}/modules/sys/WS/WS1010/sys_webservice_urls_edit.screen"/>
+        <a:link id="ws1010_webservice_url_delete_link" url="${/request/@context_path}/modules/sys/WS/WS1010/sys_webservice_urls_delete.svc"/>
+        <script><![CDATA[
+            function ws1010UrlQuery() {
+                $('ws1010_web_service_url_result_ds').query();
+            }
+            
+            function ws1010WebServiceUrlResultRender(value, record, name) {
+                if (name == 'wsdl') {
+                    var reocrd_index = $('ws1010_web_service_url_result_ds').indexOf(record);
+                    if (value) {
+                        var hint = value.substr(0, 30);
+                        var url = '<a onclick="ws1010WebServiceShowLargeText(' + reocrd_index + ',\'wsdl\',\'Y\')">' + hint + '</a>';
+                        return url;
+                    } else {
+                        return '';
+                    }
+                } else if (name == 'edit') {
+                    var web_service_url_id = record.get('web_service_url_id');
+                    var web_service_id = record.get('web_service_id');
+                    if (web_service_id) {
+                        return '<a href="javascript:ws1010WebServiceUrlEdit('+ web_service_id + ',' + web_service_url_id +')">编辑</a>';
+                    }
+                }
+            }
+            
+            function ws1010WebServiceShowLargeText(reocrd_index, fieldName, is_xml) {
+                var dataSet = $('ws1010_web_service_url_result_ds');
+                if (!dataSet) {
+                    return;
+                }
+                var record = dataSet.getAt(reocrd_index);
+                if (!record) {
+                    return;
+                }
+                var content = record.get(fieldName);
+                if (!content) {
+                    return;
+                }
+                if (is_xml) {
+                    content = content.replace(/</g, '&lt;');
+                    content = content.replace(/>/g, '&gt;');
+                    content = content.replace(/"/g, '&quot;');
+                }
+                content = content.replace(/\r\n/g, '<br/>');
+                content = content.replace(/ /g, '&nbsp;');
+                Aurora.showMessage(fieldName, content, null, 1290, 500);
+            }
+            
+            function ws1010AddWebServiceUrl() {
+                ws1010WebServiceUrlEdit(${/parameter/@web_service_id});
+            }
+            
+            function ws1010WebServiceUrlEdit(web_service_id,web_service_url_id) {
+                var fullUrl = $('ws1010_webservice_url_edit_link').getUrl();
+                if (web_service_id) {
+                    fullUrl = fullUrl + "?web_service_id=" + web_service_id;
+                    if(web_service_url_id){
+                        fullUrl = fullUrl + "&web_service_url_id=" + web_service_url_id;
+                    }
+                }
+                new Aurora.Window({
+                    id: 'ws1010_web_service_url_edit_window',
+                    url: fullUrl,
+                    title: '新增Web Service Url',
+                    fullScreen: true
+                }).on('beforeclose', ws1010UrlQuery);
+            }
+            
+            function ws1010AddWebServiceUrlDelete(){
+                Aurora.showConfirm('${l:SRMCLOUD}', '${l:确认删除}', function() {
+                    var url_ds = $('ws1010_web_service_url_result_ds');
+                    var records = url_ds.getSelected();
+                    var line_datas = [];
+					for(var i=0;i<records.length;i++){
+				        var web_service_url_id = records[i].get('web_service_url_id');
+				        line_datas.push({
+				        	web_service_url_id:web_service_url_id
+				        });
+					}
+					var para = new Object();
+					para['details'] = line_datas;
+                	Aurora.request({
+				    	url: $('ws1010_webservice_url_delete_link').getUrl(),
+				    	para: para,
+				    	success: function(res){
+				    		$('ws1010_web_service_url_grid').clear();
+				    		/* if(!Aurora.isEmpty(res.result.error_message)){
+				    		    Aurora.showMessage('${l:MASCLOUD.PROMPT}', res.result.error_message, function() {
+                                    $('gld_journal_edit_details_ds').query();
+                                });
+				    		} */
+				    	},
+				    	scope: this
+				    });
+                });
+            }
+            
+            function ws1010WebServiceUrlClose() {
+                $('ws1010_web_service_url_window').close();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="ws1010_web_service_url_query_ds">
+                <a:field name="web_service_id"/>
+            </a:dataSet>
+            <a:dataSet id="ws1010_web_service_url_result_ds" fetchAll="false" model="sys.WS.WS1010.sys_webservice_urls" pageSize="15" queryDataSet="ws1010_web_service_url_query_ds" queryUrl="${/request/@context_path}/autocrud/sys.WS.WS1010.sys_webservice_urls/query?web_service_id=${/parameter/@web_service_id}" selectable="true">
+                <a:datas dataSource="/model/ws1010_web_service_url_default_rootpath"/>
+                <a:fields>
+                    <a:field name="web_service_url_id"/>
+                    <a:field name="web_service_url"/>
+                    <a:field name="web_service_id"/>
+                    <a:field name="wsdl"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="ws1010AddWebServiceUrl" icon="${/request/@context_path}/images/add.gif" text="HAP_NEW" width="100"/>
+                <a:gridButton bind="ws1010_web_service_url_result_ds" click="ws1010AddWebServiceUrlDelete" text="HAP_DELETE" type="delete" width="100"/>
+                <a:toolbarButton click="ws1010WebServiceUrlClose" text="HAP_CLOSE" width="90"/>
+            </a:screenTopToolbar>
+            <a:queryForm>
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="web_service_url" bindTarget="ws1010_web_service_url_query_ds" prompt="访问地址" width="240">
+                        <a:events>
+                            <a:event name="enterdown" handler="ws1010UrlQuery"/>
+                        </a:events>
+                    </a:textField>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="ws1010_web_service_url_grid" bindTarget="ws1010_web_service_url_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="web_service_url" prompt="访问地址" width="300"/>
+                    <a:column name="wsdl" prompt="WSDL" renderer="ws1010WebServiceUrlResultRender" width="300"/>
+                    <a:column name="edit" align="center" prompt="编辑" renderer="ws1010WebServiceUrlResultRender" width="80"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

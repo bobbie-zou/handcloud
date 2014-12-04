@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hyb  
+    $Date: 2011-9-14 下午02:54:29  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            select * from  
+			    (select distinct 
+			                 s.employee_id, 
+			                 emp.employee_code||'-'||emp.name employee_code, 
+			                 emp.employee_code employee_code1, 
+			                 emp.name, 
+			                 emp.bank_account  account 
+			             from exp_employee_assigns s , exp_employees  emp 
+			     where s.employee_id = emp.employee_id  
+			            and s.enabled_flag = 'Y' 
+			            and s.company_id=nvl(${/parameter/@company_id},${/session/@company_id}) 
+			             and (${/parameter/@auth_type} is null or exp_document_authorities_pkg.exist_exp_doc_authorities(${/parameter/@doc_type}, 
+			                                     (select employee_id from sys_user where user_id=${/session/@user_id}), 
+			                                     s.employee_id, 
+			                                     ${/parameter/@auth_type}, 
+			                                     ${/session/@user_id})='Y') 
+			          ) V 
+             #WHERE_CLAUSE# order by  v.employee_code
+     ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="employee_code1" displayWidth="200" forDisplay="true" forQuery="true" prompt="EXP_EMPLOYEE.EMPLOYEE_CODE"/>
+        <bm:field name="name" displayWidth="250" forDisplay="true" forQuery="true" prompt="EXP_EMPLOYEES.EMPLOYEE_NAME"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="employee_code1" queryExpression=" employee_code1 like &apos;%&apos;||${@employee_code1}||&apos;%&apos;"/>
+        <bm:query-field field="name" queryExpression=" name like &apos;%&apos;||${@name}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

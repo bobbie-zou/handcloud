@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:ns2="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="execute">
+            <bm:parameters>
+                <bm:parameter name="session_id" dataType="java.lang.Long" output="true" outputPath="/session/@session_id"/>
+                <bm:parameter name="encryted_session_id" dataType="java.lang.String" input="false" output="true" outputPath="/parameter/@encryted_session_id"/>
+                <bm:parameter name="error_number" output="true" outputPath="/parameter/@error_number"/>
+                <bm:parameter name="message" dataType="java.lang.String" input="false" output="true" outputPath="/parameter/@message"/>
+                <bm:parameter name="user_id" dataType="java.lang.Long" input="false" output="true" outputPath="/session/@user_id"/>
+                <bm:parameter name="is_ipad" output="true" outputPath="/session/@is_ipad"/>
+                <bm:parameter name="role_id" output="true" outputPath="/session/@role_id"/>
+                <bm:parameter name="business_group" output="true" outputPath="/session/@business_group"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+                DECLARE
+                    vsid NUMBER;
+                BEGIN
+                    sys_login_pkg.login(p_user_name			  	=> ${@user_name},
+				                        p_password            	=> ${@user_password},
+				                        p_language            	=> ${@user_language},
+				                        p_ip                  	=> ${/request/@address},
+				                        p_session_id          	=> vsid,
+				                        p_encryted_session_id	=> ${@encryted_session_id},
+				                        p_role_id             	=> ${@role_id},
+				                        p_error_number        	=> ${@error_number},
+				                        p_error_message       	=> ${@message});
+                      
+                    IF vsid != -1 THEN
+                        SELECT
+                            ss.user_id,
+                            vsid,
+                            ${/parameter/@is_ipad},
+                            su.business_group
+                        INTO
+                            ${@user_id},
+                            ${@session_id},
+                            ${@is_ipad},
+                            ${@business_group}
+                        FROM
+                            sys_session ss,
+                            sys_user su
+                        WHERE
+                            ss.session_id = vsid AND
+                            ss.user_id    = su.user_id(+);
+                    END IF;
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-2-19 下午06:42:08  
+    $Revision: 1.0  
+    $Purpose: 非寄销开票单确认(供),界面3
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" defaultWhereClause="header_id=${/parameter/@bill_header_id}" fetchAll="true" model="acp.ACP5020.acp_bill_headers" rootPath="record"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="acp_5030_bill_confirm_detail_query_link" url="${/request/@context_path}/modules/acp/ACP5030/acp_5030_bill_confirm_detail_query.screen"/>
+        <script><![CDATA[
+            function acp_5030_header_confirm() {
+                var ds = $('acp_5030_header_ds');
+                var records = ds.getCurrentRecord();
+                Aurora.showConfirm('${l:HAP_PROMPT}', '${l:ACP_BILL.CONFIRM_CONFIRM}', function() {
+                    records.set('_status', 'update');
+                    ds.submit('${/request/@context_path}/autocrud/db.acp_bill_pkg.bill_header_confirm/batch_update');
+                });
+            }
+            function acp_5030_header_return() {
+                var ds = $('acp_5030_header_ds');
+                var records = ds.getCurrentRecord();
+                Aurora.showConfirm('${l:HAP_PROMPT}', '${l:ACP_BILL.CONFIRM_RETUEN}?', function() {
+                    records.set('_status', 'update');
+                    ds.submit('${/request/@context_path}/autocrud/db.acp_bill_pkg.bill_header_return/batch_update');
+                });
+            }
+            function acp_5030_operation_record(){
+                var HeaderId = $('acp_5030_header_ds').getCurrentRecord().get('header_id');
+                new Aurora.Window({
+                    id: 'acp_operation_record_window',
+                    url: /*acp_5030_operation_record.screen*/
+                    $('acp_5030_operation_record_link').getUrl() + '?bill_header_id=' + HeaderId,
+                    title: '${l:ACP_BILL.OPERATION_RECORD}',
+                    fullScreen:true
+                });
+            }
+            function back(){
+                $('bill_confirm_detail_window').close();
+            }
+            function billMaintainDetailQuery(value, record, name) {
+                var billLineId = record.get('line_id');
+                var billLineNum = record.get('bill_line_num');
+                if (record.get('line_id')) {
+                    return '<a href="javascript:openBillMaintainDetailQuery(' + billLineId + ')">' + billLineNum + '</a>';
+                }
+            }
+            function openBillMaintainDetailQuery(billLineId) {
+                new Aurora.Window({
+                    id: 'bill_confirm_detail_query_window',
+                    url: /*acp_5030_bill_confirm_detail_query.screen*/
+                    $('acp_5030_bill_confirm_detail_query_link').getUrl() + '?bill_line_id=' + billLineId,
+                    title: '${l:ACP_BILL.BILL_MAINTAIN_QUERY}',
+                    fullScreen: true
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp_5030_bill_status_list_tf" loadData="true" lookupCode="BILL_STATUS"/>
+            <!-- 头结构的ds,对应与acp_bill_headers表,查询结果为页面1点击的信息 -->
+            <a:dataSet id="acp_5030_header_ds">
+                <a:datas dataSource="/model/record"/>
+                <a:fields>
+                    <a:field name="bill_number" readOnly="true"/>
+                    <a:field name="company_name" readOnly="true"/>
+                    <a:field name="vendor_name" readOnly="true"/>
+                    <a:field name="vendor_site_name" readOnly="true"/>
+                    <a:field name="status_display" displayField="code_value_name" options="acp_5030_bill_status_list_tf" readOnly="true" returnField="status" valueField="code_value"/>
+                    <a:field name="status"/>
+                    <a:field name="amount" readOnly="true"/>
+                    <a:field name="currency_code" readOnly="true"/>
+                    <a:field name="creation_date" readOnly="true"/>
+                    <a:field name="release_date" readOnly="true"/>
+                    <a:field name="confirm_date" readOnly="true"/>
+                    <a:field name="data_source" readOnly="true"/>
+                    <a:field name="vendor_desc" readOnly="true"/>
+                    <a:field name="created_by" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="acp_5030_line_query_ds">
+                <a:fields>
+                    <a:field name="bill_header_id" defaultValue="${/parameter/@bill_header_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <!-- 行结构的ds,对应acp_bill_lines表,与acp_bill_headers表为多对一关系 -->
+            <a:dataSet id="acp_5030_line_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="acp.ACP5020.acp_bill_lines" queryDataSet="acp_5030_line_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="line_id"/>
+                    <a:field name="header_id"/>
+                    <a:field name="bill_line_num"/>
+                    <a:field name="item_code_name"/>
+                    <a:field name="quantity"/>
+                    <a:field name="unit_of_measure"/>
+                    <a:field name="quantity"/>
+                    <a:field name="unit_price"/>
+                    <!--可开票行金额-->
+                    <a:field name="line_amount"/>
+                    <a:field name="request_date"/>
+                    <a:field name="release_date"/>
+                    <a:field name="confirm_date"/>
+                    <a:field name="data_source"/>
+                    <a:field name="line_desc"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton click="acp_5030_header_confirm" text="ACP_BILL.CONFIRM" width="100"/>
+            <a:gridButton click="acp_5030_header_return" text="ACP_BILL.RETURN" width="100"/>
+            <a:gridButton click="acp_5030_operation_record" text="ACP_BILL.OPERATION_RECORD" width="100"/>
+            <a:gridButton click="back" text="ACP_BILL.BACK" width="100"/>
+        </a:screenTopToolbar>
+        <a:hBox>
+            <a:textField name="bill_number" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_HEADERS.BILL_NUMBER"/>
+            <a:textField name="company_name" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_SOURCE.VENDOR_CODE_NAME"/>
+            <a:textField name="vendor_name" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_SOURCE.ITEM_CODE_NAME"/>
+            <a:textField name="vendor_site_name" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_SOURCE.VENDOR_SITE_CODE_NAME"/>
+        </a:hBox>
+        <a:hBox>
+            <a:textField name="status_display" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_HEADERS.STATUS"/>
+            <a:textField name="amount" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_HEADERS.AMOUNT"/>
+            <a:textField name="currency_code" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_SOURCE.CURRENCY_CODE"/>
+            <a:textField name="created_by" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_HEADERS.CREATED_BY"/>
+        </a:hBox>
+        <a:hBox>
+            <a:textField name="creation_date" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_HEADERS.CREATION_DATE"/>
+            <a:textField name="release_date" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_HEADERS.RELEASE_DATE"/>
+            <a:textField name="confirm_date" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_HEADERS.CONFIRM_DATE"/>
+            <a:textField name="data_source" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_SOURCE.DATA_SOURCE"/>
+        </a:hBox>
+        <a:hBox>
+            <a:textField name="vendor_desc" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_HEADERS.VENDOR_DESC"/>
+            <a:textField name="agent_desc" bindTarget="acp_5030_header_ds" prompt="ACP_BILL_HEADERS.HEADER_DESC"/>
+            <!--企业意见?-->
+        </a:hBox>
+        <a:grid id="acp_5030_line_grid" bindTarget="acp_5030_line_ds" marginHeight="190" marginWidth="40" navBar="true" style="border:none">
+            <a:columns>
+                <a:column name="bill_line_num" align="center" prompt="ACP_BILL_LINES.BILL_LINE_NUM" renderer="billMaintainDetailQuery" width="60"/>
+                <a:column name="item_code_name" align="center" prompt="ACP_BILL_SOURCE.ITEM_CODE_NAME" width="80"/>
+                <a:column name="unit_meas_lookup_code" prompt="ACP_BILL_SOURCE.UNIT_MEAS_LOOKUP_CODE" width="120"/>
+                <a:column name="quantity" align="center" prompt="ACP_BILL_SOURCE.QUANTITY" width="80"/>
+                <a:column name="unit_price" align="right" prompt="ACP_BILL_SOURCE.UNIT_PRICE" width="60"/>
+                <!--可开票行金额-->
+                <a:column name="line_amount" align="right" prompt="ACP_BILL_LINE.AMOUNT" width="60"/>
+                <a:column name="request_date" align="right" prompt="ACP_BILL_LINES.REQUEST_DATE" renderer="Aurora.formatDate" width="60"/>
+                <a:column name="data_source" align="center" prompt="ACP_BILL_SOURCE.DATA_SOURCE" width="60"/>
+                <a:column name="line_desc" align="right" prompt="ACP_BILL_LINES.LINE_DESC" width="200"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

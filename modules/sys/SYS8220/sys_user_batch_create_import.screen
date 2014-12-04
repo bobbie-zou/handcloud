@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: FelixDru
+    $Date: 2014-10-16 上午10:55:29  
+    $Revision: 1.0  
+    $Purpose: 子账号批量创建
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.imp_template_code = &apos;SYS_USER_CREATE_IMPORT&apos;" fetchAll="true" model="public.get_fnd_excel_import_template" rootPath="import_template"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="sys8220_userBatchCreateImportUpload_link" url="${/request/@context_path}/modules/sys/SYS8220/sys_user_batch_create_import_upload.screen"/>
+        <a:link id="sys8220_userCreateCheckSubmit_link" model="sys.SYS8220.sys_user_batch_create_import_check_and_submit" modelaction="execute"/>
+        <a:link id="sys8220_user_create_excel_import_template_uploadtimes_link" model="public.get_fnd_excel_import_template" modelaction="execute"/>
+        <script><![CDATA[
+            //Close
+            function sys8220_userCreateImportCancelData(){
+                window.close();
+            }
+            
+            function sys8220_userBatchCreatelImportLoadData() {
+                new Aurora.Window({
+                    id: 'sys8220_userBatchCreateImportUpload_window',
+                    url: $('sys8220_userBatchCreateImportUpload_link').getUrl(),
+                    title: '${l:SYS8220.BATCH_CREATE}',
+                    width: 450,
+                    height: 300
+                });
+            }
+            
+            function sys8220_userCreateImportCheckData() {
+                var allData = $('sys8220_userCreatel_import_temp_ds').getAll();
+                if (allData.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.NO_DATA_TO_IMPORT}');
+                    return;
+                } else {
+                    Aurora.request({
+                        url: $('sys8220_userCreateCheckSubmit_link').getUrl(),
+                        para: {},
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SUBMIT_SUCCESS}');
+                            $('sys8220_userCreatel_import_temp_ds').query();
+                            $('sys8220_user_create_import_error_ds').query();
+                        },
+                        error:function() {
+                            $('sys8220_user_create_import_error_ds').query();
+                        },
+                        failure:function() {
+                            $('sys8220_user_create_import_error_ds').query();
+                        },
+                        scope: this
+                    });
+                }
+            }            
+            
+            function sys8220_userCreateImportRrrorDsLoad(ds) {
+                var error_lines = ds.getAll().length;
+                if (error_lines > 0) {
+                    $('sys8220_userCreateImportTab').setEnabled(1);
+                }
+            }
+            
+            function sys8220_userCreateImportTemplateDownload() {
+                var attachment_id = '${/model/import_template/record/@attachment_id}';
+                if (attachment_id == undefined || Aurora.isEmpty(attachment_id)) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PUR5611_VENDOR_IMPORT.NO_IMPORT_TEMPLATE_TO_DOWNLOAD}');
+                    return;
+                } else {
+                    Aurora.request({
+                        url: $('sys8220_user_create_excel_import_template_uploadtimes_link').getUrl(),
+                        para: {
+                            imp_template_code: 'SYS_USER_CREATE_IMPORT'
+                        },
+                        success: function() {
+                            document.getElementById('attachment_id').value = attachment_id;
+                            document.downloadform.submit();
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function sys8220_userCreateImportRrrorDs_indexChangeFun(ds, record){
+                document.getElementById('sys8220_ErrorMsgDiv').innerHTML = record.get('error_message');
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys8220_user_create_import_error_ds" autoCount="true" autoQuery="true" model="sys.SYS8220.sys_user_batch_create_import_errors">
+                <a:events>
+                    <a:event name="load" handler="sys8220_userCreateImportRrrorDsLoad"/>
+                    <a:event name="indexchange" handler="sys8220_userCreateImportRrrorDs_indexChangeFun"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys8220_userCreatel_import_temp_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="sys.SYS8220.sys_user_batch_create_imports"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="sys8220_userCreateImportTemplateDownload" style="margin-left:20px;" text="PROMPT.DOWNLOAD_IMPORT_TEMPLATE" width="100"/>
+                <a:toolbarButton click="sys8220_userBatchCreatelImportLoadData" style="margin-left:20px;" text="PROMPT.LOADDATA" width="100"/>
+                <a:toolbarButton click="sys8220_userCreateImportCheckData" style="margin-left:20px;" text="SYS8220.CHECK_AND_SUBMIT" width="100"/>
+                <a:toolbarButton click="sys8220_userCreateImportCancelData" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+            </a:screenTopToolbar>
+            <a:tabPanel id="sys8220_userCreateImportTab" marginHeight="100" marginWidth="100">
+                <a:tabs>
+                    <a:tab prompt="SYS8220.IMPORTS_DATA" width="130">
+                        <a:grid id="sys8220_userCreatel_import_temp_ds_grid" autoAppend="false" bindTarget="sys8220_userCreatel_import_temp_ds" marginHeight="140" marginWidth="120" navBar="true" style="margin-top:5px;">
+                            <a:columns>
+                                <a:column name="line_number" align="center" lock="true" prompt="PROMPT.LINE_NUMBER" width="30"/>
+                                <a:column name="user_desc" align="left" prompt="FND_COMPANY_PROMPTS.DESCRIPTION" width="120"/>
+                                <a:column name="role_code" align="left" prompt="SYS_ROLE.ROLE_CODE" width="120"/>
+                                <a:column name="role_name" align="left" prompt="SYS_ROLE.ROLE_NAME" width="120"/>
+                                <a:column name="email" align="left" prompt="SYS8220.EMAIL_ADDRESS" width="120"/>
+                                <a:column name="mobile_phone" align="left" prompt="SYS8220.MOBILE_PHONE" width="120"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab disabled="true" prompt="SYS8220.IMPORT_ERROR_DATA" width="130">
+                        <a:fieldSet height="100" marginWidth="120" title="PROMPT.CHECK_IMPORT_ERROR">
+                            <div id="sys8220_ErrorMsgDiv"/>
+                        </a:fieldSet>
+                        <a:grid id="sys8220_user_create_import_error_ds_grid" autoAppend="false" bindTarget="sys8220_user_create_import_error_ds" marginHeight="250" marginWidth="120" navBar="true" style="margin-top:5px;">
+                            <a:columns>
+                                <a:column name="line_number" align="center" lock="true" prompt="PROMPT.LINE_NUMBER" width="30"/>
+                                <a:column name="error_message" align="left" lock="true" prompt="PROMPT.ERROR_MESSAGE" width="300"/>
+                                <a:column name="user_desc" align="left" prompt="FND_COMPANY_PROMPTS.DESCRIPTION" width="100"/>
+                                <a:column name="role_code" align="left" prompt="SYS_ROLE.ROLE_CODE" width="80"/>
+                                <a:column name="role_name" align="left" prompt="SYS_ROLE.ROLE_NAME" width="80"/>
+                                <a:column name="email" align="left" prompt="SYS8220.EMAIL_ADDRESS" width="100"/>
+                                <a:column name="mobile_phone" align="left" prompt="SYS8220.MOBILE_PHONE" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+            <form name="downloadform" action="${/request/@context_path}/atm_download.svc" enctype="multipart/form-data" method="get" style="display:none;">
+                <input name="attachment_id" id="attachment_id" type="hidden"/>
+            </form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

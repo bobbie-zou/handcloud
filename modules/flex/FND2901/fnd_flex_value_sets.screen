@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-2-21 上午7:30:26  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:t="aurora.application.action" xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="fnd2901_flex_values_id_link" url="${/request/@context_path}/modules/flex/FND2901/fnd_flex_values_maintain.screen"/>
+        <a:link id="fnd2901_flex_values_sql_link" url="${/request/@context_path}/modules/flex/FND2901/fnd_flex_valie_set_manual_sql.screen"/>
+        <script id="script_1"><![CDATA[
+        
+        
+         function fnd2901_queryHook(value, ds) {
+               var record = ds.getCurrentRecord();
+               record.set('flex_value_set_code', null);
+               record.set('quick_value',value);
+         }
+         
+         function query(){ 
+            $('fnd2901_flex_value_sets_result_ds').query();
+         }
+         
+         function reset_value_set(){
+            $('fnd2901_flex_value_sets_query_ds').reset();
+         }
+
+         function fnd2901_grid_ds_update(ds, record, name, value, oldvalue){
+             if(name == 'flex_value_set_type'){
+                 if(value == 'DEPENDENT'){
+                     record.set('parent_flex_value_set_id','');
+                     record.set('parent_flex_value_set_desc','');
+                    // record.getMeta().getField('parent_flex_value_set_desc').setReadOnly(false);
+                     record.getMeta().getField('parent_flex_value_set_desc').setRequired(true);
+                 }else if(value == 'NORMAL'){
+                  	 record.set('parent_flex_value_set_id','');
+                     record.set('parent_flex_value_set_desc','');
+                    // record.getMeta().getField('parent_flex_value_set_desc').setReadOnly(true);
+                     record.getMeta().getField('parent_flex_value_set_desc').setRequired(false);   
+                 }
+                 
+             }
+         }
+         
+         function fnd2901_grid_ds_add(ds, record,index){
+             //record.set('sys_flag_desc','N');
+         }
+         
+         function flex_value_set_code_edited(record,name){
+               if(record.isNew){
+                    return 'fnd2901_flex_value_set_code_tf';
+                }
+                return '';
+         }
+         
+         function flex_value_set_desc_edited(record,name){
+               if(record.get('sys_flag')=='N'){
+                    return 'fnd2901_flex_value_set_desc_tf';
+                }
+                return '';
+         }
+         
+         function flex_value_set_type_desc_edited(record,name){
+               if(record.get('sys_flag')=='N'){
+                    return 'fnd2901_grid_combobox';
+                }
+                return '';
+         }
+         
+         function value_source_desc_edited(record,name){
+               if(record.get('sys_flag')=='N'){
+                    return 'fnd2901_grid_combobox';
+                }
+                return '';
+         }
+         
+         function parent_flex_value_set_desc_edited(record,name){
+               if(record.get('sys_flag')=='N'&&record.get('flex_value_set_type')=='DEPENDENT'){
+                    return 'fnd2901_parent_flex_value_set_desc_lov';
+                }
+                return '';
+         }
+         
+         function format_category_desc_edited(record,name){
+               if(record.get('sys_flag')=='N'){
+                    return 'fnd2901_format_category_desc_lov';
+                }
+                return '';
+         }
+         
+         function enabled_flag_edited(record, name){
+               var sys_flag = record.get('sys_flag');
+               if(sys_flag=='Y'){
+                    record.getMeta().getField('enabled_flag').setReadOnly(true);
+                }else{
+                    record.getMeta().getField('enabled_flag').setReadOnly(false);
+               }
+               return 'fnd2901_enabled_flag_tf';
+        }
+        
+        function fnd2910_flex_value_renderer(value,record,name){
+            var flex_value_set_id = record.get('flex_value_set_id');
+            var value_source = record.get('value_source');
+            if(!Aurora.isEmpty(flex_value_set_id)){
+            	return '<a href="javascript:fnd2901_new_flex_value_window(\'' + value_source + '\','+flex_value_set_id +');">'+'值定义'+'</a>';
+            }
+            return '';
+        }
+         
+        function fnd2901_new_flex_value_window(value_source,flex_value_set_id){
+            		var url;
+            		if(value_source=='SQL'){
+            		    url=$('fnd2901_flex_values_sql_link').getUrl();
+            		}else{
+            		    url=$('fnd2901_flex_values_id_link').getUrl();
+            		}
+            		url+='?flex_value_set_id='+flex_value_set_id;
+                    new Aurora.Window({
+                    id:'fnd2902_flex_values_window',
+                    url:url,
+                    title:'值定义',
+                    fullScreen:true});
+        }
+        
+        
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2901_flex_value_set_type_ds" lookupCode="FLEX_VALUE_SET_TYPE"/>
+            <a:dataSet id="fnd2901_flex_value_set_sys_flag_ds" lookupCode="FLEX_VALUE_SET_SYS_FLAG"/>
+            <a:dataSet id="fnd2901_flex_value_set_value_source_ds" lookupCode="FLEX_VALUE_SET_VALUE_SOURCE"/>
+            <a:dataSet id="fnd2901_flex_value_sets_query_ds"/>
+            <a:dataSet id="fnd2901_flex_value_sets_result_ds" autoPageSize="true" autoQuery="true" fetchAll="false" model="flex.FND2901.fnd_flex_value_sets" queryDataSet="fnd2901_flex_value_sets_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="flex_value_set_code" required="true" typeCase="upper"/>
+                    <a:field name="flex_value_set_desc" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="flex_value_set_type"/>
+                    <a:field name="flex_value_set_type_desc" displayField="code_value_name" options="fnd2901_flex_value_set_type_ds" required="true" returnField="flex_value_set_type" valueField="code_value"/>
+                    <a:field name="sys_flag" defaultValue="N"/>
+                    <a:field name="sys_flag_desc" displayField="code_value_name" options="fnd2901_flex_value_set_sys_flag_ds" readOnly="true" returnField="sys_flag" valueField="code_value"/>
+                    <a:field name="value_source"/>
+                    <a:field name="value_source_desc" displayField="code_value_name" options="fnd2901_flex_value_set_value_source_ds" required="true" returnField="value_source" valueField="code_value"/>
+                    <a:field name="flex_format_id"/>
+                    <a:field name="format_category_desc" autoComplete="false" lovHeight="200" lovUrl="${/request/@context_path}/modules/flex/fnd_flex_format_lov.screen" lovWidth="540" required="true" title="选择格式">
+                        <a:mapping>
+                            <a:map from="flex_format_id" to="flex_format_id"/>
+                            <a:map from="flex_format_category_desc" to="format_category_desc"/>
+                            <a:map from="display_example" to="display_example"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="display_example"/>
+                    <a:field name="parent_flex_value_set_id"/>
+                    <a:field name="parent_flex_value_set_desc" autoComplete="true" autoCompleteField="quick_value" autoCompleteSize="2" lovGridHeight="320" lovHeight="450" lovService="public.fnd_flex_value_sets_lov" lovWidth="500" title="PUR_BUYERS.APPOINT_USER">
+                        <a:mapping>
+                            <a:map from="flex_value_set_id" to="parent_flex_value_set_id"/>
+                            <a:map from="flex_value_set_desc" to="parent_flex_value_set_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="fnd2901_grid_ds_add"/>
+                    <a:event name="update" handler="fnd2901_grid_ds_update"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar id="fnd2901_screenTopToolbar">
+            <a:screenTitle/>
+            <a:gridButton id="fnd2901_addbtn" bind="fnd2901_grid" style="margin-left:20px;" type="add" width="100"/>
+            <a:gridButton bind="fnd2901_grid" type="save" width="100"/>
+            <a:gridButton bind="fnd2901_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="fnd2901_query_form" bindTarget="fnd2901_flex_value_sets_query_ds" defaultQueryField="flex_value_set_code" defaultQueryHint="值集代码或描述" queryHook="fnd2901_queryHook" resultTarget="fnd2901_flex_value_sets_result_ds" style="width:100%;border:none"><![CDATA[
+            
+        ]]></a:queryForm>
+        <a:grid id="fnd2901_grid" bindTarget="fnd2901_flex_value_sets_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="flex_value_set_code" align="center" editorFunction="flex_value_set_code_edited" prompt="值集代码" sortable="true" width="80"/>
+                <a:column name="flex_value_set_desc" align="center" editorFunction="flex_value_set_desc_edited" prompt="值集描述" sortable="true" width="100"/>
+                <a:column name="flex_value_set_type_desc" align="center" editorFunction="flex_value_set_type_desc_edited" prompt="值集类型" width="60"/>
+                <a:column name="parent_flex_value_set_desc" align="center" editorFunction="parent_flex_value_set_desc_edited" prompt="父值集" width="100"/>
+                <a:column name="value_source_desc" align="center" editorFunction="value_source_desc_edited" prompt="值来源" width="50"/>
+                <a:column name="format_category_desc" align="center" editorFunction="format_category_desc_edited" prompt="数据格式类型" width="80"/>
+                <a:column name="display_example" align="center" prompt="数据格式示例"/>
+                <a:column name="sys_flag_desc" align="center" prompt="值集来源" width="60"/>
+                <a:column name="flex_values" align="center" prompt="值" renderer="fnd2910_flex_value_renderer" width="50"/>
+                <a:column name="enabled_flag" align="center" editorFunction="enabled_flag_edited" prompt="启用"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="fnd2901_flex_value_set_code_tf" typeCase="upper"/>
+                <a:textField id="fnd2901_flex_value_set_desc_tf"/>
+                <a:checkBox id="fnd2901_enabled_flag_tf" checkedValue="Y" uncheckedValue="N"/>
+                <a:lov id="fnd2901_parent_flex_value_set_desc_lov"/>
+                <a:lov id="fnd2901_format_category_desc_lov"/>
+                <a:comboBox id="fnd2901_grid_combobox"/>
+            </a:editors>
+        </a:grid>
+        <script><![CDATA[
+	       
+        
+        ]]></script>
+    </a:view>
+</a:screen>

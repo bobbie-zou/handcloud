@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hyb  
+    $Date: 2011-12-16 下午02:43:04  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+             select a.dispatch_line_id,
+                   a.dispatch_header_id,
+                   a.business_node_id,
+                   (select wbn.business_node_description
+                      from wbc_business_nodes wbn
+                     where wbn.business_node_id = a.business_node_id) as business_node_desc,
+                   (select ss.service_name
+                      from wbc_business_nodes wbn,sys_service ss
+                     where wbn.business_node_id = a.business_node_id
+                     and wbn.business_node_service_id = ss.service_id) as business_node_service_url,
+                   a.last_bus_node_id,
+                   (select wbn.business_node_description
+                      from wbc_business_nodes wbn
+                     where wbn.business_node_id = a.last_bus_node_id) as last_bus_node_desc,
+                   a.last_handler_id,
+                   (select ee.name from exp_employees ee where ee.employee_id=a.last_handler_id)as last_handler_desc,
+                   a.last_work_team_id,
+                   (select wwt.team_name from wbc_work_teams_vl wwt where wwt.work_team_id=a.last_work_team_id) as last_work_team_desc,
+                   a.status,
+                   b.document_id,
+                   b.document_num,
+                   b.doc_category,
+                   (select wbtp.head_param_name
+                      from wbc_business_type_parameters wbtp
+                     where wbtp.business_type_code = b.doc_category) as p_head_id,
+                   (select scv.code_value_name
+                      from sys_code_values_v scv
+                     where scv.code_value = b.doc_category
+                       and scv.code = 'EXP_DOCUMENT_CATEGORY') as doc_category_desc,
+                   b.doc_company_id,
+                   (select company_short_name
+                      from fnd_companies_vl fcv
+                     where fcv.COMPANY_ID = b.doc_company_id) as company_desc,
+                   b.doc_type,
+                   decode(b.doc_category,
+                          null,
+                          '',
+                          'EXP_REQ',
+                          (select ert.description
+                             from exp_expense_req_types_vl ert
+                            where ert.expense_requisition_type_id = b.doc_type),
+                          'EXP_RPT',
+                          (select ertv.description
+                             from exp_expense_report_types_vl ertv
+                            where ertv.expense_report_type_id = b.doc_type),
+                          'PAY_REQ',
+                          (select cprt.description
+                             from csh_pay_req_types_vl cprt
+                            where cprt.type_id = b.doc_type),
+                          '') as doc_type_desc,
+                   b.submited_by,
+                   (select ee.name
+                      from exp_employees ee
+                     where ee.employee_id = b.submited_by) as submited_by_desc,
+                   b.submited_position_id,
+                   (select eop.description
+                      from exp_org_position_vl eop
+                     where eop.position_id = b.submited_position_id) as submited_position_desc,
+                   b.start_time
+              from wbc_dispatch_pool_lines a, wbc_dispatch_pool_headers b
+             where a.dispatch_header_id = b.dispatching_header_id
+               and a.status = 'IN_PROGRESS'
+               and a.handler_id = (select employee_id from sys_user u where u.user_id = ${/session/@user_id})
+               #ORDER_BY_CLAUSE#
+   ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="dispatch_line_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="DISPATCH_LINE_ID"/>
+        <bm:field name="dispatch_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="DISPATCH_HEADER_ID"/>
+        <bm:field name="business_node_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="BUSINESS_NODE_ID"/>
+        <bm:field name="business_node_desc"/>
+        <bm:field name="business_node_service_url"/>
+        <bm:field name="last_bus_node_desc"/>
+        <bm:field name="last_handler_desc"/>
+        <bm:field name="last_work_team_desc"/>
+        <bm:field name="status" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="STATUS"/>
+        <bm:field name="document_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="DOCUMENT_ID"/>
+        <bm:field name="document_num" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DOCUMENT_NUM"/>
+        <bm:field name="doc_category" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DOC_CATEGORY"/>
+        <bm:field name="doc_category_desc"/>
+        <bm:field name="p_head_id"/>
+        <bm:field name="doc_company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="DOC_COMPANY_ID"/>
+        <bm:field name="company_desc"/>
+        <bm:field name="doc_type" databaseType="NUMBER" datatype="java.lang.Long" physicalName="DOC_TYPE"/>
+        <bm:field name="doc_type_desc"/>
+        <bm:field name="submited_by" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SUBMITED_BY"/>
+        <bm:field name="submited_by_desc"/>
+        <bm:field name="submited_position_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SUBMITED_POSITION_ID"/>
+        <bm:field name="submited_position_desc"/>
+        <bm:field name="start_time" databaseType="DATE" datatype="java.util.Date" physicalName="START_TIME"/>
+    </bm:fields>
+</bm:model>

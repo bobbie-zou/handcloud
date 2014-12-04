@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-5 下午2:58:55  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="xc_ve_year_profile_create_link" url="${/request/@context_path}/modules/xcve/XCVE5050/xc_ve_year_profile_create_step1.screen"/>
+        <a:link id="xc_ve_year_profile_update_link" url="${/request/@context_path}/modules/xcve/XCVE5050/xc_ve_year_profile_update.screen"/>
+        <a:link id="xc_ve_year_profile_delete_tmp_link" model="db.xc_ve_profile_pkg.delete_year_tmp_data" modelaction="execute"/>
+        <a:link id="xc_ve_profile_cancel_link" model="db.xc_ve_profile_pkg.xc_ve_profile_cancel" modelaction="execute"/>
+        <script><![CDATA[
+            function queryResultDs() {
+                $('ve_profiles_result').query();
+            }
+            
+            function changePeriodYear(combo, value, oldValue) {
+                $('period_from_ds').setQueryParameter('period_year', value);
+                $('period_from_ds').query();
+                
+                $('period_to_ds').setQueryParameter('period_year', value);
+                $('period_to_ds').query();
+                
+                $('ve_profiles_for_query').getCurrentRecord().set('period_name_from', '');
+            }
+            
+            function changePeriodNameFrom(combo, value, oldValue) {
+                $('period_to_ds').setQueryParameter('period_name_from', value);
+                $('period_to_ds').query();
+                
+                $('ve_profiles_for_query').getCurrentRecord().set('period_name_to', '');
+            }
+            
+            function ve_profile_num_function(value, record, name) {
+                return '<a href="javascript:ve_year_profile_update(' + record.get('ve_profile_id') + ')">' + record.get('ve_profile_num') + '</a>';
+            }
+            
+            function ve_year_profile_update(ve_profile_id) {
+                Aurora.go($('xc_ve_year_profile_update_link').getUrl() + '?ve_profile_id=' + ve_profile_id);
+            }
+            
+            function queryProfile() {
+                $('ve_profiles_result').query();
+            }
+            
+            function createProfile() {
+                Aurora.request({
+                    url: $('xc_ve_year_profile_delete_tmp_link').getUrl(),
+                    para: {},
+                    success: function() {
+                        Aurora.go($('xc_ve_year_profile_create_link').getUrl());
+                    },
+                    failture: function() {},
+                    error: function() {},
+                    scope: this
+                });
+            }
+            
+            function cancel() {
+                var records = $('ve_profiles_result').getSelected();
+                if (records.length == 0) {
+                    Aurora.showWarningMessage('警告', '请至少选择一个年度考评单', function() {});
+                    return;
+                }
+                if (records[0].get('cancel_flag') == 'Y') {
+                    Aurora.showErrorMessage('错误', '选中考评单已作废，不能再次作废', function() {});
+                    return;
+                }
+                Aurora.showConfirm('提示', '确定要作废吗？', continueCancel, stopCancel);
+            }
+            
+            function continueCancel() {
+                var records = $('ve_profiles_result').getSelected();
+                for (var i = 0;i < records.length;i++) {
+                    records[i].set('cancel_flag', 'Y');
+                }
+                $('ve_profiles_result').submit();
+            }
+            
+            function stopCancel() {
+                return;
+            }
+            
+            function setButtonDisable(ds, record) {
+                if (record.get('cancel_flag') == 'Y') {
+                    $('cancelBtn').disable();
+                } else {
+                    $('cancelBtn').enable();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="period_year_ds" loadData="true" model="xcve.XCVE5050.xc_ve_year_profile_year_combo"/>
+            <a:dataSet id="period_from_ds" fetchAll="true" model="xcve.XCVE5050.xc_ve_year_profile_period_combo"/>
+            <a:dataSet id="period_to_ds" fetchAll="true" model="xcve.XCVE5050.xc_ve_year_profile_period_combo"/>
+            <a:dataSet id="ve_profiles_for_query" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@company_id}"/>
+                    <a:field name="period_year" displayField="period_year" options="period_year_ds" returnField="period_year" valueField="period_year"/>
+                    <a:field name="ve_profile_desc"/>
+                    <a:field name="internal_period_num_from"/>
+                    <a:field name="period_name_from" displayField="period_name" options="period_from_ds" returnField="internal_period_num_from" valueField="internal_period_num"/>
+                    <a:field name="internal_period_num_to"/>
+                    <a:field name="period_name_to" displayField="period_name" options="period_to_ds" returnField="internal_period_num_to" valueField="internal_period_num"/>
+                    <a:field name="cancel_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="ve_profiles_result" autoQuery="false" model="xcve.XCVE5050.xc_ve_year_profiles" pageSize="20" queryDataSet="ve_profiles_for_query" selectable="true" selectionModel="radio">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@company_id}"/>
+                    <a:field name="ve_profile_id"/>
+                    <a:field name="ve_profile_num" readOnly="true"/>
+                    <a:field name="ve_profile_desc" readOnly="true"/>
+                    <a:field name="period_year" readOnly="true"/>
+                    <a:field name="period_name_from" readOnly="true"/>
+                    <a:field name="period_name_to" readOnly="true"/>
+                    <a:field name="cancel_flag" checkedValue="Y" readOnly="true" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="queryResultDs"/>
+                    <a:event name="select" handler="setButtonDisable"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="3" labelWidth="100" title="年度供应商考评分计算及发布" width="750">
+                <a:comboBox name="period_year" bindTarget="ve_profiles_for_query" prompt="考评年度">
+                    <a:events>
+                        <a:event name="change" handler="changePeriodYear"/>
+                    </a:events>
+                </a:comboBox>
+                <a:textField name="ve_profile_desc" bindTarget="ve_profiles_for_query" prompt="年度考评说明"/>
+                <a:label/>
+                <a:comboBox name="period_name_from" bindTarget="ve_profiles_for_query" prompt="考评月度从">
+                    <a:events>
+                        <a:event name="change" handler="changePeriodNameFrom"/>
+                    </a:events>
+                </a:comboBox>
+                <a:comboBox name="period_name_to" bindTarget="ve_profiles_for_query" prompt="考评月度到"/>
+                <a:checkBox name="cancel_flag" bindTarget="ve_profiles_for_query" label="仅显示有效年度考评单"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="queryProfile" text="查询"/>
+                <a:button click="createProfile" text="新建"/>
+                <a:button id="cancelBtn" click="cancel" text="作废"/>
+            </a:hBox>
+            <a:grid id="ve_profiles_result_grid" bindTarget="ve_profiles_result" height="320" navBar="true" width="750">
+                <a:toolBar>
+                    <a:button type="Customize"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="ve_profile_num" align="center" prompt="年度考评单编号" renderer="ve_profile_num_function" width="150"/>
+                    <a:column name="ve_profile_desc" prompt="年度考评说明" width="260"/>
+                    <a:column name="period_year" align="center" prompt="考评年度" width="70"/>
+                    <a:column name="period_name_from" align="center" prompt="考评月度从" width="80"/>
+                    <a:column name="period_name_to" align="center" prompt="考评月度到" width="80"/>
+                    <a:column name="cancel_flag" align="center" prompt="作废" width="50"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

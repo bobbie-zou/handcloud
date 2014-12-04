@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-1-17 上午11:27:25  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" defaultWhereClause="inv_organization_id=${/parameter/@inv_organization_id}" fetchAll="true" model="fnd.FND2120.fnd_inv_organizations" rootPath="fnd2120_record"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd2120_location_define_link" url="${/request/@context_path}/modules/fnd/FND2120/fnd_2120_location_define.screen"/>
+        <script><![CDATA[
+            function fnd2120_gridEditorFunction(record, name) {
+                if (name == 'warehouse_code') {
+                    if (record.isNew) {
+                        return 'fnd2120_warehouse_code_tf';
+                    }
+                }
+                return '';
+            }
+            
+            function fnd2120_back() {
+                $('fnd2120_inv_warehouse_define_window').close();
+            }
+            
+            function fnd2120_locationDefine(value, record, name) {
+                if (record.isNew) {
+                    return '${l:INV_WAREHOUSES.INV_LOCATION_DEFINE}';
+                } else {
+                    var warehouseId = record.get('warehouse_id');
+                    if (record.get('warehouse_id')) {
+                        return '<a href="javascript:fnd2120_openLocationDefine(' + warehouseId + ')">${l:INV_WAREHOUSES.INV_LOCATION_DEFINE}</a>';
+                    }
+                }
+            }
+            
+            function fnd2120_openLocationDefine(warehouseId) {
+                new Aurora.Window({
+                    id: 'fnd2120_inv_location_window',
+                    url: /*fnd_3010_location_define.screen*/
+                    $('fnd2120_location_define_link').getUrl() + '?warehouse_id=' + warehouseId,
+                    title: '${l:INV_WAREHOUSES.INV_LOCATION_DEFINE}',
+                    fullScreen: true
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2120_organization_ds">
+                <a:datas dataSource="/model/fnd2120_record"/>
+                <a:fields>
+                    <a:field name="inv_organization_code" readOnly="true"/>
+                    <a:field name="inv_organization_name" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd2120_warehouse_query_ds">
+                <a:fields>
+                    <a:field name="inv_organization_id" defaultValue="${/parameter/@inv_organization_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd2120_warehouse_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="fnd.FND3010.fnd_warehouses" queryDataSet="fnd2120_warehouse_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="location_id"/>
+                    <a:field name="warehouse_id"/>
+                    <a:field name="warehouse_code" required="true"/>
+                    <a:field name="description_id"/>
+                    <a:field name="warehouse_name" required="true"/>
+                    <a:field name="inv_organization_id" defaultValue="${/parameter/@inv_organization_id}"/>
+                    <a:field name="location_define"/>
+                    <a:field name="data_source"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="fnd2120_warehouse_grid" style="margin-left:20px;" type="add" width="100"/>
+            <a:gridButton bind="fnd2120_warehouse_grid" type="save" width="100"/>
+            <a:gridButton bind="fnd2120_warehouse_grid" type="clear" width="100"/>
+            <a:toolbarButton click="fnd2120_back" text="PROMPT.RETURN" width="100"/>
+        </a:screenTopToolbar>
+        <a:hBox labelWidth="100">
+            <a:textField name="inv_organization_code" bindTarget="fnd2120_organization_ds" prompt="INV_ORGANIZATIONS.INV_ORGANIZATION_CODE"/>
+            <a:textField name="inv_organization_name" bindTarget="fnd2120_organization_ds" prompt="INV_ORGANIZATIONS.INV_ORGANIZATION_NAME"/>
+        </a:hBox>
+        <a:grid id="fnd2120_warehouse_grid" bindTarget="fnd2120_warehouse_result_ds" marginHeight="60" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="warehouse_code" editorFunction="fnd2120_gridEditorFunction" prompt="INV_WAREHOUSES.WAREHOUSE_CODE" width="300"/>
+                <a:column name="warehouse_name" editor="fnd2120_warehouse_name_tf" prompt="INV_WAREHOUSES.WAREHOUSE_NAME" width="360"/>
+                <a:column name="location_define" align="center" prompt="INV_WAREHOUSES.LOCATION_DEFINE" renderer="fnd2120_locationDefine" width="60"/>
+                <a:column name="enabled_flag" align="center" editor="fnd2120_warehouse_enabled_flag_ckb" prompt="INV_ORGANIZATIONS.ENABLED_FLAG" width="60"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="fnd2120_warehouse_code_tf" typeCase="upper"/>
+                <a:textField id="fnd2120_warehouse_name_tf"/>
+                <a:checkBox id="fnd2120_warehouse_enabled_flag_ckb"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

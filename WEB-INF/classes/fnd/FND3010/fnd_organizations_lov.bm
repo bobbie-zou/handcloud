@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-1-14 下午05:26:42  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="INV_ORGANIZATIONS" defaultOrderBy="inv_organization_code">
+    <bm:fields>
+        <bm:field name="inv_organization_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="INV_ORGANIZATION_ID" prompt="INV_ORGANIZATIONS.INV_ORGANIZATION_ID"/>
+        <bm:field name="inv_organization_code" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="200" fordisplay="true" forquery="true" physicalName="INV_ORGANIZATION_CODE" prompt="INV_ORGANIZATIONS.INV_ORGANIZATION_CODE"/>
+        <bm:field name="inv_organization_name" displayWidth="260" expression="(select fd.description_text from fnd_descriptions fd where fd.description_id=t1.description_id and fd.language=${/session/@lang})" fordisplay="true" forquery="true" prompt="INV_ORGANIZATIONS.DESCRIPTION"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="INV_ORGANIZATIONS.ENABLED_FLAG"/>
+        <bm:field name="organization_code_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="business_unit_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="business_unit_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="business_group" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        i.inv_organization_id,
+                        i.inv_organization_code,
+                        i.description inv_organization_name,
+                        (i.inv_organization_code
+                        || '-'
+                        || i.description) organization_code_name,
+                        i.enabled_flag,
+                        i.factory_calendar_id,
+                        i.negative_stock_allowed,
+                        i.allocation_rule,
+                        i.inv_price_control_method,
+                        i.summary_posting_flag,
+                        i.address,
+                        i.count_doc_numbering_rules,
+                        i.pcs_transaction_type,
+                        i.pcl_transaction_type,
+                        i.goods_issue_slip_rule_code,
+                        i.business_unit_id,
+                        (SELECT
+                            f.business_unit_name
+                        FROM
+                            fnd_business_units_vl f
+                        WHERE
+                            f.business_unit_id=i.business_unit_id
+                        ) business_unit_name,
+                        i.business_group,
+                        i.data_source
+                    FROM
+                        inv_organizations_vl i
+                    ) t1 #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="t1.enabled_flag=&apos;Y&apos;"/>
+        <bm:data-filter expression="t1.business_group = ${/session/@business_group}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="inv_organization_code" queryExpression="t1.inv_organization_code like &apos;%&apos;||${@inv_organization_code}||&apos;%&apos;"/>
+        <bm:query-field name="inv_organization_name" queryExpression="t1.inv_organization_name like &apos;%&apos;||${@inv_organization_name}||&apos;%&apos;"/>
+        <bm:query-field name="organization_code_name" queryExpression="(t1.inv_organization_code like &apos;%&apos;||${@organization_code_name}||&apos;%&apos; or (select fd.description_text from fnd_descriptions fd where fd.description_id=t1.description_id and fd.language=${/session/@lang}) like &apos;%&apos;||${@organization_code_name}||&apos;%&apos;)"/>
+    </bm:query-fields>
+</bm:model>

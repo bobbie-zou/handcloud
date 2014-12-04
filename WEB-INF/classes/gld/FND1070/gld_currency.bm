@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duxiaofu4653 $
+    $Date: 2013/01/29 06:13:54 $
+    $Revision: 1.2 $
+    $Purpose: 对应gld_currency表的bm
+-->
+<ns1:model xmlns:ns2="aurora.database.local.oracle" xmlns:ns1="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="gc" baseTable="GLD_CURRENCY" defaultorderby="currency_code">
+    <ns1:fields>
+        <ns1:field name="currency_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="CURRENCY_CODE" prompt="GLD_CURRENCY.CURRENCY_CODE"/>
+        <ns1:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="GLD_CURRENCY.ENABLED_FLAG"/>
+        <ns1:field name="currency_name_id" databaseType="NUMBER" datatype="java.lang.Long" multiLanguage="true" multiLanguageDescField="currency_name"/>
+        <ns1:field name="currency_name" databaseType="VARCHAR" datatype="java.lang.String" forDisplay="true" forInsert="false" forQuery="true" forUpdate="false" prompt="GLD_CURRENCY.CURRENCY_NAME"/>
+        <ns1:field name="country_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COUNTRY_CODE" prompt="FND_COUNTRY_CODE.COUNTRY_CODE"/>
+        <ns1:field name="precision" databaseType="NUMBER" datatype="java.lang.Double" physicalName="PRECISION" prompt="GLD_CURRENCY.PRECISION"/>
+        <ns1:field name="transaction_precision" databaseType="NUMBER" datatype="java.lang.Double" physicalName="TRANSACTION_PRECISION" prompt="GLD_CURRENCY.TRANSACTION_PRECISION"/>
+        <ns1:field name="currency_symbol" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CURRENCY_SYMBOL" prompt="GLD_CURRENCY.CURRENCY_SYMBOL"/>
+    </ns1:fields>
+    <ns1:operations>
+        <ns1:operation name="query">
+            <ns1:query-sql><![CDATA[
+        		SELECT
+        		    gc.CURRENCY_CODE,
+        		    gc.ENABLED_FLAG,
+        		    gc.currency_name_id,
+        		    (SELECT
+        		        DESCRIPTION_TEXT
+        		    FROM
+        		        fnd_descriptions
+        		    WHERE
+        		        DESCRIPTION_ID=gc.currency_name_id AND
+        		        Language      =${/session/@lang}
+        		    ) AS currency_name,
+        		    gc.COUNTRY_CODE,
+        		    gc.PRECISION,
+        		    gc.TRANSACTION_PRECISION,
+        		    gc.CURRENCY_SYMBOL
+        		    --,
+        		    --fc.description_id
+        		FROM
+        		    GLD_CURRENCY gc
+        		LEFT OUTER JOIN fnd_country_code_vl fc
+        		ON
+        		    gc.COUNTRY_CODE = fc.country_code
+        		
+        		#WHERE_CLAUSE#
+        		ORDER BY
+        		    currency_code 
+    		]]></ns1:query-sql>
+        </ns1:operation>
+        <ns1:operation name="insert">
+            <ns1:update-sql><![CDATA[
+    		begin
+    		gld_currency_pkg.insert_gld_currency(
+    				p_currency_code         =>${@currency_code},
+    				p_currency_name         =>${@currency_name},
+    				p_enabled_flag          =>${@enabled_flag},
+    				p_country_code          =>${@country_code},
+    				p_precision             =>${@precision},
+    				p_transaction_precision =>${@transaction_precision},
+    				p_currency_symbol       =>${@currency_symbol},
+    				p_created_by            =>${/session/@user_id},
+    				p_language_code         =>${/session/@lang}
+  					);
+  			end;
+    		]]></ns1:update-sql>
+        </ns1:operation>
+        <ns1:operation name="update">
+            <ns1:update-sql><![CDATA[
+    		begin
+    		gld_currency_pkg.update_gld_currency(
+    				p_currency_code         =>${@currency_code},
+    				p_currency_name         =>${@currency_name},
+    				p_enabled_flag          =>${@enabled_flag},
+    				p_country_code          =>${@country_code},
+    				p_precision             =>${@precision},
+    				p_transaction_precision =>${@transaction_precision},
+    				p_currency_symbol       =>${@currency_symbol},
+    				p_created_by            =>${/session/@user_id},
+    				p_language_code         =>${/session/@lang}
+  					);
+  			end;
+    		]]></ns1:update-sql>
+        </ns1:operation>
+    </ns1:operations>
+    <ns1:query-fields>
+        <ns1:query-field name="currency_code" queryExpression="currency_code like &apos;%&apos;||${@currency_code}||&apos;%&apos;"/>
+        <ns1:query-field field="currency_name" queryExpression="exists (select 1 from fnd_descriptions fd where gc.currency_name_id=fd.description_id and fd.description_text like &apos;%&apos;||${@currency_name}||&apos;%&apos; and fd.language = ${/session/@lang})"/>
+        <ns1:query-field name="country_name" queryExpression="exists (select 1 from fnd_descriptions fd where fc.description_id=fd.description_id and fd.description_text like &apos;%&apos;||${@country_name}||&apos;%&apos; and fd.language = ${/session/@lang})"/>
+    </ns1:query-fields>
+</ns1:model>

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-9-12 下午3:26:49  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t.*,
+                    TRUNC((t.total_liabilities * 100 / DECODE(t.total_assets, 0, NULL, t.total_assets)), 2) asset_liability_ratio,
+                    TRUNC((t.current_assets * 100 / DECODE(t.current_liabilities, 0, NULL, t.current_liabilities)), 2) current_ratio,
+                    TRUNC((t.net_profit * 100 * 2 / DECODE((t.total_liabilities +
+                    (SELECT
+                        t1.total_liabilities
+                    FROM
+                        (SELECT
+                            f.*,
+                            rownum rn
+                        FROM
+                            pur_vendor_finance f
+                        WHERE
+                            f.vendor_id = ${@vendor_id}
+                        ORDER BY
+                            f.year_period DESC
+                        ) t1
+                    WHERE
+                        t1.rn = t.rn + 1
+                    )), 0, NULL, (t.total_liabilities +
+                    (SELECT
+                        t1.total_liabilities
+                    FROM
+                        (SELECT
+                            f.*,
+                            rownum rn
+                        FROM
+                            pur_vendor_finance f
+                        WHERE
+                            f.vendor_id = ${@vendor_id}
+                        ORDER BY
+                            f.year_period DESC
+                        ) t1
+                    WHERE
+                        t1.rn = t.rn + 1
+                    )))), 2) total_asset_earning_ratio,
+                    TRUNC((t.net_profit * 100 * 2 / DECODE(((t.total_assets - t.total_liabilities) +
+                    (SELECT
+                        (t1.total_assets - t1.total_liabilities)
+                    FROM
+                        (SELECT
+                            f.*,
+                            rownum rn
+                        FROM
+                            pur_vendor_finance f
+                        WHERE
+                            f.vendor_id = ${@vendor_id}
+                        ORDER BY
+                            f.year_period DESC
+                        ) t1
+                    WHERE
+                        t1.rn = t.rn + 1
+                    )), 0, NULL, ((t.total_assets - t.total_liabilities) +
+                    (SELECT
+                        (t1.total_assets - t1.total_liabilities)
+                    FROM
+                        (SELECT
+                            f.*,
+                            rownum rn
+                        FROM
+                            pur_vendor_finance f
+                        WHERE
+                            f.vendor_id = ${@vendor_id}
+                        ORDER BY
+                            f.year_period DESC
+                        ) t1
+                    WHERE
+                        t1.rn = t.rn + 1
+                    )))), 2) net_asset_earning_ratio
+                FROM
+                    (SELECT
+                        f.*,
+                        rownum rn
+                    FROM
+                        pur_vendor_finance f
+                    WHERE
+                        f.vendor_id = ${@vendor_id}
+                    ORDER BY
+                        f.year_period DESC
+                    ) t #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="vendor_finance_id" input="false" output="true"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+        		begin
+        			pur_sys_vendor_pkg.insert_vendor_finance(
+        						  x_vendor_finance_id => ${@vendor_finance_id},
+                                  p_vendor_id         => ${@vendor_id},
+                                  p_year_period       => ${@year_period},
+                                  p_total_asset       => ${@total_asset},
+                                  p_flow_asset        => ${@flow_asset},
+                                  p_after_tax_profit  => ${@after_tax_profit},
+                                  p_turnover          => ${@turnover},
+                                  p_total_debt        => ${@total_debt},
+                                  p_user_id           => ${/session/@user_id});
+        		end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        		begin
+        			pur_sys_vendor_pkg.modify_vendor_finance(
+        						  p_vendor_finance_id => ${@vendor_finance_id},
+                                  p_total_asset       => ${@total_asset},
+                                  p_flow_asset        => ${@flow_asset},
+                                  p_after_tax_profit  => ${@after_tax_profit},
+                                  p_turnover          => ${@turnover},
+                                  p_total_debt        => ${@total_debt},
+                                  p_user_id           => ${/session/@user_id});
+        		end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <!-- <bm:data-filters>
+        <bm:data-filter expression="rownum&lt;=3"/>
+    </bm:data-filters> -->
+</bm:model>

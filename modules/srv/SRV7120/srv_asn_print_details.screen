@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: likun  
+    $Date: 2011-7-6 下午02:41:49  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc" trace="true">
+    <a:init-procedure>
+        <p:set field="/model/srv_print_headers" setToNull="true"/>
+        <p:set field="/model/srv_print_lines" setToNull="true"/>
+        <a:model-query autoCount="true" model="srv.SRV7120.srv_asn_print_headers" rootpath="srv_print_headers"/>
+        <a:model-query autoCount="true" fetchAll="true" model="srv.SRV7120.srv_asn_print_lines" rootpath="srv_print_lines"/>
+    </a:init-procedure>
+    <a:view package="aurora.ui.std" template="default">
+        <style><![CDATA[ 
+			.STYLE1 {
+				font-family: "宋体";
+				font-weight: bold;
+				font-size: 24px;
+			}
+			.STYLE2 {
+				font-family: "宋体";
+				font-weight: bold;
+				font-size: 12px;
+			}
+			.STYLE3 {
+				font-family: "宋体";
+				font-size: 12px;
+			}
+			.STYLE5 {
+				font-family: "宋体";
+				font-weight: bold;
+				font-size: 16px;
+			}
+			.STYLE17 {font-family: "宋体"; font-size: 9; }
+			.STYLE18 {font-size: 9}
+			.STYLE20 {font-family: "宋体"; font-size: 12px; }
+	]]></style>
+        <script><![CDATA[
+            var record_num = 0;
+            var num=0;
+            var record_per_page = 5;
+            var pages = '${/model/srv_print_headers/record/@pages}';
+            var total_records = '${/model/srv_print_headers/record/@line_count}';
+            var need_new_page = false;
+            var need_new_report = false;
+            var cur_page = 1;
+            var new_page = 0;
+            
+            function printPageBreak() {
+                document.write('<div style="page-break-after: always;"></div>');
+            }
+            
+            
+            
+            function printReportHeader() {
+                
+                var html = '<table width="100%" border="0" cellspacing="0" cellpadding="0">'+
+                			'<tr>'+
+                				'<td width="25%"  height="25" align="left"   valign="middle" rowspan="2"  class="form-prompt-body" ><img width="150" height="50" src="../../../images/logo.jpg"></td>'+
+                				'<td  width="50%" align="center" class="STYLE5">&nbsp;</td>'+
+                				'<td width="10%"  height="25" align="right" >&nbsp;</td>'+
+                				'<td width="15%"  height="25" align="right" >&nbsp;</td>'+
+                			'</tr>'+
+                			'<tr>'+
+                				'<td  width="50%" align="center"  class="STYLE5">送&nbsp;&nbsp;货&nbsp;&nbsp;单</td>'+
+                				'<td width="10%"  height="25" align="right" class="STYLE3"> 打印日期:</td>'+
+                				'<td width="15%"  height="25" align="left" class="STYLE3">${/model/srv_print_headers/record/@print_date}</td>'+
+                			'</tr>'+
+                		'</table>'+
+						'<br/>'+
+						'<table width="100%" border="0" cellspacing="0" cellpadding="0">'+
+							'<tr height="30">'+
+								'<td align="right" width="13%" class="STYLE3">送货单号：</td><td align="left" class="STYLE3" width="17%">${/model/srv_print_headers/record/@asn_number}</td>'+
+								'<td align="right" width="13%" class="STYLE3">收货组织 ：</td><td align="left" class="STYLE3" width="17%">${/model/srv_print_headers/record/@ship_to_organization_name}</td>'+
+								'<td align="right" width="10%" class="STYLE3">收货地点：</td><td align="left" class="STYLE3" width="30%">${/model/srv_print_headers/record/@location_name}</td>'+
+							'</tr>'+
+							'<tr height="30">'+
+								'<td align="right" class="STYLE3" width="13%">公司：</td><td align="left" class="STYLE3" width="17%">${/model/srv_print_headers/record/@company_name}</td>'+
+								'<td align="right" class="STYLE3" width="13%">送货日期：</td><td align="left" class="STYLE3" width="17%">${/model/srv_print_headers/record/@ship_date}</td>'+
+								'<td align="right" class="STYLE3" width="10%">预计接收日期：</td><td align="left" class="STYLE3" width="30%">${/model/srv_print_headers/record/@expected_date}</td>'+
+							'</tr>'+
+							'<tr height="30">'+
+								'<td align="right" class="STYLE3" width="13%">供应商：</td><td align="left" class="STYLE3" width="17%">${/model/srv_print_headers/record/@vendor_name}</td>'+
+								'<td align="right" class="STYLE3" width="13%">供应商地点：</td><td align="left" class="STYLE3" width="57%" colspan="5">${/model/srv_print_headers/record/@vendor_site_name}</td>'+
+							'</tr>'+
+							
+							'<tr>'+
+								'<td align="right" class="STYLE3" width="13%">备注：</td><td align="left" width="87%" class="STYLE3" colspan="5">${/model/srv_print_headers/record/@header_desc}</td>'+
+							'</tr>'+
+						'</table>';
+            	
+            	document.write(html);
+            	
+            }
+            
+            function printTableHeader() {
+                var html='<table style="border-collapse: collapse;" width="100%" border="1" cellpadding="0" cellspacing="0" bordercolor="#000000">'+
+					  '<tr>'+
+					    '<td class="STYLE2" width="7%"><div align="center">订单号</div></td>'+
+					    '<td class="STYLE2" width="5%"><div align="center">行号</div></td>'+
+					    '<td class="STYLE2" width="5%"><div align="center">发运行</div></td>'+
+					    '<td class="STYLE2" width="8%"><div align="center">需求日期</div></td>'+
+					    '<td class="STYLE2" width="10%"><div align="center">物料编码</div></td>'+
+					    '<td class="STYLE2" width="18%"><div align="center">物料描述</div></td>'+
+					    '<td class="STYLE2" width="6%"><div align="center">单位</div></td>'+
+					    '<td class="STYLE2" width="7%"><div align="center">数量</div></td>'+
+					    '<td class="STYLE2" width="7%"><div align="center">件数</div></td>'+
+					    '<td class="STYLE2" width="7%"><div align="center">实收数量</div></td>'+
+					    '<td class="STYLE2" width="6%"><div align="center">检验结果</div></td>'+
+					    '<td class="STYLE2" width="14%"><div align="center">备注</div></td>'+
+					  '</tr>';
+  				document.write(html);
+            }
+            
+             function printTableFooter(){
+                var html = '<table width="100%" border="0" cellspacing="0" cellpadding="0">'+
+                			'<tr height="30">'+
+                				'<td colspan="1" width="10%"><div align="center" class="STYLE_3">送货人：</div></td>'+
+                				'<td colspan="3" width="20%"></td>'+
+                				'<td colspan="1" width="10%"><div align="center" class="STYLE_3">收货人：</div></td>'+
+                				'<td colspan="2" width="20%"></td>'+
+                				'<td colspan="1" width="10%"><div align="center" class="STYLE_3">接收记账：</div></td>'+
+                				'<td colspan="4" width="30%"></td>'+
+                			'</tr>'+
+                			'<tr height="30">'+
+                				'<td colspan="1" width="10%"><div align="center" class="STYLE_3">检验员：</div></td>'+
+                				'<td colspan="3" width="20%"></td>'+
+                				'<td colspan="1" width="10%"><div align="center" class="STYLE_3">仓管员：</div></td>'+
+                				'<td colspan="2" width="20%"></td>'+
+                				'<td colspan="1" width="10%"><div align="center" class="STYLE_3">入库记账：</div></td>'+
+                				'<td colspan="4" width="30%"></td>'+
+                			'</tr>'+
+                		'</table>';
+                		
+            	
+            	document.write(html);
+            	
+            	 var html = '<table width="100%" border="0" cellspacing="0" cellpadding="0">'+
+                			'<tr height="30">'+
+                				'<td width="90%"  class="STYLE3"><div align="left" >①存根白色；②记账 红色；③财务 蓝色；④品管 绿色；⑤供应商回单 黄色</div></td>'+
+                				'<td width="10%"  class="STYLE3"><div align="right">共'+pages+'页&nbsp;&nbsp;第'+cur_page+'页</div></td>'+
+                			'</tr>'+
+                		'</table>';
+                		
+            	
+            	document.write(html);
+            	
+            	
+            }
+            
+            function newRecord() {
+                
+                if (record_num == record_per_page) {
+                    need_new_page = true;
+                    record_num = 0;
+                }
+            
+                if (need_new_page) {
+                    document.write("</table>");
+                    printTableFooter();
+                    printPageBreak();
+                    
+                    cur_page = cur_page + 1;
+                    
+                    printReportHeader();
+                    printTableHeader();
+                    need_new_page = false;
+                 
+                    
+                }
+                new_page = new_page + 1;
+                record_num++;
+                
+            }
+        ]]></script>
+        <body style="margin-left:1;">
+            <script><![CDATA[
+
+                printReportHeader();
+                printTableHeader();
+              
+            ]]></script>
+            <a:repeater datamodel="/model/srv_print_lines">
+                <script><![CDATA[
+
+                    newRecord();
+                ]]></script>
+                <tr height="20">
+                    <td align="center" class="STYLE3"><![CDATA[${@segment1}]]></td>
+                    <td align="center" class="STYLE3"><![CDATA[${@line_num}]]></td>
+                    <td align="center" class="STYLE3"><![CDATA[${@shipment_num}]]></td>
+                    <td align="center" class="STYLE3"><![CDATA[${@need_by_date}]]></td>
+                    <td align="center" class="STYLE3"><![CDATA[${@item_code}]]></td>
+                    <td align="center" class="STYLE3"><![CDATA[${@item_name}]]></td>
+                    <td align="center" class="STYLE3"><![CDATA[${@unit_meas_lookup_code}]]></td>
+                    <td align="right" class="STYLE3"><![CDATA[${@ship_quantity}]]></td>
+                    <td align="right" class="STYLE3"/>
+                    <td align="right" class="STYLE3"/>
+                    <td align="right" class="STYLE3"/>
+                    <td align="left" class="STYLE3"><![CDATA[${@line_desc}]]></td>
+                </tr>
+            </a:repeater>
+            <script><![CDATA[
+                 document.write("</table>");
+				 printTableFooter();
+				 printPageBreak();
+				 
+			]]></script>
+        </body>
+    </a:view>
+</a:screen>

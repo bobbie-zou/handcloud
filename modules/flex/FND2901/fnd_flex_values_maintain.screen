@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-2-25 上午9:47:38  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" model="flex.FND2901.fnd_flex_value_sets" rootPath="fnd29011_flex_value_sets"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+    	
+    	function fnd_29011_edited_check(){
+    	    var sys_flag = $('fnd29011_flex_value_sets_ds').getCurrentRecord().get('sys_flag');
+    	    if(sys_flag=='Y'){
+    	        return false;
+    	    }
+    	    return true;
+    	}
+    	
+    	function fnd29011_flex_value_edited(record,name){
+        	if(record.isNew&&fnd_29011_edited_check()){
+            	return 'fnd29011_flex_value_code_tf';
+            }
+            return '';
+        }
+        
+        function fnd29011_parent_flex_value_desc_edited(record,name){
+            var parent_flex_value_set_id = $('fnd29011_flex_value_sets_ds').getCurrentRecord().get('parent_flex_value_set_id');
+        	if(fnd_29011_edited_check()&&!Aurora.isEmpty(parent_flex_value_set_id)){
+        	    record.getMeta().getField('parent_flex_value_desc').setRequired(true);
+            	return 'fnd2901_parent_flex_value_desc_lov';
+            }
+            record.getMeta().getField('parent_flex_value_desc').setRequired(false);
+            return '';
+        }	
+        
+        function fnd29011_flex_value_desc_edited(record,name){
+        	if(fnd_29011_edited_check()){
+            	return 'fnd29011_flex_value_desc_tf';
+            }
+            return '';
+        }	
+        
+        function fnd29011_enabled_flag_edited(record,name){
+        	if(fnd_29011_edited_check()){
+            	return 'fnd29011_enabled_flag_tf';
+            }
+            return '';
+        }	
+    
+    	
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd29011_flex_value_sets_ds">
+                <a:datas dataSource="/model/fnd29011_flex_value_sets"/>
+            </a:dataSet>
+            <a:dataSet id="fnd29011_flex_values_result_ds" autoPageSize="true" autoQuery="true" fetchAll="false" model="flex.FND2901.fnd_flex_values" queryUrl="${/request/@context_path}/autocrud/flex.FND2901.fnd_flex_values/query?flex_value_set_id=${/parameter/@flex_value_set_id}" selectable="true">
+                <a:fields>
+                    <a:field name="flex_value_id"/>
+                    <a:field name="flex_value_set_id" defaultValue="${/parameter/@flex_value_set_id}"/>
+                    <a:field name="flex_value"/>
+                    <a:field name="flex_value_desc"/>
+                    <a:field name="parent_flex_value_id"/>
+                    <!-- <a:field name="parent_flex_value_desc" autoComplete="true" autoCompleteField="flex_desc" lovservice = "${/request/@context_path}/modules/flex/fnd_flex_value_set_lov_query.svc?flex_value_set_id=${/model/fnd29011_flex_value_sets/record/@parent_flex_value_set_id}"  lovGridHeight="300" lovHeight="430" lovUrl="${/request/@context_path}/modules/flex/fnd_flex_value_set_lov.screen?flex_value_set_id=${/model/fnd29011_flex_value_sets/record/@parent_flex_value_set_id}" lovWidth="600" title="父值集"> -->
+                    <a:field name="parent_flex_value_desc" lovGridHeight="300" lovHeight="430" lovUrl="${/request/@context_path}/modules/flex/fnd_flex_value_set_lov.screen?flex_value_set_id=${/model/fnd29011_flex_value_sets/record/@parent_flex_value_set_id}" lovWidth="600" title="父值集">
+                        <a:mapping>
+                            <a:map from="flex_value_id" to="parent_flex_value_id"/>
+                            <a:map from="flex_desc" to="parent_flex_value_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="sys_flag" defaultValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton id="fnd29011_addbtn" bind="fnd29011_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="fnd29011_grid" type="save" width="100"/>
+                <a:gridButton bind="fnd29011_grid" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox padding="0">
+                <a:textField name="flex_value_set_desc" bindTarget="fnd29011_flex_value_sets_ds" prompt="值集" readOnly="true"/>
+                <a:textField name="flex_value_set_type_desc" bindTarget="fnd29011_flex_value_sets_ds" prompt="值集类型" readOnly="true"/>
+                <a:textField name="value_source_desc" bindTarget="fnd29011_flex_value_sets_ds" prompt="值来源" readOnly="true"/>
+                <a:textField name="parent_flex_value_set_desc" bindTarget="fnd29011_flex_value_sets_ds" prompt="父值集" readOnly="true"/>
+            </a:hBox>
+            <a:hBox padding="0">
+                <a:textField name="format_category_desc" bindTarget="fnd29011_flex_value_sets_ds" prompt="数据格式类型" readOnly="true"/>
+                <a:textField name="display_example" bindTarget="fnd29011_flex_value_sets_ds" prompt="数据格式示例" readOnly="true"/>
+                <a:textField name="sys_flag_desc" bindTarget="fnd29011_flex_value_sets_ds" prompt="值集来源" readOnly="true"/>
+            </a:hBox>
+            <a:grid id="fnd29011_grid" bindTarget="fnd29011_flex_values_result_ds" marginHeight="120" marginWidth="40" navBar="true">
+                <a:columns>
+                    <a:column name="flex_value" align="center" editorFunction="fnd29011_flex_value_edited" prompt="值集值" sortable="true" width="80"/>
+                    <a:column name="parent_flex_value_desc" align="center" editorFunction="fnd29011_parent_flex_value_desc_edited" prompt="父值" width="150"/>
+                    <a:column name="flex_value_desc" align="center" editorFunction="fnd29011_flex_value_desc_edited" prompt="值描述" width="150"/>
+                    <a:column name="enabled_flag" align="center" editorFunction="fnd29011_enabled_flag_edited" prompt="启用"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd29011_flex_value_code_tf" typeCase="upper"/>
+                    <a:textField id="fnd29011_flex_value_desc_tf"/>
+                    <a:checkBox id="fnd29011_enabled_flag_tf" checkedValue="Y" uncheckedValue="N"/>
+                    <a:lov id="fnd2901_parent_flex_value_desc_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

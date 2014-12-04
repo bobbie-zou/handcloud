@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-4-21 下午3:14:00  
+    $Revision: 1.0  
+    $Purpose: CLIENT用户级权限分配，查询BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="user_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="user_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="user_description" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="authority_hds_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="user_name_description" queryExpression="v.user_name like &apos;%&apos;||trim(UPPER(${@user_name_description}))||&apos;%&apos; or v.user_description like &apos;%&apos;||trim(${@user_name_description})||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.user_id,
+                    v.user_name,
+                    v.user_description,
+                    v.enabled_flag,
+                    v.authority_hds_id
+                FROM
+                    (SELECT
+                        su.user_id,
+                        su.user_name,
+                        su.description AS user_description,
+                        ah.enabled_flag,
+                        ah.authority_hds_id
+                    FROM
+                        fnd_user_authority_hds ah,
+                        sys_user su
+                    WHERE
+                        su.user_id = ah.user_id(+) AND
+                        su.client  = ${/session/@client}
+                    ) v 
+                   #WHERE_CLAUSE# 
+                   #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  fnd_user_authority_pkg.save_user_authority
+				  	(
+				  		p_authority_hds_id 	=> ${@authority_hds_id},
+				  		p_user_id 			=> ${@user_id},
+				  		p_enabled_flag  	=> ${@enabled_flag},
+				  		p_session_user_id   => ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  fnd_user_authority_pkg.enable_query_user_authority
+				  	(
+				  		p_user_name_description	=> ${@user_name_description},
+				  		p_session_user_id   	=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

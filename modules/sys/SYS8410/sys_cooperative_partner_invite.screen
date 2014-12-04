@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-4 下午3:33:04  
+    $Revision: 1.0  
+    $Purpose: 合作邀约申请
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <a:link id="sys8410_coopPartnerInviteComment_link" url="${/request/@context_path}/modules/sys/SYS8410/sys_cooperative_partner_invite_comment.screen"/>
+        <script><![CDATA[
+            //查询条件update
+            
+            
+            function sys8410_coopPartnerInvite_query_updateFun(ds, record, name, value, oldvalue) {
+                if (name == 'registered_country_code') {
+                    if (Ext.isEmpty(record.get('registered_country_code')) || record.get('registered_country_code') == undefined) {
+                        record.set('registered_province_id', '');
+                        record.set('registered_province_desc', '');
+                        record.getField("registered_province_desc").setReadOnly(true);
+                        record.getField("registered_province_desc").setLovPara('country_code', -1);
+            
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc');
+                        record.getField("registered_city_desc").setReadOnly(true);
+                        record.getField("registered_city_desc").setLovPara('province_id', -1);
+                    } else {
+                        record.getField("registered_province_desc").setReadOnly(false);
+                        record.getField("registered_province_desc").setLovPara('country_code', record.get('registered_country_code'));
+                    }
+                } else if (name == 'registered_province_id') {
+                    if (Ext.isEmpty(record.get('registered_province_id')) || record.get('registered_province_id') == undefined) {
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc', '');
+                        record.getField("registered_city_desc").setReadOnly(true);
+                        record.getField("registered_city_desc").setLovPara('province_id', -1);
+                    } else {
+                        record.getField("registered_city_desc").setReadOnly(false);
+                        record.getField("registered_city_desc").setLovPara('province_id', record.get('registered_province_id'));
+                    }
+                }
+            }
+            
+            //查询
+            function sys8410_coopPartnerInvite_queryFun(){
+                $('sys8410_coopPartnerInvite_resultDs').query();
+            }
+            
+            //邀请
+            function sys8410_coopPartnerInvite_renderer(value, record, name){
+                if(record.get('already_flag') == 'N'){
+                    return '<a href="javascript:sys8410_coopPartnerInvite_open(\'' + record.get('partner_type') +'\','+record.get('partner_id')+',\''+record.get('partner_code')+'\')">' + '${l:SYS_COOPERATIVE_PARTNERS.INVITE}' + '</a>';
+                }else{
+                    return '${l:SYS_COOPERATIVE_PARTNERS.ALREADY_INVITED}';
+                }
+            }
+            
+            function sys8410_coopPartnerInvite_open(partner_type,partner_id,partner_code){
+                if(Ext.isEmpty(partner_id)){
+                    partner_id = '';
+                }
+                
+                if(Ext.isEmpty(partner_code)){
+                    partner_code = '';
+                }
+                
+                new Aurora.Window({
+                    url: $('sys8410_coopPartnerInviteComment_link').getUrl() + '?partner_type=' + partner_type+'&partner_id='+partner_id+'&partner_code='+partner_code,
+                    id: 'sys8410_coopPartnerInviteComment_window',
+                    title: '${l:SYS_COOPERATIVE_PARTNERS.INVITE_COMMENT}',
+                    width: 400,
+                    height: 200
+                });
+            }
+            //关闭
+            function sys8410_inviteReqCloseFun(){
+                $('sys8410_coopPartnerInvite_window').close();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys8410_coopPartnerInvite_queryDs" model="sys.SYS8410.sys_cooperative_partner_invite">
+                <a:fields>
+                    <a:field name="partner_code" prompt="SYS_COOPERATIVE_PARTNERS.PARTNER_CODE"/>
+                    <a:field name="partner_name" prompt="SYS_COOPERATIVE_PARTNERS.PARTNER_NAME"/>
+                    <a:field name="business_license_number" prompt="PUR_VENDORS.BUSINESS_LICENSE_NUMBER"/>
+                    <a:field name="national_organization_code" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE"/>
+                    <a:field name="registered_country_code"/>
+                    <a:field name="registered_country_name" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="public.fnd_country_lov" lovWidth="500" title="SYS_VENDOR_COUNTRY_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="country_code" to="registered_country_code"/>
+                            <a:map from="country_name" to="registered_country_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="registered_province_id"/>
+                    <a:field name="registered_province_desc" autoComplete="true" autoCompleteField="province_name" lovHeight="500" lovService="pur.public.fnd_region_province_by_country_lov?country_code=-1" lovWidth="500" readOnly="true" title="PUR_VENDORS.REGISTERED_PROVINCE_ID">
+                        <a:mapping>
+                            <a:map from="province_id" to="registered_province_id"/>
+                            <a:map from="province_name" to="registered_province_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="registered_city_id"/>
+                    <a:field name="registered_city_desc" autoComplete="true" autoCompleteField="city_name" lovHeight="500" lovService="pur.public.fnd_region_city_by_province_lov?province_id=-1" lovWidth="500" readOnly="true" title="PUR_VENDORS.REGISTERED_CITY_ID">
+                        <a:mapping>
+                            <a:map from="city_id" to="registered_city_id"/>
+                            <a:map from="city_name" to="registered_city_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <!-- <a:field name="already_flag" checkedValue="Y" defaultValue="N" prompt="SYS_COOPERATIVE_PARTNERS.ALREADY_INVITED" uncheckedValue="N"/> -->
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="sys8410_coopPartnerInvite_query_updateFun"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys8410_coopPartnerInvite_resultDs" autoCount="true" model="sys.SYS8410.sys_cooperative_partner_invite" queryDataSet="sys8410_coopPartnerInvite_queryDs"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="sys8410_inviteReqCloseFun" text="PROMPT.CLOSE" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="sys8410_coopPartnerInvite_queryDs" resultTarget="sys8410_coopPartnerInvite_resultDs" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="partner_code" bindTarget="sys8410_coopPartnerInvite_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="sys8410_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="partner_name" bindTarget="sys8410_coopPartnerInvite_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="sys8410_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="business_license_number" bindTarget="sys8410_coopPartnerInvite_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="sys8410_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="national_organization_code" bindTarget="sys8410_coopPartnerInvite_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="sys8410_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:lov name="registered_country_name" bindTarget="sys8410_coopPartnerInvite_queryDs" prompt="PUR_VENDORS.REGISTERED_COUNTRY_CODE">
+                            <a:events>
+                                <a:event name="enterdown" handler="sys8410_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="registered_province_desc" bindTarget="sys8410_coopPartnerInvite_queryDs" prompt="PUR_VENDORS.REGISTERED_PROVINCE_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="sys8410_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="registered_city_desc" bindTarget="sys8410_coopPartnerInvite_queryDs" prompt="PUR_VENDORS.REGISTERED_CITY_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="sys8410_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="sys8410_coopPartnerInvite_grid" bindTarget="sys8410_coopPartnerInvite_resultDs" height="350" navBar="true" width="900">
+                <a:columns>
+                    <a:column name="invite" align="center" prompt="SYS_COOPERATIVE_PARTNERS.INVITE" renderer="sys8410_coopPartnerInvite_renderer" width="80"/>
+                    <a:column name="partner_code" align="center" prompt="SYS_COOPERATIVE_PARTNERS.PARTNER_CODE" renderer="sys8410_partnerView_rendererFun" sortable="true" width="120"/>
+                    <a:column name="partner_name" align="center" prompt="SYS_COOPERATIVE_PARTNERS.PARTNER_NAME" sortable="true" width="170"/>
+                    <a:column name="national_organization_code" align="center" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE" sortable="true" width="100"/>
+                    <a:column name="business_license_number" align="center" prompt="PUR_VENDORS.BUSINESS_LICENSE_NUMBER" sortable="true" width="100"/>
+                    <a:column name="registered_country_name" align="center" prompt="PUR_VENDORS.REGISTERED_COUNTRY_CODE" sortable="true" width="90"/>
+                    <a:column name="registered_province_desc" align="center" prompt="PUR_VENDORS.REGISTERED_PROVINCE_ID" sortable="true" width="90"/>
+                    <a:column name="registered_city_desc" align="center" prompt="PUR_VENDORS.REGISTERED_CITY_ID" sortable="true" width="90"/>
+                </a:columns>
+                <a:editors/>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

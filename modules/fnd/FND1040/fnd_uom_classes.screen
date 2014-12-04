@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-1-9 下午04:48:13  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure><![CDATA[
+    ]]></a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            //验证计量单位类别表字段的有效性
+            
+            function fnd1040_uomClassValidator(record, name, value) {
+                if (name == 'class_code') {
+                    //验证类别编码的长度不能超过30
+                    if (fnd1040_getLength(value) >= 30) {
+                        return '${l:FND1040.UOM_CLASS_CODE_OVERLENGTH}';
+                    }
+                } else if (name == 'class_name') {
+                    //验证类别描述的长度不能超过1000
+                    if (fnd1040_getLength(value) >= 1000) {
+                        return '${l:FND1040.UOM_CLASS_NAME_OVERLENGTH}';
+                    }
+                }
+                return true;
+            }
+            
+            //返回字符串真实长度
+            
+            function fnd1040_getLength(str) {
+                var realLength = 0,
+                    len = 0,
+                    charCode = -1;
+                if (!Aurora.isEmpty(str)) {
+                    len = str.length;
+                }
+                for (var i = 0;i < len;i++) {
+                    charCode = str.charCodeAt(i);
+                    if (charCode >= 0 && charCode <= 128) {
+                        realLength += 1;
+                    } else {
+                        realLength += 3;
+                    }
+                }
+                return realLength;
+            }
+            
+            function fnd1040_class_code_onQuery(ds) {
+                //触发查询事件时，锁住按钮
+                $('fnd1040_class_code_grid_addButton').disable();
+                $('fnd1040_class_code_grid_saveButton').disable();
+                $('fnd1040_class_code_grid_clearButton').disable();
+            }
+            
+            function fnd1040_class_code_onLoad(ds) {
+                //触发加载数据事件时，解锁按钮
+                $('fnd1040_class_code_grid_addButton').enable();
+                $('fnd1040_class_code_grid_saveButton').enable();
+                $('fnd1040_class_code_grid_clearButton').enable();
+            }
+            
+            function fnd1040_class_code_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+            }
+            
+            function fnd_1040_class_code_ef(record, name) {
+                if (record.isNew) {
+                    return 'fnd_1040_uppercase_tf';
+                } else {
+                    return '';
+                }
+            }
+            
+            function fnd_1040_primary_uom_code_lov(record, name) {
+                if (record.isNew) {
+                    return '';
+                } else {
+                    var value = record.get("class_code");
+                    record.getField('primary_uom_code').setLovPara('class_code', value);
+                    record.getField('primary_uom_code').setLovPara('primary_flag', 'Y');
+                    record.getField('primary_uom_code').setLovPara('enabled_flag', 'Y');
+                    return 'fnd_1040_lov';
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd_1040_uom_classed_query_ds"/>
+            <a:dataSet id="fnd_1040_uom_classed_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="fnd.FND1040.fnd_uom_classes" queryDataSet="fnd_1040_uom_classed_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="class_code" required="true" validator="fnd1040_uomClassValidator"/>
+                    <a:field name="description_id"/>
+                    <a:field name="class_name" required="true" validator="fnd1040_uomClassValidator"/>
+                    <a:field name="primary_uom_name_id"/>
+                    <a:field name="primary_uom_code" autoComplete="true" autoCompleteField="primary_uom_name" lovHeight="490" lovLabelWidth="200" lovService="fnd.FND1041.fnd_uom_codes" lovWidth="520" title="FND_UOM_CLASSES.PRIMARY_UOM_CODE">
+                        <a:mapping>
+                            <a:map from="uom_code" to="primary_uom_code"/>
+                            <a:map from="description_id" to="primary_uom_name_id"/>
+                            <a:map from="uom_name" to="primary_uom_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="primary_uom_name"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd1040_class_code_onLoad"/>
+                    <a:event name="query" handler="fnd1040_class_code_onQuery"/>
+                    <a:event name="submitsuccess" handler="fnd1040_class_code_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton id="fnd1040_class_code_grid_addButton" bind="fnd_1040_uom_class_codes_grid" className="item-rbtn-blue button-add" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton id="fnd1040_class_code_grid_saveButton" bind="fnd_1040_uom_class_codes_grid" className="item-rbtn-blue button-save" style="margin-left:20px;" type="save" width="100"/>
+                <a:gridButton id="fnd1040_class_code_grid_clearButton" bind="fnd_1040_uom_class_codes_grid" className="item-rbtn-blue button-clear" style="margin-left:20px;" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="fnd_1040_query_form" bindTarget="fnd_1040_uom_classed_query_ds" defaultQueryField="class_code_name" defaultQueryHint="FND1040.UOM_CLASS_QUERY_HINT" resultTarget="fnd_1040_uom_classed_result_ds" style="width:100%;border:none"/>
+            <a:grid id="fnd_1040_uom_class_codes_grid" bindTarget="fnd_1040_uom_classed_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="class_code" align="left" editorFunction="fnd_1040_class_code_ef" prompt="FND_UOM_CLASSES.CLASS_CODE" sortable="true" width="100"/>
+                    <a:column name="class_name" align="left" editor="fnd_1040_tf" prompt="FND_UOM_CLASSES.CLASS_NAME" sortable="true" width="100"/>
+                    <a:column name="primary_uom_code" align="left" editorFunction="fnd_1040_primary_uom_code_lov" prompt="FND_UOM_CLASSES.PRIMARY_UOM_CODE" sortable="true" width="100"/>
+                    <a:column name="primary_uom_name" align="left" prompt="FND_UOM_CLASSES.PRIMARY_UOM_NAME" sortable="true" width="100"/>
+                    <a:column name="enabled_flag" align="center" editor="fnd_1040_chb" prompt="FND_UOM_CLASSES.ENABLED_FLAG" width="35"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="fnd_1040_chb"/>
+                    <a:textField id="fnd_1040_tf"/>
+                    <a:textField id="fnd_1040_uppercase_tf"/>
+                    <a:lov id="fnd_1040_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

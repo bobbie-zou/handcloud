@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-8-31 下午1:20:40  
+    $Revision: 1.0  
+    $Purpose: 平台账户管理，维护账户信息页面-管理员
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+            function sys8210_closeUserCreateWindow() {
+                $('sys8210_user_edit_window').close();
+            }
+            
+            function sys8210_saveUser() {
+                if ($('sys8210_user_edit_ds').validate()) {
+                    $('sys8210_user_edit_ds').submit();
+                }
+            }
+            
+            function sys8210_onCheckBoxChange(checkbox, newValue, oldValue) {
+                var record = $('sys8210_user_edit_ds').getCurrentRecord();
+                if (newValue == 'Y') {
+                    record.getField('description').setReadOnly(true);
+                    record.getField('start_date').setReadOnly(true);
+                    record.getField('end_date').setReadOnly(true);
+                } else {
+                    record.getField('description').setReadOnly(false);
+                    record.getField('start_date').setReadOnly(false);
+                    record.getField('end_date').setReadOnly(false);
+                }
+            }
+            
+            function sys8210_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function sys8210_userEditdsValidator(record, name, value) {
+                if (name == 'description') {
+                    if (sys8210_getLength(value) >= 240) {
+                        return '${l:SYS8210.USER_DESCRIPTION_OVERLENGTH}';
+                    }
+                    return true;
+                }
+            
+                if (name == 'start_date' || name == 'end_date') {
+                    var start_date = record.get('start_date');
+                    var end_date = record.get('end_date');
+                    if (typeof(end_date) != 'undefined' && !Ext.isEmpty(end_date)) {
+                        if (!sys8210_compareDate(start_date, end_date)) {
+                            return '${l:START_GREATER_THAN_END}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function sys8210_userEditDsUpdate(ds, record, name, value) {
+                if (name == 'start_date' || name == 'end_date') {
+                    record.validate((name == 'start_date') ? 'end_date' : 'start_date');
+                }
+            }
+            
+            function sys8210_userEditDsSubmitSuccess(dataset, res) {
+                Aurora.showMessage('${l:EXP_REP_PARTIALLY_SUBMITTED}', '${l:USER_INFORMATION_MODIFY_SUCCESS}', function() {
+                    sys8210_closeUserCreateWindow();
+                });
+            }
+            
+            function sys8210_userEditDsLoad(ds) {
+                var record = ds.getCurrentRecord();
+                if (record.get('frozen_flag') == 'Y') {
+                    record.getField('description').setReadOnly(true);
+                    record.getField('start_date').setReadOnly(true);
+                    record.getField('end_date').setReadOnly(true);
+                } else {
+                    record.getField('description').setReadOnly(false);
+                    record.getField('start_date').setReadOnly(false);
+                    record.getField('end_date').setReadOnly(false);
+                }
+            }
+            
+            function sys8210_getLength(str) {
+                var realLength = 0,
+                    len = str.length,
+                    charCode = -1;
+                for (var i = 0;i < len;i++) {
+                    charCode = str.charCodeAt(i);
+                    if (charCode >= 0 && charCode <= 128) {
+                        realLength += 1;
+                    } else {
+                        realLength += 3;
+                    }
+                }
+                return realLength;
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys8210_user_edit_ds" loadData="true" model="sys.SYS8210.sys_user_all_platform" queryUrl="${/request/@context_path}/autocrud/sys.SYS8210.sys_user_all_platform/query?user_id=${/parameter/@user_id}">
+                <a:fields>
+                    <a:field name="user_name" readOnly="true"/>
+                    <a:field name="business_group_name" readOnly="true"/>
+                    <a:field name="start_date" required="true" requiredMessage="${l:SYS8210.START_DATE_NOT_NULL}" validator="sys8210_userEditdsValidator"/>
+                    <a:field name="end_date" validator="sys8210_userEditdsValidator"/>
+                    <a:field name="description" required="true" requiredMessage="${l:SYS8210.DESCRIPTION_NOT_NULL}" validator="sys8210_userEditdsValidator"/>
+                    <a:field name="frozen_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="bg_admin_flag" checkedValue="Y" readOnly="true" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="sys8210_userEditDsLoad"/>
+                    <a:event name="update" handler="sys8210_userEditDsUpdate"/>
+                    <a:event name="submitsuccess" handler="sys8210_userEditDsSubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton id="sys8210_saveUser_btn" click="sys8210_saveUser" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="sys8210_closeUserCreateWindow" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+            </a:screenTopToolbar>
+            <a:vBox>
+                <a:hBox height="20">
+                    <a:label name="user_name" bindTarget="sys8210_user_edit_ds" prompt="SYS_USER.ACCOUNT"/>
+                </a:hBox>
+                <a:hBox height="20">
+                    <a:textField name="description" bindTarget="sys8210_user_edit_ds" prompt="SYS_USER.DESCRIPTION"/>
+                </a:hBox>
+                <a:hBox height="20">
+                    <a:label name="business_group_name" bindTarget="sys8210_user_edit_ds" prompt="SYS_USER.BUSINESS_GROUP_NAME"/>
+                </a:hBox>
+                <a:hBox height="20">
+                    <a:checkBox name="bg_admin_flag" bindTarget="sys8210_user_edit_ds" prompt="SYS_USER.BG_ADMIN_FLAG"/>
+                </a:hBox>
+                <a:hBox height="20">
+                    <a:datePicker name="start_date" bindTarget="sys8210_user_edit_ds" prompt="SYS_USER.START_DATE"/>
+                </a:hBox>
+                <a:hBox height="20">
+                    <a:datePicker name="end_date" bindTarget="sys8210_user_edit_ds" prompt="SYS_USER.END_DATE"/>
+                </a:hBox>
+                <a:hBox height="20">
+                    <a:checkBox name="frozen_flag" bindTarget="sys8210_user_edit_ds" prompt="SYS_USER.FROZEN_FLAG">
+                        <a:events>
+                            <a:event name="change" handler="sys8210_onCheckBoxChange"/>
+                        </a:events>
+                    </a:checkBox>
+                </a:hBox>
+            </a:vBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

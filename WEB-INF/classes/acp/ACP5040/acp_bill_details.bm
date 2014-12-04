@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-2-19 下午04:50:10  
+    $Revision: 1.0  
+    $Purpose: 非寄销开票单明细事务查询
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="h.bill_number asc,l.bill_line_num asc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    d.detail_id,
+                    h.bill_number,
+                    l.bill_line_num,
+                    d.segment1,
+                    d.line_num,
+                    d.shipment_num,
+                    l.item_code,
+                    l.item_name,
+                    l.unit_meas_lookup_code,
+                    h.currency_code,
+                    d.quantity,
+                    d.quantity - d.billed_quantity AS bill_quantity,
+                    d.unit_price,
+                    d.quantity * d.unit_price AS line_amount,
+                    d.billed_quantity,
+                    d.quantity - d.billed_quantity AS transaction_quantity,
+                    d.unit_price AS transaction_price,
+                    (d.quantity - d.billed_quantity) * d.unit_price AS bill_amount,
+                    h.company_name,
+                    d.organization_name,
+                    h.vendor_site_code,
+                    h.vendor_site_name,
+                    d.distribution_num,
+                    d.erp_transaction_id,
+                    TO_CHAR(d.transaction_date, 'yyyy-mm-dd hh24:mi:ss') AS transaction_date,
+                    TO_CHAR(l.request_date, 'yyyy-mm-dd hh24:mi:ss') AS request_date,
+                    d.data_source,
+                    d.receipt_num
+                FROM
+                    acp_bill_headers h,
+                    acp_bill_lines l,
+                    acp_bill_details d #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                    acp_web_invoice_pkg.delete_temp(p_vendor_id => ${/session/@vendor_id},
+                                                    p_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                  acp_web_invoice_pkg.insert_line_temp(p_detail_id => ${@detail_id},
+				                                       p_quantity => ${@transaction_quantity},
+				                                       p_unit_price => ${@transaction_price},
+				                                       p_tax_id => ${@tax_id},
+				                                       p_vendor_id => ${/session/@vendor_id},
+				                                       p_user_id => ${/session/@user_id},
+				                                       p_role_id => ${/session/@role_id},
+				                                       p_session_id =>  ${/session/@session_id});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                  acp_web_invoice_pkg.insert_header_temp(p_vendor_id => ${/session/@vendor_id},
+				                                         p_user_id => ${/session/@user_id},
+				                                         p_role_id => ${/session/@role_id},
+				                                         p_session_id => ${/session/@session_id});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="h.header_id = l.header_id"/>
+        <bm:data-filter expression="l.line_id = d.line_id"/>
+        <bm:data-filter expression="h.status = &apos;CONFIRMED&apos;"/>
+        <bm:data-filter expression="d.invoice_flag = &apos;Y&apos;"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="header_id" queryExpression="h.header_id = ${@bill_header_id}"/>
+        <bm:query-field name="line_id" queryExpression="l.line_id = ${@bill_line_id}"/>
+        <bm:query-field name="bill_number_from" queryExpression="h.bill_number&gt;= ${@bill_number_from}"/>
+        <bm:query-field name="bill_number_to" queryExpression="h.bill_number &lt;= ${@bill_number_to}"/>
+        <bm:query-field name="po_header_num_from" queryExpression="d.segment1 &gt;= ${@po_header_num_from}"/>
+        <bm:query-field name="po_header_num_to" queryExpression="d.segment1 &lt;= ${@po_header_num_to}"/>
+    </bm:query-fields>
+</bm:model>

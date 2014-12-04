@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-10-14 下午6:54:36  
+    $Revision: 1.0  
+    $Purpose: 业务通知单发布管理，维护页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="fnd.FND9500.get_attachment_pkvalue_id" rootPath="attachment_pkvalue"/>
+        <a:model-query defaultWhereClause="v.flex_value_set_code = &apos;FND_NOTIFICATION_TYPE&apos;" fetchAll="true" model="public.fnd_flex_value_v_lov" rootPath="notification_type_list"/>
+        <a:model-query defaultWhereClause="v.notification_id = ${/parameter/@notification_id}" model="fnd.FND9500.fnd_business_notification" rootPath="notification_info"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd9500_attachment_file_upload_link" url="${/request/@context_path}/attachment_file_upload.screen"/>
+        <a:link id="fnd9500_attachment_file_download_link" url="${/request/@context_path}/atm_download.svc"/>
+        <a:link id="fnd9500_fnd_business_notification_save_link" url="${/request/@context_path}/modules/fnd/FND9500/fnd_business_notification_save.svc"/>
+        <a:link id="fnd9500_fnd_business_notification_release_link" model="fnd.FND9500.fnd_business_notification" modelaction="execute"/>
+        <a:link id="fnd9500_fnd_business_notification_select_vendor_link" url="${/request/@context_path}/modules/fnd/FND9500/fnd_business_notification_select_vendor.screen"/>
+        <a:link id="fnd_business_notification_receive_delete_link" model="fnd.FND9500.fnd_business_notification_receive" modelaction="batch_update"/>
+        <a:link id="fnd9500_fnd_business_notification_select_group_link" url="${/request/@context_path}/modules/fnd/FND9500/fnd_business_notification_select_group.screen"/>
+        <div/>
+        <script><![CDATA[
+            var notification_id = '${/parameter/@notification_id}';
+            
+            function fnd9500_init() {
+                if (!Aurora.isEmpty(notification_id)) {
+                    var release_flag = '${/model/notification_info/record/@release_flag}';
+                    var record = $('fnd9500_fnd_business_notification_maintain_ds').getCurrentRecord();
+                    record.getField('business_unit_name').setReadOnly(false);
+                    record.getField('business_unit_name').setLovPara('company_id', record.get('owner_company_id'));
+                    record.getField('owner_company_name').setReadOnly(true);
+                    $('fnd9500_fnd_notification_attachment_maintain_ds').setQueryParameter('table_name', 'FND_BUSINESS_NOTIFICATION');
+                    $('fnd9500_fnd_notification_attachment_maintain_ds').setQueryParameter('pk_value', notification_id);
+                    $('fnd9500_fnd_notification_attachment_maintain_ds').query();
+                    $('fnd9500_fnd_notification_receive_vendor_ds').setQueryParameter('notification_id', notification_id);
+                    $('fnd9500_fnd_notification_receive_vendor_ds').query();
+                    if (release_flag == 'Y') {
+                        record.getField('business_unit_name').setReadOnly(true);
+                        record.getField('notification_type_display').setReadOnly(true);
+                        record.getField('notification_title').setReadOnly(true);
+                        record.getField('notification_content').setReadOnly(true);
+                        $('fnd9500_attachmentManage_btn').disable();
+                        $('fnd9500_saveBusinessNotification_btn').disable();
+                        $('fnd9500_releaseBusinessNotification_btn').disable();
+                        $('fnd9500_fndNotificationSelectVendor_btn').disable();
+                        $('fnd9500_fndNotificationSelectGroup_btn').disable();
+                        $('fnd9500_fndNotificationClearReceiveVendor_btn').disable();
+                    }
+                } else {
+                    $('fnd9500_releaseBusinessNotification_btn').disable();
+                }
+            }
+            
+            function fnd9500_saveBusinessNotification(release_flag) {
+            
+                if ($('fnd9500_fnd_business_notification_maintain_ds').validate()) {
+            
+                    var record = $('fnd9500_fnd_business_notification_maintain_ds').getCurrentRecord();
+            
+                    var datas = {
+                        notification_id: record.get('notification_id'),
+                        notification_title: record.get('notification_title'),
+                        notification_type: record.get('notification_type'),
+                        notification_content: record.get('notification_content'),
+                        owner_company_id: record.get('owner_company_id'),
+                        business_unit_id: record.get('business_unit_id'),
+                        coop_company_id: record.get('coop_company_id'),
+                        old_pkvalue_id: '${/model/attachment_pkvalue/record/@attachment_pkvalue_id}',
+                        '_status': 'update'
+                    };
+            
+                    var receive_vendor = [];
+                    var receive_vendor_records = $('fnd9500_fnd_notification_receive_vendor_ds').getAll();
+                    for (var i = 0;i < receive_vendor_records.length;i++) {
+                        receive_vendor_records[i].set('notification_id', record.get('notification_id'));
+                        receive_vendor.push(receive_vendor_records[i].data);
+                    }
+            
+                    datas['receive_vendor'] = receive_vendor;
+            
+            		Aurora.Masker.mask(Ext.getBody());
+                    $('fnd9500_saveBusinessNotification_btn').disable();
+                    Aurora.request({
+                        url: $('fnd9500_fnd_business_notification_save_link').getUrl(),
+                        para: datas,
+                        success: function(res) {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            $('fnd9500_saveBusinessNotification_btn').enable();
+                            if(release_flag == 'Y'){
+                                fnd9500_releaseBusinessNotificationDo();
+                            }else{
+	                            Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SAVE_SUCCESS}', function() {
+	                                notification_id = res.result.notification_id;
+	                                $('fnd9500_fnd_business_notification_maintain_ds').setQueryParameter('notification_id',notification_id);
+	                                $('fnd9500_fnd_business_notification_maintain_ds').query();
+	                                $('fnd9500_saveBusinessNotification_btn').enable();
+	                                $('fnd9500_releaseBusinessNotification_btn').enable();
+	                            });
+                            }
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            $('fnd9500_saveBusinessNotification_btn').enable();
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            $('fnd9500_saveBusinessNotification_btn').enable();
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function fnd9500_backNotification() {
+                $('fnd9500_fnd_business_notification_maintain_link_window').close();
+            }
+            
+            function fnd9500_attachmentManage() {
+                var pkvalue = '';
+                if (!Aurora.isEmpty(notification_id)) {
+                    pkvalue = notification_id;
+                } else {
+                    pkvalue = '${/model/attachment_pkvalue/record/@attachment_pkvalue_id}';
+                }
+                new Aurora.Window({
+                    id: 'fnd9500_attachment_file_upload_link_window',
+                    title: '${l:HAP_UPLOAD_TITLE}',
+                    url: $('fnd9500_attachment_file_upload_link').getUrl() + '?pkvalue=' + pkvalue + '&table_name=FND_BUSINESS_NOTIFICATION',
+                    width: 500,
+                    height: 500
+                }).on('close', function() { //关闭附件上传页面，执行的方法，刷新附件信息grid
+                    $('fnd9500_fnd_notification_attachment_maintain_ds').setQueryParameter('table_name', 'FND_BUSINESS_NOTIFICATION');
+                    $('fnd9500_fnd_notification_attachment_maintain_ds').setQueryParameter('pk_value', pkvalue);
+                    $('fnd9500_fnd_notification_attachment_maintain_ds').query();
+                });
+            }
+            
+            function fnd9500_fndNotificationAttachmentMaintainDsGridRenderer(value, record, name) {
+                var attachment_id = record.get('attachment_id'); //附件ID
+                if (name == "file_name") {
+                    if (attachment_id) {
+                        return '<a href="' + $('fnd9500_attachment_file_download_link').getUrl() + '?attachment_id=' + attachment_id + '">' + value + '</a>';
+                    }
+                }
+            }
+            
+            function fnd9500_releaseBusinessNotification() {
+                $('fnd9500_releaseBusinessNotification_btn').disable();
+                fnd9500_saveBusinessNotification('Y');
+            }
+            
+            function fnd9500_releaseBusinessNotificationDo() {
+                if ($('fnd9500_fnd_business_notification_maintain_ds').validate()) {
+                    var receive_vendors = $('fnd9500_fnd_notification_receive_vendor_ds').getAll();
+                    if(receive_vendors.length < 1){
+                        Aurora.showMessage('${l:PROMPT}','需要先选择供应商!');
+                        return false;
+                    }
+                    Aurora.showConfirm('${l:PROMPT}', '发布后不可修改，确定发布业务通知单吗？', function() {
+                        Aurora.Masker.mask(Ext.getBody());
+                        Aurora.request({
+                            url: $('fnd9500_fnd_business_notification_release_link').getUrl(),
+                            para: {
+                                notification_id: notification_id
+                            },
+                            success: function(res) {
+                                Aurora.Masker.unmask(Ext.getBody());
+                                $('fnd9500_releaseBusinessNotification_btn').enable();
+                                Aurora.showMessage('${l:PROMPT}', '发布成功!', function() {
+                                    fnd9500_backNotification();
+                                });
+                            },
+                            failure: function() {
+                                Aurora.Masker.unmask(Ext.getBody());
+	                            $('fnd9500_releaseBusinessNotification_btn').enable();
+	                        },
+	                        error: function() {
+	                            Aurora.Masker.unmask(Ext.getBody());
+	                            $('fnd9500_releaseBusinessNotification_btn').enable();
+	                        },
+                            scope: this
+                        });
+                    },function(){
+                        $('fnd9500_releaseBusinessNotification_btn').enable();
+                    });
+                }
+            }
+            
+            function fnd9500_fndNotificationSelectVendor() {
+                var record = $('fnd9500_fnd_business_notification_maintain_ds').getCurrentRecord();
+                if (Aurora.isEmpty(record.get('owner_company_id'))) {
+                    Aurora.showMessage('${l:PROMPT}', '请先选择公司!');
+                    return false;
+                }
+                new Aurora.Window({
+                    id: 'fnd9500_fnd_business_notification_select_vendor_link_window',
+                    url: $('fnd9500_fnd_business_notification_select_vendor_link').getUrl() + '?company_id=' + record.get('owner_company_id'),
+                    title: '选定供应商',
+                    height: 580,
+                    width: 1000
+                });
+            }
+            
+            function fnd9500_fndNotificationClearReceiveVendor() {
+                if (Aurora.isEmpty(notification_id)) {
+                    $('fnd9500_fnd_notification_receive_vendor_ds_grid').clear();
+                } else {
+                    var records = $('fnd9500_fnd_notification_receive_vendor_ds').getSelected();
+                    if(records.length < 1){
+                        Aurora.showMessage('${l:PROMPT}','请选择需要移除的供应商!');
+                        return false;
+                    }
+                    var datas = [];
+                    for (var i = 0;i < records.length;i++) {
+                        records[i].set('_status', 'delete');
+                        datas.push(records[i].data);
+                    }
+                    Aurora.showConfirm('${l:PROMPT}', '清除后需要重新选取，确定清除供应商吗？', function() {
+                        Aurora.Masker.mask(Ext.getBody());
+                        $('fnd9500_fndNotificationClearReceiveVendor_btn').disable();
+                        Aurora.request({
+                            url: $('fnd_business_notification_receive_delete_link').getUrl(),
+                            para: datas,
+                            success: function(res) {
+                                Aurora.Masker.unmask(Ext.getBody());
+                                $('fnd9500_fndNotificationClearReceiveVendor_btn').enable();
+                                $('fnd9500_fnd_notification_receive_vendor_ds').setQueryParameter('notification_id', notification_id);
+                                $('fnd9500_fnd_notification_receive_vendor_ds').query();
+                            },
+                            failure: function(res) {
+		                        Aurora.Masker.unmask(Ext.getBody());
+		                        $('fnd9500_fndNotificationClearReceiveVendor_btn').enable();
+		                    },
+		                    error: function(res) {
+		                        Aurora.Masker.unmask(Ext.getBody());
+		                        $('fnd9500_fndNotificationClearReceiveVendor_btn').enable();
+		                    },
+                            scope: this
+                        });
+                    });
+                }
+            }
+            
+            function fnd9500_fndBusinessNotificationMaintainDsUpdate(dataset, record, name, value, oldvalue) {
+                if (name == 'owner_company_id') {
+                    if (value) {
+                        record.getField('business_unit_name').setReadOnly(false);
+                        record.getField('business_unit_name').setLovPara('company_id', value);
+                    } else {
+                        record.getField('business_unit_name').setReadOnly(true);
+                        record.getField('business_unit_name').setLovPara('company_id', null);
+                    }
+                }
+            }
+            
+            function fnd9500_fndNotificationSelectGroup(){
+                var record = $('fnd9500_fnd_business_notification_maintain_ds').getCurrentRecord();
+                if (Aurora.isEmpty(record.get('owner_company_id'))) {
+                    Aurora.showMessage('${l:PROMPT}', '请先选择公司!');
+                    return false;
+                }
+                new Aurora.Window({
+                    id: 'fnd9500_fnd_business_notification_select_group_link_window',
+                    url: $('fnd9500_fnd_business_notification_select_group_link').getUrl() + '?company_id=' + record.get('owner_company_id'),
+                    title: '选定快捷组',
+                    height: 580,
+                    width: 1000
+                });
+            }
+            
+            function fnd9500_fndBusinessNotificationMaintainDsLoad(dataset){
+                if (!Aurora.isEmpty(notification_id)) {
+                    var record = dataset.getCurrentRecord();
+                    record.getField('business_unit_name').setReadOnly(false);
+                    record.getField('business_unit_name').setLovPara('company_id', record.get('owner_company_id'));
+                    record.getField('owner_company_name').setReadOnly(true);
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd9500_fnd_notification_type_list_ds">
+                <a:datas dataSource="/model/notification_type_list"/>
+            </a:dataSet>
+            <a:dataSet id="fnd9500_fnd_business_notification_maintain_ds" autoCreate="true" model="fnd.FND9500.fnd_business_notification">
+                <a:datas dataSource="/model/notification_info"/>
+                <a:fields>
+                    <a:field name="owner_company_name" autoComplete="true" autoCompleteField="company_full_name" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" required="true" requiredMessage="公司不能为空" title="FND_COMPANIES.QUERY">
+                        <a:mapping>
+                            <a:map from="company_id" to="owner_company_id"/>
+                            <a:map from="company_full_name" to="owner_company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="business_unit_name" autoComplete="true" autoCompleteField="business_unit_name" lovHeight="480" lovService="public.fnd_business_unit_lov" lovWidth="550" readOnly="true" required="true" requiredMessage="业务单元不能为空" title="业务单元">
+                        <a:mapping>
+                            <a:map from="business_unit_id" to="business_unit_id"/>
+                            <a:map from="business_unit_name" to="business_unit_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="notification_title" required="true" requiredMessage="通知单标题不能为空"/>
+                    <a:field name="notification_type_display" displayField="flex_desc" options="fnd9500_fnd_notification_type_list_ds" prompt="通知单类型" required="true" requiredMessage="通知单类型不能为空" returnField="notification_type" valueField="flex_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd9500_fndBusinessNotificationMaintainDsLoad"/>
+                    <a:event name="update" handler="fnd9500_fndBusinessNotificationMaintainDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd9500_fnd_notification_attachment_maintain_ds" fetchAll="true" model="public.fnd_attachment_file_mgr">
+                <a:fields>
+                    <a:field name="file_name" prompt="INV_SYS_ITEMS.ATTACHMENT_NAME"/>
+                    <a:field name="file_size" prompt="INV_SYS_ITEMS.ATTACHMENT_SIZE"/>
+                    <a:field name="upload_user" prompt="上传人"/>
+                    <a:field name="upload_date" prompt="上传时间"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd9500_fnd_notification_receive_vendor_ds" fetchAll="true" model="fnd.FND9500.fnd_business_notification_receive" selectable="true"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton id="fnd9500_saveBusinessNotification_btn" click="fnd9500_saveBusinessNotification" style="margin-left:20px;" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton id="fnd9500_releaseBusinessNotification_btn" click="fnd9500_releaseBusinessNotification" style="margin-left:20px;" text="发布" width="100"/>
+                <a:toolbarButton id="fnd9500_backNotification_btn" click="fnd9500_backNotification" style="margin-left:20px;" text="PROMPT.RETURN" width="100"/>
+                <a:lable style="margin-left:10px;color:#FF0000;"><![CDATA[注意：业务通知单保存后不可更改公司。]]></a:lable>
+            </a:screenTopToolbar>
+            <a:hBox>
+                <a:vBox>
+                    <a:hBox>
+                        <a:lov name="owner_company_name" bindTarget="fnd9500_fnd_business_notification_maintain_ds" prompt="公司" width="500"/>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:comboBox name="notification_type_display" bindTarget="fnd9500_fnd_business_notification_maintain_ds" prompt="类型"/>
+                        <a:lov name="business_unit_name" bindTarget="fnd9500_fnd_business_notification_maintain_ds" prompt="业务单元" width="268"/>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:textField name="notification_title" bindTarget="fnd9500_fnd_business_notification_maintain_ds" prompt="标题" width="500"/>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:textArea name="notification_content" bindTarget="fnd9500_fnd_business_notification_maintain_ds" height="185" prompt="内容" width="500"/>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:grid id="fnd9500_fnd_notification_attachment_maintain_ds_grid" autoappend="false" bindTarget="fnd9500_fnd_notification_attachment_maintain_ds" height="175" style="margin-left:75px;" width="500">
+                            <a:toolBar>
+                                <a:button id="fnd9500_attachmentManage_btn" click="fnd9500_attachmentManage" text="上传/删除"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="file_name" align="left" renderer="fnd9500_fndNotificationAttachmentMaintainDsGridRenderer" sortable="true" width="230"/>
+                                <a:column name="file_size" align="center" sortable="true" width="100"/>
+                                <a:column name="upload_user" align="center" sortable="true" width="70"/>
+                                <a:column name="upload_date" align="center" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:hBox>
+                </a:vBox>
+                <a:vBox>
+                    <a:hBox>
+                        <a:toolbarButton id="fnd9500_fndNotificationSelectVendor_btn" click="fnd9500_fndNotificationSelectVendor" style="margin-left:20px;" text="选择供应商" width="100"/>
+                        <a:toolbarButton id="fnd9500_fndNotificationSelectGroup_btn" click="fnd9500_fndNotificationSelectGroup" style="margin-left:20px;" text="选择快捷组" width="100"/>
+                        <a:toolbarButton id="fnd9500_fndNotificationClearReceiveVendor_btn" click="fnd9500_fndNotificationClearReceiveVendor" style="margin-left:20px;" text="移除供应商" width="100"/>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:grid id="fnd9500_fnd_notification_receive_vendor_ds_grid" autoappend="false" bindTarget="fnd9500_fnd_notification_receive_vendor_ds" height="420" width="365">
+                            <a:columns>
+                                <a:column name="vendor_code" align="left" prompt="供应商代码" sortable="true" width="80"/>
+                                <a:column name="vendor_name" align="left" prompt="供应商名称" sortable="true" width="250"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:hBox>
+                </a:vBox>
+            </a:hBox>
+        </a:screenBody>
+        <script><![CDATA[
+        	fnd9500_init();
+        ]]></script>
+    </a:view>
+</a:screen>

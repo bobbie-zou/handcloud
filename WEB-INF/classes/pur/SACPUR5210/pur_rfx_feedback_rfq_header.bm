@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-6-29 下午4:44:04  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        prfh.feedback_header_id,
+                        prfh.rfx_header_id,
+                        prfh.rfx_round,
+                        prfh.rfx_version,
+                        prfh.company_id,
+                        fc.company_code,
+                        fc.company_short_name AS company_desc,
+                        prfh.feedback_number,
+                        prfh.status,
+                        (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = prfh.status
+           and sc.code = 'PUR_RFX_FEEDBACK_STATUS') status_desc,
+                        prh.rfx_number,
+                        to_char(prh.feedback_start_time,'yyyy-mm-dd hh24:mi:ss') feedback_start_time,
+                        to_char(prh.feedback_end_time,'yyyy-mm-dd hh24:mi:ss') feedback_end_time,
+                        prfh.vendor_id,
+                        prfh.vendor_code,
+                        prfh.vendor_desc,
+                        prfh.vendor_site_id,
+                        prfh.vendor_address,
+                        prfh.vendor_contact_id,
+                        prfh.contact_person,
+                        prfh.contact_mobile,
+                        prfh.e_mail,
+                        prfh.currency_code,
+                        (SELECT
+                            gc.currency_name
+                        FROM
+                            gld_currency_vl gc
+                        WHERE
+                            gc.currency_code = prfh.currency_code
+                        ) currency_desc,
+                        prfh.exchange_rate,
+                        prfh.tax_included_flag,
+                        prfh.tax_type_id,
+                        prfh.tax_type_rate,
+                        (SELECT
+                            ttc.description
+                        FROM
+                            fnd_tax_type_codes_vl ttc
+                        WHERE
+                            ttc.tax_type_id = prfh.tax_type_id
+                        ) tax_type_desc,
+                        prfh.cancel_flag,
+                        prfh.comments
+                    FROM
+                        pur_rfx_feedback_headers prfh,
+                        pur_rfx_headers prh,
+                        fnd_companies_vl fc
+                    WHERE
+                        prfh.rfx_header_id = prh.rfx_header_id AND
+                        prfh.rfx_round     = prh.round AND
+                        prfh.rfx_version   = prh.version AND
+                        prfh.company_id    = fc.company_id(+) AND
+                        sysdate between prh.feedback_start_time and prh.feedback_end_time
+                    and prfh.status != 'FINISHED'
+                    ) #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="feedback_header_id" queryExpression="feedback_header_id = ${@feedback_header_id}"/>
+    </bm:query-fields>
+</bm:model>

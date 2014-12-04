@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:e="aurora.service.exception" xmlns:db="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="WFL_WORKFLOW" defaultOrderBy="workflow_type_id,workflow_code">
+    <bm:fields>
+        <bm:field name="workflow_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="WORKFLOW_ID" prompt="WFL_WORKFLOW.WORKFLOW_ID"/>
+        <bm:field name="workflow_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="WORKFLOW_CODE" prompt="工作流代码" queryWidth="80"/>
+        <bm:field name="workflow_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="WORKFLOW_DESC" prompt="工作流描述" queryWidth="130"/>
+        <bm:field name="workflow_type_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="WORKFLOW_TYPE_ID" prompt="WFL_WORKFLOW.WORKFLOW_TYPE_ID"/>
+        <bm:field name="workflow_type_code" datatype="java.lang.String" expression="(select wt.workflow_type_code from wfl_workflow_type wt where wt.workflow_type_id = t1.workflow_type_id)" forInsert="false" forUpdate="false"/>
+        <bm:field name="workflow_type_desc" datatype="java.lang.String" expression="(select wt.workflow_type_desc from wfl_workflow_type wt where wt.workflow_type_id = t1.workflow_type_id)" forInsert="false" forUpdate="false"/>
+        <bm:field name="sub_category" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="SUB_CATEGORY" prompt="WFL_WORKFLOW.SUB_CATEGORY"/>
+        <bm:field name="sub_category_desc" datatype="java.lang.String" expression="(select v.code_value_name from sys_code_values_vl v,sys_codes t where v.code_id = t.code_id and v.enabled_flag = &apos;Y&apos; and t.enabled_flag = &apos;Y&apos; and t.code = &apos;SUB_CATEGORY&apos; and v.code_value = t1.sub_category)" forInsert="false" forUpdate="false"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="WFL_WORKFLOW.ENABLED_FLAG"/>
+        <bm:field name="can_cancel" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CAN_CANCEL" prompt="是否可收回"/>
+        <bm:field name="enabled_flag_desc" datatype="java.lang.String" expression="(decode(t1.enabled_flag,&apos;Y&apos;,&apos;启用&apos;,&apos;不启用&apos;))" forInsert="false" forUpdate="false"/>
+        <bm:field name="service_id" databaseType="NUMBER" datatype="java.lang.String" expression="(select z.service_id service_id from wfl_workflow_service z ,wfl_document_services j where z.service_id=j.service_id and j.workflow_id=t1.workflow_id)" forInsert="false" forUpdate="false"/>
+        <bm:field name="document_service_id" databaseType="NUMBER" datatype="java.lang.String" expression="(select j.document_service_id document_service_id from  wfl_document_services j where j.workflow_id = t1.workflow_id)" forInsert="false" forUpdate="false"/>
+        <bm:field name="service_name" databaseType="VARCHAR2" datatype="java.lang.String" expression="(select z.service_name service_name from wfl_workflow_service z ,wfl_document_services j where z.service_id=j.service_id and j.workflow_id=t1.workflow_id)" forInsert="false" forUpdate="false"/>
+        <bm:field name="service_desc" databaseType="VARCHAR2" datatype="java.lang.String" expression="(select z.service_desc service_desc from wfl_workflow_service z ,wfl_document_services j where z.service_id=j.service_id and j.workflow_id=t1.workflow_id)" forInsert="false" forUpdate="false"/>
+    </bm:fields>
+    <bm:features>
+        <db:sequence-pk/>
+        <f:standard-who/>
+    </bm:features>
+    <!--   <bm:relations>
+        <bm:relation name="wb" jointype="INNER" refmodel="wfl.wfl_document_services">
+            <bm:reference foreignfield="workflow_id" localfield="workflow_id"/>
+        </bm:relation>
+    </bm:relations>
+    <bm:ref-fields>
+        <bm:ref-field name="service_id" relationname="wb" sourcefield="service_id"/>
+        <bm:ref-field name="service_desc"  relationname="wb"  sourcefield="service_desc"/>
+    </bm:ref-fields> -->
+    <bm:primary-key>
+        <bm:pk-field name="workflow_id"/>
+    </bm:primary-key>
+    <bm:query-fields>
+        <bm:query-field field="workflow_id" queryOperator="="/>
+        <bm:query-field field="workflow_code" queryExpression="workflow_code like &apos;%&apos; || ${@workflow_code} || &apos;%&apos;"/>
+        <bm:query-field field="workflow_type_id" queryOperator="="/>
+        <bm:query-field field="workflow_desc" queryExpression="workflow_desc like &apos;%&apos; || ${@workflow_desc} || &apos;%&apos;"/>
+        <bm:query-field field="sub_category" queryOperator="="/>
+        <bm:query-field field="enabled_flag" queryOperator="="/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+            begin
+				wfl_workflow_pkg.delete_wfl_workflow
+				(
+					p_workflow_id        	  => ${@workflow_id},					
+					p_user_id                 => ${/session/@user_id}
+				);
+			end;
+			]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+           declare
+           v_workflow_id number:=${@workflow_id}; 
+            begin
+				wfl_workflow_pkg.update_int_wfl_workflow
+				(p_workflow_id      => v_workflow_id,
+                 p_workflow_code    => ${@workflow_code},
+                 p_workflow_desc    => ${@workflow_desc},
+                 p_workflow_type_id => ${@workflow_type_id},
+                 p_sub_category     => ${@sub_category},
+                 p_enabled_flag     => ${@enabled_flag},
+                 p_can_cancel     => ${@can_cancel},
+                 p_user_id          => ${/session/@user_id});
+		
+				wfl_workflow_pkg.wfl_document_services
+				(
+					p_workflow_id  => v_workflow_id,
+                    p_service_id   => ${@service_id},
+                    p_service_name  => ${@service_name},	
+					p_user_id    => ${/session/@user_id}
+				);
+			end;
+			]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+		   begin
+		   		wfl_workflow_pkg.update_int_wfl_workflow
+				(p_workflow_id      => ${@workflow_id},
+                 p_workflow_code    => ${@workflow_code},
+                 p_workflow_desc    => ${@workflow_desc},
+                 p_workflow_type_id => ${@workflow_type_id},
+                 p_sub_category     => ${@sub_category},
+                 p_enabled_flag     => ${@enabled_flag},
+                 p_can_cancel     => ${@can_cancel},
+                 p_user_id          => ${/session/@user_id});
+		   
+				wfl_workflow_pkg.wfl_document_services
+				(
+					p_workflow_id  => ${@workflow_id},
+                    p_service_id   => ${@service_id},
+                    p_service_name  => ${@service_name},	
+					p_user_id    => ${/session/@user_id});
+			end;
+			]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <e:exception-descriptor-config>
+        <e:exception-descriptor exception="java.sql.SQLException" handleClass="aurora.database.SQLExceptionDescriptor">
+            <e:error-message code="1" message="工作流代码${@workflow_code}已经存在!"/>
+        </e:exception-descriptor>
+    </e:exception-descriptor-config>
+</bm:model>

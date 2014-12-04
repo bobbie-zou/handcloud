@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-10-14 下午6:54:36  
+    $Revision: 1.0  
+    $Purpose: 业务通知单发布管理，维护页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link/>
+        <div/>
+        <script><![CDATA[
+        	
+        	function fnd9500_backNotificationMaintain(){
+        	    $('fnd9500_fnd_business_notification_select_vendor_link_window').close();
+        	}
+        	
+        	function fnd9500_fndNotificationReceiveAddVendor(){
+        	    var select_ds = $('fnd9500_fnd_notification_select_vendor_ds');
+        	    var records = $('fnd9500_fnd_notification_receive_company_result_ds').getSelected();
+        	    for(var i=0;i<records.length;i++){
+        	        if (Aurora.isEmpty(records[i].get('coop_company_id'))) {
+	                	Aurora.showMessage('${l:PROMPT}','供应商[' + records[i].get('vendor_name') + ']没有企业平台代码!');
+	                	return false;
+	                }
+	                if (fnd9500_fndSelectVendorCheckVendorExists(records[i].get('vendor_id'))) {
+	                    select_ds.create({
+	                        'vendor_id': records[i].get('vendor_id'),
+	                        'vendor_code': records[i].get('vendor_code'),
+	                        'vendor_name': records[i].get('vendor_name'),
+	                        'coop_company_id': records[i].get('coop_company_id')
+	                    });
+	                }
+        	    }
+        	}
+        	
+        	function fnd9500_fndNotificationReceiveDeleteVendor(){
+        	    $('fnd9500_fnd_notification_select_vendor_ds_grid').clear();
+        	}
+        	
+        	function fnd9500_fndReceiveVendorCheckVendorExists(vendor_id) {
+                var select_records = $('fnd9500_fnd_notification_receive_vendor_ds').getAll();
+                for (var i = 0;i < select_records.length;i++) {
+                    if (!Aurora.isEmpty(vendor_id) && select_records[i].get('vendor_id') == vendor_id) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+        	function fnd9500_selectVendorOK(){
+        	    var receive_vendor_ds = $('fnd9500_fnd_notification_receive_vendor_ds'); //前一个页面的DS
+        	    var records = $('fnd9500_fnd_notification_select_vendor_ds').getAll();
+        	    if(records.length < 1){
+        	        return false;
+        	    }
+        	    for(var i=0;i<records.length;i++){
+        	        if (fnd9500_fndReceiveVendorCheckVendorExists(records[i].get('vendor_id'))) {
+		        	    receive_vendor_ds.create({
+	                        'vendor_id': records[i].get('vendor_id'),
+	                        'vendor_code': records[i].get('vendor_code'),
+	                        'vendor_name': records[i].get('vendor_name'),
+	                        'coop_company_id': records[i].get('coop_company_id')
+	                    });
+        	        }
+        	    }
+        	    fnd9500_backNotificationMaintain();
+        	}
+        	
+        	function fnd9500_fndSelectVendorCheckVendorExists(vendor_id) {
+                var select_records = $('fnd9500_fnd_notification_select_vendor_ds').getAll();
+                for (var i = 0;i < select_records.length;i++) {
+                    if (!Aurora.isEmpty(vendor_id) && select_records[i].get('vendor_id') == vendor_id) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        	
+        	function fnd9500_fndNotificationReceiveCompanyResultDsGridDblclick(grid, record, row, name){
+        	    var select_ds = $('fnd9500_fnd_notification_select_vendor_ds');
+                if (Aurora.isEmpty(record.get('coop_company_id'))) {
+                	Aurora.showMessage('${l:PROMPT}','该供应商没有企业平台代码!');
+                	return false;
+                }
+                if (fnd9500_fndSelectVendorCheckVendorExists(record.get('vendor_id'))) {
+                    select_ds.create({
+                        'vendor_id': record.get('vendor_id'),
+                        'vendor_code': record.get('vendor_code'),
+                        'vendor_name': record.get('vendor_name'),
+                        'coop_company_id': record.get('coop_company_id')
+                    });
+                }
+        	}
+        	
+        	function fnd9500_fndNotificationSelectVendorDsGridDblclick(grid, record, row, name){
+        	    $('fnd9500_fnd_notification_select_vendor_ds').remove(record);
+        	}
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd9500_fnd_notification_receive_company_query_ds">
+                <a:fields>
+                    <a:field name="vendor_code"/>
+                    <a:field name="vendor_name"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd9500_fnd_notification_receive_company_result_ds" autoCount="true" autoPageSize="true" autoQuery="false" model="fnd.FND9500.company_vendor_query" queryDataSet="fnd9500_fnd_notification_receive_company_query_ds" queryUrl="${/request/@context_path}/autocrud/fnd.FND9500.company_vendor_query/query?company_id=${/parameter/@company_id}" selectable="true"/>
+            <a:dataSet id="fnd9500_fnd_notification_select_vendor_ds" selectable="true">
+                <a:fields>
+                    <a:field name="vendor_id"/>
+                    <a:field name="vendor_code"/>
+                    <a:field name="vendor_name"/>
+                    <a:field name="coop_company_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:hBox>
+                <a:vBox>
+                    <a:queryForm id="fnd9500_fnd_business_notification_query_ds_form_id" bindTarget="fnd9500_fnd_notification_receive_company_query_ds" resultTarget="fnd9500_fnd_notification_receive_company_result_ds" style="width:100%;border:none">
+                        <a:formToolBar>
+                            <a:hBox labelWidth="110">
+                                <a:textField name="vendor_code" bindTarget="fnd9500_fnd_notification_receive_company_query_ds" prompt="供应商代码"/>
+                                <a:textField name="vendor_name" bindTarget="fnd9500_fnd_notification_receive_company_query_ds" prompt="供应商名称"/>
+                            </a:hBox>
+                        </a:formToolBar>
+                    </a:queryForm>
+                    <a:hBox>
+                        <a:grid id="fnd9500_fnd_notification_receive_company_result_ds_grid" autoappend="false" bindTarget="fnd9500_fnd_notification_receive_company_result_ds" height="460" navBar="true" width="610">
+                            <a:columns>
+                                <a:column name="vendor_code" align="left" prompt="供应商编码" sortable="true" width="90"/>
+                                <a:column name="vendor_name" align="left" prompt="供应商名称" sortable="true" width="250"/>
+                                <a:column name="external_system_name" align="left" prompt="数据来源" sortable="true" width="70"/>
+                                <a:column name="coop_company_code" align="left" prompt="企业平台代码" sortable="true" width="150"/>
+                            </a:columns>
+                            <a:events>
+                                <a:event name="dblclick" handler="fnd9500_fndNotificationReceiveCompanyResultDsGridDblclick"/>
+                            </a:events>
+                        </a:grid>
+                    </a:hBox>
+                    <a:hBox padding="0">
+                        <a:lable style="margin-left:10px;color:#FF0000;"><![CDATA[注意：您无法选择没有【企业平台代码】的供应商]]></a:lable>
+                    </a:hBox>
+                </a:vBox>
+                <a:vBox height="460" style="margin-left:10px;" width="60">
+                    <div style="vertical-align:middle">
+                        <a:button click="fnd9500_fndNotificationReceiveAddVendor" text="&gt;&gt;" width="50"/>
+                        <br/>
+                        <a:button click="fnd9500_fndNotificationReceiveDeleteVendor" text="&lt;&lt;" width="50"/>
+                    </div>
+                </a:vBox>
+                <a:vBox>
+                    <a:hBox height="42">
+                        <a:toolbarButton click="fnd9500_selectVendorOK" text="确定" width="100"/>
+                        <a:toolbarButton id="fnd9500_backNotificationMaintain_btn" click="fnd9500_backNotificationMaintain" style="margin-left:20px;" text="PROMPT.RETURN" width="100"/>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:grid id="fnd9500_fnd_notification_select_vendor_ds_grid" autoappend="false" bindTarget="fnd9500_fnd_notification_select_vendor_ds" height="460" width="260">
+                            <a:columns>
+                                <a:column name="vendor_name" align="left" prompt="供应商名称" sortable="true" width="220"/>
+                            </a:columns>
+                            <a:events>
+                                <a:event name="dblclick" handler="fnd9500_fndNotificationSelectVendorDsGridDblclick"/>
+                            </a:events>
+                        </a:grid>
+                    </a:hBox>
+                </a:vBox>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

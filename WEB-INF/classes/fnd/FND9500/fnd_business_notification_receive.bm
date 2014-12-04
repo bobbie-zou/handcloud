@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-14 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 业务通知单发布管理，接收人查询BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:query-fields>
+        <bm:query-field name="notification_id" queryExpression="v.notification_id = ${@notification_id}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+	            SELECT *
+				  FROM (SELECT nr.notification_receive_id,
+				               nr.notification_id,
+				               nr.receive_flag,
+				               nvl(decode(nr.receive_flag,
+						                  'Y',
+						                  '已签收'),
+						           nvl(decode(nr.view_flag,
+						                      'Y',
+						                      '已查看'),
+						               '未查看')) AS receive_status,
+						       to_char(nr.receive_date,
+						               'yyyy-mm-dd') AS receive_date,
+				               nr.received_by,
+				               (SELECT su.description FROM sys_user su WHERE su.user_id = nr.received_by) AS received_user_name,
+				               nr.receive_vendor_id AS vendor_id,
+				               (SELECT pv.display_vendor_code FROM pur_vendors_v pv WHERE pv.vendor_id = nr.receive_vendor_id) AS vendor_code,
+				               (SELECT pv.full_name FROM pur_vendors_v pv WHERE pv.vendor_id = nr.receive_vendor_id) AS vendor_name,
+				               nr.receive_company_id,
+				               nr.receive_business_group
+				          FROM fnd_bsnes_notify_receives nr) v
+				 #WHERE_CLAUSE#
+			]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  fnd_business_notification_pkg.save_notification_receive
+				  	(
+				  		p_notification_id		=> nvl(${@notification_id},${/parameter/@notification_id}),
+				  		p_receive_vendor_id		=> ${@vendor_id},
+				  		p_receive_company_id	=> ${@coop_company_id},
+				  		p_session_user_id   	=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  fnd_business_notification_pkg.delete_notification_receive
+				  	(
+				  		p_notification_id			=> nvl(${@notification_id},${/parameter/@notification_id}),
+				  		p_notification_receive_id	=> ${@notification_receive_id},
+				  		p_session_user_id   		=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua4941 $
+    $Date: 2013/01/10 08:12:45 $
+    $Revision: 1.3 $
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autocount="true" defaultwhereclause="company_id=${/session/@company_id} and enabled_flag = &apos;Y&apos;" fetchall="true" model="exp.exp_org_unit" rootpath="unit_cbx"/>
+        <a:model-query defaultwhereclause="company_id = ${/session/@company_id} and (summary_flag != &apos;Y&apos; or summary_flag is null ) and sysdate between nvl(start_date_active,sysdate) and nvl(end_date_active,sysdate)" fetchall="true" model="fnd.fnd_responsibility_centers" rootpath="responsibility_centers"/>
+        <a:model-query autocount="true" defaultwhereclause="summary_flag = &apos;N&apos; and company_id = ${/session/@company_id} and enabled_flag = &apos;Y&apos;" fetchall="true" model="fnd.fnd_operation_units" rootpath="operation_units_cbx"/>
+        <a:model-query defaultwhereclause="company_id = ${/session/@company_id} and enabled_flag=&apos;Y&apos;" fetchall="true" model="exp.exp_org_position" rootpath="position_cbx"/>
+        <a:model-query autocount="true" defaultwhereclause="enabled_flag = &apos;Y&apos;" fetchall="true" model="exp.exp_org_unit_levels" rootpath="levels_cbx"/>
+        <a:model-query autocount="true" defaultwhereclause="enabled_flag = &apos;Y&apos;" fetchall="true" model="exp.exp_org_unit_types" rootpath="types_cbx"/>
+        <!-- 获取部门属性 -->
+        <!-- <a:model-query fetchAll="true" model="exp.exp_org_unit_property_list" rootPath="exp_org_unit_property_list"/> -->
+    </a:init-procedure>
+    <a:view>
+        <a:link id="exp2020_assign_center_link" url="${/request/@context_path}/modules/exp/EXP1010/exp_unit_assign_center.screen"/>
+        <script><![CDATA[
+            function queryUnit() {
+                if($('exp_org_unit_query_ds').validate()){
+		            $('exp_org_unit_result_ds').setQueryDataSet($('exp_org_unit_query_ds'));
+                	$('exp_org_unit_result_ds').query();
+                }
+            }
+            
+            function codeEditFunction(record, name) {
+                if (record.isNew) {
+                    return 'exp_level_grid_upper_tf';
+                } else {
+                    return '';
+                }
+            }
+            
+            function reset() {
+                $('exp_org_unit_query_ds').reset();
+            }
+            
+            function setCenter(value, record, name) {
+                var unit_id = record.get('unit_id');
+                var unit_code = record.get('unit_code');
+                var org_unit_description = record.get('org_unit_description');
+                return '<a href="javascript:setCenterInfo(\''+unit_id+'\',\''+unit_code+'\',\''+org_unit_description+'\')">${l:EXP_ORG_UNIT.RESPONSIBILITY_CENTER}</a>';
+            }
+            
+            function setCenterInfo(unit_id,unit_code,org_unit_description) {
+                new Aurora.Window({
+                    id: 'exp1010_assign_center_window',
+                    url: $('exp2020_assign_center_link').getUrl()+'?unit_id='+unit_id+'&unit_code='+unit_code+'&org_unit_description='+encodeURI(org_unit_description),
+                    title: '${l:EXP_ORG_UNIT.RESPONSIBILITY_CENTER}',
+                    height: 458,
+                    width: 550
+                });
+            }
+            
+            //部门新增
+            //1、判断是否选择公司
+            //2、对新增行手工设置选择的公司ID，替代原来从session中取
+            function exp1010_unitAdd(){
+                var company_id = $('exp_org_unit_query_ds').getCurrentRecord().get('company_id');
+                if(company_id == undefined || Ext.isEmpty(company_id)){
+                    Aurora.showMessage('${l:PROMPTS}', '${l:CHOOSE_COMPANY_FIRST}');
+                    return;
+                }
+                $('exp_org_unit_result_ds').create();
+                var record = $('exp_org_unit_result_ds').getCurrentRecord();
+                record.set('company_id', company_id);
+                record.getField('parent_unit_id_display').setLovPara('company_id', company_id);
+            }
+            
+            function fnd2020_unit_grid_cc_handler(grid, row, name, record){
+                if(name == 'parent_unit_id_display'){
+                    if(!record.isNew){
+                        record.getField(name).setLovPara('current_unit_id', record.get('unit_id'));
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="unit_cbx_ds">
+                <a:datas dataSource="/model/unit_cbx"/>
+            </a:dataSet>
+            <a:dataSet id="responsibility_centers_ds">
+                <a:datas dataSource="/model/responsibility_centers"/>
+            </a:dataSet>
+            <a:dataSet id="operation_units_cbx_ds">
+                <a:datas dataSource="/model/operation_units_cbx"/>
+            </a:dataSet>
+            <a:dataSet id="position_cbx_ds" fetchAll="true" model="exp.exp_org_position"/>
+            <a:dataSet id="levels_cbx_ds">
+                <a:datas dataSource="/model/levels_cbx"/>
+            </a:dataSet>
+            <a:dataSet id="types_cbx_ds">
+                <a:datas dataSource="/model/types_cbx"/>
+            </a:dataSet>
+            <a:dataSet id="exp1010_null_ds"/>
+            <a:dataSet id="exp_org_unit_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/parameter/@company_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <!-- <a:dataSet id="exp_org_unit_property_list_ds">
+                <a:datas dataSource="/model/exp_org_unit_property_list"/>
+            </a:dataSet> -->
+            <a:dataSet id="exp_org_unit_result_ds" autoCount="true" autoQuery="true" fetchAll="true" model="exp.EXP1010.exp_org_unit_query" pageSize="10" queryDataSet="exp_org_unit_query_ds" queryUrl="${/request/@context_path}/autocrud/exp.EXP1010.exp_org_unit_query/query" selectable="true" submitUrl="${/request/@context_path}/modules/exp/EXP1010/exp_org_unit_update.svc">
+                <a:fields>
+                    <a:field name="unit_code" required="true"/>
+                    <a:field name="org_unit_description" required="true"/>
+                    <a:field name="parent_unit_id_display" autoComplete="true" autoCompleteField="org_unit_description" lovGridHeight="315" lovHeight="450" lovService="exp.exp_org_unit?company_id=${/parameter/@company_id}" lovWidth="550" title="EXP_ORG_UNIT.PARENT_UNIT">
+                        <a:mapping>
+                            <a:map from="org_unit_description" to="parent_unit_id_display"/>
+                            <a:map from="unit_id" to="parent_unit_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="unit_display" displayField="description" options="operation_units_cbx_ds" returnField="operate_unit_id" valueField="operation_unit_id"/>
+                    <a:field name="position_display" autoComplete="true" autoCompleteField="quick_value_position" lovGridHeight="315" lovHeight="450" lovService="exp.exp_org_position?company_id=${/parameter/@company_id}" lovWidth="550" title="EXP_ORG_UNIT.CHIEF_POSITION_ID">
+                        <a:mapping>
+                            <a:map from="position_name" to="position_display"/>
+                            <a:map from="position_id" to="chief_position_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <!-- <a:field name="eam_unit_property"/> -->
+                    <!-- <a:field name="exp_org_unit_property_name" displayField="code_value_name" options="exp_org_unit_property_list_ds" returnField="eam_unit_property" valueField="code_value"/> -->
+                    <a:field name="types_display" displayField="description" options="types_cbx_ds" returnField="unit_type_id" valueField="unit_type_id"/>
+                    <a:field name="unit_level_display" displayField="description" options="levels_cbx_ds" returnField="org_unit_level_id" valueField="org_unit_level_id"/>
+                    <a:field name="center_name_code_display" autoComplete="true" autoCompleteField="quick_value_center_name" lovGridHeight="315" lovHeight="460" lovService="fnd.EXP1010.fnd_responsibility_centers_lov" lovWidth="500" title="EXP_ORG_UNIT.RESPONSIBILITY_CENTER">
+                        <a:mapping>
+                            <a:map from="responsibility_center_id" to="responsibility_center_id"/>
+                            <a:map from="responsibility_code_name" to="center_name_code_display"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" required="true" unCheckedValue="N"/>
+                    <a:field name="company_id"/>
+                    <a:field name="unit_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton bind="grid" click="exp1010_unitAdd" text="HAP_NEW" width="100"/>
+                <a:gridButton bind="grid" text="HAP_SAVE" type="save" width="100"/>
+                <a:gridButton bind="grid" text="HAP_CLEAR" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="exp_org_unit_query_ds" resultTarget="exp_org_unit_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox>
+                        <a:textField name="unit_code" bindTarget="exp_org_unit_query_ds" prompt="EXP_ORG_UNIT.UNIT_CODE" typeCase="upper">
+                            <a:events>
+                                <a:event name="enterdown" handler="queryUnit"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="org_unit_description" bindTarget="exp_org_unit_query_ds" prompt="EXP_ORG_UNIT.ORG_UNIT_DESCRIPTION">
+                            <a:events>
+                                <a:event name="enterdown" handler="queryUnit"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="grid" bindTarget="exp_org_unit_result_ds" marginHeight="170" marginWidth="60" navBar="true" width="1000">
+                <a:columns>
+                    <a:column name="unit_code" align="center" editorFunction="codeEditFunction" prompt="EXP_ORG_UNIT.UNIT_CODE" sortable="true" width="60"/>
+                    <a:column name="unit_desc" align="center" editor="exp_level_grid_tf" prompt="EXP_ORG_UNIT.ORG_UNIT_DESCRIPTION" width="80"/>
+                    <a:column name="sequence" editor="exp_level_grid_nf" prompt="SORT_NUM" sortable="true" width="70"/>
+                    <a:column name="parent_unit_id_display" align="center" editor="exp_level_grid_lov" prompt="EXP_ORG_UNIT.PARENT_UNIT" width="90"/>
+                    <a:column name="unit_display" align="center" editor="exp_level_grid_cbox" prompt="EXP_ORG_UNIT.UNIT_DISPLAY" width="100"/>
+                    <a:column name="position_display" align="center" editor="exp_level_grid_lov" prompt="EXP_ORG_UNIT.CHIEF_POSITION" width="90"/>
+                    <a:column name="types_display" align="center" editor="exp_level_grid_cbox" prompt="EXP_ORG_UNIT.UNIT_TYPE" width="90"/>
+                    <a:column name="unit_level_display" align="center" editor="exp_level_grid_cbox" prompt="EXP_ORG_UNIT.UNIT_LEVEL" width="80"/>
+                    <a:column name="center_name_code_display" align="center" editor="exp_level_grid_lov" prompt="EXP_ORG_UNIT.RESPONSIBILITY_CENTER" width="80"/>
+                    <a:column name="enabled_flag" align="center" editor="exp_level_grid_cb" prompt="HAP_ENABLED_FLAG" width="40"/>
+                    <!-- <a:column name="responsibility_center" align="center" prompt="EXP_ORG_UNIT.RESPONSIBILITY_CENTER" renderer="setCenter" width="60"/> -->
+                </a:columns>
+                <a:editors>
+                    <a:textField id="exp_level_grid_tf"/>
+                    <a:textField id="exp_level_grid_upper_tf" typeCase="upper"/>
+                    <a:checkBox id="exp_level_grid_cb"/>
+                    <a:comboBox id="exp_level_grid_cbox"/>
+                    <a:lov id="exp_level_grid_lov"/>
+                    <a:numberField id="exp_level_grid_nf" allowDecimals="false" allowNegative="false"/>
+                </a:editors>
+                <a:events>
+                    <a:event name="cellclick" handler="fnd2020_unit_grid_cc_handler"/>
+                </a:events>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

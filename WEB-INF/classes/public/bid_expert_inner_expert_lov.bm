@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-3-8 下午01:57:37  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        ee2.employee_id,
+                        ee2.employee_code,
+                        ee2.sex,
+                        ee2.name,
+                        ee2.original_date_of_hair,
+                        ee2.date_of_birth,
+                        ee2.id_type,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_v scv
+                        WHERE
+                            scv.code                    = 'ID_TYPES' AND
+                            scv.code_enabled_flag       = 'Y' AND
+                            scv.code_value_enabled_flag = 'Y' AND
+                            scv.code_value              = ee2.id_type
+                        ) AS id_type_desc,
+                        ee2.id_code,
+                        ee2.mobil,
+                        ee2.email,
+                        ee2.phone,
+                        fc.company_full_name,
+                        v.position_id AS primary_position_id,
+                        (SELECT
+                            eop.description
+                        FROM
+                            exp_org_position_vl eop
+                        WHERE
+                            eop.position_id = v.position_id
+                        ) AS primary_position_desc
+                    FROM
+                        (SELECT
+                            ee.employee_id,
+                            eea.company_id,
+                            eea.position_id
+                        FROM
+                            exp_employees ee,
+                            exp_employee_assigns eea
+                        WHERE
+                            ee.employee_id      = eea.employee_id(+) AND
+                            ee.enabled_flag     = 'Y' AND
+                            eea.enabled_flag(+) = 'Y' AND
+                            NOT EXISTS
+                            (SELECT 1 FROM bid_experts be WHERE be.employee_id = ee.employee_id
+                            ) AND
+                            eea.primary_position_flag = 'Y'
+                        GROUP BY
+                            ee.employee_id,
+                            eea.company_id,
+                            eea.position_id
+                        ) v,
+                        exp_employees ee2,
+                        fnd_companies_vl fc
+                    WHERE
+                        v.employee_id = ee2.employee_id AND
+                        v.company_id  = fc.company_id(+)
+                    )#WHERE_CLAUSE#
+                ORDER BY
+                    employee_code ASC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="company_full_name" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="150" forDisplay="true" forQuery="true" prompt="公司"/>
+        <bm:field name="employee_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="工号"/>
+        <bm:field name="primary_position_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="主岗位"/>
+        <bm:field name="employee_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="POSITION_ID"/>
+        <bm:field name="primary_position_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="sex" databaseType="VARCHAR2" datatype="java.lang.String" prompt="性别"/>
+        <bm:field name="name" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="姓名"/>
+        <bm:field name="original_date_of_hair" databaseType="DATE" datatype="java.util.Date" prompt="入职时间"/>
+        <bm:field name="date_of_birth" databaseType="DATE" datatype="java.util.Date" prompt="生日"/>
+        <bm:field name="id_type_desc" databaseType="VARCHAR2" datatype="java.lang.String" prompt="证件类型"/>
+        <bm:field name="id_type" databaseType="VARCHAR2" datatype="java.lang.String" prompt="证件类型"/>
+        <bm:field name="id_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="证件号码"/>
+        <bm:field name="mobil" databaseType="VARCHAR2" datatype="java.lang.String" prompt="移动电话"/>
+        <bm:field name="email" databaseType="VARCHAR2" datatype="java.lang.String" prompt="Email"/>
+        <bm:field name="phone" databaseType="VARCHAR2" datatype="java.lang.String" prompt="固定电话"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="company_full_name" queryExpression="company_full_name like &apos;%&apos;||${@company_full_name}||&apos;%&apos;"/>
+        <bm:query-field field="name" queryExpression="name like &apos;%&apos;||${@name}||&apos;%&apos;"/>
+        <bm:query-field field="employee_code" queryExpression="employee_code like &apos;%&apos;||${@employee_code}||&apos;%&apos;"/>
+        <bm:query-field field="primary_position_desc" queryExpression="primary_position_desc like &apos;%&apos;||${@primary_position_desc}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

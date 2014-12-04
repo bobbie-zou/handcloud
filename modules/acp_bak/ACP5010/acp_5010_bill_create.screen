@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du $ 
+    $Date: 2013-1-30 下午03:14:06 $  
+    $Revision: 1.0 $ 
+    $Purpose: 非寄销开票单创建功能主页面(界面1) $
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="acp.acp_company_list" rootPath="company_name_list"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="acp_5010_bill_detail_link" url="${/request/@context_path}/modules/acp/ACP5010/acp_5010_bill_detail.screen"/>
+        <a:link id="acp_5010_create_and_post_link" model="db.acp_bill_pkg.bill_create_and_post" modelaction="execute"/>
+        <script><![CDATA[
+            function billDetail(value, record, name) {
+                var billSourceId = record.get('bill_source_id');
+                var unitPrice = record.get('unit_price');
+                if (record.get('bill_source_id')) {
+                    return '<a href="javascript:openBillDetail(' + billSourceId + ')">' + unitPrice + '</a>';
+                }
+            }
+            
+            function openBillDetail(billSourceId) {
+                new Aurora.Window({
+                    id: 'bill_detail_window',
+                    url: /*acp_5010_bill_detail.screen*/
+                    $('acp_5010_bill_detail_link').getUrl() + '?bill_source_id=' + billSourceId,
+                    title: '${l:ACP_BILL.BILL_CREATE}',
+                    fullScreen: true
+                });
+            }
+            //未选择供应商时,供应商地点为灰色不可选
+            
+            function acp_5010_query_ds_update() {
+                var ds = $('acp_5010_query_ds');
+                var record = ds.getCurrentRecord();
+                var field = record.getField('vendor_site_name');
+                if (!Aurora.isEmpty(record.get('vendor_code_name'))) {
+                    field.setReadOnly(false);
+                } else {
+                    field.setReadOnly(true);
+                }
+            }
+            
+            function acp_5010_create_and_post() {
+                var ds = $('acp_5010_result_ds');
+                var records = ds.getSelected();
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:ACP_BILL.PLEASE_SELECT_CREATE_AND_POST}');
+                    return false;
+                } else {
+                    Aurora.showConfirm('${l:HAP_PROMPT}', '${l:ACP_BILL.CONFIRM_CREATE_AND_POST}?', function() {
+                        for (var i = 0;i < records.length;i++) {
+                            records[i].set('_status', 'update');
+                        }
+                        ds.submit('${/request/@context_path}/autocrud/db.acp_bill_pkg.bill_create_and_post/batch_update');
+                        ds.query();
+                    });
+                }
+            }
+            function acp_5010_create() {
+                var ds = $('acp_5010_result_ds');
+                var records = ds.getSelected();
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:ACP_BILL.PLEASE_SELECT_CREATE}');
+                    return false;
+                } else {
+                    Aurora.showConfirm('${l:HAP_PROMPT}', '${l:ACP_BILL.CONFIRM_CREATE}?', function() {
+                        for (var i = 0;i < records.length;i++) {
+                            records[i].set('_status', 'update');
+                        }
+                        ds.submit('${/request/@context_path}/autocrud/db.acp_bill_pkg.bill_create/batch_update');
+                        ds.query();
+                    });
+                }                
+            }
+            
+            alert(${/session/@default_company_desc});
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp_5010_data_source_ds" loadData="true" lookupCode="DATA_SOURCE"/>
+            <a:dataSet id="acp_5010_company_name_list" fetchAll="true" loadData="true" model="public.fnd_assign_company_list"/>
+            <a:dataSet id="acp_5010_vendor_site_name_list" autoQuery="true" model="acp.ACP5010.acp_vendor_site_lov"/>
+            <a:dataSet id="acp_5010_query_ds">
+                <a:fields>
+                    <a:field name="vendor_id"/>
+                    <a:field name="vendor_code"/>
+                    <a:field name="vendor_name"/>
+                    <a:field name="vendor_code_name" autoComplete="true" autoCompleteField="vendor_code_name" lovHeight="490" lovService="acp.ACP5010.acp_vendor_lov" lovWidth="490" title="ACP_BILL_SOURCE.VENDOR_CODE_NAME">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                            <a:map from="vendor_code_name" to="vendor_code_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_code_name" autoComplete="true" autoCompleteField="item_code_name" lovHeight="490" lovService="acp.ACP5010.acp_item_lov" lovWidth="490" title="ACP_BILL_SOURCE.ITEM_CODE_NAME">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_name" to="item_name"/>
+                            <a:map from="item_code_name" to="item_code_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_name" defaultValue="${/session/@default_company_desc}" displayField="company_desc" options="acp_5010_company_name_list" required="true" returnField="company_name" valueField="company_desc"/>
+                    <a:field name="vendor_site_name" displayField="vendor_site_name" options="acp_5010_vendor_site_name_list" readOnly="true" returnField="vendor_site_name" valueField="vendor_site_name"/>
+                    <a:field name="currency_code" autoComplete="true" autoCompleteField="currency_code" lovHeight="490" lovService="acp.ACP5010.acp_currency_code_lov" lovWidth="490" title="ACP_BILL_SOURCE.CURRENCY_CODE">
+                        <a:mapping>
+                            <a:map from="currency_code" to="currency_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="data_source" displayField="code_value_name" options="acp_5010_data_source_ds" returnField="data_source" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="acp_5010_query_ds_update"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="acp_5010_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="acp.ACP5010.acp_bill_source" queryDataSet="acp_5010_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="bill_source_id"/>
+                    <a:field name="company_name"/>
+                    <a:field name="vendor_id"/>
+                    <a:field name="vendor_code_name"/>
+                    <a:field name="vendor_site_name"/>
+                    <a:field name="item_code_name"/>
+                    <a:field name="quantity"/>
+                    <a:field name="unit_meas_lookup_code"/>
+                    <a:field name="unit_price"/>
+                    <a:field name="amount"/>
+                    <a:field name="currency_code"/>
+                    <a:field name="creation_date"/>
+                    <a:field name="data_source"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton click="acp_5010_create_and_post" text="ACP_BILL.CREATE_AND_POST" width="100"/>
+            <a:gridButton click="acp_5010_create" text="ACP_BILL.CREATE" width="100"/>
+            <a:gridButton bind="acp_5010_grid" type="excel" width="100"/>
+            <a:gridButton bind="acp_5010_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="acp_5010_query_form" bindTarget="acp_5010_query_ds" resultTarget="acp_5010_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox>
+                    <a:lov name="vendor_code_name" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.VENDOR_CODE_NAME"/>
+                    <a:lov name="item_code_name" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.ITEM_CODE_NAME"/>
+                    <a:comboBox name="company_name" bindTarget="acp_5010_query_ds" prompt="ACP_BILL.COMPANY_NAME"/>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody style="margin-left:5px">
+                <a:hBox>
+                    <a:comboBox name="vendor_site_name" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.VENDOR_SITE_CODE_NAME"/>
+                    <a:lov name="currency_code" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.CURRENCY_CODE"/>
+                    <a:comboBox name="data_source" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.DATA_SOURCE"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:datePicker name="creation_date_from" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.CREATION_DATE_FROM"/>
+                    <a:datePicker name="creation_date_to" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.CREATION_DATE_TO"/>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="acp_5010_grid" bindTarget="acp_5010_result_ds" marginHeight="120" marginWidth="40" navBar="true" style="border:none">
+            <a:columns>
+                <a:column name="company_name" align="center" prompt="ACP_BILL.COMPANY_NAME" sortable="true" width="50"/>
+                <a:column name="vendor_code_name" align="center" prompt="ACP_BILL_SOURCE.VENDOR_CODE_NAME" sortable="true" width="80"/>
+                <a:column name="vendor_site_name" align="center" prompt="ACP_BILL_SOURCE.VENDOR_SITE_CODE_NAME" sortable="true" width="120"/>
+                <a:column name="item_code_name" align="center" prompt="ACP_BILL_SOURCE.ITEM_CODE_NAME" width="80"/>
+                <a:column name="quantity" align="right" prompt="ACP_BILL_SOURCE.QUANTITY" width="60"/>
+                <a:column name="unit_meas_lookup_code" prompt="ACP_BILL_SOURCE.UNIT_MEAS_LOOKUP_CODE" width="80"/>
+                <a:column name="unit_price" align="right" prompt="ACP_BILL_SOURCE.UNIT_PRICE" renderer="billDetail" width="60"/>
+                <a:column name="amount" align="right" prompt="ACP_BILL_HEADERS.AMOUNT" width="60"/>
+                <a:column name="currency_code" align="center" prompt="ACP_BILL_SOURCE.CURRENCY_CODE" width="60"/>
+                <a:column name="creation_date" align="center" prompt="ACP_BILL_SOURCE.CREATION_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                <a:column name="data_source" align="center" prompt="ACP_BILL_SOURCE.DATA_SOURCE" sortable="true" width="40"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

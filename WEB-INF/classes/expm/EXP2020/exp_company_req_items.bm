@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen3207  
+    $Date: 2011-6-2 下午04:35:14  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	select t.req_item_id,
+				       ec.company_id,
+				       t.set_of_books_id,
+				       t.req_item_code,
+				       t.description,
+				       nvl(ec.enabled_flag, 'N') enabled_flag,
+                       t.enabled_flag sys_enabled_flag,
+				       t.budget_item_id,
+				       b.budget_item_code,
+				       b.description budget_item_desc
+				  from exp_req_items_vl      t,
+				       fnd_companies         fc,
+				       bgt_budget_items_vl   b,
+				       exp_company_req_items ec
+				  #WHERE_CLAUSE#
+				 order by t.req_item_code
+       	]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            	begin
+            		exp_req_items_pkg.update_exp_company_req_items(${@req_item_id},
+						                                           ${@company_id},
+						                                           ${@enabled_flag},
+						                                           ${/session/@user_id});
+            	end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="req_item_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="REQ_ITEM_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID"/>
+        <bm:field name="set_of_books_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SET_OF_BOOKS_ID"/>
+        <bm:field name="req_item_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="REQ_ITEM_CODE" prompt="EXP_REQ_ITEMS.REQ_ITEM_CODE"/>
+        <bm:field name="description" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DESCRIPTION" prompt="EXP_REQ_REF_OBJ_TMP1.DESCRIPTION"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="EXP_COMPANY_REQ_ITEM.ENABLED_FLAG"/>
+        <bm:field name="sys_enabled_flag"/>
+        <bm:field name="budget_item_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="BUDGET_ITEM_ID"/>
+        <bm:field name="budget_item_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BUDGET_ITEM_CODE" prompt="EXP_REQ_ITEMS.BUDGET_ITEM_ID"/>
+        <bm:field name="budget_item_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BUDGET_ITEM_DESC" prompt="EXP_COMPANY_REQ_ITEM.BUDGET_ITEM_DESC"/>
+    </bm:fields>
+    <bm:data-filters>
+        <bm:data-filter name="req_item_id" enforceOperations="query" expression="t.req_item_id = ec.req_item_id"/>
+        <bm:data-filter name="set_of_books_id" enforceOperations="query" expression="t.set_of_books_id = fc.set_of_books_id"/>
+        <bm:data-filter name="budget_item_id" enforceOperations="query" expression="t.budget_item_id = b.budget_item_id(+)"/>
+        <bm:data-filter name="company_id" enforceOperations="query" expression="fc.company_id = ${/session/@company_id} and ec.company_id = ${/session/@company_id}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field field="req_item_code" queryOperator="like"/>
+        <bm:query-field field="description" queryExpression="t.description like${@description}"/>
+        <bm:query-field field="budget_item_code" queryOperator="like"/>
+        <bm:query-field field="budget_item_desc" queryExpression="b.description like${@budget_item_desc}"/>
+    </bm:query-fields>
+</bm:model>

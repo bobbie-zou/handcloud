@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-4-24 下午2:00:07  
+    $Revision: 1.0  
+    $Purpose: 核心企业
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <a:link id="fnd9010_client_systems_link" url="${/request/@context_path}/modules/fnd/FND9010/fnd_client_systems.screen"/>
+        <a:link id="fnd9010_client_licence_link" url="${/request/@context_path}/modules/fnd/FND9010/fnd_client_licence.screen"/>
+        <a:link id="fnd9010_client_init_client_admin_link" model="fnd.FND9010.fnd_clients" modelaction="execute"/>
+        <script><![CDATA[
+            function fnd9010_queryService() {
+                $('fnd9010_clients_result_ds').query($('fnd9010_clients_result_ds').currentPage);
+            }
+            
+            //编辑器
+            
+            
+            function fnd9010_clients_editorFun(record, name) {
+                if (record.isNew) {
+                    return 'fnd9010_clients_tf';
+                }
+            
+                return '';
+            }
+            
+            //核企系统
+            
+            
+            function fnd9010_client_systems_renderer(value, record, name) {
+                var enabled_flag = record.get('enabled_flag');
+                if (!record.isNew && enabled_flag == 'Y') {
+                    var client = record.get('client');
+                    return '<a href="javascript:fnd9010_open_client_system(\'' + client + '\')">${l:FND_CLIENT_SYSTEMS.NAME}</a>';
+                }
+            }
+            
+            //打开核企系统页面
+            
+            
+            function fnd9010_open_client_system(client) {
+                new Aurora.Window({
+                    id: 'fnd9010_client_systems_window',
+                    url: $('fnd9010_client_systems_link').getUrl() + '?client=' + client,
+                    title: '${l:FND_CLIENT_SYSTEMS.NAME}',
+                    height: 510,
+                    width: 1020
+                });
+            }
+            
+            
+            
+            function fnd9010_client_licences_renderer(value, record, name) {
+                var enabled_flag = record.get('enabled_flag');
+                if (!record.isNew && enabled_flag == 'Y') {
+                    var client_id = record.get('client_id');
+                    return '<a href="javascript:fnd9010_open_client_licence(' + client_id + ')">${l:FND_CLIENTS.DISTRIBUTE_LICENCE}</a>';
+                }
+            }
+            
+            //打开核企系统页面
+            
+            
+            function fnd9010_open_client_licence(client_id) {
+                new Aurora.Window({
+                    id: 'fnd9010_client_licence_window',
+                    url: $('fnd9010_client_licence_link').getUrl() + '?client_id=' + client_id,
+                    title: '${l:FND_CLIENTS.DISTRIBUTE_LICENCE}',
+                    height: 510,
+                    width: 820
+                });
+            }
+            
+            //初始化CLIENT管理员
+            
+            
+            function fnd9010_client_init_client_admin_fun() {
+                var records = $('fnd9010_clients_result_ds').getSelected();
+                if (records.length != 1) {
+                    Aurora.showMessage("${l:PROMPT}", "${l:PROMPT.PLEASE_SELECT_ONE}");
+                    return;
+                } else {
+                    var record = records[0];
+                    Aurora.request({
+                        url: $('fnd9010_client_init_client_admin_link').getUrl(),
+                        para: {
+                            client_id: record.get('client_id')
+                        },
+                        success: function(res) {
+                            Aurora.showMessage("${l:PROMPT}", "${l:FND_CLIENTS.INIT_CLIENT_ADMIN_SUCCESS}");
+                        },
+                        scope: this
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd9010_clients_query_ds" model="fnd.FND9010.fnd_clients">
+                <a:fields>
+                    <a:field name="client" prompt="FND_CLIENTS.CLIENT"/>
+                    <a:field name="client_full_name" prompt="FND_CLIENTS.CLIENT_FULL_NAME"/>
+                    <a:field name="client_short_name" prompt="FND_CLIENTS.CLIENT_SHORT_NAME"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd9010_clients_result_ds" autoCount="true" autoQuery="true" model="fnd.FND9010.fnd_clients" queryDataSet="fnd9010_clients_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="client" prompt="FND_CLIENTS.CLIENT" required="true"/>
+                    <a:field name="client_full_name" prompt="FND_CLIENTS.CLIENT_FULL_NAME" required="true"/>
+                    <a:field name="client_short_name" prompt="FND_CLIENTS.CLIENT_SHORT_NAME" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="PROMPT.ENABLED_FLAG" uncheckedValue="N"/>
+                    <a:field name="comments" prompt="PROMPTS.COMMENTS"/>
+                    <a:field name="client_admin_name" prompt="FND_CLIENTS.CLIENT_ADMIN_NAME"/>
+                    <a:field name="contact_email" prompt="FND_CLIENT_SYSTEMS.CONNECT_EMAIL" required="true"/>
+                    <a:field name="enterprise_name" lovHeight="500" lovService="fnd.FND9010.fnd_client_info_lov_query" lovWidth="500" prompt="FND_CLIENT_REGISTER_INFOS.ENTERPRISE_NAME" title="FND_CLIENT_REGISTER_INFOS.TITLE">
+                        <a:mapping>
+                            <a:map from="information_id" to="information_id"/>
+                            <a:map from="email" to="contact_email"/>
+                            <a:map from="enterprise_name" to="enterprise_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="fnd9010_clients_result_grid" type="add" width="100"/>
+                <a:gridButton bind="fnd9010_clients_result_grid" type="save" width="100"/>
+                <a:gridButton bind="fnd9010_clients_result_grid" type="clear" width="100"/>
+                <a:toolbarButton click="fnd9010_client_init_client_admin_fun" text="FND_CLIENTS.INIT_CLIENT_ADMIN" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd9010_clients_query_ds" resultTarget="fnd9010_clients_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="client" bindTarget="fnd9010_clients_query_ds" prompt="SYS_USER.ACCOUNT">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9010_queryService"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="client_full_name" bindTarget="fnd9010_clients_query_ds" prompt="SYS_USER.ACCOUNT">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9010_queryService"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="client_short_name" bindTarget="fnd9010_clients_query_ds" prompt="SYS_USER.ACCOUNT">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9010_queryService"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="fnd9010_clients_result_grid" bindTarget="fnd9010_clients_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="client" align="center" editorFunction="fnd9010_clients_editorFun" sortable="true" width="100"/>
+                    <a:column name="client_full_name" align="center" editor="fnd9010_clients_tf" sortable="true" width="100"/>
+                    <a:column name="client_short_name" align="center" editor="fnd9010_clients_tf" sortable="true" width="100"/>
+                    <a:column name="enterprise_name" align="center" editor="fnd9010_clients_lov" sortable="true" width="100"/>
+                    <a:column name="contact_email" align="center" editor="fnd9010_clients_tf" sortable="true" width="100"/>
+                    <a:column name="enabled_flag" align="center" editor="fnd9010_clients_cb" sortable="true" width="60"/>
+                    <a:column name="comments" align="left" editor="fnd9010_clients_tf" sortable="true" width="150"/>
+                    <a:column name="client_systems" align="center" renderer="fnd9010_client_systems_renderer" width="80"/>
+                    <a:column name="client_licences" align="center" renderer="fnd9010_client_licences_renderer" width="80"/>
+                    <a:column name="client_admin_name" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd9010_clients_tf"/>
+                    <a:checkBox id="fnd9010_clients_cb"/>
+                    <a:lov id="fnd9010_clients_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

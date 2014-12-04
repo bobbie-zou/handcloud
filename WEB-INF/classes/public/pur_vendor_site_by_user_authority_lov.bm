@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangcheng6595
+    $Date: 2014-10-16 14:31:18  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    ( SELECT DISTINCT
+                        pv.vendor_id,
+                        pv.display_vendor_code vendor_code,
+                        pv.full_name vendor_name,
+                        pvsl.site_name,
+                        pvsl.address
+                    FROM
+                        fnd_business_units bu,
+                       	pur_vendor_sites pvs,
+                       	pur_vendor_sites_vl pvsl,
+                        pur_vendors_v pv #AUTHORIY_FROM#
+                    WHERE
+                    	pv.vendor_id = pvsl.vendor_id AND
+                        bu.business_unit_id = pvs.org_id AND
+                        pv.vendor_id        = pvs.vendor_id #AUTHORIY_WHERE#
+                    ORDER BY
+                        pv.display_vendor_code
+                    ) #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="vendor_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="site_name" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="供应方地点名称"/>
+        <bm:field name="address" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="详细地址"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="site_name" queryExpression="pv.site_name like &apos;%&apos;||${@site_name}||&apos;%&apos;"/>
+        <bm:query-field name="address" queryExpression="pv.address like &apos;%&apos;||${@address}||&apos;%&apos;"/>
+    </bm:query-fields>
+    <authority only_user_authority="Y">
+        <authority-segment source_alias="pv" source_name="owner_company_id" type="COMPANY"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+            var cx = Packages.aurora.javascript.Context.getCurrentContext();
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

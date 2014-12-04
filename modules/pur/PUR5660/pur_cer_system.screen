@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-7-24 上午10:39:18  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+
+            function pur1040PurchaseCategoryMaintainEditor(rec, name) {
+                if (name == 'system_code') {
+                    if (rec.isNew) {
+                        return 'pur5660_cer_system_tf';
+                    }
+                    return '';
+                }
+            }
+            
+            function pur5660_SubmitSuccess(ds, res) {
+                ds.query();
+            }
+            
+            function pur5660SubmitSucessAdd() {
+                var ds = $('pur5660_cer_system_maintain_ds');
+                var rec = ds.getCurrentRecord();
+            
+                if (Aurora.isEmpty(rec.get('system_id'))) {
+                    return;
+                }
+            
+                var new_record = ds.create({
+                    'system_id': '',
+                    'expanded': 'Y',
+                    'system_code': '',
+                    'system_name': '',
+                    'score_name': '',
+                    'system_level': rec.get('system_level') + 1,
+                    'parent_system_id': rec.get('system_id'),
+                    'execute_flag': 'Y',
+                    'enabled_flag': 'Y'
+            
+                });
+            }
+            
+            function pur5660SubmitSucessAddRoot() {
+                var ds = $('pur5660_cer_system_maintain_ds');
+            
+                var new_record = ds.create({
+                    'system_id': '',
+                    'expanded': 'Y',
+                    'system_code': '',
+                    'system_name': '',
+                    'score_name': '',
+                    'system_level': 1,
+                    'parent_system_id': -1,
+                    'execute_flag': 'Y',
+                    'enabled_flag': 'Y'
+                });
+            }
+            
+            function pur5660_save() {
+                var ds = $('pur5660_cer_system_maintain_ds');
+                ds.submit();
+            }
+            
+            function pur5660_query() {
+                $('pur5660_cer_system_maintain_ds').query();
+            }
+            
+            
+            function pur5660_score_nameRenderer(value, rec, name) {
+                var score_name = rec.get('score_code');
+                if (score_name == 'F3') {
+                    return "<div style='background-color:#FF0000'>" + value + "</div>";
+                } else if (score_name == 'F2') {
+                    return "<div style='background-color:#FFFF00'>" + value + "</div>";
+                } else {
+                    return value;
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5660_cer_system_score_ds" loadData="true" lookupCode="CER_SYSTEM_SCORE"/>
+            <a:dataSet id="pur5660_cer_system_query_ds" autoCreate="true"/>
+            <a:dataSet id="pur5660_cer_system_maintain_ds" fetchAll="true" model="pur.PUR5660.pur_cer_system" queryDataSet="pur5660_cer_system_query_ds">
+                <a:fields>
+                    <a:field name="system_id"/>
+                    <a:field name="system_code" required="true"/>
+                    <a:field name="system_name" required="true"/>
+                    <a:field name="system_level"/>
+                    <a:field name="expanded"/>
+                    <a:field name="parent_system_id"/>
+                    <a:field name="execute_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="score_name" displayField="code_value_name" options="pur5660_cer_system_score_ds" returnField="score_code" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="pur5660_SubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur5660SubmitSucessAdd" text="PROMPT.NEW" width="100"/>
+                <a:toolbarButton click="pur5660SubmitSucessAddRoot" text="新增顶级指标" width="100"/>
+                <a:toolbarButton click="pur5660_save" text="PROMPT.SAVE" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="pur5660_cer_system_query_ds" resultTarget="pur5660_cer_system_maintain_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="system_code" bindTarget="pur5660_cer_system_query_ds" prompt="指标代码">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5660_query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="system_name" bindTarget="pur5660_cer_system_query_ds" prompt="指标描述">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5660_query"/>
+                        </a:events>
+                    </a:textField>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:dynamicTreeGrid id="pur5660_cer_system_maintain_treegrid" bindTarget="pur5660_cer_system_maintain_ds" expandField="_expanded" idField="system_id" marginHeight="130" marginWidth="50" parentField="parent_system_id" showCheckBox="false">
+                <a:columns>
+                    <a:column name="system_code" align="left" editorFunction="pur1040PurchaseCategoryMaintainEditor" prompt="指标代码" width="250"/>
+                    <a:column name="system_name" align="left" editor="pur5660_cer_system_tf" prompt="指标描述" width="250"/>
+                    <a:column name="score_name" align="left" editor="pur5660_cer_system_core_cb" prompt="得分" renderer="pur5660_score_nameRenderer" width="50"/>
+                    <a:column name="execute_flag" align="center" editor="pur5660_cer_system_cb" prompt="有效执行" width="30"/>
+                    <a:column name="enabled_flag" align="center" editor="pur5660_cer_system_cb" prompt="启用" width="30"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="pur5660_cer_system_cb"/>
+                    <a:comboBox id="pur5660_cer_system_core_cb"/>
+                    <a:textField id="pur5660_cer_system_tf"/>
+                </a:editors>
+            </a:dynamicTreeGrid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

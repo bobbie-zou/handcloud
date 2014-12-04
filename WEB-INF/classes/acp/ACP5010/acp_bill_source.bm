@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: likun  
+    $Date: 2013-1-24 上午10:39:25  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="company_id asc,vendor_id asc,item_id asc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    s.bill_source_id,
+                    s.company_name,
+                    s.vendor_code,
+                    s.vendor_name,
+                    s.vendor_site_code,
+                    s.vendor_site_name,
+                    s.item_code,
+                    s.item_name,
+                    s.quantity,
+                    s.unit_price,
+                    s.quantity*s.unit_price as amount,
+                    s.unit_meas_lookup_code,
+                    s.currency_code,
+                    s.data_source,
+                    TO_CHAR(s.creation_date, 'yyyy-mm-dd hh24:mi:ss') AS creation_date
+                FROM
+                    acp_bill_source s #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="batch_id" dataType="java.lang.Long" output="true" outputPath="/parameter/@batch_id"/>
+            </bm:parameters>
+            <bm:query-sql><![CDATA[
+                BEGIN
+                    acp_bill_pkg.get_batch_id(x_batch_id => ${@batch_id});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                      acp_bill_pkg.set_batch_id(p_batch_id => ${/parameter/@batch_id},
+					                            p_bill_source_id => ${@bill_source_id},
+					                            p_user_id => ${/session/@user_id});
+                            
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                      acp_bill_pkg.bill_create(p_batch_id => ${/parameter/@batch_id},
+					                           p_action_type => ${@action_type},
+					                           p_user_id => ${/session/@user_id},
+					                           p_client  => ${/session/@client});
+                            
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="s.status = &apos;NEW&apos;"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="vendor_id" queryExpression="s.vendor_id = ${@vendor_id}"/>
+        <bm:query-field name="item_id" queryExpression="s.item_id = ${@item_id}"/>
+        <bm:query-field name="company_id" queryExpression="s.company_id = ${@company_id}"/>
+        <bm:query-field name="vendor_site_id" queryExpression="s.vendor_site_id = ${@vendor_site_id}"/>
+        <bm:query-field name="currency_code" queryExpression="s.currency_code = ${@currency_code}"/>
+        <bm:query-field name="data_source" queryExpression="s.data_source = ${@data_source}"/>
+        <bm:query-field name="creation_date_from" queryExpression="s.creation_date &gt;=to_date(${@creation_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="creation_date_to" queryExpression="s.creation_date &lt;=to_date(${@creation_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+    </bm:query-fields>
+</bm:model>

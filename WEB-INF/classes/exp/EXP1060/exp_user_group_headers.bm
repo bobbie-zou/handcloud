@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:query-fields>
+        <bm:query-field name="expense_user_group_id" queryOperator="expense_user_group_id = ${@expense_user_group_id}"/>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+        <bm:query-field name="expense_user_group_code" queryExpression="expense_user_group_code like &apos;%&apos;||${@expense_user_group_code}||&apos;%&apos;"/>
+        <bm:query-field name="description" queryExpression="description like &apos;%&apos;||${@description}||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter name="company_id" expression="ugh.company_id=${@company_id}"/>
+        <bm:data-filter name="client" enforceOperations="query" expression="client = ${/session/@client}"/>
+    </bm:data-filters>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    expense_user_group_id,
+                    company_id,
+                    expense_user_group_code,
+                    description,
+                    enabled_flag,
+                    creation_date,
+                    created_by,
+                    last_update_date,
+                    last_updated_by,
+                    responsibility_center_id,
+                    client,
+                    data_source,
+                    data_source_id,
+                    data_source_code,
+                    data_source_name
+                FROM
+                    exp_user_group_headers_vl e #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+               BEGIN
+  exp_user_group_pkg.create_user_group_headers(p_company_id               => ${@company_id},
+                                               p_expense_user_group_code  => ${@expense_user_group_code},
+                                               p_description              => ${@description},
+                                               p_responsibility_center_id => ${@responsibility_center_id},
+                                               p_enabled_flag             => ${@enabled_flag},
+                                               p_user_id                  => ${/session/@user_id},
+                                               p_expense_user_group_id    => ${@expense_user_group_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+  exp_user_group_pkg.modify_user_group_headers(p_company_id               => ${@company_id},
+                                               p_expense_user_group_code  => ${@expense_user_group_code},
+                                               p_description              => ${@description},
+                                               p_responsibility_center_id => ${@responsibility_center_id},
+                                               p_enabled_flag             => ${@enabled_flag},
+                                               p_user_id                  => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority client_alias="e" client_name="client"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

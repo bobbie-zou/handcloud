@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-3-8 下午01:57:37  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    e.employee_code,
+                    e.employee_id,
+                    (SELECT
+                        fd.description_text
+                    FROM
+                        fnd_descriptions fd
+                    WHERE
+                        fd.description_id = ep.description_id AND
+                        fd.language       = ${/session/@lang}
+                    ) primary_position_desc,
+                    e.position_id primary_position_id,
+                    (SELECT
+                        sv.code_value_name
+                    FROM
+                        sys_code_values_v sv
+                    WHERE
+                        sv.code_value = e.sex AND
+                        sv.code       = 'BID_EXPERT_TYPES'
+                    ) sex_dis,
+                    e.sex,
+                    e.name,
+                    e.original_date_of_hair,
+                    e.date_of_birth,
+                    (SELECT
+                        fd.description_text
+                    FROM
+                        fnd_flex_value_sets fvs,
+                        fnd_flex_values fv,
+                        fnd_descriptions fd
+                    WHERE
+                        fv.flex_value_set_id(+) = fvs.flex_value_set_id AND
+                        fv.description_id       = fd.description_id AND
+                        fd.language             = ${/session/@lang} AND
+                        e.id_type               = fv.flex_value AND
+                        fvs.flex_value_set_code = 'ID_TYPES'
+                    ) id_type_dis,
+                    e.id_type,
+                    e.id_code,
+                    e.mobil,
+                    e.email,
+                    e.phone
+                FROM
+                    exp_employee_assigns_v e,
+                    exp_org_position ep #WHERE_CLAUSE#
+                ORDER BY
+                    e.employee_code
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="employee_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="员工工号"/>
+        <bm:field name="primary_position_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="员工主岗位"/>
+        <bm:field name="employee_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="POSITION_ID"/>
+        <bm:field name="primary_position_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="sex_dis" databaseType="VARCHAR2" datatype="java.lang.String" prompt="性别"/>
+        <bm:field name="sex" databaseType="VARCHAR2" datatype="java.lang.String" prompt="性别"/>
+        <bm:field name="name" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="姓名"/>
+        <bm:field name="original_date_of_hair" databaseType="DATE" datatype="java.util.Date" prompt="入职时间"/>
+        <bm:field name="date_of_birth" databaseType="DATE" datatype="java.util.Date" prompt="生日"/>
+        <bm:field name="id_type_dis" databaseType="VARCHAR2" datatype="java.lang.String" prompt="证件类型"/>
+        <bm:field name="id_type" databaseType="VARCHAR2" datatype="java.lang.String" prompt="证件类型"/>
+        <bm:field name="id_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="证件号码"/>
+        <bm:field name="mobil" databaseType="VARCHAR2" datatype="java.lang.String" prompt="移动电话"/>
+        <bm:field name="email" databaseType="VARCHAR2" datatype="java.lang.String" prompt="Email"/>
+        <bm:field name="phone" databaseType="VARCHAR2" datatype="java.lang.String" prompt="固定电话"/>
+    </bm:fields>
+    <bm:data-filters>
+        <bm:data-filter expression="e.position_id=ep.position_id(+)"/>
+        <bm:data-filter expression="e.primary_position_flag=&apos;Y&apos;"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="name" queryExpression="e.name like &apos;%&apos;||${@name}||&apos;%&apos;"/>
+        <bm:query-field name="employee_code" queryExpression="e.employee_code like &apos;%&apos;||${@employee_code}||&apos;%&apos;"/>
+        <bm:query-field name="primary_position_desc" queryExpression="exists (select 1 from fnd_descriptions fd where and fv.description_id=ep.description_id and fd.language=${/session/@lang}) and fd.description_text like &apos;%&apos;||${@primary_position_desc}||&apos;%&apos;"/>
+        <bm:query-field name="code_name" queryExpression="(e.name like &apos;%&apos;||${@code_name}||&apos;%&apos; or e.employee_code like &apos;%&apos;||${@code_name}||&apos;%&apos;)"/>
+    </bm:query-fields>
+</bm:model>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-9-2 下午2:43:08  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="pur5640_vendor_maintain_detail_link" url="${/request/@context_path}/modules/pur/PUR5640/pur_sys_vendor_maintain_detail.screen"/>
+        <script><![CDATA[
+			
+			//供应商编码链接
+			function pur5640_vendor_code_render(value,record,name){
+				return '<a href="javascript:pur5640_open_win(' + record.get('vendor_id') + ')">' + value + '</a>';    
+			}
+			
+			function pur5640_open_win(id){
+			    new Aurora.Window({
+			        url:$('pur5640_vendor_maintain_detail_link').getUrl() + '?vendor_id=' + id,
+			        id:'pur5640_vendor_maintain_detail_win',
+			        title:'${l:MODULES/PUR/PUR5640/PUR_SYS_VENDOR_MAINTAIN_QUERY.SCREEN.TITLE}',
+			        fullScreen:true
+			    });
+			}
+			
+			
+			//比较两个日期的大小
+            
+            function pur5640_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            //创建日期查询校验
+            
+            function pur5640_creation_date_Validator(record, name, value) {
+                if (name == 'creation_date_start' || name == 'creation_date_end') {
+                    var start = record.get('creation_date_start');
+                    var end = record.get('creation_date_end');
+            
+                    if ( !! end) {
+                        if (!pur5640_compareDate(start, end)) {
+                            return '${l:PUR_VENDOR.CREATION_DATE_FROM_TO_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            //版本号保留一位小数
+            function pur5640_version_render(value,record,name){
+                return Aurora.formatNumber(value,1);
+            }
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5640_vendor_type_ds" loadData="true" model="public.pur_sys_vendor_type_lov"/>
+            <a:dataSet id="pur5640_data_source_ds" lookupCode="DATA_SOURCE"/>
+            <a:dataSet id="pur5640_vendor_maintain_query_ds">
+                <a:fields>
+                    <a:field name="vendor_type_id"/>
+                    <a:field name="vendor_type_name" displayField="description" options="pur5640_vendor_type_ds" returnField="vendor_type_id" valueField="vender_type_id"/>
+                    <a:field name="data_source" displayField="code_value_name" options="pur5640_data_source_ds" returnField="data_source" valueField="code_value"/>
+                    <a:field name="category_name" autoComplete="true" lovGridHeight="300" lovHeight="450" lovService="pur.pur_product_category_lov" lovWidth="500" title="PUR_VENDOR.PRODUCT_CATEGORY_QUERY_LOV_TITLE">
+                        <a:mapping>
+                            <a:map from="product_category_id" to="product_category_id"/>
+                            <a:map from="serial_number" to="serial_number"/>
+                            <a:map from="category_name" to="category_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="creation_date_start" validator="pur5640_creation_date_Validator"/>
+                    <a:field name="creation_date_end" validator="pur5640_creation_date_Validator"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur5640_vendor_maintain_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="pur.PUR5640.pur_sys_vendor_maintain" queryDataSet="pur5640_vendor_maintain_query_ds">
+                <a:fields>
+                    <a:field name="vendor_type_id"/>
+                    <a:field name="vendor_type_name" displayField="description" options="pur5640_vendor_type_ds" returnField="vendor_type_id" valueField="vender_type_id"/>
+                    <a:field name="enabled_flag" checkedValue="Y" readOnly="true" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="pur5640_vendor_maintain_query_ds" resultTarget="pur5640_vendor_maintain_result_ds" style="width:100%;border:none;">
+            <a:formToolBar>
+                <a:textField style="width:100%;display:none;"/>
+                <a:hBox>
+                    <a:textField name="vendor_code" bindTarget="pur5640_vendor_maintain_query_ds" prompt="VENDER_CODE"/>
+                    <a:textField name="full_name" bindTarget="pur5640_vendor_maintain_query_ds" prompt="PUR_SYS_VENDOR_BASICS.FULL_NAME"/>
+                    <a:comboBox name="vendor_type_name" bindTarget="pur5640_vendor_maintain_query_ds" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.SUPPLIER_CATEGORY"/>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox>
+                    <a:comboBox name="data_source" bindTarget="pur5640_vendor_maintain_query_ds" prompt="PUR5641_VENDOR_MAINTAIN_DETAIL.SUPPLIER_SOURCES"/>
+                    <a:datePicker name="creation_date_start" bindTarget="pur5640_vendor_maintain_query_ds" prompt="EXP_REPORT_HEADERS.CREATE_DATE_FROM"/>
+                    <a:datePicker name="creation_date_end" bindTarget="pur5640_vendor_maintain_query_ds" prompt="ACP_BILL_HEADERS.CREATION_DATE_TO"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:textField name="agent_brand" bindTarget="pur5640_vendor_maintain_query_ds" prompt="PUR_VENDORS.AGENT_BRAND"/>
+                    <a:lov name="category_name" bindTarget="pur5640_vendor_maintain_query_ds" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.PRODUCT_CATEGORY"/>
+                    <a:textField name="contact_name" bindTarget="pur5640_vendor_maintain_query_ds" prompt="PUR_RFX_FILING_POOL.CONTACT_PERSON"/>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="pur5640_vendor_maintain_grid" bindTarget="pur5640_vendor_maintain_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="vendor_code" align="center" prompt="VENDER_CODE" renderer="pur5640_vendor_code_render" width="100"/>
+                <a:column name="version" align="center" prompt="PUR_SYS_VENDOR_BASICS.VERSION_NUM" renderer="pur5640_version_render" width="50"/>
+                <a:column name="vendor_type_name" align="center" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.SUPPLIER_CATEGORY" width="80"/>
+                <a:column name="short_name" align="left" prompt="PUR_SYS_VENDOR_BASICS.SHORT_NAME" width="120"/>
+                <a:column name="full_name" align="left" prompt="PUR_SYSTEM_VENDORS.FULL_NAME" width="150"/>
+                <a:column name="creation_date" align="center" prompt="FND_UOM_CODES.CREATION_DATE" renderer="Aurora.formatDate" width="80"/>
+                <a:column name="data_source" align="center" prompt="ACP_BILL_SOURCE.DATA_SOURCE" width="50"/>
+                <a:column name="enabled_flag" align="center" editor="pur5640_enabled_flag_cb" prompt="SYS_CODE.ENABLED_FLAG" width="50"/>
+            </a:columns>
+            <a:editors>
+                <a:checkBox id="pur5640_enabled_flag_cb"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

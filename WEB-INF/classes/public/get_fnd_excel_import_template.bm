@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-7-4 下午5:34:00  
+    $Revision: 1.0  
+    $Purpose: 通过模板代码，获取系统excel导入模板（取最新的文件）
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="attachment_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ATTACHMENT_ID"/>
+        <bm:field name="file_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FILE_NAME"/>
+        <bm:field name="imp_template_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FILE_NAME"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="imp_template_code" queryExpression="v.imp_template_code = ${@imp_template_code}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT vv.attachment_id,
+				       vv.file_name,
+				       vv.imp_template_code
+				  FROM (SELECT v.attachment_id,
+				               v.file_name,
+				               v.imp_template_code,
+				               v.upload_date
+				          FROM (SELECT aa.attachment_id,
+				                       aa.file_name,
+				                       eit.imp_template_code,
+				                       aa.creation_date AS upload_date
+				                  FROM fnd_atm_attachment         aa,
+				                       fnd_atm_attachment_multi   am,
+				                       fnd_excel_import_templates eit
+				                 WHERE aa.attachment_id = am.attachment_id
+				                       AND am.table_name = 'FND_EXCEL_IMPORT_TEMPLATES'
+				                       AND am.table_pk_value = eit.imp_template_id) v 
+				    	  #WHERE_CLAUSE#
+				         ORDER BY v.upload_date DESC) vv
+				 WHERE ROWNUM = 1
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  fnd_excel_import_template_pkg.update_template_download_times(p_imp_template_code 	=> ${@imp_template_code},
+																		  	   p_user_id			=> ${/session/@user_id});
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

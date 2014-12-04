@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: gaoyang  
+    $Date: 2011-9-6 下午3:09:32  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:e="aurora.service.exception" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select *
+  from (select t.transaction_category,
+               t.set_of_books_id,
+               t.transaction_type_code,
+               e.description DESCRIPTION_TEXT,
+               t.workflow_code,
+               w.name,
+               t.company_h,
+               t.company_b,
+               t.company_c
+          from wfl_sob_workflow_trs t,
+               exp_sob_req_types_vl    e,
+               wfl_workflow_vl          w
+         where t.transaction_category = 'EXP_REQUISITION'
+           and t.transaction_type_code = e.expense_requisition_type_code
+           and e.set_of_books_id = t.set_of_books_id
+           and t.workflow_code = w.workflow_code
+        union
+        select t.transaction_category,
+               t.set_of_books_id,
+               t.transaction_type_code,
+               e.description,
+               t.workflow_code,
+               w.name,
+               t.company_h,
+               t.company_b,
+               t.company_c
+          from wfl_sob_workflow_trs t,
+               exp_sob_report_types_vl e,
+               wfl_workflow_vl          w
+         where t.transaction_category = 'EXP_REPORT'
+           and t.transaction_type_code = e.expense_report_type_code
+           and e.set_of_books_id = t.set_of_books_id
+           and t.workflow_code = w.workflow_code
+        union
+        select t.transaction_category,
+               t.set_of_books_id,
+               t.transaction_type_code,
+               r1.description,
+               t.workflow_code,
+               w.name,
+               t.company_h,
+               t.company_b,
+               t.company_c
+          from wfl_sob_workflow_trs  t,
+               bgt_sob_chg_req_types r1,
+               wfl_workflow_vl           w
+         where t.transaction_category = 'BGT_CHANGE_REQ'
+           and t.transaction_type_code = r1.bgt_change_req_type_code
+           and r1.set_of_book_id = t.set_of_books_id
+           and t.workflow_code = w.workflow_code
+        union
+        select t.transaction_category,
+               t.set_of_books_id,
+               t.transaction_type_code,
+               r2.description,
+               t.workflow_code,
+               w.name,
+               t.company_h,
+               t.company_b,
+               t.company_c
+          from wfl_sob_workflow_trs t,
+               bgt_sob_import_type  r2,
+               wfl_workflow_vl          w
+         where t.transaction_category = 'BGT_PREPARE'
+           and t.transaction_type_code = r2.bgt_import_type_code
+           and t.set_of_books_id = r2.set_of_book_id
+           and t.workflow_code = w.workflow_code
+        union
+        select t.transaction_category,
+               t.set_of_books_id,
+               t.transaction_type_code,
+               r2.description,
+               t.workflow_code,
+               w.name,
+               t.company_h,
+               t.company_b,
+               t.company_c
+          from wfl_sob_workflow_trs t,
+               bgt_sob_ver_types    r2,
+               wfl_workflow_vl          w
+         where t.transaction_category = 'BGT_CER_REQ'
+           and t.transaction_type_code = r2.bgt_ver_type_code
+           and t.set_of_books_id = r2.set_of_book_id
+           and t.workflow_code = w.workflow_code
+        union
+        select t.transaction_category,
+               t.set_of_books_id,
+               t.transaction_type_code,
+               e.description,
+               t.workflow_code,
+               w.name,
+               t.company_h,
+               t.company_b,
+               t.company_c
+          from wfl_sob_workflow_trs t,
+               (select r.type_code, r.description
+                  from csh_pay_req_types_vl r
+                 where r.enabled_flag = 'Y'
+                 group by r.type_code, r.description) e,
+               wfl_workflow_vl w
+         where t.transaction_category = 'PAYMENT_REQUISITION'
+           and t.transaction_type_code = e.type_code
+           and t.workflow_code = w.workflow_code
+        union
+        select t.transaction_category,
+               t.set_of_books_id,
+               t.transaction_type_code,
+               null,
+               t.workflow_code,
+               w.name,
+               t.company_h,
+               t.company_b,
+               t.company_c
+          from wfl_sob_workflow_trs t, wfl_workflow_vl w
+         where t.transaction_category not in
+               ('EXP_REQUISITION', 'EXP_REPORT', 'BGT_CHANGE_REQ',
+                'PAYMENT_REQUISITION', 'BGT_PREPARE', 'BGT_CER_REQ')
+           and w.workflow_code = t.workflow_code)	   
+		#WHERE_CLAUSE# order by transaction_category,
+						  transaction_type_code,
+						  workflow_code
+						  ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+        	begin
+	 			wfl_sob_transaction_pkg.insert_wfl_sob_transaction(${@transaction_category},
+													${@transaction_type_code},
+													${@workflow_code},
+													nvl(${@company_h},'N'),
+													nvl(${@company_b},'N'),
+													nvl(${@company_c},'N'),
+													${@set_of_books_id}); 
+			end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+        	begin
+	 			wfl_sob_transaction_pkg.delete_wfl_sob_transaction(${@transaction_category},
+													${@transaction_type_code},
+													${@workflow_code},
+													${@set_of_books_id}); 
+			end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        		
+        		
+        			
+        			begin
+  -- Call the procedure
+  wfl_sob_transaction_pkg.update_wfl_sob_transaction(p_tacnsaction_category => ${@transaction_category},
+                                                     p_transaction_type_code => ${@transaction_type_code},
+                                                     p_workflow_code => ${@workflow_code},
+                                                     p_company_h => nvl(${@company_h},'N'),
+                                                     p_company_b => nvl(${@company_b},'N'),
+                                                     p_company_c => nvl(${@company_c},'N'),
+                                                     p_set_of_books_id =>${@set_of_books_id});
+end;
+        		
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="workflow_code" dataType="java.lang.String" queryExpression="upper(workflow_code) like &apos;%&apos;||upper(${@workflow_code})||&apos;%&apos;"/>
+        <bm:query-field name="transaction_type_code" dataType="java.lang.String" queryExpression="transaction_type_code like &apos;%&apos;||${@transaction_type_code}||&apos;%&apos;"/>
+        <bm:query-field name="transaction_category" dataType="java.lang.String" queryExpression="upper(transaction_category) like &apos;%&apos;||upper(${@transaction_category})||&apos;%&apos;"/>
+        <bm:query-field name="set_of_books_id" dataType="java.lang.Long" queryExpression="set_of_books_id = ${@set_of_books_id}"/>
+    </bm:query-fields>
+    <e:exception-descriptor-config>
+        <e:exception-descriptor exception="java.sql.SQLException" handleClass="aurora.database.SQLExceptionDescriptor">
+            <e:error-message code="1" message="WFL_ASSIGN_DUP"/>
+        </e:exception-descriptor>
+    </e:exception-descriptor-config>
+</bm:model>

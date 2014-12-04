@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace 
+    $Date: 2013-12-10 上午11:07:49  
+    $Revision: 1.0  
+    $Purpose: 物品主数据申请查询
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="inv5050_item_application_create_link" url="${/request/@context_path}/modules/inv/INV5050/inv_item_application_create.screen"/>
+        <a:link id="inv5050_item_application_maintain_link" url="${/request/@context_path}/modules/inv/INV5050/inv_item_application_maintain.screen"/>
+        <a:link id="inv5050_item_application_save_link" url="${/request/@context_path}/modules/inv/INV5050/inv_item_application_hds_save.svc"/>
+        <a:link id="inv5050_item_application_cancel_link" model="inv.INV5050.item_application_cancel" modelaction="execute"/>
+        <a:link id="inv5050_item_application_submit_link" model="inv.INV5050.item_application_submit" modelaction="execute"/>
+        <!-- <a:link id="inv5050_item_application_submit_svc_link" model="inv.INV5050.item_application_submit" modelaction="execute"/> -->
+        <a:link id="inv5050_item_application_submit_svc_link" url="${/request/@context_path}/modules/inv/INV5050/inv_item_application_submit.svc"/>
+        <script><![CDATA[
+        	function inv5050_item_application_query(){
+        	    $('inv5050_item_application_result_ds').query();
+        	}
+        	
+        	function inv5050_item_application_create(){
+        	    new Aurora.Window({
+        	        id:'inv5050_item_application_create_win',
+        	        title:'物品主数据新建申请创建',
+        	        url:$('inv5050_item_application_create_link').getUrl(),
+        	        width: 1000,
+        	        height: 600
+        	    });
+        	    $('inv5050_item_application_create_win').on('close', function(){
+        	        $('inv5050_item_application_result_ds').query();
+        	    });
+        	}
+        	
+        	function inv5050_item_application_submit(){
+        	    var records = $('inv5050_item_application_result_ds').getSelected();
+        	    if(records.length > 0){
+        	        $('inv5050_item_application_query_submit_btn').disable();
+	        	    var application_hds = [];
+	        	    for(var i = 0; i < records.length; i++){
+	        	        var data = {
+	        	            'item_application_header_id':records[i].get('item_application_header_id')
+	        	        };
+	        	        application_hds.push(records[i].data);
+	        	    }
+	        	    Aurora.request({
+	        	        url:$('inv5050_item_application_submit_svc_link').getUrl(),
+	        	        para:application_hds,
+	        	        scope:this,
+	        	        success:function(){
+	        	            Aurora.showMessage('${l:PROMPT}', '提交成功!', function(){
+	        	                $('inv5050_item_application_result_ds').query();
+	        	            });
+	    	                return;
+	        	        }
+	        	    });
+        	        $('inv5050_item_application_query_submit_btn').enable();
+        	    }else{
+        	        Aurora.showMessage('${l:PROMPT}', '尚未选择任何行!');
+        	        return;
+        	    }
+        	}
+        	
+        	function inv5050_item_application_num_reanderer(value, record, name){
+        	    return '<a href="javascript:inv5050_item_application_maintain('+record.get('item_application_header_id')+');">'+value+'</a>';
+        	}
+        	
+        	function inv5050_item_application_maintain(item_application_header_id){
+        	    new Aurora.Window({
+        	        id:'inv5050_item_application_maintain_win',
+        	        title:'物品主数据新建申请维护',
+        	        url:$('inv5050_item_application_maintain_link').getUrl()+'?item_application_header_id='+item_application_header_id,
+        	        width: 1000,
+        	        height: 600
+        	    });
+        	    $('inv5050_item_application_maintain_win').on('close', function(){
+        	        $('inv5050_item_application_result_ds').query();
+        	    });
+        	}
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv5050_item_application_query_ds"/>
+            <a:dataSet id="inv5050_item_application_result_ds" autoCount="true" model="inv.INV5050.inv_item_application_hds_query" queryDataSet="inv5050_item_application_query_ds" selectable="true"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="inv5050_item_application_create" style="margin-left:20px;" text="HAP_CREATE" width="100"/>
+                <a:toolbarButton id="inv5050_item_application_query_submit_btn" click="inv5050_item_application_submit" style="margin-left:20px;" text="HAP_SUBMIT" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="inv5050_item_application_query_form" bindTarget="inv5050_item_application_query_ds" resultTarget="inv5050_item_application_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox>
+                        <a:textField name="item_application_num" prompt="单据编号" typeCase="upper">
+                            <a:events>
+                                <!-- 监听回车事件，执行查询方法 -->
+                                <a:event name="enterdown" handler="inv5050_item_application_query"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="inv5050_item_application_result_grid" bindTarget="inv5050_item_application_result_ds" marginHeight="160" marginWidth="60" navBar="true" width="1000">
+                <a:columns>
+                    <a:column name="item_application_num" align="center" prompt="单据编号" renderer="inv5050_item_application_num_reanderer" width="120"/>
+                    <a:column name="primary_inv_org_desc" prompt="主库存组织" width="120"/>
+                    <a:column name="company_desc" prompt="公司" width="120"/>
+                    <a:column name="unit_desc" align="center" prompt="部门" width="80"/>
+                    <a:column name="employee_name" align="center" prompt="申请人" width="80"/>
+                    <a:column name="position_desc" prompt="申请人岗位" width="100"/>
+                    <a:column name="application_date" align="center" prompt="申请日期" width="100"/>
+                    <a:column name="comments" prompt="备注" width="150"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

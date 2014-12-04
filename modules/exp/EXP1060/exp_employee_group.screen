@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duxiaofu4653 $
+    $Date: 2014/02/21 06:12:06 $
+    $Modify: duanjian 
+    $Date: 2014/02/21 06:12:06 $
+    $Revision: 1.6 $
+    $Purpose “员工组定义” 模块页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="exp1060_exp_employee_group_relations_link" url="${/request/@context_path}/modules/exp/EXP1060/exp_employee_group_relations.screen"/>
+        <script><![CDATA[
+            var exp1060_current_company_id = '${/session/@default_company_id}';
+            var exp1060_current_company_desc = '${/session/@default_company_desc}';
+            
+            function exp1060_result_query(ds) {
+                var record = $('exp1060_exp_employee_group_query_ds').getAt(0);
+                exp1060_current_company_id = record.get('company_id');
+                exp1060_current_company_desc = record.get('company_desc');
+            }
+            
+            
+            function exp1060_result_add(ds, record, index) {
+                record.set('company_id', exp1060_current_company_id);
+                record.set('company_desc', exp1060_current_company_desc);
+            }
+            
+            
+            function exp1060Query() {
+                $('exp1060_exp_employee_group_result_ds').query();
+            }
+            
+            /* function exp1060_resetEmployeeGroup() {
+                $('exp1060_exp_employee_group_query_ds').reset();
+            } */
+            
+            function exp1060_codeEditor(record, name) {
+                if (!record.isNew) {
+                    return '';
+                } else {
+                    return 'exp1060_employee_group_grid_upper_tf';
+                }
+            
+            }
+            
+            function exp1060_editRenderer(value, record, name) {
+                if (value) {
+                    return "<a href=\"javascript:exp1060_editEmployeeId(" + value + ',' + exp1060_current_company_id + ")\">${l:EXP_EMPLOYEE_ASSIGNS.EMPLOYEES_ASSIGN_ID}</a>";
+                } else {
+                    return '';
+                }
+            }
+            
+            function exp1060_editEmployeeId(expense_user_group_id, company_id) {
+                new Aurora.Window({
+                    id: 'exp1060_employee_group_assign',
+                    url: $('exp1060_exp_employee_group_relations_link').getUrl() + '?expense_user_group_id=' + expense_user_group_id + "&company_id=" + company_id,
+                    title: '${l:EXP_EMPLOYEE_GROUP.INFO}',
+                    height: 440,
+                    width: 525
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="exp1060_assign_company_ds" loadData="true" model="public.fnd_assign_company_list"/>
+            <!-- <a:dataSet id="responsibility_center_ds" autoCount="false" fetchAll="true" loadData="true" model="fnd.EXP1060.fnd_responsibility_centers_select"/> -->
+            <a:dataSet id="exp1060_exp_employee_group_query_ds" model="exp.EXP1060.exp_user_group_headers">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@default_company_id}"/>
+                    <a:field name="company_desc" defaultValue="${/session/@default_company_desc}" displayField="company_desc" options="exp1060_assign_company_ds" required="true" returnField="company_id" valueField="company_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="exp1060_exp_employee_group_result_ds" autoCount="true" autoPageSize="true" autoQuery="false" fetchAll="false" model="exp.EXP1060.exp_user_group_headers" queryDataSet="exp1060_exp_employee_group_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="expense_user_group_code" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <!-- <a:field name="responsibility_center_name" displayField="responsibility_center_name" options="responsibility_center_ds" returnField="responsibility_center_id" valueField="responsibility_center_id"/> -->
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" unCheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="exp1060_result_add"/>
+                    <a:event name="query" handler="exp1060_result_query"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="exp1060_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="exp1060_grid" type="save" width="100"/>
+                <a:gridButton bind="exp1060_grid" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="exp1060_exp_employee_group_query_ds" resultTarget="exp1060_exp_employee_group_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox>
+                        <a:textField name="expense_user_group_code" bindTarget="exp1060_exp_employee_group_query_ds" prompt="EXP_USER_GROUP_HEADERS.GROUP_CODE" typeCase="upper">
+                            <a:events>
+                                <a:event name="enterdown" handler="exp1060Query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="description" bindTarget="exp1060_exp_employee_group_query_ds" prompt="EXP_USER_GROUP_HEADERS.GROUP_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="exp1060Query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="company_desc" bindTarget="exp1060_exp_employee_group_query_ds" prompt="FND_COMPANIES.COMPANY">
+                            <a:events>
+                                <a:event name="enterdown" handler="exp1060Query"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="exp1060_grid" bindTarget="exp1060_exp_employee_group_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="expense_user_group_code" align="center" editorFunction="exp1060_codeEditor" prompt="EXP_EMPLOYEE_GROUP.EXPENSE_USER_GROUP_CODE" sortable="true" width="100"/>
+                    <a:column name="description" editor="exp1060_employee_group_grid_tf" prompt="EXP_EMPLOYEE_GROUP.EXPENSE_USER_GROUP_DESC" width="200"/>
+                    <a:column name="company_desc" align="center" prompt="FND_COMPANIES.COMPANY" width="250"/>
+                    <!-- <a:column name="responsibility_center_name" align="center" editor="exp1060_employee_group_grid_cBox" prompt="FND_RESPONSIBILITY_CENTERS.RESPONSIBILITY_CENTER_NAME" width="200"/> -->
+                    <a:column name="enabled_flag" editor="exp1060_employee_group_grid_cb" prompt="EXP_ORG_UNIT_TYPES.ENABLED_FLAG" width="80"/>
+                    <a:column name="expense_user_group_id" align="center" prompt="EXP_EMPLOYEE.EMPLOYEE_ASSIGN" renderer="exp1060_editRenderer" width="150"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="exp1060_employee_group_grid_tf"/>
+                    <a:textField id="exp1060_employee_group_grid_upper_tf" typeCase="upper"/>
+                    <a:checkBox id="exp1060_employee_group_grid_cb"/>
+                    <a:comboBox id="exp1060_employee_group_grid_cBox"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

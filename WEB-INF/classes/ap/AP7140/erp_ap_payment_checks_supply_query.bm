@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangcheng6595
+    $Date: 2014/10/11 15:37:59
+    $Revision: 1.0 
+    $Purpose: ERP付款查询BM-供应方
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        t1.check_id,
+                        t1.check_number,
+                        t1.vendor_id,
+                        t1.vendor_site_id,
+                        t1.business_unit_id,
+                        c.business_unit_name,
+                        (SELECT
+                            bu.company_id
+                        FROM
+                            fnd_business_units_vl bu
+                        WHERE
+                            bu.business_unit_id = t1.business_unit_id
+                        ) owner_company_id,
+                        (select fc.company_full_name from fnd_business_units_vl bu,fnd_companies_vl fc where bu.company_id=fc.company_id and bu.business_unit_id=t1.business_unit_id) company_full_name,
+                        pvl.full_name AS vendor_full_name,
+                        pvsv.display_site_code AS vendor_site_code,
+                        pvsv.site_name,
+                        TO_CHAR(t1.check_date, 'yyyy-mm-dd') check_date,
+                        t1.currency_code,
+                        (SELECT
+                            DECODE(NVL(t1.amount, 0) - SUM(NVL(a.invoice_amount, 0)), 0, 'Y', NVL(t1.amount, 0), 'N', 'P')
+                        FROM
+                            erp_ap_invoice_headers a,
+                            erp_ap_invoice_payments b
+                        WHERE
+                            a.invoice_id = b.invoice_id AND
+                            b.check_id   = t1.check_id
+                        ) AS payment_status_flag,
+                        t1.amount,
+                        (SELECT
+                            SUM(t3.discount_taken)
+                        FROM
+                            erp_ap_invoice_payments t3
+                        WHERE
+                            t1.check_id = t3.check_id
+                        ) AS discount_taken_sum,
+                        t1.payment_method,
+                        t1.owner_business_group,
+                        t1.coop_business_group,
+                        t1.coop_company_id,
+                        null as useless_id_1,
+                        null as useless_id_2,
+                        null as useless_id_3,
+                        null as useless_id_4,
+                        null as useless_id_5,
+                        null as useless_id_6,
+                        null as useless_id_7,
+                        null as useless_id_8,
+                        null as useless_id_9,
+                        null as useless_id_10,
+                        null as useless_id_11,
+                        null as useless_id_12,
+                        null as useless_id_13
+                    FROM
+                        erp_ap_payment_checks t1,
+                        pur_vendors_vl pvl,
+                        pur_vendor_sites_vl pvsv,
+                        fnd_business_units_vl c
+                    WHERE
+                        t1.vendor_id            = pvl.vendor_id AND
+                        t1.vendor_site_id       = pvsv.vendor_site_id AND
+                        t1.business_unit_id     = c.business_unit_id AND
+                        pvl.coop_business_group = ${/session/@business_group}
+                    ) v #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="check_date_from" queryExpression="to_date(${@check_date},&apos;YYYY-MM-DD&apos;) &gt;= to_date(${@check_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="check_date_to" queryExpression="to_date(${@check_date},&apos;YYYY-MM-DD&apos;) &lt;= to_date(${@check_date_to},&apos;YYYY-MM-DD&apos;)"/>
+        <!-- <bm:query-field name="check_number_from" queryExpression="check_number &gt;=${@check_number_from}" />
+        <bm:query-field name="check_number_to" queryExpression="check_number &lt;=${@check_number_to}" /> -->
+        <bm:query-field name="check_number" queryExpression="check_number like &apos;%&apos;||${@check_number}||&apos;%&apos;"/>
+        <bm:query-field name="business_unit_id" queryExpression="business_unit_id =${@business_unit_id}"/>
+        <bm:query-field name="vendor_id" queryExpression="vendor_id =${@vendor_id}"/>
+        <bm:query-field name="vendor_site_id" queryExpression="vendor_site_id =${@vendor_site_id}"/>
+        <bm:query-field name="payment_status_flag" queryExpression="payment_status_flag =${@payment_status_flag}"/>
+        <bm:query-field name="check_id" queryExpression="check_id =${@check_id}"/>
+        <bm:query-field name="owner_company_id" queryExpression="owner_company_id =${@owner_company_id}"/>
+        <!-- <bm:query-field name="related_invoice" queryExpression="related_invoice =${@related_invoice}"/> -->
+        <bm:query-field name="invoice_id" queryExpression="EXISTS (SELECT 1 FROM erp_ap_invoice_payments eaip WHERE eaip.check_id=check_id and eaip.invoice_id = ${@invoice_id} )"/>
+        <bm:query-field name="related_invoice" queryExpression="check_id in (SELECT eaip.check_id FROM erp_ap_invoice_payments eaip,erp_ap_invoice_headers eail WHERE eaip.invoice_id=eail.invoice_id AND eail.invoice_num like &apos;%&apos;||${@related_invoice}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority foundation_code="AP_INVOICE">
+        <authority-segment source_alias="v" source_name="useless_id_1" type="CREATER"/>
+        <authority-segment source_alias="v" source_name="useless_id_2" type="RECEIVER"/>
+        <authority-segment source_alias="v" source_name="useless_id_3" type="COMPANY"/>
+        <authority-segment source_alias="v" source_name="useless_id_4" type="BUSINESS_UNIT"/>
+        <authority-segment source_alias="v" source_name="useless_id_5" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_6" type="PUR_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_7" type="SD_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_8" type="CLIENT"/>
+        <authority-segment source_alias="v" source_name="useless_id_9" type="VENDOR"/>
+        <authority-segment source_alias="v" source_name="useless_id_10" type="PURHASE_MATERIAL"/>
+        <authority-segment source_alias="v" source_name="useless_id_11" type="SALES_PRODUCTION"/>
+        <authority-segment source_alias="v" source_name="useless_id_12" type="VENDOR_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id_13" type="CLIENT_SITE"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+            var cx = Packages.aurora.javascript.Context.getCurrentContext();
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

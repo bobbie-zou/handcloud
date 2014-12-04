@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qiuhaowen4053 $
+    $Date: 2013/06/25 08:24:55 $
+    $Revision: 1.4 $
+    $Purpose: 单据合并规则明细
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="t1.merge_rule_id = ${/parameter/@merge_rule_id}" fetchAll="true" model="fnd.FND6010.fnd_merge_rule_details" rootPath="merge_rule_info"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function fnd6010_merge_rule_details_returnback() {
+                if ($('fnd6010_merge_rule_details_ds').isModified()) {
+                    Aurora.showConfirm('${l:PROMPT_MESSAGE}', '${l:SYS_PROMPT.MODIFIED_WINDOW_CLOSE_CONFIRM}', function() {
+                        $('fnd6010_merge_rule_details_window').close();
+                    });
+                } else {
+                    $('fnd6010_merge_rule_details_window').close();
+                }
+            }
+            
+            function fnd6010_merge_rule_details_getLength(str) {
+                if (!Aurora.isEmpty(str)) {
+                    var realLength = 0,
+                        len = str.length,
+                        charCode = -1;
+                    for (var i = 0;i < len;i++) {
+                        charCode = str.charCodeAt(i);
+                        if (charCode >= 0 && charCode <= 128) {
+                            realLength += 1;
+                        } else {
+                            realLength += 3;
+                        }
+                    }
+                    return realLength;
+                }
+                return 0;
+            }
+            
+            function fnd6010_mergeRuleDetailsValidator(record, name, value) {
+                if (name == 'comments') {
+                    if (fnd6010_merge_rule_details_getLength(value) > 2000) {
+                        return '${l:FND6010.MERGE_RULE_DETAILS_COMMENTS_OVERLENGTH}';
+                    }
+                }
+                return true;
+            }
+            
+            
+            function fnd6010_mergeRuleDetailsEditor(record, name) {
+                if (name == 'dimension_name') {
+                    if (record.isNew) {
+                        return 'fnd6010_dimension_grid_cbm';
+                    } else {
+                        return '';
+                    }
+                }else if (name == 'enabled_flag') {
+                    if (record.isNew||record.get('unchange_flag')!='Y') {
+                        return 'fnd6010_enabled_flag_grid_cb';
+                    } else {
+                        return '';
+                    }
+                }
+            }
+            
+            //触发保存成功事件
+            function fnd6010_mergeRuleDetails_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd6010_merge_rule_details_dimension_ds" lookupCode="FND_DOCUMENT_MERGE_RULE_DIMENSION"/>
+            <a:dataSet id="fnd6010_merge_rule_header_ds" model="fnd.FND6010.fnd_document_merge_rules">
+                <a:datas dataSource="/model/merge_rule_info"/>
+                <a:fields>
+                    <a:field name="merge_rule_id"/>
+                    <a:field name="merge_rule_name" readOnly="true"/>
+                    <a:field name="company_short_name" readOnly="true"/>
+                    <a:field name="company_full_name" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd6010_merge_rule_details_ds" autoPageSize="true" autoQuery="true" model="fnd.FND6010.fnd_merge_rule_details" queryDataSet="fnd6010_merge_rule_header_ds" selectable="true">
+                <a:fields>
+                    <a:field name="merge_rule_id" defaultValue="${/parameter/@merge_rule_id}" required="true"/>
+                    <a:field name="dimension_code" required="true"/>
+                    <a:field name="dimension_name" displayField="code_value_name" options="fnd6010_merge_rule_details_dimension_ds" required="true" returnField="dimension_code" valueField="code_value"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="comments" validator="fnd6010_mergeRuleDetailsValidator"/>
+                    <a:field name="unchange_flag"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="fnd6010_mergeRuleDetails_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton id="fnd6010_merge_rule_details_grid_addButton" bind="fnd6010_merge_rule_details_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton id="fnd6010_merge_rule_details_grid_saveButton" bind="fnd6010_merge_rule_details_grid" style="margin-left:20px;" type="save" width="100"/>
+                <a:gridButton id="fnd6010_merge_rule_details_grid_clearButton" bind="fnd6010_merge_rule_details_grid" style="margin-left:20px;" type="clear" width="100"/>
+                <a:gridButton click="fnd6010_merge_rule_details_returnback" text="HAP_BACK" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="120">
+                <a:label name="merge_rule_name" bindTarget="fnd6010_merge_rule_header_ds"/>
+                <a:label name="company_short_name" bindTarget="fnd6010_merge_rule_header_ds"/>
+                <a:label name="company_full_name" bindTarget="fnd6010_merge_rule_header_ds"/>
+            </a:hBox>
+            <a:grid id="fnd6010_merge_rule_details_grid" bindTarget="fnd6010_merge_rule_details_ds" marginHeight="258" marginWidth="765" navBar="true">
+                <a:columns>
+                    <a:column name="dimension_name" editorFunction="fnd6010_mergeRuleDetailsEditor" prompt="FND_DOCUMENT_MERGE_DETAILS.DIMENSION_NAME" width="220"/>
+                    <a:column name="comments" editor="fnd6010_text_grid_tf" width="400"/>
+                    <a:column name="enabled_flag" editorFunction="fnd6010_mergeRuleDetailsEditor" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:comboBox id="fnd6010_dimension_grid_cbm"/>
+                    <a:textField id="fnd6010_text_grid_tf"/>
+                    <a:checkBox id="fnd6010_enabled_flag_grid_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

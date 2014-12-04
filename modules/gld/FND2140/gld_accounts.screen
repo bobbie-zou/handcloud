@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang3816 $
+    $Date: 2013/06/19 07:08:54 $
+    $Revision: 1.2 $
+    $Purpose: 科目定义-明细
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="fnd2140_gld_account_company_assigned_batch_all_link" url="${/request/@context_path}/modules/gld/FND2140/gld_account_company_assigned_batch_all.screen"/>
+        <a:link id="fnd2140_gld_account_company_assigned_batch_tmp_control_link" url="${/request/@context_path}/modules/gld/FND2140/gld_account_company_assigned_batch_tmp_control.svc"/>
+        <a:link id="fnd2140_gld_account_hierarchy_details_link" url="${/request/@context_path}/modules/gld/public/gld_account_hierarchy_details.screen"/>
+        <a:link id="fnd2140_gld_company_accounts_link" url="${/request/@context_path}/modules/gld/FND2140/gld_company_accounts.screen"/>
+        <script><![CDATA[ 
+            function fnd2140_queryAccount(){
+                $('fnd2140_gld_accounts_result_ds').query();
+            }
+    
+            function fnd2140_accountCodeEdit(record,name){
+                if(record.isNew){
+                    return 'fnd2140_account_code_grid_tf'
+                }else{
+                    return '';
+                }
+            }
+            
+            function fnd2140_accountTypeEdit(record,name){
+                if(record.isNew){
+                    return 'fnd2140_account_type_display_grid_cmb';
+                }
+                return '';
+            }
+            
+            function fnd2140_appointCompany(value, record, name){
+           
+                var accountId = record.get('account_id');
+                var accountSetId = record.get('account_set_id');
+                if(accountId){
+                    record.set('id',accountId,true);
+                    return '<a href="javascript:fnd2140_appointCompanyInfo('+accountId+','+accountSetId+')">${l:GLD_ACCOUNTS.APPOINT_COMPANY}</a>';
+                }
+            }
+
+            function fnd2140_appointCompanyInfo(accountId,accountSetId){
+                new Aurora.Window({id:'fnd2140_ggld_company_accounts_window', url:/*gld_company_accounts.screen*/$('fnd2140_gld_company_accounts_link').getUrl()+'?account_id='+accountId+'&account_set_id='+accountSetId, title:'${l:GLD_ACCOUNTS.APPOINT_COMPANY}', height:469,width:500});
+            }
+            
+            function fnd2140_accountHierarchyDetails(value, record, name){
+                var accountId = record.get('account_id');
+                var accountSetId = record.get('account_set_id');
+                var summaryFlag = record.get('summary_flag');
+                if(accountId && summaryFlag == 'Y'){
+                    return '<a href="javascript:fnd2140_accountHierarchyDetailsInfo('+accountId+','+accountSetId+')">${l:GLD_ACCOUNTS.SUB_ACCOUNT}</a>';
+                }
+            }
+
+            function fnd2140_accountHierarchyDetailsInfo(accountId,accountSetId){
+                new Aurora.Window({id:'fnd2140_gld_account_hierarchy_details_window', url:/*gld_account_hierarchy_details.screen*/$('fnd2140_gld_account_hierarchy_details_link').getUrl()+'?account_id='+accountId+'&account_set_id='+accountSetId, title:'${l:GLD_ACCOUNTS.SUB_ACCOUNT}', height:469,width:550});
+            }
+            
+            function fnd2140_batchCompany(){
+                var dataSet = $('fnd2140_gld_accounts_result_ds');
+                //var validate = dataSet.validate();
+                
+                //获取已选中的record数据行，为Json格式。
+                var selectedRecords = dataSet.getJsonData(true);
+                
+                if(selectedRecords.length < 1){
+                     Aurora.showMessage('${l:PROMPT_MESSAGE}','${l:PROMPT.PLEASE_SELECT}',null,250,100);
+                     return false;
+                }
+                Aurora.request({url:/*gld_account_company_assigned_batch_tmp_control.svc*/$('fnd2140_gld_account_company_assigned_batch_tmp_control_link').getUrl(),
+                                para:selectedRecords,
+                                success:openW,
+                                scope:this
+                              });
+            }
+            
+            function fnd2140_openW(){
+                var appl_code = 'FND2140';
+                var submiturl = /*gld_account_company_assigned_batch_all.screen*/$('fnd2140_gld_account_company_assigned_batch_all_link').getUrl()+'?application_code='+appl_code+'&account_set_id='+ '${/parameter/@account_set_id}';
+                new Aurora.Window({id:'fnd2140_gld_account_company_window', url:submiturl, title:'${l:GLD_ACCOUNTS.SUBJECTS_DEFINED_APPOINT COMPANY}', height:469,width:500});
+            }
+            
+            function fnd2140_summaryFlagEdit(record,name){
+                if(record.isNew){
+                    return 'fnd2140_summary_flag_grid_ckeckbox';
+                }
+                return '';
+            }
+            
+            function fnd2140_setSummaryFlagDisabled(value, record, name){
+                if(!record.isNew){
+                    if(value == 'Y'){
+                        return '${l:HAP_YES}';
+                    }
+                    return '${l:HAP_NO}';
+                }
+            }
+            function fnd2140_setinitdata(ds,record,index){
+            
+               record.set('enabled_flag','Y');
+               record.set('account_set_id','${/parameter/@account_set_id}');
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2140_account_type_ds" lookupCode="ACCOUNT_TYPE"/>
+            <a:dataSet id="fnd2140_gld_account_sets_info_ds" loadData="true" model="gld.gld_account_sets">
+                <a:fields>
+                    <a:field name="account_set_code" readOnly="true"/>
+                    <a:field name="account_set_name" readOnly="true"/>
+                    <a:field name="coa_structure_code" readOnly="true"/>
+                    <a:field name="description" readOnly="true"/>
+                    <a:field name="structure_format" readOnly="true"/>
+                    <a:field name="account_type_display" displayField="code_value_name" options="fnd2140_account_type_ds" returnField="account_type" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd2140_gld_accounts_query_ds">
+                <a:fields>
+                    <a:field name="account_type_display" displayField="code_value_name" options="fnd2140_account_type_ds" returnField="account_type" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd2140_gld_accounts_result_ds" autoQuery="true" fetchAll="false" model="gld.FND2140.gld_accounts" queryDataSet="fnd2140_gld_accounts_query_ds" queryUrl="${/request/@context_path}/autocrud/gld.FND2140.gld_accounts/query?ORDER_FIELD=account_code&amp;account_set_id=${/parameter/@account_set_id}" selectable="true" submitUrl="${/request/@context_path}/autocrud/gld.FND2140.gld_accounts_save_update/batch_update">
+                <a:fields>
+                    <a:field name="account_set_id"/>
+                    <a:field name="account_code" required="true"/>
+                    <a:field name="account_description" required="true"/>
+                    <a:field name="summary_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="account_type_display" displayField="code_value_name" options="fnd2140_account_type_ds" required="true" returnField="account_type" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="fnd2140_setinitdata"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:hBox/>
+            <a:form column="1" labelWidth="100" title="GLD_ACCOUNTS_DETAIL" width="700">
+                <a:hBox>
+                    <a:textField name="account_set_code" bindTarget="fnd2140_gld_account_sets_info_ds"/>
+                    <a:textField name="account_set_name" bindTarget="fnd2140_gld_account_sets_info_ds"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:textField name="coa_structure_code" bindTarget="fnd2140_gld_account_sets_info_ds"/>
+                    <a:textField name="description" bindTarget="fnd2140_gld_account_sets_info_ds"/>
+                    <a:textField name="structure_format" bindTarget="fnd2140_gld_account_sets_info_ds" prompt="GLD_COA_STRUCTURE.STRUCTURE_FORMAT"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:textField name="account_code" bindTarget="fnd2140_gld_accounts_query_ds" prompt="GLD_ACCOUNTS.ACCOUNT_CODE" typeCase="upper">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd2140_queryAccount"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="account_description" bindTarget="fnd2140_gld_accounts_query_ds" prompt="GLD_ACCOUNT.ACC_DESC">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd2140_queryAccount"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="account_type_display" bindTarget="fnd2140_gld_accounts_query_ds" prompt="GLD_ACCOUNTS.ACCOUNT_TYPE"/>
+                </a:hBox>
+            </a:form>
+            <a:hBox>
+                <a:button click="fnd2140_queryAccount" text="HAP_QUERY"/>
+                <a:button click="fnd2140_batchCompany" text="GLD_ACCOUNTS.BATCH_ASSIGN_COMPANY"/>
+            </a:hBox>
+            <a:grid bindTarget="fnd2140_gld_accounts_result_ds" height="330" navBar="true" width="730">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="save"/>
+                    <a:button type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="account_code" editorFunction="fnd2140_accountCodeEdit" sortable="true" width="120"/>
+                    <a:column name="account_description" editor="fnd2140_account_discription_grid_tf" width="150"/>
+                    <a:column name="account_type_display" align="center" editorFunction="fnd2140_accountTypeEdit" width="100"/>
+                    <a:column name="enabled_flag" editor="fnd2140_enabled_flag_grid_ckeckbox" width="80"/>
+                    <a:column name="summary_flag" align="center" editorFunction="fnd2140_summaryFlagEdit" renderer="fnd2140_setSummaryFlagDisabled" width="80"/>
+                    <a:column name="account_id" align="center" prompt="GLD_ACCOUNTS.APPOINT_COMPANY" renderer="fnd2140_appointCompany" width="70"/>
+                    <a:column name="id" align="center" prompt="GLD_ACCOUNTS.SUB_ACCOUNT" renderer="fnd2140_accountHierarchyDetails" width="70"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd2140_account_code_grid_tf" typeCase="upper"/>
+                    <a:textField id="fnd2140_account_discription_grid_tf"/>
+                    <a:comboBox id="fnd2140_account_type_display_grid_cmb"/>
+                    <a:checkBox id="fnd2140_enabled_flag_grid_ckeckbox"/>
+                    <a:checkBox id="fnd2140_summary_flag_grid_ckeckbox"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

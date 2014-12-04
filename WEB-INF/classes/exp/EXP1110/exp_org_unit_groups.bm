@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:query-fields>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+        <bm:query-field name="unit_group_id" queryExpression="unit_group_id = ${@unit_group_id}"/>
+        <bm:query-field name="unit_group_code" queryExpression="unit_group_code like &apos;%&apos;||${@unit_group_code}||&apos;%&apos;"/>
+        <bm:query-field name="unit_group_desc" queryExpression="unit_group_desc like &apos;%&apos;||${@unit_group_desc}||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        unit_group_id,
+                        unit_group_code,
+                        description unit_group_desc,
+                        company_id,
+                        enabled_flag,
+                        creation_date,
+                        created_by,
+                        last_update_date,
+                        last_updated_by,
+                        client,
+                        data_source,
+                        data_source_id,
+                        data_source_code,
+                        data_source_name
+                    FROM
+                        exp_org_unit_groups_vl e
+                    ) v #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+                BEGIN
+  exp_org_unit_groups_pkg.create_unit_groups_h(p_unit_group_id   => ${@unit_group_id},
+                                               p_unit_group_code => ${@unit_group_code},
+                                               p_description     => ${@unit_group_desc},
+                                               p_company_id      => ${@company_id},
+                                               p_enabled_flag    => ${@enabled_flag},
+                                               p_user_id         => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+  exp_org_unit_groups_pkg.modify_unit_groups_h(p_unit_group_code => ${@unit_group_code},
+                                               p_description     => ${@unit_group_desc},
+                                               p_company_id      => ${@company_id},
+                                               p_enabled_flag    => ${@enabled_flag},
+                                               p_user_id         => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority client_alias="v" client_name="client">
+        <authority-segment source_alias="v" source_name="company_id" type="COMPANY"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

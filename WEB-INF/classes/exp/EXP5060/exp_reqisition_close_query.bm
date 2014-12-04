@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Robin  
+    $Date: 2011-6-14 下午02:35:04  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select * from (
+   select s.exp_requisition_header_id,
+   to_char(sysdate,'yyyy-mm-dd') closed_date ,
+       s.exp_requisition_number,
+       s.exp_requisition_barcode,
+       s.company_id,
+       s.reversed_flag,
+       s.audit_flag,
+       
+       s.employee_id,
+       (select employee_code
+          from exp_employees es
+         where es.employee_id = s.employee_id) employee_code,
+       (select name
+          from exp_employees es
+         where es.employee_id = s.employee_id) employee_name,
+       s.payee_category,
+       (  select code_value_name
+    from sys_code_values_vl b, sys_codes a
+   where b.code_id = a.code_id
+     and a.code = 'PAYMENT_OBJECT'
+     and code_value=s.payee_category) payee_category_name,
+       s.payee_id,
+       decode (s.PAYEE_CATEGORY,'EMPLOYEE' ,
+       (select employee_code||' - '||name  from  exp_employees ee where ee.employee_id=s.payee_id),
+       'CUSTOMER',
+       (select vc.CUSTOMER_CODE||' - '||vc.DESCRIPTION from ord_system_customers_vl vc where vc.CUSTOMER_ID=s.payee_id ),
+       ( select vv.VENDER_CODE||' - '||vv.DESCRIPTION from pur_system_venders_vl vv where vv.VENDER_ID=s.payee_id ))  payee_name,
+       s.currency_code,
+       (select currency_name from gld_currency_vl gcv where gcv.currency_code = s.currency_code) currency_name,
+       s.exchange_rate_type,
+       s.exchange_rate_quotation,
+       (select sum(t.requisition_amount)
+          from exp_requisition_lines t
+         where t.exp_requisition_header_id = s.exp_requisition_header_id) quarter_num,
+       (select sum(t.requisition_functional_amount)
+          from exp_requisition_lines t
+         where t.exp_requisition_header_id = s.exp_requisition_header_id) quarter_num_fun,
+       s.period_name,
+       s.released_status,
+       s.je_creation_status,
+       s.gld_interface_flag,
+       s.created_by,
+       s.creation_date,
+       s.last_updated_by,
+       s.last_update_date,
+       to_char(s.requisition_date, 'YYYY-MM-DD') requisition_date,
+       s.exp_requisition_type_id,
+       (select erpv.DESCRIPTION
+          from exp_expense_req_types_vl erpv
+         where erpv.EXPENSE_REQUISITION_TYPE_ID = s.exp_requisition_type_id) type_description,
+       (select erpv.EXPENSE_REQUISITION_TYPE_CODE
+          from exp_expense_req_types_vl erpv
+         where erpv.EXPENSE_REQUISITION_TYPE_ID = s.exp_requisition_type_id) type_code,
+       s.description,
+       s.requisition_status requisition_status_value,
+       (select b.code_value_name
+          from sys_codes_vl a, sys_code_values_vl b
+         where a.code_id = b.code_id
+           and a.code = 'EXP_EXPENSE_REPORT_STATUS'
+           and b.code_value = s.requisition_status) requisition_status,
+           ( select nvl(sum(sst.released_amount),0)  from exp_requisition_dists  sst,exp_requisition_lines st
+  where sst.exp_requisition_line_id=st.exp_requisition_line_id
+  and  st.exp_requisition_header_id=s.exp_requisition_header_id) released_amount_all,
+  
+        (select NVL(sum(r.req_release_amount),0)
+  from exp_requisition_release r, exp_report_headers h
+ where r.document_type = 'EXP_REPORT'
+   and r.document_id = h.exp_report_header_id
+   and r.exp_requisition_header_id = s.exp_requisition_header_id) reimbursed_num,
+        
+        (select NVL(sum(r.req_release_amount),0)
+  from exp_requisition_release r, exp_report_headers h
+ where r.document_type = 'EXP_REPORT'
+   and r.document_id = h.exp_report_header_id
+   and r.exp_requisition_header_id = s.exp_requisition_header_id
+   and h.audit_flag = 'Y')    reimbursed_adu_num,
+   
+   ( select nvl(sum(sst.requisition_amount),0)  
+   from exp_requisition_dists  sst,exp_requisition_lines st
+  where sst.exp_requisition_line_id=st.exp_requisition_line_id
+  and  st.exp_requisition_header_id=s.exp_requisition_header_id)  dist_num
+  
+  from exp_requisition_headers s) v 
+        
+	
+		#WHERE_CLAUSE# ORDER BY v.exp_requisition_number desc]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        		begin
+			exp_requisition_pkg.close_exp_requisition(${@exp_requisition_header_id},
+													  '',
+													  to_date(${@closed_date},'yyyy-mm-dd'),
+													  ${/session/@user_id});
+                                 
+			end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="payee_category_code" dataType="java.lang.String" queryExpression="payee_category=${@payee_category_code}"/>
+        <bm:query-field name="payee_id" dataType="java.lang.Long" queryExpression="payee_id=${@payee_id}"/>
+        <bm:query-field name="currency_code" dataType="java.lang.String" queryExpression="currency_code=${@currency_code}"/>
+        <bm:query-field name="requisition_amount_from" dataType="java.lang.Long" queryExpression="  (select sum(t.requisition_amount)                    from exp_requisition_lines t                   where t.exp_requisition_header_id = v.exp_requisition_header_id)&gt;=${@requisition_amount_from}"/>
+        <bm:query-field name="requisition_amount_to" dataType="java.lang.Long" queryExpression="  (select sum(t.requisition_amount)                    from exp_requisition_lines t                   where t.exp_requisition_header_id = v.exp_requisition_header_id)&lt;=${@requisition_amount_to}"/>
+        <bm:query-field name="requesition_date_from" dataType="java.lang.String" queryExpression="requisition_date &gt;= ${@requesition_date_from}"/>
+        <bm:query-field name="requesition_date_to" dataType="java.lang.String" queryExpression="requisition_date &lt;= ${@requesition_date_to}"/>
+        <bm:query-field name="type_item_id" dataType="java.lang.Long" queryExpression="exp_requisition_type_id = ${@type_item_id}"/>
+        <bm:query-field name="employee_id" dataType="java.lang.Long" queryExpression="employee_id = ${@employee_id}"/>
+        <bm:query-field name="requesition_num" dataType="java.lang.String" queryExpression="exp_requisition_number like &apos;%&apos;||${@requesition_num}||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter name="filter" enforceOperations="query" expression="                              v.company_id = ${/session/@company_id}             and sys_user_secure_exit_pkg.exp_requsition_closed(v.exp_requisition_header_id,${/session/@session_id})=&apos;Y&apos;                   and (v.reversed_flag=&apos;N&apos; or v.reversed_flag is null)                   and v.audit_flag = &apos;Y&apos;                   and v.requisition_status_value = &apos;COMPLETELY_APPROVED&apos;                   and (exists(select 1             from exp_requisition_dists t,                  exp_requisition_lines l             where t.exp_requisition_line_id = l.exp_requisition_line_id             and (t.close_flag is null or t.close_flag=&apos;N&apos;)             and l.exp_requisition_header_id =v.exp_requisition_header_id                 and exp_document_authorities_pkg.exist_exp_doc_authorities(&apos;01&apos;,                                                                                (select employee_id                                                                                   from sys_user                                                                                  where user_id = ${/session/@user_id}),                                                                                t.employee_id,                                                                                nvl(${@authority},&apos;QUERY&apos;),                                                                                ${/session/@user_id}) = &apos;Y&apos;                                                                                ))                    and decode(${@authority},null,0,1)=decode(${@authority},null,0,decode(requisition_status_value,&apos;GENERATE&apos;,1,&apos;REJECTED&apos;,1,&apos;TAKEN_BACK&apos;,1,0))                        and ((decode(${@reimburse_status},&apos;PARTLY&apos;,V.DIST_NUM,&apos;COMPLETELY&apos;,V.REIMBURSED_NUM,&apos;PARTLY_AUDIT&apos;,V.DIST_NUM,&apos;COMPLETELY_AUDIT&apos;,V.REIMBURSED_ADU_NUM,0) &gt;                         decode(${@reimburse_status},&apos;PARTLY&apos;,V.REIMBURSED_NUM,&apos;COMPLETELY&apos;,V.DIST_NUM,&apos;PARTLY_AUDIT&apos;,V.REIMBURSED_ADU_NUM,&apos;COMPLETELY_AUDIT&apos;,V.DIST_NUM,0)                             and (decode(${@reimburse_status},&apos;PARTLY&apos;,V.REIMBURSED_NUM,&apos;PARTLY_AUDIT&apos;,V.REIMBURSED_ADU_NUM,1)) &gt; 0                            )                         or                                      (decode(${@reimburse_status},&apos;COMPLETELY&apos;,V.REIMBURSED_NUM,&apos;COMPLETELY_AUDIT&apos;,V.REIMBURSED_ADU_NUM,&apos;PARTLY&apos;,1,&apos;PARTLY_AUDIT&apos;,1,0)=                               decode(${@reimburse_status},&apos;COMPLETELY&apos;,V.DIST_NUM,&apos;COMPLETELY_AUDIT&apos;,V.DIST_NUM,&apos;PARTLY&apos;,0,&apos;PARTLY_AUDIT&apos;,0,0)))                              "/>
+    </bm:data-filters>
+</bm:model>

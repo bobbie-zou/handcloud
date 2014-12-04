@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2012-9-25 下午2:05:23  
+    $Revision: 1.0  
+    $Purpose: 库存期间控制
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <!-- <a:init-procedure>
+        <a:model-query fetchAll="true" model="fnd.FND2130.inv_period_set_code_list" queryOrderBy="period_set_code" rootPath="period_set_code_list"/>
+    </a:init-procedure> -->
+    <a:view>
+        <a:link id="fnd2130_open_inv_period_link" model="db.inv_period_pkg.open_inv_period" modelaction="execute"/>
+        <a:link id="fnd2130_close_inv_period_link" model="db.inv_period_pkg.close_inv_period" modelaction="execute"/>
+        <script><![CDATA[
+            var fnd2130_current_inv_id = '${/session/@default_inv_organization_id}';
+            var fnd2130_current_inv_desc = '${/session/@default_inv_organization_desc}';
+            
+            function fnd2130_result_query(ds) {
+                fnd2130_current_inv_id = $('fnd2130_query_ds').getAt(0).get('inv_organization_id');
+                fnd2130_current_inv_desc = $('fnd2130_query_ds').getAt(0).get('inv_organization_name');
+            }
+            
+            
+            function fnd2130_result_add(ds, record, index) {
+                record.set('inv_organization_id', fnd2130_current_inv_id);
+                record.set('inv_organization_name', fnd2130_current_inv_desc);
+            }
+            
+            function fnd2130_open_inv_period() {
+                var records = $('fnd2130_result_ds').getSelected();
+                if (!Aurora.isEmpty(records)) {
+                    var periodName = records[0].get('period_name');
+                    var invOrganizationId = $('fnd2130_query_ds').getAt(0).get('inv_organization_id');
+                    Aurora.request({
+                        url: $('fnd2130_open_inv_period_link').getUrl(),
+                        para: {
+                            period_name: periodName,
+                            inv_organization_id: invOrganizationId
+                        },
+                        success: function(args) {
+                            $('fnd2130_result_ds').query();
+                        },
+                        scope: this
+                    });
+                } else {
+                    Aurora.showMessage('${l:PROMPT}', '${l:INV_PERIOD.CHOOSE_PERIOD_FOR_OPEN}');
+                }
+            }
+            
+            function fnd2130_close_inv_period() {
+                var records = $('fnd2130_result_ds').getSelected();
+                if (!Aurora.isEmpty(records)) {
+                    var periodName = records[0].get('period_name');
+                    var invOrganizationId = $('fnd2130_query_ds').getAt(0).get('inv_organization_id');
+                    Aurora.request({
+                        url: $('fnd2130_close_inv_period_link').getUrl(),
+                        para: {
+                            period_name: periodName,
+                            inv_organization_id: invOrganizationId
+                        },
+                        success: function(args) {
+                            $('fnd2130_result_ds').query();
+                        },
+                        scope: this
+                    });
+                } else {
+                    Aurora.showMessage('${l:PROMPT}', '${l:INV_PERIOD.CHOOSE_PERIOD_FOR_CLOSE}');
+                }
+            }
+            
+            function fnd2130_query_ds_upate(ds, record, name, value, oldValue) {
+                if (name == 'company_id') {
+                    record.set('period_set_code', null);
+                    $('fnd2130_period_set_code_ds').setQueryParameter('company_id', value);
+                    $('fnd2130_period_set_code_ds').query();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2130_period_set_code_ds" fetchAll="true" model="fnd.FND2130.inv_period_set_code_list"/>
+            <a:dataSet id="fnd2130_query_ds">
+                <a:fields>
+                    <a:field name="inv_organization_id"/>
+                    <a:field name="inv_organization_name" autoComplete="true" autoCompleteField="code_name" lovHeight="530" lovService="public.inv_organizations_lov" lovWidth="600" required="true" title="库存组织">
+                        <a:mapping>
+                            <a:map from="organization_id" to="inv_organization_id"/>
+                            <a:map from="organization_name" to="inv_organization_name"/>
+                            <a:map from="company_id" to="company_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_id"/>
+                    <a:field name="period_set_code" displayField="period_set_code" options="fnd2130_period_set_code_ds" required="true">
+                        <a:mapping>
+                            <a:map from="period_set_code" to="period_set_code"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd2130_query_ds_upate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd2130_result_ds" autoPageSize="true" autoQuery="false" model="fnd.FND2130.inv_period_status" pageSize="15" queryDataSet="fnd2130_query_ds" selectable="true" selectionModel="radio">
+                <a:fields>
+                    <a:field name="period_name"/>
+                    <a:field name="internal_period_num"/>
+                    <a:field name="start_date"/>
+                    <a:field name="end_date"/>
+                    <a:field name="quarter_num"/>
+                    <a:field name="period_status_code"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="fnd2130_result_query"/>
+                    <a:event name="add" handler="fnd2130_result_add"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton id="fnd2130_open_inv_button" click="fnd2130_open_inv_period" style="margin-left:5px;" text="INV_PERIOD.OPEN_INV_PERIOD" width="100"/>
+            <a:toolbarButton id="fnd2130_close_inv_button" click="fnd2130_close_inv_period" style="margin-left:5px;" text="INV_PERIOD.CLOSE_INV_PERIOD" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="fnd2130_query_form" bindTarget="fnd2130_query_ds" resultTarget="fnd2130_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox>
+                    <a:lov name="inv_organization_name" prompt="INV_ORGANIZATIONS.INV_ORGANIZATION" width="300"/>
+                    <a:comboBox name="period_set_code" prompt="GLD_PERIODS.ACCOUNTING_PERIOD" width="300"/>
+                </a:hBox>
+            </a:formToolBar>
+        </a:queryForm>
+        <a:grid id="fnd2130_grid" autoAppend="false" bindTarget="fnd2130_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="period_name" align="center" prompt="INV_PERIOD.PERIOD_NAME" width="160"/>
+                <a:column name="quarter_num" align="center" prompt="INV_PERIOD.QUARTER_NUM" width="100"/>
+                <a:column name="start_date" align="center" prompt="INV_PERIOD.START_DATE" renderer="Aurora.formatDate" width="180"/>
+                <a:column name="end_date" align="center" prompt="INV_PERIOD.END_DATE" width="180"/>
+                <a:column name="period_status_code" align="center" prompt="INV_PERIOD.PERIOD_STATUS_CODE" width="160"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

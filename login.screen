@@ -1,0 +1,607 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangqiaosen3207 $
+    $Date: 2014/01/03 08:10:10 $
+    $Revision: 1.20 $
+    $Purpose: 登陆界面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="sys.SYSLOGIN.wfl_pur_price_all" rootPath="sysLogin_price_all"/>
+        <a:model-query model="sys.SYSLOGIN.sys_pur_amount_all" rootPath="sysLogin_amount_all"/>
+        <a:model-query model="sys.SYSLOGIN.sys_pur_login_all" rootPath="sysLogin_login_all"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="role_select_link_2" url="${/request/@context_path}/role_select.screen"/>
+        <a:link id="password_expired_update_link" url="${/request/@context_path}/password_expired_update.screen"/>
+        <a:link id="login_link_4" url="${/request/@context_path}/login.svc"/>
+        <a:link id="login_ipad_link" url="${/request/@context_path}/login_ipad.screen"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/boostrapv3/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+        <!-- <link href="${/request/@context_path}/mainpage_facility/plugins/boostrapv3/css/bootstrap-theme.min.css" rel="stylesheet" type="text/css"/> -->
+        <link href="${/request/@context_path}/mainpage_facility/plugins/font-awesome/css/font-awesome.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/powerpoint.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/style.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/main.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/login.css" rel="stylesheet" type="text/css"/>
+        <script src="http://cdn.bootcss.com/html5shiv/3.7.2/html5shiv.min.js"/>
+        <script src="http://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"/>
+        <a:link id="bulletin_details_link" url="${/request/@context_path}/modules/blt/BLT1010/blt_bulletin_details_no_login.screen"/>
+        <a:link id="show_more_bulletin_link" url="${/request/@context_path}/modules/blt/BLT1010/blt_more_bulletin_no_login.screen"/>
+        <a:link id="show_more_document_link" url="${/request/@context_path}/modules/public/blt_more_document_no_login.screen"/>
+        <a:link id="show_rfx_document_details_link" url="${/request/@context_path}/modules/public/pur_rfx_details.screen"/>
+        <a:link id="loading_link" url="${/request/@context_path}/loading.screen"/>
+        <a:dataSets>
+            <a:dataSet id="language_dataset">
+                <a:datas>
+                    <a:record name="简体中文" code="ZHS"/>
+                    <a:record name="English" code="US"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="login_dataset" autocreate="true">
+                <a:fields>
+                    <a:field name="user_name"/>
+                    <a:field name="user_password"/>
+                    <a:field name="language" defaultValue="简体中文" displayField="name" options="language_dataset" returnField="user_language" valueField="code"/>
+                    <a:field name="user_language" defaultValue="ZHS"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <script><![CDATA[
+            Aurora.Status.enable = false;
+            Aurora.SideBar.enable = false;
+            var login_flag = false;
+
+            var canGoToMainService = false;
+            
+            function deleteJSID() {
+                var date = new Date();
+                date.setTime(date.getTime() - 10000);
+                document.cookie = "JSID=; expires=" + date.toGMTString();
+            }
+            
+            var username;
+            try {
+                username = document.cookie.match(new RegExp("(^| )" + "USERNAME" + "=([^;]*)(;|$)"))[2] == undefined ? '' : document.cookie.match(new RegExp("(^| )" + "USERNAME" + "=([^;]*)(;|$)"))[2];
+            } catch (err) {
+                username = '';
+            }
+            var lang;
+            try {
+                lang = document.cookie.match(new RegExp("(^| )" + "LANG" + "=([^;]*)(;|$)"))[2] == undefined ? '' : document.cookie.match(new RegExp("(^| )" + "LANG" + "=([^;]*)(;|$)"))[2];
+            
+            } catch (err) {
+                lang = '';
+            }
+            
+            function openwin() {
+                var aw = window.screen.availWidth;
+                var ah = window.screen.availHeight;
+                popsizewin(0, 0, aw - 10, ah - 20, 1, 1);
+            }
+            
+            function popsizewin(tleft, ttop, twidth, theight, tscrollbar, tresizable) {
+                var jsid = Aurora.getCookie('JSID');
+                window._mainwin = window.open($('loading_link').getUrl() + location.search, jsid, "left=" + tleft + ",top=" + ttop + ",width=" + twidth + ",height=" + theight + ",status=0,toolbar=0,menubar=0,location=0,scrollbars=" + tscrollbar + ",resizable=" + tresizable, false);
+            }
+            
+            function login() {
+                //防止重复登录
+                if (login_flag) {
+                    return;
+                }
+                var ds = $('login_dataset');
+                var record = ds.getCurrentRecord();
+            
+                var user_name = document.getElementById('user_name').value;
+                var user_password = document.getElementById('user_password').value;
+            
+                record.set('user_name', user_name);
+                record.set('user_password', user_password);
+            
+                var login_msg_div = document.getElementById('login-msg-div');
+                var login_msg_span = document.getElementById('login-msg-span');
+                
+                login_msg_div.style.display = "none";
+                login_msg_span.innerHTML = '';
+            
+                login_flag = true;
+            
+                Aurora.request({
+                    url: $('login_link_4').getUrl(),
+                    para: record.data,
+                    success: function(res) {
+                        login_flag = false;
+                        document.getElementById('user_password').value = '';
+                        record.set('user_password', '');
+                        if (res.result['error_number'] == '0') {
+                            saveUserNameLang();
+                            canGoToMainService = true;
+                            // window.location.href = $('role_select_link_2').getUrl() + location.search;
+                            openwin();
+                        } else {
+                            // loginForm_shake();
+                            login_msg_div.style.display = "block";
+                            login_msg_span.innerHTML = res.result['message'];
+                        }
+                    },
+                    failure: function() {
+                        login_flag = false;
+                    },
+                    error: function() {
+                        login_flag = false;
+                    },
+                    scope: this
+                });
+            }
+            
+            function saveUserNameLang() {
+                var record = $('login_dataset').getAt(0);
+                var userName = record.get('user_name');
+                var lang = record.get('user_language');
+                Aurora.setCookie('USERNAME', userName, 30);
+                Aurora.setCookie('LANG', lang, 30);
+            }
+            
+            //iPAD下保存sessionId
+            
+            function saveSessionId() {
+                var jsid = Aurora.getCookie('JSID');
+                Aurora.setCookie('JSID', jsid, 9999);
+            }
+            
+            function init() {
+                Aurora.center('loginForm');
+                Aurora.get('loginForm').show();
+                var tf = $('user_name_tf');
+                setTimeout(function() {
+                    tf.focus();
+                }, 10);
+            }
+            
+            Aurora.manager.on('ajaxfailed', function(manager, url, para, res) {
+                if (res && res.error && res.error.code == 'img_code_error') {
+                    $('img_code').refresh();
+                }
+            });
+            
+            function register_vendor() {
+            
+                var url = '${/request/@context_path}/modules/pur/PUR5610/pur_vendor_register_invitation.screen';
+                window.location.href = url + location.search;
+            }
+            
+            function register_vendor_query() {
+                var url = '${/request/@context_path}/modules/pur/PUR5610/pur_register_vendor_query.screen';
+                window.location.href = url + location.search;
+            }
+            
+            //DIV抖动
+            
+            function loginForm_shake() {
+                var login_form = document.getElementById("login-form");
+                var oL = parseInt(login_form.style.marginLeft);
+                loginForm_startShake(login_form, oL, 1);
+            }
+            
+            //抖动
+            
+            function loginForm_startShake(login_form, oL, index) {
+                var shake = 0.9;
+                var speed = 65;
+                if (index >= 6) {
+                    clearTimeout(this.oTime);
+                    login_form.style.marginLeft = oL + 'em';
+                    return;
+                } else {
+                    index += 1;
+                }
+            
+                if (parseFloat(login_form.style.marginLeft) == oL - shake) {
+                    setTimeout(function() {
+                        login_form.style.marginLeft = oL + shake + 'em';
+                    }, speed);
+                } else {
+                    setTimeout(function() {
+                        login_form.style.marginLeft = oL - shake + 'em';
+                    }, speed);
+                }
+                this.oTime = setTimeout(function() {
+                    loginForm_startShake(login_form, oL, index);
+                }, speed);
+            }
+        ]]></script>
+        <div class="login-header">
+            <ul class="main-menu">
+                <div class="container">
+                    <div id="logo">
+                        <img src="${/request/@context_path}/index/images/HandIcon.png" style="height: 50px;"/>
+                    </div>
+                    <div class="pull-right">
+                        <li>
+                            <a href="${/request/@context_path}/forgotPassword.screen" target="_blank"><![CDATA[忘记密码?]]></a>
+                        </li>
+                        <li>
+                            <a href="${/request/@context_path}/modules/fnd/FND9100/fnd_enterprise_register_index.screen"><![CDATA[企业注册]]></a>
+                        </li>
+                    </div>
+                </div>
+            </ul>
+        </div>
+        <div class="container">
+            <div class="row login-row-tp">
+                <div class="col-md-9">
+                    <div class="row">
+                        <div class="col-lg-3 infographic-box">
+                            <i class="fa fa-user red-bg"/>
+                            <span class="headline"><![CDATA[在线用户]]></span>
+                            <span class="value"><![CDATA[${/model/sysLogin_login_all/record/@amount}]]></span>
+                        </div>
+                        <div class="col-lg-3 infographic-box">
+                            <i class="fa fa-shopping-cart emerald-bg"/>
+                            <span class="headline"><![CDATA[今日买单]]></span>
+                            <span class="value"><![CDATA[${/model/sysLogin_amount_all/record/@amount}]]></span>
+                        </div>
+                        <div class="col-lg-3 infographic-box">
+                            <i class="fa fa-money green-bg"/>
+                            <span class="headline"><![CDATA[今日成交额]]></span>
+                            <span id="login_price_all" class="value"/>
+                        </div>
+                        <div class="col-lg-3 infographic-box">
+                            <i class="fa fa-cny golden-bg"/>
+                            <span class="headline"><![CDATA[我要融资]]></span>
+                            <span class="value"><![CDATA[申请]]></span>
+                        </div>
+                    </div>
+                    <div class="row login-row-tp">
+                        <div id="box" class="col-lg-12 login-powerpoint"/>
+                    </div>
+                    <div class="row login-row-tp">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <div class="panel-title category-title"><![CDATA[医疗服务]]></div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="col-lg-3">
+                                    <h4><![CDATA[西药]]></h4>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[放射性药品]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[输液]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[化学试剂]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[制剂成品]]></a>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <h4><![CDATA[中成药]]></h4>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[草珊瑚]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[板蓝根]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[甘草片]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[天麻饮片]]></a>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <h4><![CDATA[耗材]]></h4>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[医用绷带]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[手术刀]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[自酸蚀粘接剂]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[外科缝合线]]></a>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <h4><![CDATA[器械]]></h4>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[空心纤维透析器]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[胃肠营养泵管路]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[一次性雾化装置]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[愈肤膜]]></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <div class="panel-title category-title"><![CDATA[工程机械]]></div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="col-lg-3">
+                                    <h4><![CDATA[通用机械]]></h4>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[紧固件]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[轴承]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[螺丝]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[传动件]]></a>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <h4><![CDATA[工具]]></h4>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[螺丝刀]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[钳子]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[组合工具]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[电动工具]]></a>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <h4><![CDATA[机床]]></h4>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[车床]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[铣床]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[钻床]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[冲床]]></a>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <h4><![CDATA[汽摩配套]]></h4>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[发动系统]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[点火系统]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[制动系统]]></a>
+                                    </div>
+                                    <div class="category-item">
+                                        <a href="#"><![CDATA[车灯传动系统]]></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <div class="panel-title"><![CDATA[登录]]></div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="row form-row" style="margin-right: -30px!important;">
+                                <div class="input-append col-md-10 col-sm-10 success">
+                                    <input id="user_name" class="form-control" onkeydown="if(event.keyCode==13)javascript:login();" placeholder="用户名" type="text"/>
+                                    <span class="add-on">
+                                        <i class="fa fa-align-justify"/>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="row form-row" style="margin-right: -30px!important;">
+                                <div class="input-append col-md-10 col-sm-10 success">
+                                    <input id="user_password" class="form-control" onkeydown="if(event.keyCode==13)javascript:login();" placeholder="密码" type="password"/>
+                                    <span class="add-on">
+                                        <i class="fa fa-lock"/>
+                                    </span>
+                                </div>
+                            </div>
+                            <div id="login-msg-div" class="login-msg">
+                                <span id="login-msg-span"/>
+                            </div>
+                            <div class="login-btn">
+                                <button class="btn btn-success btn-cons-md" onclick="javascript:login();" type="submit"><![CDATA[登录]]></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="login-bottom text-center">
+            <a href="#"><![CDATA[使用条款]]></a>
+            <a href="#"><![CDATA[联系我们]]></a>
+            <a href="#"><![CDATA[客户隐私政策]]></a>
+            <a href="#"><![CDATA[关于]]></a>
+            <span><![CDATA[沪ICP备14039535号-1 © Copyright Hand China Co.,Ltd.]]></span>
+        </div>
+        <script><![CDATA[
+            var record = $('login_dataset').getAt(0);
+            record.set('user_name', username);
+            document.getElementById('user_name').value = username;
+            var records = $('language_dataset').getAll();
+            for (var i = 0;i < records.length;i++) {
+                if (records[i].get('code') == lang) {
+                    record.set('language', records[i].get('name'));
+                }
+            }
+            
+            function runImg() {}
+            runImg.prototype = {
+                bigbox: null,
+                boxul: null,
+                imglist: null,
+                numlist: null,
+                prov: 0,
+                index: 0,
+                timer: null,
+                play: null,
+                imgurl: [],
+                count: 0,
+                $: function(obj) {
+                    if (typeof(obj) == "string") {
+                        if (obj.indexOf("#") >= 0) {
+                            obj = obj.replace("#", "");
+                            if (document.getElementById(obj)) {
+                                return document.getElementById(obj);
+                            } else {
+                                return null;
+                            }
+                        } else {
+                            return document.createElement(obj);
+                        }
+                    } else {
+                        return obj;
+                    }
+                },
+            
+                info: function(id) {
+                    this.count = this.count <= 5 ? this.count : 5;
+                    this.bigbox = this.$(id);
+                    for (var i = 0;i < 2;i++) {
+                        var ul = this.$("ul");
+                        for (var j = 1;j <= this.count;j++) {
+                            var li = this.$("li");
+                            li.innerHTML = i == 0 ? this.imgurl[j - 1] : j;
+                            ul.appendChild(li);
+                        }
+                        this.bigbox.appendChild(ul);
+                    }
+                    this.boxul = this.bigbox.getElementsByTagName("ul");
+                    this.boxul[0].className = "imgList";
+                    this.boxul[1].className = "countNum";
+                    this.imglist = this.boxul[0].getElementsByTagName("li");
+                    this.numlist = this.boxul[1].getElementsByTagName("li");
+                    for (var m = 0;m < this.imglist.length;m++) {
+                        this.alpha(m, 0);
+                    }
+                    this.alpha(0, 100);
+                    this.numlist[0].className = "current";
+                },
+            
+                action: function(id) {
+                    this.autoplay();
+                    this.mouseoverout(this.bigbox, this.numlist);
+                },
+            
+                imgshow: function(num, numlist, imglist) {
+                    this.index = num;
+                    var pralpha = 100;
+                    var inalpha = 0;
+                    for (var i = 0;i < numlist.length;i++) {
+                        numlist[i].className = "";
+                    }
+                    numlist[this.index].className = "current";
+                    clearInterval(this.timer);
+                    for (var j = 0;j < this.imglist.length;j++) {
+                        this.alpha(j, 0);
+                    }
+                    this.alpha(this.prov, 100);
+                    this.alpha(this.index, 0);
+                    var $this = this;
+            
+                    this.timer = setInterval(function() {
+                        inalpha += 2;
+                        pralpha -= 2;
+                        if (inalpha > 100) {
+                            inalpha = 100;
+                        };
+                        if (pralpha < 0) {
+                            pralpha = 100;
+                        };
+                        $this.alpha($this.prov, pralpha);
+                        $this.alpha($this.index, inalpha);
+                        if (inalpha == 100 && pralpha == 0) {
+                            clearInterval($this.timer)
+                        };
+                    }, 20)
+                },
+            
+                alpha: function(i, opacity) {
+                    this.imglist[i].style.opacity = opacity / 100;
+                    this.imglist[i].style.filter = "alpha(opacity=" + opacity + ")";
+                },
+            
+                autoplay: function() {
+                    var $this = this;
+                    this.play = setInterval(function() {
+                        $this.prov = $this.index;
+                        $this.index++;
+                        if ($this.index > $this.imglist.length - 1) {
+                            $this.index = 0
+                        };
+                        $this.imgshow($this.index, $this.numlist, $this.imglist);
+                    }, 3000)
+                },
+            
+                mouseoverout: function(box, numlist) {
+                    var $this = this;
+                    box.onmouseover = function() {
+                        clearInterval($this.play);
+                    }
+                    box.onmouseout = function() {
+                        $this.autoplay($this.index);
+                    }
+                    for (var i = 0;i < numlist.length;i++) {
+                        numlist[i].index = i;
+                        numlist[i].onmouseover = function() {
+                            $this.prov = $this.index;
+                            $this.imgshow(this.index, $this.numlist, $this.imglist);
+                        }
+                    }
+                }
+            }
+            
+            // window.onload = function() {
+            // var image_records = $('image_dataset').getAll();
+            // var attachment_id;
+            
+            // var runimg = new runImg();
+            // runimg.count = image_records.length;
+            
+            // for (var i = 0;i < image_records.length;i++) {
+            // attachment_id = image_records[i].get('attachment_id');
+            // runimg.imgurl[i] = '<img id="preview" height="240" src="${/request/@context_path}/img_download.svc?attachment_id=' + attachment_id + '" width="970"/>';
+            // }
+            
+            // runimg.info("#box");
+            // runimg.action("#box");
+            // }
+            window.onload = function() {
+                var runimg = new runImg();
+                runimg.count = 2;
+                runimg.imgurl = ["<img src=\"index/images/web2.jpg\"/>", "<img src=\"index/images/web4.jpg\"/>"];
+                runimg.info("#box");
+                runimg.action("#box");
+                var price_all = '${/model/sysLogin_price_all/record/@amount}';
+                if (price_all >= 10000 && price_all < 100000000) {
+                    price_all = '￥' + (price_all / 10000).toFixed(2) + '万';
+                } else if (price_all >= 100000000) {
+                    price_all = '￥' + (price_all / 100000000).toFixed(2) + '亿';
+                } else {
+                    price_all = '￥' + (price_all/1).toFixed(2);
+                }
+                document.getElementById('login_price_all').innerHTML = price_all;
+            }
+        ]]></script>
+    </a:view>
+</a:screen>

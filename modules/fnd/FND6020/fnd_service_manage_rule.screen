@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui6743 $
+    $Date: 2014/10/08 10:20:55 $
+    $Revision: 1.0 $
+    $Purpose: 服务委托管理规则
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="cont.sys_date" rootpath="sysdate"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd6020_serviceManageRuleDefine_link" url="${/request/@context_path}/modules/fnd/FND6020/fnd_service_type_manage.screen"/>
+        <script><![CDATA[
+            function fnd6020_serviceManageRule_query() {
+                $('fnd6020_service_manage_role_result_ds').query();
+            }
+            
+            //比较日期大小
+            
+            
+            function fnd6020_serviceManageRule_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            //触发update事件
+            
+            
+            function fnd6020_serviceManageRule_onUpdate(ds, record, name, value) {
+                //当start_date或end_date更新时，验证合法性
+                if (name == 'start_date' || name == 'end_date') {
+                    record.validate((name == 'start_date') ? 'end_date' : 'start_date');
+                }
+            }
+            
+            function fnd6020_serviceManageRule_onQuery(ds) {
+                //触发查询事件时，锁住按钮
+                $('fnd6020_service_manage_role_grid_addButton').disable();
+                $('fnd6020_service_manage_role_grid_saveButton').disable();
+                $('fnd6020_service_manage_role_grid_clearButton').disable();
+            }
+            
+            function fnd6020_serviceManageRule_onLoad(ds) {
+                //触发加载数据事件时，解锁按钮
+                $('fnd6020_service_manage_role_grid_addButton').enable();
+                $('fnd6020_service_manage_role_grid_saveButton').enable();
+                $('fnd6020_service_manage_role_grid_clearButton').enable();
+            }
+            
+            
+            //验证日期是否合法
+            
+            
+            function fnd6020_serviceManageRule_dateValidator(record, name, value) {
+                if (name == 'start_date' || name == 'end_date') {
+                    var start_date = record.get('start_date');
+                    var end_date = record.get('end_date');
+                    if (!Aurora.isEmpty(end_date)) {
+                        if (!fnd6020_serviceManageRule_compareDate(start_date, end_date)) {
+                            return '${l:START_GREATER_THAN_END}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function fnd6020_serviceManageRuleDefine(value, record, name) {
+                if (!record.isNew) {
+                    var service_rule_id = record.get('service_rule_id');
+                    return '<a href="javascript:fnd6020_serviceManageRuleDefineInfo(' + service_rule_id + ')">查看</a>';
+                }
+            }
+            
+            function fnd6020_serviceManageRuleDefineInfo(service_rule_id) {
+                //alert(service_rule_id);
+                new Aurora.Window({
+                    id: 'fnd6020_serviceManageRuleDefine_window',
+                    url: $('fnd6020_serviceManageRuleDefine_link').getUrl() + '?service_rule_id=' + service_rule_id,
+                    title: '${l:FND_SERVICE_MANAGE_RULE.ROLE_DEFINE}',
+                    fullScreen: true
+                    //height: 480,
+                    //width: 620
+                });
+            }
+            
+            //触发保存成功事件
+            
+            function fnd6020_serviceManageRule_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd6020_service_manage_role_query_ds" model="fnd.FND6020.fnd_service_manage_rule">
+                <a:fields>
+                    <a:field name="company_id"/>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_name" lovHeight="490" lovLabelWidth="100" lovService="public.fnd_companies_lov" lovWidth="540" title="我的公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="service_company_id"/>
+                    <a:field name="service_company_name" autoComplete="true" autoCompleteField="service_company_name" lovHeight="490" lovLabelWidth="100" lovService="public.fnd_coop_partner_ac_service_lov" lovWidth="540" title="服务商公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="service_company_id"/>
+                            <a:map from="company_full_name" to="service_company_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd6020_serviceManageRule_onLoad"/>
+                    <a:event name="query" handler="fnd6020_serviceManageRule_onQuery"/>
+                    <a:event name="update" handler="fnd6020_serviceManageRule_onUpdate"/>
+                    <a:event name="submitsuccess" handler="fnd6020_serviceManageRule_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd6020_service_manage_role_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="fnd.FND6020.fnd_service_manage_rule" queryDataSet="fnd6020_service_manage_role_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="service_rule_id"/>
+                    <a:field name="company_id"/>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_name" lovHeight="490" lovLabelWidth="100" lovService="public.fnd_companies_lov" lovWidth="540" required="true" title="我的公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="service_company_id"/>
+                    <a:field name="service_company_name" autoComplete="true" autoCompleteField="service_company_name" lovHeight="490" lovLabelWidth="100" lovService="public.fnd_coop_partner_ac_service_lov" lovWidth="540" required="true" title="服务商公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="service_company_id"/>
+                            <a:map from="company_full_name" to="service_company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="start_date" defaultValue="${/model/sysdate/record/@now}" required="true" validator="fnd6020_serviceManageRule_dateValidator"/>
+                    <a:field name="end_date" validator="fnd6020_serviceManageRule_dateValidator"/>
+                    <a:field name="sensitive_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd6020_serviceManageRule_onLoad"/>
+                    <a:event name="query" handler="fnd6020_serviceManageRule_onQuery"/>
+                    <a:event name="update" handler="fnd6020_serviceManageRule_onUpdate"/>
+                    <a:event name="submitsuccess" handler="fnd6020_serviceManageRule_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton id="fnd6020_service_manage_role_grid_addButton" bind="fnd6020_service_manage_role_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton id="fnd6020_service_manage_role_grid_saveButton" bind="fnd6020_service_manage_role_grid" style="margin-left:20px;" type="save" width="100"/>
+                <a:gridButton id="fnd6020_service_manage_role_grid_clearButton" bind="fnd6020_service_manage_role_grid" style="margin-left:20px;" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd6020_service_manage_role_query_ds" resultTarget="fnd6020_service_manage_role_result_ds" style="width:100%;border:none;">
+                <a:formToolBar>
+                    <a:hBox labelWidth="100">
+                        <a:lov name="company_name" bindTarget="fnd6020_service_manage_role_query_ds" prompt="公司">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd6020_serviceManageRule_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="service_company_name" bindTarget="fnd6020_service_manage_role_query_ds" prompt="服务商公司">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd6020_serviceManageRule_query"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="fnd6020_service_manage_role_grid" bindTarget="fnd6020_service_manage_role_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="company_name" align="left" editor="fnd6020_service_manage_role_grid_lov" prompt="FND_SERVICE_MANAGE_RULE.COMPANY_ID" width="100"/>
+                    <a:column name="service_company_name" align="left" editor="fnd6020_service_manage_role_grid_lov" prompt="FND_SERVICE_MANAGE_RULE.SERVICE_COMPANY_ID" width="100"/>
+                    <a:column name="start_date" align="left" editor="fnd6020_service_manage_role_grid_dp" prompt="FND_SERVICE_MANAGE_RULE.START_DATE" renderer="Aurora.formatDate" width="100"/>
+                    <a:column name="end_date" align="left" editor="fnd6020_service_manage_role_grid_dp" prompt="FND_SERVICE_MANAGE_RULE.END_DATE" renderer="Aurora.formatDate" width="100"/>
+                    <!-- <a:column name="service_description" align="left" prompt="FND_SERVICE_MANAGE_RULE.SERVICE_DESCRIPTION" width="100"/>
+                <a:column name="role_details" align="left" prompt="FND_SERVICE_MANAGE_RULE.ROLE_DETAILS" renderer="fnd6020_serviceManageRuleDefine" width="100"/> -->
+                    <a:column name="sensitive_flag" align="left" editor="fnd6020_service_manage_role_grid_chb" prompt="FND_SERVICE_MANAGE_RULE.SENSITIVE_FLAG" width="100"/>
+                    <a:column name="enabled_flag" align="left" editor="fnd6020_service_manage_role_grid_chb" prompt="FND_SERVICE_MANAGE_RULE.ENABLED_FLAG" width="100"/>
+                    <a:column name="rule_define" align="center" prompt="FND_SERVICE_MANAGE_RULE.RULE_DEFINE" renderer="fnd6020_serviceManageRuleDefine" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd6020_service_manage_role_grid_tf"/>
+                    <a:datePicker id="fnd6020_service_manage_role_grid_dp"/>
+                    <a:checkBox id="fnd6020_service_manage_role_grid_chb"/>
+                    <a:lov id="fnd6020_service_manage_role_grid_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

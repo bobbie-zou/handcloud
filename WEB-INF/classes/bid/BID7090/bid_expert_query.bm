@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-14 下午06:48:43  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        (SELECT
+                            fv.flex_desc
+                        FROM
+                            fnd_flex_value_sets fvs,
+                            fnd_flex_values_vl fv
+                        WHERE
+                            fvs.flex_value_set_code = 'BID_EXPERT_LEVEL_CODES' AND
+                            fvs.flex_value_set_id   = fv.flex_value_set_id AND
+                            fv.flex_value_id        = t.expert_level_id
+                        ) AS expert_level_desc,
+                        t.expert_level_id,
+                        t.expert_id,
+                        e.employee_code,
+                        t.registration_date,
+                        t.expert_type,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_v scv
+                        WHERE
+                            scv.code                    = 'BID_EXPERT_TYPES' AND
+                            scv.code_enabled_flag       = 'Y' AND
+                            scv.code_value_enabled_flag = 'Y' AND
+                            scv.code_value              = t.expert_type
+                        ) AS expert_type_desc,
+                        e.name,
+                        t.enabled_flag
+                    FROM
+                        bid_experts t,
+                        exp_employees e
+                    WHERE
+                        e.employee_id(+)=t.employee_id
+                    ORDER BY
+                        e.employee_code DESC
+                    ) #WHERE_CLAUSE#
+                ORDER BY
+                    employee_code ASC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="expert_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="expert_level_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="expert_level_desc" databaseType="VARCHAR2" datatype="java.lang.String" prompt="专家级别"/>
+        <bm:field name="name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FULL_NAME" prompt="专家姓名"/>
+        <bm:field name="registration_date" databaseType="DATE" datatype="java.util.Date" physicalName="CREATION_DATE" prompt="注册日期"/>
+        <bm:field name="employee_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="EMPLOYEE_CODE" prompt="关联员工"/>
+        <bm:field name="expert_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="EXPERT_TYPE" prompt="专家类型"/>
+        <bm:field name="expert_type_desc" databaseType="VARCHAR2"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="EXPERT_TYPE" prompt="是否有效"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="name" queryExpression="name like &apos;%&apos;||${@name}||&apos;%&apos;"/>
+        <bm:query-field field="expert_level_id" queryOperator="="/>
+        <bm:query-field field="employee_code" queryExpression="employee_code like &apos;%&apos; || ${@employee_code} || &apos;%&apos;"/>
+        <bm:query-field field="expert_type" queryOperator="="/>
+        <bm:query-field field="enabled_flag" queryOperator="="/>
+        <bm:query-field name="registration_date_from" queryExpression="registration_date &gt;= to_date(${@registration_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="registration_date_to" queryExpression="registration_date &lt;= to_date(${@registration_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+    </bm:query-fields>
+</bm:model>

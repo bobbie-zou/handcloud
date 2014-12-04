@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2013-5-30 上午10:39:33  
+    $Revision: 1.0  
+    $Purpose: 引用APQP流程组  
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="link_apqp_quote_procedure_group" model="qms.QMS5010.qms_apqp_quote_procedure_group" modelaction="batch_update"/>
+        <script><![CDATA[
+            function qmsApqpQuoteProcedureGroupQuery() {
+                $('qms_apqp_quote_procedure_group_result_ds').query();
+            }
+            
+            function apqpQuoteProcedureGroupOK() {
+                var records = $('qms_apqp_quote_procedure_group_result_ds').getAll();
+                if(records.length < 1){
+                    return false;
+                }
+                var data = [];
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    record.set('apqp_archive_id', '${/parameter/@apqp_archive_id}');
+                    record.set('_status', 'execute');
+                    data.push(record.data);
+                }
+                Aurora.request({
+                    url: $('link_apqp_quote_procedure_group').getUrl(),
+                    para: data,
+                    success: function() {
+                        //关闭当前窗口
+                        apqpQuoteProcedureGroupCancel();
+            
+                        //刷新grid
+                        $('qms_apqp_archive_procedures_maintain_result_ds').query();
+                        $('qms_apqp_archive_procedure_deliveable_maintain_result_ds').query();
+            
+                    },
+                    scope: this
+                });
+            }
+            
+            function apqpQuoteProcedureGroupCancel() {
+                $('link_quote_procedure_group_window').close();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="qms_apqp_quote_procedure_group_query_ds">
+                <a:fields>
+                    <a:field name="procedure_group_code" autoComplete="true" autoCompleteField="procedure_group_code" lovHeight="474" lovService="qms.QMS5010.qms_apqp_procedure_group_lov" lovWidth="500" required="true" title="APQP流程组">
+                        <a:mapping>
+                            <a:map from="procedure_group_code" to="procedure_group_code"/>
+                            <a:map from="procedure_group_name" to="procedure_group_name"/>
+                            <a:map from="procedure_group_id" to="procedure_group_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="procedure_group_name" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="qms_apqp_quote_procedure_group_result_ds" autoPageSize="true" model="qms.QMS5010.qms_apqp_procedure_group_detail" queryDataSet="qms_apqp_quote_procedure_group_query_ds" selectable="true"/>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="qms_apqp_archives_maintain_result_grid" click="apqpQuoteProcedureGroupOK" style="margin-left:20px;" text="确认" width="100"/>
+            <a:gridButton bind="qms_apqp_archives_maintain_result_grid" click="apqpQuoteProcedureGroupCancel" style="margin-left:20px;" text="取消" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="qms_apqp_quote_procedure_group_query_ds" resultTarget="qms_apqp_quote_procedure_group_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:textField style="width:100%;display:none"/>
+                <a:hBox>
+                    <a:lov name="procedure_group_code" prompt="流程组代码">
+                        <a:events>
+                            <a:event name="enterdown" handler="qmsApqpQuoteProcedureGroupQuery"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField name="procedure_group_name" prompt="流程组名称"/>
+                </a:hBox>
+            </a:formToolBar>
+        </a:queryForm>
+        <a:grid id="qms_apqp_quote_procedure_group_result_grid" bindTarget="qms_apqp_quote_procedure_group_result_ds" height="340" navBar="true" width="600">
+            <a:columns>
+                <a:column name="sequence_number" align="center" prompt="流程序号" sortable="true" width="60"/>
+                <a:column name="procedure_code" prompt="流程代码" sortable="true" width="120"/>
+                <a:column name="procedure_name" prompt="流程名称" sortable="true" width="150"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

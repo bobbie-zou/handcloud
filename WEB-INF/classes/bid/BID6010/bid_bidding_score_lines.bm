@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-5-10 下午03:01:55  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="score_line_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="scoring_elements_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="scoring_elements_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="scoring_elements_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="elements_score" databaseType="NUMBER" datatype="java.lang.Double"/>
+        <bm:field name="comments" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    sl.score_line_id,
+                    sl.scoring_elements_id,
+                    se.scoring_elements_code,
+                    se.scoring_elements_desc,
+                    sl.elements_score,
+                    sl.comments
+                FROM
+                    bid_bidding_score_lines sl,
+                    bid_scoring_elements_vl se
+                WHERE
+                    ${@score_header_id}   IS NOT NULL AND
+                    sl.score_header_id     = ${@score_header_id} AND
+                    sl.scoring_elements_id = se.scoring_elements_id(+)
+                UNION ALL
+                SELECT
+                    NULL AS score_line_id,
+                    se.scoring_elements_id,
+                    se.scoring_elements_code,
+                    se.scoring_elements_desc,
+                    NULL AS elements_score,
+                    NULL AS comments
+                FROM
+                    bid_scoring_elements_assign sea,
+                    bid_scoring_elements_vl se
+                WHERE
+                    ${@score_header_id}      IS NULL AND
+                    sea.entrustment_header_id = ${@entrustment_header_id} AND
+                    sea.scoring_elements_id   = se.scoring_elements_id AND
+                    se.enabled_flag           = 'Y'
+            ]]></bm:query-sql>
+            <!-- <bm:query-sql><![CDATA[
+                SELECT
+                    sl.score_line_id,
+                    sl.scoring_elements_id,
+                    se.scoring_elements_code,
+                    se.scoring_elements_desc,
+                    sl.elements_score,
+                    sl.comments
+                FROM
+                    bid_bidding_score_lines sl,
+                    bid_scoring_elements_vl se
+                WHERE
+                    ${@score_header_id}   IS NOT NULL AND
+                    sl.score_header_id     = ${@score_header_id} AND
+                    sl.scoring_elements_id = se.scoring_elements_id(+)
+                UNION ALL
+                SELECT
+                    NULL AS score_line_id,
+                    se.scoring_elements_id,
+                    se.scoring_elements_code,
+                    se.scoring_elements_desc,
+                    NULL AS elements_score,
+                    NULL AS comments
+                FROM
+                    bid_scoring_elements_assign sea,
+                    bid_scoring_elements_vl se
+                WHERE
+                    sea.entrustment_header_id = ${@entrustment_header_id} AND
+                    sea.scoring_elements_id   = se.scoring_elements_id AND
+                    se.enabled_flag           = 'Y' AND
+                    NOT EXISTS
+                    (SELECT
+                        1
+                    FROM
+                        bid_bidding_score_lines sl,
+                        bid_bidding_score_headers sh,
+                        bid_expert_mapping_v em
+                    WHERE
+                        sh.bid_header_id       = ${@bid_header_id} AND
+                        sh.score_header_id     = sl.score_header_id AND
+                        sl.scoring_elements_id = sea.scoring_elements_id AND
+                        em.user_id             =${/session/@user_id} AND
+                        sh.expert_id           =em.expert_id
+                    )
+            ]]></bm:query-sql> -->
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:parameters>
+                <bm:parameter name="score_line_id" dataType="java.lang.Long" input="true" inputPath="@score_line_id" output="true" outputPath="@score_line_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+			BEGIN
+			  -- Call the procedure
+			  bid_score_pkg.save_bidding_score_line(o_score_line_id       => ${@score_line_id},
+			                                        p_score_header_id     => ${/parameter/@score_header_id},
+			                                        p_scoring_elements_id => ${@scoring_elements_id},
+			                                        p_elements_score      => ${@elements_score},
+			                                        p_comments            => ${@comments},
+			                                        p_user_id             => ${/session/@user_id});
+			END;
+	   		]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

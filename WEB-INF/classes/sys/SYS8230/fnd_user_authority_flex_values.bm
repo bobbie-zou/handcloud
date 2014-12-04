@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-4-21 下午6:43:08  
+    $Revision: 1.0  
+    $Purpose：CLIENT级用户权限配置，权限维度列表查询BM
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t.flex_value_id,
+                    t.flex_value,
+                    t.flex_desc,
+                    t.parent_flex_value_id,
+                    t.authority_lns_id,
+                    t.start_date,
+                    t.end_date,
+                    t.enabled_flag,
+                    t.default_flag
+                FROM
+                    (SELECT
+                        v.flex_value_id,
+                        v.flex_value,
+                        v.flex_desc flex_desc,
+                        v.parent_flex_value_id,
+                        ual.authority_lns_id,
+                        TO_CHAR(ual.start_date,'yyyy-mm-dd') AS start_date,
+                        TO_CHAR(ual.end_date,'yyyy-mm-dd') AS end_date,
+                        ual.enabled_flag,
+                        NVL(ual.default_flag,'N')AS default_flag
+                    FROM
+                        ( #value_source_sql# ) v,
+                        fnd_user_authority_lns ual
+                    WHERE
+                        v.flex_value_id         = ual.assign_id(+) AND
+                        v.client				= ${/session/@client} AND
+                        ual.assign_type(+)      = ${@dimension_line_code} AND
+                        ual.authority_hds_id(+) = ${@authority_hds_id}
+                    ) t #WHERE_CLAUSE#
+                ORDER BY
+                    t.flex_value
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="flex_value_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="FLEX_VALUE_ID"/>
+        <bm:field name="flex_value" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FLEX_VALUE"/>
+        <bm:field name="flex_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FLEX_DESC"/>
+        <bm:field name="parent_flex_value_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PARENT_FLEX_VALUE_ID"/>
+        <bm:field name="authority_lns_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="AUTHORITY_LNS_ID"/>
+        <bm:field name="start_date" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="START_DATE"/>
+        <bm:field name="end_date" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="END_DATE"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG"/>
+        <bm:field name="default_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DEFAULT_FLAG"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="parent_flex_value_id" dataType="java.lang.Long" queryExpression="t.parent_flex_value_id = ${/parameter/@parent_flex_value_id} "/>
+        <bm:query-field name="flex_value" queryExpression="flex_value like &apos;%&apos;||${@flex_value}||&apos;%&apos;"/>
+        <bm:query-field name="flex_desc" queryExpression="flex_desc like &apos;%&apos;||${@flex_desc}||&apos;%&apos;"/>
+        <bm:query-field name="flex_value_desc" queryExpression="flex_value like &apos;%&apos;||trim(${@flex_value_desc})||&apos;%&apos; or flex_desc like &apos;%&apos;||trim(${@flex_value_desc})||&apos;%&apos;"/>
+    </bm:query-fields>
+    <flex-model-bm name="flex_value_set_sql" model="fnd.FND2830.fnd_user_authority_get_flex_value_source" parameterPath="/parameter">
+        <flex-model-replace-bm operation="query" replaceFrom="#value_source_sql#" replaceTo="value_source_sql"/>
+    </flex-model-bm>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_sql_replace_bm.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

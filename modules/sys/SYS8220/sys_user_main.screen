@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao 
+    $Date: 2014-9-1  下午02:43:53 
+    $Revision: 1.12 
+    $Purpose: 集团子账户管理，入口页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="sys8220_user_create_link" url="${/request/@context_path}/modules/sys/SYS8220/sys_user_create.screen"/>
+        <a:link id="sys8220_user_edit_link" url="${/request/@context_path}/modules/sys/SYS8220/sys_user_edit.screen"/>
+        <a:link id="sys8220_user_set_password_link" url="${/request/@context_path}/modules/sys/SYS8220/sys_user_set_password.screen"/>
+        <a:link id="sys8220_user_role_assign_link" url="${/request/@context_path}/modules/sys/SYS8220/sys_user_role_assign.screen"/>
+        <a:link id="sys8220_sys_user_authority_maintain_link" url="${/request/@context_path}/modules/sys/SYS8220/sys_user_authority_maintain.screen"/>
+        <a:link id="sys8220_userBatchCreateImport_link" url="${/request/@context_path}/modules/sys/SYS8220/sys_user_batch_create_import.screen"/>
+        <script><![CDATA[
+            function sys8220_addUserInfo() {
+                new Aurora.Window({
+                    id: 'sys8220_user_create_window',
+                    url: $('sys8220_user_create_link').getUrl(),
+                    title: '${l:SYS_USER.ADD_NEW_USER}',
+                    height: 510,
+                    width: 880
+                }).on('close', function() {
+                    $('sys8220_user_result_ds').query();
+                });
+            }
+            
+            function sys8220_userResultDsGridRenderer(value, record, name) {
+                var user_id = record.get('user_id');
+                if (name == 'assign_role') {
+                    if (user_id) {
+                        if(record.get('bg_admin_flag') != 'Y'){
+                        	return '<a href="javascript:sys8220_userResultDsGridRendererAssignRole(' + user_id + ')">${l:SYS_USER.ROLE_ASSIGN}</a>';
+                        }
+                    }
+                }
+                if (name == 'set_password') {
+                    if (user_id) {
+                        return '<a href="javascript:sys8220_userResultDsGridRendererSetPassword(' + user_id + ')">${l:SYS_USER.MODIFY_PASSWORD}</a>';
+                    }
+                }
+                if (name == 'edit') {
+                    if (user_id) {
+                        return '<a href="javascript:sys8220_userResultDsGridRendererEdit(' + user_id + ')">${l:PROMPT.EDIT}</a>';
+                    }
+                }
+                if (name == 'authority_manage') {
+                    if (user_id) {
+                        return '<a href="javascript:sys8220_userResultDsGridRendererAuthorityAssign(' + user_id + ')">${l:PROMPT.AUTHORITY_MANAGE}</a>';
+                    }
+                }
+            }
+            
+            function sys8220_userResultDsGridRendererAssignRole(id) {
+                new Aurora.Window({
+                    id: 'sys_user_role_assign_window',
+                    url: $('sys8220_user_role_assign_link').getUrl() + '?user_id=' + id,
+                    title: '${l:SYS_USER.ROLE_ASSIGN}',
+                    height: 410,
+                    width: 720
+                });
+            }
+            
+            function sys8220_userResultDsGridRendererSetPassword(id) {
+                new Aurora.Window({
+                    id: 'sys8220_user_set_password_window',
+                    url: $('sys8220_user_set_password_link').getUrl() + '?user_id=' + id,
+                    title: '${l:SYS_USER.MODIFY_PASSWORD}',
+                    height: 290,
+                    width: 300
+                });
+            }
+            
+            function sys8220_userResultDsGridRendererEdit(id) {
+                new Aurora.Window({
+                    id: 'sys8220_user_edit_window',
+                    url: $('sys8220_user_edit_link').getUrl() + '?user_id=' + id,
+                    title: '${l:SYS_USER.EDIT_USER}',
+                    height: 420,
+                    width: 630
+                }).on('close', function() {
+                    $('sys8220_user_result_ds').query();
+                });
+            }
+            
+            function sys8220_userResultDsGridRendererAuthorityAssign(user_id) {
+                new Aurora.Window({
+                    id: 'sys8220_sys_user_authority_maintain_link_window',
+                    url: $('sys8220_sys_user_authority_maintain_link').getUrl() + '?user_id=' + user_id,
+                    title: '${l:PROMPT.AUTHORITY_MANAGE}',
+                    height: 650,
+                    width: 700
+                });
+            }
+            
+            //Batch Create
+            function sys8220_userBatchCreateFun(){
+                window.open($('sys8220_userBatchCreateImport_link').getUrl());
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys8220_user_query_ds"/>
+            <a:dataSet id="sys8220_user_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="sys.SYS8220.sys_business_group_user_manage" queryDataSet="sys8220_user_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="frozen_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="bg_admin_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton bind="sys8220_user_result_ds_grid" click="sys8220_addUserInfo" style="margin-left:20px;" text="PROMPT.NEW" width="100"/>
+                <a:toolbarButton bind="sys8220_user_result_ds_grid" click="sys8220_userBatchCreateFun" style="margin-left:20px;" text="SYS8220.BATCH_CREATE" width="100"/>
+                <a:gridButton bind="sys8220_user_result_ds_grid" style="margin-left:20px;" type="excel" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="sys8220_user_query_ds" defaultQueryField="user_name_desc" defaultQueryHint="SYS8210.USER_NAME_DESC" resultTarget="sys8220_user_result_ds" style="width:100%;border:none"/>
+            <a:grid id="sys8220_user_result_ds_grid" bindTarget="sys8220_user_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="user_name" align="center" prompt="SYS_USER.USER_NAME" sortable="true" width="60"/>
+                    <a:column name="description" align="left" prompt="FND_COMPANY_PROMPTS.DESCRIPTION" sortable="true" width="100"/>
+                    <a:column name="start_date" align="center" prompt="FND_COMPANIES.START_DATE_ACTIVE" sortable="true" width="65"/>
+                    <a:column name="end_date" align="center" prompt="FND_COMPANIES.END_DATE" sortable="true" width="65"/>
+                    <a:column name="business_group_name" align="center" prompt="SYS_USER.BUSINESS_GROUP_NAME" sortable="true" width="60"/>
+                    <a:column name="bg_admin_flag" align="center" prompt="SYS_USER.BG_ADMIN_FLAG" sortable="true" width="60"/>
+                    <a:column name="frozen_flag" align="center" prompt="FND_PRV_LOGIN_ACC.STATUS" sortable="true" width="40"/>
+                    <a:column name="frozen_date" align="center" prompt="SYS_USER.FROZEN_DATE" renderer="Aurora.formatDate" sortable="true" width="65"/>
+                    <!-- <a:column name="assign_role" align="center" prompt="分配角色" renderer="sys8220_userResultDsGridRenderer" width="50"/> -->
+                    <a:column name="authority_manage" align="center" prompt="权限管理" renderer="sys8220_userResultDsGridRenderer" width="50"/>
+                    <!-- <a:column name="set_password" align="center" prompt="修改密码" renderer="sys8220_userResultDsGridRenderer" width="50"/> -->
+                    <a:column name="edit" align="center" prompt="SYS8220.USER_SETTING" renderer="sys8220_userResultDsGridRenderer" width="50"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

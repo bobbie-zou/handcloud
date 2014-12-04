@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-5 下午02:19:38  
+    $Revision: 1.0  7090
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="bid7090_expert_detail_link" url="${/request/@context_path}/modules/bid/BID7090/bid_expert_detail.screen"/>
+        <script><![CDATA[
+            function bid7090Query() {
+                $('bid7090_expert_result_ds').query();
+            }
+            
+            function bid7090ExpertQueryValidator(record, name, value) {
+                if (name == 'registration_date_from') {
+                    value = Aurora.formatDate(value);
+                    var date_to = Aurora.formatDate(record.get('registration_date_to'));
+                    var current_date = Aurora.formatDate(new Date());
+                    if (!Aurora.isEmpty(value)) {
+                        if (value > current_date) {
+                            return '${l:PROMPT.TIME_FORMATION}';
+                        }
+                    }
+                    if (!Aurora.isEmpty(value) && !Aurora.isEmpty(date_to)) {
+                        if (value > date_to) {
+                            return '${l:PROMPT.TIME_FORMATION}';
+                        }
+                    }
+                    return true;
+                } else if (name == 'registration_date_to') {
+                    value = Aurora.formatDate(value);
+                    var date_from = Aurora.formatDate(record.get('registration_date_from'));
+                    if (!Aurora.isEmpty(value) && !Aurora.isEmpty(date_from)) {
+                        if (date_from > value) {
+                            return '${l:PROMPT.TIME_FORMATION}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function bid7090ExpertQueryOnUpdate(ds, record, name, value, old_value) {
+                if (name == 'registration_date_from') {
+                    record.validate('registration_date_to');
+                } else if (name == 'registration_date_to') {
+                    record.validate('registration_date_from');
+                }
+            }
+            
+            function bid7090ExpertResultRender(value, record, name) {
+                if (name == 'name') {
+                    return '<a href="javascript:bid7090ExpertDetail(' + record.get('expert_id') + ')">' + value + '</a>';
+                }
+            }
+            
+            function bid7090ExpertDetail(expert_id) {
+                new Aurora.Window({
+                    id: 'bid7090_expert_detail_window',
+                    url: $('bid7090_expert_detail_link').getUrl() + '?expert_id=' + expert_id,
+                    title: '${l:BID_EXPERT_APP_HEADERS.DETAIL}',
+                    fullScreen: true
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid7090_bid_expert_types_ds" lookupCode="BID_EXPERT_TYPES"/>
+            <a:dataSet id="bid7090_bid_expert_status_ds" lookupCode="BID_EXPERT_STATUS"/>
+            <a:dataSet id="bid7090_expert_query_ds">
+                <a:fields>
+                    <a:field name="employee_code" autoComplete="true" autoCompleteField="code_name" lovHeight="520" lovService="public.bid_expert_inner_expert_lov" lovWidth="540" title="工号">
+                        <a:mapping>
+                            <a:map from="employee_code" to="employee_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="expert_level_desc" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="public.bid_expert_level_lov" lovWidth="500" title="专家级别">
+                        <a:mapping>
+                            <a:map from="expert_level_id" to="expert_level_id"/>
+                            <a:map from="expert_level_desc" to="expert_level_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="expert_type_desc" displayField="code_value_name" options="bid7090_bid_expert_types_ds" returnField="expert_type" valueField="code_value"/>
+                    <a:field name="enabled_flag_desc" displayField="code_value_name" options="bid7090_bid_expert_status_ds" returnField="enabled_flag" valueField="code_value"/>
+                    <a:field name="registration_date_from" validator="bid7090ExpertQueryValidator"/>
+                    <a:field name="registration_date_to" validator="bid7090ExpertQueryValidator"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="bid7090ExpertQueryOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid7090_expert_result_ds" autoPageSize="true" model="bid.BID7090.bid_expert_query" queryDataSet="bid7090_expert_query_ds"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="bid7090_expert_query_ds" defaultQueryField="journal_num" resultTarget="bid7090_expert_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:lov name="employee_code" bindTarget="bid7090_expert_query_ds" prompt="BID_EXPERT_APP_HEADERS.EMPLOYEE_CODE">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid7090Query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField name="name" bindTarget="bid7090_expert_query_ds" prompt="BID_EXPERT_APP_HEADERS.EXPERT_NAME">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid7090Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="expert_type_desc" bindTarget="bid7090_expert_query_ds" prompt="BID_EXPERT_APP_HEADERS.EXPERT_TYPE">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid7090Query"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="mobil" bindTarget="bid7090_expert_query_ds" prompt="BID_EXPERT_APP_HEADERS.MOBILE_PHONE">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid7090Query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:lov name="expert_level_desc" bindTarget="bid7090_expert_query_ds" prompt="BID_EXPERT_APP_HEADERS.EXPERT_LEVEL_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid7090Query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:datePicker name="registration_date_from" bindTarget="bid7090_expert_query_ds" prompt="BID_EXPERT_APP_HEADERS.REGISTRATION_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid7090Query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="registration_date_to" bindTarget="bid7090_expert_query_ds" prompt="BID_EXPERT_APP_HEADERS.REGISTRATION_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid7090Query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                    <a:hBox labelWidth="100">
+                        <a:comboBox name="enabled_flag_desc" bindTarget="bid7090_expert_query_ds" prompt="SYS_CODE.ENABLED_FLAG">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid7090Query"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="bid7090_expert_result_grid" autoAppend="false" bindTarget="bid7090_expert_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="name" align="left" prompt="BID_EXPERT_APP_HEADERS.EXPERT_NAME" width="60"/>
+                    <a:column name="expert_level_desc" align="left" prompt="BID_EXPERT_APP_HEADERS.EXPERT_LEVEL_ID" width="60"/>
+                    <a:column name="expert_type_desc" align="left" prompt="BID_EXPERT_APP_HEADERS.EXPERT_TYPE" width="60"/>
+                    <a:column name="registration_date" align="center" prompt="BID_EXPERTS.REGISTRATION_DATE" renderer="Aurora.formatDate" width="60"/>
+                    <a:column name="employee_code" align="left" prompt="BID_EXPERT_APP_HEADERS.EMPLOYEE_CODE" width="50"/>
+                    <a:column name="enabled_flag" align="center" prompt="SYS_CODE.ENABLED_FLAG" width="50"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

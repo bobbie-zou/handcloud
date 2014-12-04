@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-2-26 下午03:00:26  
+    $Revision: 1.0  
+    $Purpose: 非寄销网上发票创建(界面1)
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="acp.acp_company_list" rootPath="company_name_list"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="acp_5040_web_invoice_query_link" url="${/request/@context_path}/modules/acp/ACP5040/acp_5040_web_invoice_query.screen"/>
+        <a:link id="acp_5040_web_invoice_create_temp_link" url="${/request/@context_path}/modules/acp/ACP5040/acp_5040_web_invoice_create_temp.svc"/>
+        <a:link id="acp_5040_web_invoice_create_preview_link" url="${/request/@context_path}/modules/acp/ACP5040/acp_5040_web_invoice_create_preview.screen"/>
+        <script><![CDATA[
+            function acp_5040_web_invoice_preview(){
+                $('acp_5040_result_ds').submit();
+            }
+            function acp_5040_result_ds_submit(){
+                var ds = $('acp_5040_result_ds');
+                var records = ds.getSelected();
+                var datas = [];
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:ACP_WEB_INVOICE.PLEASE_SELECT_PREVIEW}');
+                    return false;
+                } else {
+                    for (var i=0;i<records.length;i++){
+                        datas.push(records[i].data);
+                    } 
+                    Aurora.request({
+                    url:$('acp_5040_web_invoice_create_temp_link').getUrl(),
+                    para:datas,
+                    success:function(res){
+                            new Aurora.Window({
+                            id:'acp_web_invoice_create_preview_window',
+                            url:$('acp_5040_web_invoice_create_preview_link').getUrl(),
+                            title: '${l:ACP_WEB_INVOICE.WEB_INVOICE_CREATE}',
+                            fullScreen:true
+                       });
+                   },
+                   scope:this 
+                });
+                }
+            }
+            //关联网上发票
+            function associateWebInvoice(value, record, name){           
+                var lineId = record.get('line_id');
+                var dataSource = record.get('data_source');
+                if (dataSource == 'SRM'){
+                    return '<a href="javascript:openAssociateWebInvoice('+lineId+')">${l:ACP_WEB_INVOICE.INTERACTION_WEB_INVOICE}</a>';
+                }else{
+                    return '${l:ACP_WEB_INVOICE.INTERACTION_WEB_INVOICE}';
+                }
+            }
+            function openAssociateWebInvoice(lineId){
+                new Aurora.Window({
+                    id: 'acp_web_invoice_query_window',
+                    url: /*acp_5040_web_invoice_query.screen*/
+                    $('acp_5040_web_invoice_query_link').getUrl() + '?line_id=' + lineId,
+                    title: '${l:ACP_WEB_INVOICE.INTERACTION_WEB_INVOICE}',
+                    fullScreen:true
+                });
+            }
+            function acp_5040_result_ds_update(value, record, name){
+                var billQuantity = record.get('bill_quantity');
+                var billUnitPrice = record.get('bill_unit_price'); 
+                if ((name == 'bill_quantity'||name =='bill_unit_price')&&billQuantity!=null&&billUnitPrice!=null){
+	                record.set('bill_amount',billQuantity*billUnitPrice);
+                }
+            }
+            //默认税率设置,改变grid中所有record的税率
+            function acp_5040_set_ds_update(dataSet,record,name,value,oldvalue){
+                if (name == 'tax_id'){
+	                var default_tax_rate = record.get('default_tax_rate');
+	                var tax = record.get('tax');
+	                var tax_id = record.get('tax_id');
+	                var ds = $('acp_5040_result_ds');
+	                var billRecords = ds.getAll();
+                    for (var i=0;i<billRecords.length;i++){
+	                    billRecords[i].set('tax_rate',default_tax_rate);
+	                    billRecords[i].set('tax',tax);
+	                    billRecords[i].set('tax_id',tax_id);
+	                }
+	            }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp_5040_data_source_ds" loadData="true" lookupCode="DATA_SOURCE"/>
+            <a:dataSet id="acp_5040_company_name_list" autoQuery="true" model="fnd.fnd_companies_vl"/>
+            <a:dataSet id="acp_5040_vendor_site_name_list" autoQuery="true" model="acp.ACP5010.acp_vendor_site_lov"/>
+            <a:dataSet id="acp_5040_tax_rate_list" autoQuery="true" model="acp.ACP5040.acp_tax_rate_cmb"/>
+            <a:dataSet id="acp_5040_set_ds">
+                <a:fields>
+                    <a:field name="default_tax_rate" displayField="tax_rate" options="acp_5040_tax_rate_list">
+                        <a:mapping>
+                            <a:map from="tax" to="tax"/>
+                            <a:map from="tax_id" to="tax_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="tax"/>
+                    <a:field name="tax_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="acp_5040_set_ds_update"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="acp_5040_query_ds">
+                <a:fields>
+                    <a:field name="bill_number_from"/>
+                    <a:field name="bill_number_to"/>
+                    <a:field name="po_header_num_from"/>
+                    <a:field name="po_header_num_to"/>
+                    <a:field name="company_name" displayField="company_short_name" options="acp_5040_company_name_list" returnField="company_name" valueField="company_short_name"/>
+                    <a:field name="data_source" displayField="code_value_name" options="acp_5040_data_source_ds" returnField="data_source" valueField="code_value"/>
+                    <a:field name="vendor_site_name" displayField="vendor_site_name" options="acp_5040_vendor_site_name_list" returnField="vendor_site_name" valueField="vendor_site_name"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="acp_5040_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="acp.ACP5020.acp_bill_details" queryDataSet="acp_5040_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="detail_id"/>
+                    <a:field name="line_id"/>
+                    <a:field name="header_id"/>
+                    <a:field name="bill_header_number"/>
+                    <a:field name="bill_line_number"/>
+                    <a:field name="po_header_num"/>
+                    <a:field name="po_release_num"/>
+                    <a:field name="po_line_num"/>
+                    <a:field name="item_code_name"/>
+                    <a:field name="srm_unit_of_measure"/>
+                    <a:field name="currency_code"/>
+                    <a:field name="quantity"/>
+                    <a:field name="unit_price"/>
+                    <a:field name="line_amount"/>
+                    <a:field name="billed_quantity"/>
+                    <a:field name="bill_quantity" required="true"/>
+                    <a:field name="bill_unit_price" required="true"/>
+                    <a:field name="bill_amount"/>
+                    <a:field name="tax_rate" displayField="tax_rate" options="acp_5040_tax_rate_list" required="true">
+                        <a:mapping>
+                            <a:map from="tax" to="tax"/>
+                            <a:map from="tax_id" to="tax_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="tax"/>
+                    <a:field name="tax_id"/>
+                    <a:field name="company_name"/>
+                    <a:field name="organization_code_name"/>
+                    <a:field name="vendor_site_name"/>
+                    <a:field name="po_shipment_num"/>
+                    <a:field name="po_distribution_num"/>
+                    <a:field name="receipt_num"/>
+                    <a:field name="erp_transaction_id"/>
+                    <a:field name="transaction_date"/>
+                    <a:field name="request_date"/>
+                    <a:field name="data_source"/>
+                    <a:field name="associate_web_invoice"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="acp_5040_result_ds_update"/>
+                    <a:event name="submit" handler="acp_5040_result_ds_submit"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton click="acp_5040_web_invoice_preview" text="ACP_WEB_INVOICE.WEB_INVOICE_PREVIEW" width="100"/>
+            <a:gridButton bind="acp_5040_grid" type="excel" width="100"/>
+            <a:gridButton bind="acp_5040_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="acp_5040_query_form" bindTarget="acp_5040_query_ds" resultTarget="acp_5040_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox>
+                    <a:textField name="bill_number_from" bindTarget="acp_5040_query_ds" prompt="ACP_BILL.BILL_NUMBER_FROM"/>
+                    <a:textField name="bill_number_to" bindTarget="acp_5040_query_ds" prompt="ACP_BILL.BILL_NUMBER_TO"/>
+                    <a:comboBox name="company_name" bindTarget="acp_5040_query_ds" prompt="ACP_BILL.COMPANY_NAME"/>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody style="margin-left:5px">
+                <a:hBox>
+                    <a:textField name="po_number_from" bindTarget="acp_5040_query_ds" prompt="ACP_WEB_INVOICE.PO_NUMBER_FROM"/>
+                    <a:textField name="po_number_to" bindTarget="acp_5040_query_ds" prompt="ACP_WEB_INVOICE.PO_NUMBER_TO"/>
+                    <a:comboBox name="vendor_site_name" bindTarget="acp_5040_query_ds" prompt="ACP_BILL_SOURCE.VENDOR_SITE_CODE_NAME"/>
+                    <a:comboBox name="data_source" bindTarget="acp_5040_query_ds" prompt="ACP_BILL_SOURCE.DATA_SOURCE"/>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:hBox>
+            <a:comboBox name="default_tax_rate" bindTarget="acp_5040_set_ds" prompt="ACP_WEB_INVOICE.DEFAULT_TAX_RATE"/>
+        </a:hBox>
+        <a:grid id="acp_5040_grid" bindTarget="acp_5040_result_ds" marginHeight="130" marginWidth="40" navBar="true" style="border:none">
+            <a:columns>
+                <!--开票单号-->
+                <a:column name="bill_header_number" align="center" prompt="ACP_BILL_HEADERS.BILL_NUMBER" sortable="true" width="80"/>
+                <!--开票单行-->
+                <a:column name="bill_line_number" align="center" prompt="ACP_WEB_INVOICE.LINE_ID" width="80"/>
+                <!--订单号,对应表中的segment1-->
+                <a:column name="po_header_num" align="center" prompt="ACP_WEB_INVOICE.PO_NUMBER" width="80"/>
+                <!--发放号-->
+                <a:column name="po_release_num" align="center" prompt="ACP_WEB_INVOICE.PO_RELEASE_NUM" width="80"/>
+                <!--行号-->
+                <a:column name="po_line_num" align="center" prompt="ACP_BILL_DETAILS.PO_LINE_NUM" width="80"/>
+                <!--物料-->
+                <a:column name="item_code_name" align="center" prompt="ACP_BILL_SOURCE.ITEM_CODE_NAME" width="80"/>
+                <!--开票单位-->
+                <a:column name="srm_unit_of_measure" align="right" prompt="ACP_BILL_DETAILS.SRM_UNIT_OF_MEASURE" width="40"/>
+                <!--币种-->
+                <a:column name="currency_code" align="center" prompt="ACP_WEB_INVOICE.CURRENCY_CODE" width="40"/>
+                <!--可开票数量-->
+                <a:column name="quantity" align="right" prompt="ACP_BILL_SOURCE.QUANTITY" width="40"/>
+                <!--开票单价-->
+                <a:column name="unit_price" align="right" prompt="ACP_BILL_SOURCE.UNIT_PRICE" width="40"/>
+                <!--行金额=开票数量*开票单价-->
+                <a:column name="line_amount" align="right" prompt="ACP_WEB_INVOICE.LINE_AMOUNT" width="40"/>
+                <!--已开票数量-->
+                <a:column name="billed_quantity" align="right" prompt="ACP_WEB_INVOICE.BILLED_QUANTITY" width="60"/>
+                <!--剩余开票数量=可开票数量-以开票数量-->
+                <a:column name="bill_quantity_remaining" align="right" prompt="ACP_WEB_INVOICE.BILL_QUANTITY_REMAINING" width="60"/>
+                <!--本次开票数量-->
+                <a:column name="bill_quantity" editor="acp_5040_grid_tf" prompt="ACP_WEB_INVOICE.BILL_QUANTITY" width="60"/>
+                <!--本次开票单价-->
+                <a:column name="bill_unit_price" editor="acp_5040_grid_tf" prompt="ACP_WEB_INVOICE.BILL_UNIT_PRICE" width="60"/>
+                <!--本次开票金额-->
+                <a:column name="bill_amount" prompt="ACP_WEB_INVOICE.BILL_AMOUNT" width="60"/>
+                <!--税率-->
+                <a:column name="tax_rate" editor="acp_5040_grid_cmb" prompt="ACP_WEB_INVOICE.TAX_RATE" width="80"/>
+                <a:column name="company_name" align="center" prompt="ACP_BILL.COMPANY_NAME" sortable="true" width="80"/>
+                <a:column name="organization_code_name" align="center" prompt="ACP_BILL_SOURCE.ORGANIZATION_NAME" width="80"/>
+                <a:column name="vendor_site_name" align="center" prompt="ACP_BILL_SOURCE.VENDOR_SITE_CODE_NAME" width="80"/>
+                <!--发运号-->
+                <a:column name="po_shipment_num" align="center" prompt="ACP_BILL_DETAILS.PO_SHIPMENT_NUM" width="80"/>
+                <!--分配行号-->
+                <a:column name="po_distribution_num" align="center" prompt="ACP_WEB_INVOICE.PO_DISTRIBUTION_NUM" width="80"/>
+                <!--接收编号-->
+                <a:column name="receipt_num" align="center" prompt="ACP_WEB_INVOICE.RECEIPT_NUM" width="80"/>
+                <!--事务ID-->
+                <a:column name="erp_transaction_id" align="center" prompt="ACP_BILL_DETAILS.TRANSACTION_ID" width="40"/>
+                <a:column name="transaction_date" align="center" prompt="ACP_BILL_DETAILS.TRANSACTION_DATE" renderer="Aurora.formatDate" width="60"/>
+                <a:column name="request_date" align="center" prompt="ACP_WEB_INVOICE.REQUEST_DATE" width="60"/>
+                <a:column name="data_source" align="center" prompt="ACP_BILL_SOURCE.DATA_SOURCE" sortable="true" width="40"/>
+                <a:column name="associate_web_invoice" align="center" prompt="ACP_WEB_INVOICE.INTERACTION_WEB_INVOICE" renderer="associateWebInvoice" width="60"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="acp_5040_grid_tf"/>
+                <a:comboBox id="acp_5040_grid_cmb"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

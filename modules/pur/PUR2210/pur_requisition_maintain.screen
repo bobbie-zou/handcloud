@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tony  
+    $Date: 2013-7-15 下午6:48:38  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="pur2210_requistion_link" url="${/request/@context_path}/modules/pur/PUR2210/pur_requisition_details.screen"/>
+        <script><![CDATA[
+            function pur2210_dateValidator(record, name, value) { //日期校验方法
+                if (name == 'requisition_date_from' || name == 'requisition_date_to') {
+                    var start_date = record.get('requisition_date_from');
+                    var end_date = record.get('requisition_date_to');
+                    if ( !! end_date) { //由于结束日期非必填，只有在结束日期填了才进行比较
+                        if (!pur2210_compareDate(start_date, end_date)) {
+                            return '${l:START_GREATER_THAN_END}'; //校验不通过返回字符串
+                        }
+                    }
+                    return true; //校验通过返回true
+                }
+            }
+            
+            function pur2210_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function pur2210_query_update(ds, record, name, value, oldValue) {
+                if (name == 'company_id') {
+                    record.set('unit_desc', null);
+                    record.set('unit_id', null);
+                    record.set('pur_requisition_type_desc', null);
+                    record.set('pur_requisition_type_id', null);
+                    if (!Aurora.isEmpty(value)) {
+                        record.getField('unit_desc').setLovPara('enabled_flag', 'Y');
+                        record.getField('unit_desc').setLovPara('company_id', value);
+                        record.getField('unit_desc').setLovService('public.exp_org_unit_lov');
+                    } else {
+                        record.getField('unit_desc').setLovPara('enabled_flag', null);
+                        record.getField('unit_desc').setLovPara('company_id', null);
+                        record.getField('unit_desc').setLovService(null);
+                    }
+                    $('pur2210_req_type_ds').setQueryParameter('company_id', value);
+                    $('pur2210_req_type_ds').query();
+                }
+            }
+            
+            function pur2210_number_ren(value, record, name) {
+                if (name == 'pur_requisition_num') {
+                    var pur_requisition_header_id = record.get('pur_requisition_header_id');
+                    if (pur_requisition_header_id) {
+                        return '<a href="javascript:pur2210_edit(' + pur_requisition_header_id + ')">' + value + '</a>';
+                    }
+                }
+            }
+            
+            function pur2210_edit(id) {
+                var url = $('pur2210_requistion_link').getUrl() + '?pur_requisition_header_id=' + id;
+                new Aurora.Window({
+                    id: 'pur2210_edit_window',
+                    url: url,
+                    title: '采购申请明细',
+                    fullScreen: true
+                }).on('beforeclose', pur2210_result_query);
+            }
+            
+            function pur2210_result_query() {
+                $('pur2210_header_result_ds').query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur2210_req_type_ds" model="pur.PUR3851.pur_requisition_types_query"/>
+            <a:dataSet id="pur2210_status_ds" lookupCode="PUR_REQUISITION_STATUS"/>
+            <a:dataSet id="pur2210_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="350" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" title="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_short_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="requisition_status_desc" displayField="code_value_name" options="pur2210_status_ds" returnField="requisition_status" valueField="code_value"/>
+                    <a:field name="pur_requisition_num"/>
+                    <a:field name="company_id"/>
+                    <a:field name="requisition_date_from" validator="pur2210_dateValidator"/>
+                    <a:field name="requisition_date_to" validator="pur2210_dateValidator"/>
+                    <a:field name="unit_desc" lovGridHeight="350" lovHeight="500" lovWidth="500" title="公司">
+                        <a:mapping>
+                            <a:map from="unit_desc" to="unit_desc"/>
+                            <a:map from="unit_id" to="unit_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="unit_id"/>
+                    <a:field name="requisition_person"/>
+                    <a:field name="pur_requisition_type_desc" displayField="description" options="pur2210_req_type_ds" returnField="pur_requisition_type_id" valueField="requisition_type_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur2210_query_update"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur2210_header_result_ds" autoCount="true" autoPageSize="true" model="pur.PUR2210.pur_requisition_hds" queryDataSet="pur2210_query_ds"/>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="pur2210_result_grid" type="excel" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm autoCount="true" bindTarget="pur2210_query_ds" resultTarget="pur2210_header_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox column="3" labelWidth="100">
+                    <a:textField name="pur_requisition_num" bindTarget="pur2210_query_ds" prompt="采购申请编号"/>
+                    <a:lov name="company_desc" bindTarget="pur2210_query_ds" prompt="公司"/>
+                    <a:lov name="unit_desc" bindTarget="pur2210_query_ds" prompt="需求部门"/>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox labelWidth="100">
+                    <a:comboBox name="pur_requisition_type_desc" bindTarget="pur2210_query_ds" prompt="申请单类型"/>
+                    <a:datePicker name="requisition_date_from" bindTarget="pur2210_query_ds" prompt="申请日期从"/>
+                    <a:textField name="requisition_person" bindTarget="pur2210_query_ds" prompt="申请人"/>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:datePicker name="requisition_date_to" bindTarget="pur2210_query_ds" prompt="申请日期至"/>
+                    <a:comboBox name="requisition_status_desc" bindTarget="pur2210_query_ds" prompt="申请状态"/>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="pur2210_result_grid" bindTarget="pur2210_header_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="pur_requisition_num" align="center" prompt="采购申请编号" renderer="pur2210_number_ren" width="100"/>
+                <a:column name="company_desc" align="center" prompt="公司" width="120"/>
+                <a:column name="unit_desc" align="center" prompt="需求部门" width="100"/>
+                <a:column name="pur_requisition_type_desc" align="center" prompt="申请单类型" width="80"/>
+                <a:column name="currency_desc" align="center" prompt="币种" width="70"/>
+                <a:column name="requisition_functional_amount" align="right" prompt="本币金额" renderer="Aurora.formatMoney" width="70"/>
+                <a:column name="requisition_person" align="center" prompt="申请人" width="80"/>
+                <a:column name="requisition_date" align="center" prompt="申请日期" width="80"/>
+                <a:column name="requisition_status_desc" align="center" prompt="申请状态" width="80"/>
+                <a:column name="demand_pool_finished_desc" align="center" prompt="寻源状态" width="60"/>
+                <a:column name="cancel_date" align="center" prompt="取消日期" width="70"/>
+                <a:column name="cancel_by_desc" align="center" prompt="取消人" width="70"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

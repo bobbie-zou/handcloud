@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="岗位代码"/>
+        <bm:field name="description" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="岗位描述"/>
+        <bm:field name="unit_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" prompt="部门"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        a.position_id AS id,
+                        a.position_code AS code,
+                        a.description,
+                        a.company_id,
+                        b.unit_id,
+                        b.unit_code,
+                        b.description unit_desc
+                    FROM
+                        wfl_position_vl a,
+                        exp_org_unit_vl b
+                    WHERE
+                        a.unit_id    = b.unit_id AND
+                        a.company_id =
+                        (SELECT
+                            v.parent_company_id
+                        FROM
+                            fnd_organization_define_v v
+                        WHERE
+                            v.company_id = ${/parameter/@company_id}
+                        )
+                    ) v #WHERE_CLAUSE#
+                ORDER BY
+                    v.id
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="code" queryExpression="v.code like &apos;%&apos; || ${@code} || &apos;%&apos;"/>
+        <bm:query-field name="description" queryExpression="v.description like &apos;%&apos; || ${@description} || &apos;%&apos;"/>
+    </bm:query-fields>
+    <!--  <bm:data-filters>
+        <bm:data-filter name="company_id" expression="v.company_id = ${/parameter/@company_id}"/>
+    </bm:data-filters> -->
+</bm:model>

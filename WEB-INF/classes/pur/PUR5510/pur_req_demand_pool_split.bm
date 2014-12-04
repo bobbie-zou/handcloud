@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2014-1-23 下午2:42:17  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select d.req_distribution_id,
+       d.req_line_id,
+       d.req_dist_num,
+       d.pro_mode_code,
+       d.pro_mode_name,
+       d.quantity,
+       to_char(d.need_by_date,'yyyy-mm-dd') need_by_date,
+       d.unit_price,
+       d.comments,
+       d.unit_meas_lookup_code,
+       d.distributed_flag,
+       d.po_created_flag,
+       d.status,
+       (SELECT scv.code_value_name
+          FROM sys_code_values_v scv
+         WHERE scv.code = 'PUR_REQ_DISTRIBUTION_STATUS'
+           AND scv.code_enabled_flag = 'Y'
+           AND scv.code_value_enabled_flag = 'Y'
+           AND scv.code_value = d.status) AS status_desc
+  from pur_req_demand_pools_v d
+ WHERE d.req_line_id =${/parameter/@req_line_id}
+ ORDER BY to_number(d.req_dist_num) ASC
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+              	pur_req_pool_pkg.save_split_pool(p_req_distribution_id => ${@req_distribution_id},
+                                   p_req_line_id => ${@req_line_id},
+                                   p_req_dist_num => ${@req_dist_num},
+                                   p_pro_mode_code => ${@pro_mode_code},
+                                   p_quantity => ${@quantity},
+                                   p_need_by_date => to_date(${@need_by_date},'yyyy-mm-dd'),
+                                   p_comments => ${@comments},
+                                   p_user_id =>${/session/@user_id});
+              	
+              END;
+		      ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="req_distribution_id" input="true" output="true"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+              BEGIN
+              	pur_req_pool_pkg.check_pool_total_quantity(p_req_line_id => ${@req_line_id},
+                                   p_user_id =>${/session/@user_id});
+              	
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

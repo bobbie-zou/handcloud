@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-6-4 下午1:36:56  
+    $Revision: 1.0  
+    $Purpose: 标准角色功能
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+	            SELECT v.function_id,
+				       v.function_code,
+				       v.function_name,
+				       v.function_level,
+				       v.parent_function_id,
+				       v.parent_function_name,
+				       v.licence_id,
+				       v.checked,
+				       v.sequence,
+				       v.template_id
+				  FROM (SELECT fv.function_id,
+				               fv.function_code,
+				               fv.description AS function_name,
+				               fv.function_level,
+				               fv.parent_function_id,
+				               (SELECT pfv.description FROM sys_function_vl pfv WHERE pfv.function_id = fv.parent_function_id) AS parent_function_name,
+				               lf.licence_id,
+				               decode((SELECT tf.template_function_id
+				                FROM fnd_std_role_template_fun tf
+				               WHERE tf.template_id = rt.template_id
+				                     AND tf.function_id = lf.function_id),
+				                      NULL,
+				                      'N',
+				                      'Y') AS checked,
+				               nvl(lf.sequence_num,
+				                   fv.sequence) AS sequence,
+				               rt.template_id
+				          FROM sys_function_vl             fv,
+				               fnd_licence_function        lf,
+				               fnd_standard_role_templates rt
+				         WHERE fv.function_id = lf.function_id
+				               AND lf.licence_id = rt.licence_id
+				               AND rt.template_id = ${@template_id}) v
+				 #WHERE_CLAUSE# 
+				 ORDER BY v.sequence
+			]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+				  fnd_licence_pkg.save_standard_role_template(p_template_id => ${@template_id},
+				                                              p_function_id => ${@function_id},
+				                                              p_checked     => ${@checked},
+				                                              p_user_id     => ${/session/@user_id});
+				END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="function_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="FUNCTION_ID"/>
+        <bm:field name="function_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FUNCTION_CODE"/>
+        <bm:field name="function_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FUNCTION_NAME"/>
+        <bm:field name="function_level" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FUNCTION_LEVEL"/>
+        <bm:field name="parent_function_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PARENT_FUNCTION_ID"/>
+        <bm:field name="parent_function_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARENT_FUNCTION_NAME"/>
+        <bm:field name="licence_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="LICENCE_ID"/>
+        <bm:field name="checked" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CHECKED"/>
+        <bm:field name="sequence" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SEQUENCE"/>
+        <bm:field name="template_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="TEMPLATE_ID"/>
+    </bm:fields>
+</bm:model>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-3-21 下午01:35:32  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="insert">
+            <bm:query-sql><![CDATA[
+            begin
+              fnd_flex_dim_pkg.ins_flex_dim(
+					                         x_dimension_id   =>${@dimension_id},
+					                         p_description    =>${@dimension_desc},
+					                         p_dimension_code =>${@dimension_code},
+					                         p_enabled_flag   =>${@enabled_flag},
+					                         p_user_id        =>${/session/@user_id});
+            end;
+            ]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter name="dimension_id" dataType="java.lang.Long" input="false" output="true" outputPath="@dimension_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+            begin
+              fnd_flex_dim_pkg.update_flex_dim(p_dimension_id    =>${@dimension_id},
+                         					   p_description    =>${@dimension_desc},
+					                           p_description_id =>${@description_id},
+						                       p_dimension_code =>${@dimension_code},
+						                       p_enabled_flag   =>${@enabled_flag},
+						                       p_user_id        =>${/session/@user_id});
+            end;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:query-sql><![CDATA[
+            begin
+              fnd_flex_dim_pkg.del_flex_dim(p_dimension_id   =>${@dimension_id});
+            end;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    ffd.dimension_id,
+                    ffd.description_id,
+                    ffd.dimension_code,
+                    fd.description_text dimension_desc,
+                    ffd.enabled_flag
+                FROM
+                    fnd_flex_dimensions ffd,
+                    fnd_descriptions fd
+                #WHERE_CLAUSE#    
+                order by
+                    ffd.dimension_code   
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="dimension_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="description_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="dimension_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DIMENSION_CODE" prompt="维度代码"/>
+        <bm:field name="dimension_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DESCRIPTION_TEXT" prompt="维度描述"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="启用"/>
+    </bm:fields>
+    <bm:data-filters>
+        <bm:data-filter expression="fd.description_id = ffd.description_id "/>
+        <bm:data-filter expression="fd.language=${/session/@lang}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="query_hook" queryExpression="(ffd.dimension_code like &apos;%&apos;||${@query_hook}||&apos;%&apos; or fd.description_text like &apos;%&apos;||${@query_hook}||&apos;%&apos;)"/>
+    </bm:query-fields>
+</bm:model>

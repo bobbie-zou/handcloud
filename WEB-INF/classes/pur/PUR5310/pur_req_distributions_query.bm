@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2014-1-21 下午1:37:53  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select * from (
+select d.req_distribution_id,
+       d.req_line_id,
+       h.req_header_id,
+       h.req_number,
+       l.line_num req_line_num,
+       d.distribution_num req_dist_num,
+       d.status,
+       d.pro_mode_code,
+       (SELECT scv.code_value_name
+          FROM sys_code_values_v scv
+         WHERE scv.code = 'PUR_REQ_PROCUREMENT_MODE'
+           AND scv.code_enabled_flag = 'Y'
+           AND scv.code_value_enabled_flag = 'Y'
+           AND scv.code_value = d.pro_mode_code) AS pro_mode_name,
+       h.company_id,
+       h.company_name,
+       h.employee_id,
+       h.employee_name,
+       h.position_id,
+       h.position_name,
+       h.unit_id,
+       h.unit_name,
+       h.req_type_id,
+       h.req_type_name,
+       h.tax_flag,
+       h.tax_id,
+       h.tax_name,
+       h.tax_type_rate,
+       h.pur_organization_id,
+       h.pur_organization_name,
+       l.currency_code,
+       l.currency_name,
+       h.exchange_rate_type,
+       h.exchange_rate_quotation,
+       h.exchange_rate,
+       h.period_name,
+       h.data_source,
+       h.version_num,
+       l.pur_line_type,
+       l.pur_line_type_name,
+       l.item_category_id,
+       l.item_category_code,
+       l.item_category_desc,
+       l.item_id,
+       l.item_code,
+       l.item_desc,
+       l.item_note,
+       l.parameter_config,
+       l.approve_number,
+       l.unit_meas_lookup_code,
+       l.budget_price,
+       l.key_flexfield_instance_id,
+       d.quantity,
+       d.need_by_date need_by_date_query,
+       to_char(d.need_by_date,'yyyy-mm-dd') need_by_date,
+       d.unit_price,
+       d.functional_unit_price,
+       d.ship_to_location_id,
+       d.ship_to_location_name,
+       d.ship_to_organization_id,
+       d.ship_to_organization_name,
+       d.rfx_employee_id,
+       d.rfx_employee_code,
+       d.rfx_employee_name,
+       d.completion_date,
+       d.distributed_flag,
+       d.souring_started_flag,
+       d.souring_finished_flag,
+       d.po_created_flag,
+       d.decided_vendor_id,
+       d.decided_vendor_code,
+       d.decided_vendor_desc,
+       d.decided_unit_price,
+       to_char(d.decided_primised_date,'yyyy-mm-dd') decided_primised_date,
+       d.decided_vendor_site_id,
+       d.decided_vendor_address,
+       d.created_by,
+       (select su.description
+          from sys_user su
+         where su.user_id = d.created_by) created_by_name,
+       d.creation_date,
+       to_char(d.creation_date,'yyyy-mm-dd') creation_date_desc,
+       d.comments
+  from pur_req_headers h, pur_req_lines l, pur_req_distributions d
+ where h.req_header_id = l.req_header_id
+   and l.req_line_id = d.req_line_id
+   and h.status = 'APPROVED'
+   and d.po_created_flag = 'N'
+   and d.souring_finished_flag = 'Y'
+   ) t
+   #WHERE_CLAUSE#
+   order by req_number desc,req_line_num asc,req_dist_num asc
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+				
+				pur_req_pkg.save_decided_vendor_info(p_req_distribution_id => ${@req_distribution_id},
+                                       p_decided_vendor_id => ${@decided_vendor_id},
+                                       p_decided_vendor_code => ${@decided_vendor_code},
+                                       p_decided_vendor_desc => ${@decided_vendor_desc},
+                                       p_decided_unit_price => ${@decided_unit_price},
+                                       p_decided_primised_date => ${@decided_primised_date},
+                                       p_decided_vendor_site_id => ${@decided_vendor_site_id},
+                                       p_decided_vendor_address => ${@decided_vendor_address},
+                                       p_user_id => ${/session/@user_id});
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_id" queryExpression="company_id=${@company_id}"/>
+        <bm:query-field name="req_number" queryExpression="req_number like &apos;%&apos;||${@req_number}||&apos;%&apos;"/>
+        <bm:query-field name="pur_organization_id" queryExpression="pur_organization_id = ${@pur_organization_id}"/>
+        <bm:query-field name="unit_id" queryExpression="unit_id=${@unit_id}"/>
+        <bm:query-field name="item_category_id" queryExpression="item_category_id=${@item_category_id}"/>
+        <bm:query-field name="item_id" queryExpression="item_id=${@item_id}"/>
+        <bm:query-field name="req_type_id" queryExpression="req_type_id=${@req_type_id}"/>
+        <bm:query-field name="created_by" queryExpression="created_by=${@created_by}"/>
+        <bm:query-field name="pur_method" queryExpression="pur_method=${@pur_method}"/>
+        <bm:query-field name="need_by_date_from" queryExpression="need_by_date_query &gt;= to_date(${@need_by_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="need_by_date_to" queryExpression="need_by_date_query &lt; to_date(${@need_by_date_to},&apos;YYYY-MM-DD&apos;)+1"/>
+        <bm:query-field name="creation_date_from" queryExpression="creation_date &gt;= to_date(${@creation_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="creation_date_to" queryExpression="creation_date &lt; to_date(${@creation_date_to},&apos;YYYY-MM-DD&apos;)+1"/>
+        <bm:query-field name="data_source" queryExpression="data_source=${@data_source}"/>
+    </bm:query-fields>
+</bm:model>

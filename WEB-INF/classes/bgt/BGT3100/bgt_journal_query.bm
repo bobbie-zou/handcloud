@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lixi  
+    $Date: 2011-7-22 上午10:42:13  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+        		SELECT T.JOURNAL_HEADER_ID,
+
+       T.COMPANY_ID,
+
+       T.OPERATION_UNIT_ID,
+
+       FO.DESCRIPTION OPERATION_UNIT_DESC,
+
+       T.BGT_ORG_ID,
+
+       T.BUDGET_STRUCTURE_ID,
+
+       BBS.DESCRIPTION BUDGET_STRUCTURE_DESC,
+
+       BBS.PERIOD_SET_CODE,
+
+       BPSV.DESCRIPTION PERIOD_SET_DESC,
+
+       BBS.PERIOD_STRATEGY,
+
+       A.CODE_VALUE_NAME PERIOD_STRATEGY_DESC,
+
+       T.BUDGET_JOURNAL_NUMBER,
+
+       T.PERIOD_YEAR,
+
+       T.PERIOD_QUARTER,
+
+       T.PERIOD_NAME,
+
+       T.BGT_PERIOD_NUM,
+
+       T.JOURNAL_HEADER_NOTES,
+
+       T.SCENARIO_ID,
+
+       BS.description SCENARIO_DESC,
+
+       T.VERSION_ID,
+
+       BV.DESCRIPTION VERSION_DESC,
+
+       T.STATUS,
+
+       B.CODE_VALUE_NAME STATUS_DESC,
+
+       T.REVERSED_FLAG,
+
+       (SELECT SCV.CODE_VALUE_NAME 
+
+        FROM SYS_CODES SC,
+
+                SYS_CODE_VALUES_VL SCV
+
+             WHERE SC.CODE_ID = SCV.CODE_ID
+
+             AND SC.CODE ='CSH_REVERSE_SELECT'
+
+             AND SC.ENABLED_FLAG='Y'
+
+             AND SCV.ENABLED_FLAG ='Y' 
+
+             and nvl(T.REVERSED_FLAG,'N') = SCV.CODE_VALUE) REVERSED_STATUS,
+
+       T.SOURCE_BUDGET_HEADER_ID,
+
+       T.APPROVED_DATE,
+
+       T.APPROVED_BY,
+
+       T.POSTED_DATE,
+
+       T.POSTED_BY
+
+  FROM BGT_JOURNAL_HEADERS T,
+
+       FND_OPERATION_UNITS_VL FO,
+
+       BGT_BUDGET_STRUCTURES_VL BBS,
+
+       BGT_VERSIONS_VL BV,
+
+       BGT_SCENARIOS_VL BS,
+
+       (SELECT L.CODE_VALUE, 
+
+				   L.CODE_VALUE_NAME
+
+			  FROM SYS_CODES H, SYS_CODE_VALUES_VL L
+
+			 WHERE H.CODE = 'BUDGET_PERIOD'
+
+			   AND H.CODE_ID = L.CODE_ID
+
+			   AND H.ENABLED_FLAG = 'Y'
+
+			   AND L.ENABLED_FLAG = 'Y'
+
+			 ORDER BY L.CODE_VALUE) A,
+
+       bgt_period_sets_vl BPSV,
+
+       (SELECT SCV.CODE_VALUE,SCV.CODE_VALUE_NAME 
+
+				FROM SYS_CODES SC,
+
+							  SYS_CODE_VALUES_VL SCV
+
+					   WHERE SC.CODE_ID = SCV.CODE_ID
+
+					   AND SC.CODE ='BGT_BUDGET_STATUS'
+
+					   AND SC.ENABLED_FLAG='Y'
+
+					   AND SCV.ENABLED_FLAG ='Y'
+
+				ORDER BY SCV.CODE_VALUE) B
+
+		#WHERE_CLAUSE# order by t.budget_journal_number desc
+		]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="budget_structure_id" dataType="java.lang.Long" queryExpression=" t.budget_structure_id  =   ${@budget_structure_id} "/>
+        <bm:query-field name="budget_journal_number" dataType="java.lang.String" queryExpression=" t.budget_journal_number like  &apos;%&apos;||upper(${@budget_journal_number})||&apos;%&apos;"/>
+        <bm:query-field name="period_strategy" dataType="java.lang.String" queryExpression="exists (select 1 from bgt_budget_structures a where a.budget_structure_id =t.budget_structure_id and a.period_strategy = ${@period_strategy} )"/>
+        <bm:query-field name="period_set_code" dataType="java.lang.String" queryExpression="exists (select 1 from bgt_budget_structures a where a.budget_structure_id =t.budget_structure_id and a.PERIOD_SET_CODE = ${@period_set_code} )"/>
+        <bm:query-field name="scenario_id" dataType="java.lang.Long" queryExpression=" t.SCENARIO_ID  =   ${@scenario_id} "/>
+        <bm:query-field name="version_id" dataType="java.lang.Long" queryExpression=" t.VERSION_ID  =   ${@version_id} "/>
+        <bm:query-field name="period_year" dataType="java.lang.String" queryExpression=" t.PERIOD_YEAR  =   ${@period_year} "/>
+        <bm:query-field name="period_quarter" dataType="java.lang.String" queryExpression=" t.PERIOD_QUARTER  =   ${@period_quarter} "/>
+        <bm:query-field name="period_name" dataType="java.lang.String" queryExpression=" t.PERIOD_NAME  =   ${@period_name} "/>
+        <bm:query-field name="status" dataType="java.lang.String" queryExpression=" t.STATUS  =   ${@status} "/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter enforceOperations="query" expression="T.OPERATION_UNIT_ID = FO.OPERATION_UNIT_ID(+)"/>
+        <bm:data-filter enforceOperations="query" expression="T.BUDGET_STRUCTURE_ID = BBS.BUDGET_STRUCTURE_ID(+)"/>
+        <bm:data-filter enforceOperations="query" expression="T.VERSION_ID = BV.VERSION_ID(+)"/>
+        <bm:data-filter enforceOperations="query" expression="T.SCENARIO_ID = BS.scenario_id(+)"/>
+        <bm:data-filter enforceOperations="query" expression="BBS.PERIOD_STRATEGY = A.CODE_VALUE"/>
+        <bm:data-filter enforceOperations="query" expression="BBS.PERIOD_SET_CODE = BPSV.BGT_PERIOD_SET_CODE"/>
+        <bm:data-filter enforceOperations="query" expression="BBS.BGT_ORG_ID = BPSV.BGT_ORG_ID"/>
+        <bm:data-filter enforceOperations="query" expression="T.STATUS = B.CODE_VALUE(+)"/>
+        <bm:data-filter enforceOperations="query" expression="(NVL(T.REVERSED_FLAG,&apos;N&apos;) = ${@reversed_status_code} OR (${@reversed_status_code} IS NULL))"/>
+        <bm:data-filter enforceOperations="query" expression="T.COMPANY_ID = ${/session/@company_id}"/>
+        <bm:data-filter enforceOperations="query" expression="sys_user_secure_exit_pkg.bgt_journal_query(T.JOURNAL_HEADER_ID,${/session/@session_id})=&apos;Y&apos;"/>
+        <bm:data-filter enforceOperations="query" expression="(${@MAINTAIN} is null or t.status in (&apos;NEW&apos;,&apos;REJECTED&apos;,&apos;WITHDRAWAL&apos;))"/>
+    </bm:data-filters>
+</bm:model>

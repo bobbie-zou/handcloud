@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tony  
+    $Date: 2013-7-15 下午7:18:49  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="h.req_number desc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    h.req_header_id,
+                    h.req_number,
+                    h.company_id,
+                    h.company_name,
+                    h.req_type_id,
+                    h.req_type_name,
+                    h.unit_id,
+                    h.unit_name,
+                    h.tax_flag,
+                    h.tax_id,
+                    h.tax_name,
+                    h.tax_type_rate,
+                    h.exchange_rate,
+                    h.pur_organization_id,
+                    h.pur_organization_name,
+                    h.currency_code,
+                    h.currency_name,
+                    h.header_comments,
+                    h.version_num,
+                    h.requisition_functional_amount,
+                    (SELECT
+                        code_value_name
+                    FROM
+                        sys_code_values_v
+                    WHERE
+                        code       = 'PUR_REQUISITION_STATUS' AND
+                        code_value = h.status
+                    ) AS status,
+                    (SELECT description FROM sys_user WHERE user_id = h.created_by
+                    ) AS create_user,
+                    TO_CHAR(h.creation_date, 'yyyy-mm-dd hh24:mi:ss') AS creation_date
+                FROM
+                    pur_req_headers h #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="req_header_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@req_header_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+	        	begin
+	        	      pur_req_pkg.insert_req_headers(p_req_type_id => ${@req_type_id},
+					                                 p_req_type_name => ${@req_type_name},
+					                                 p_company_id => ${@company_id},
+					                                 p_company_name => ${@company_name},
+					                                 p_unit_id => ${@unit_id},
+					                                 p_unit_name => ${@unit_name},
+					                                 p_tax_flag => ${@tax_flag},
+					                                 p_tax_id => ${@tax_id},
+					                                 p_tax_name => ${@tax_name},
+					                                 p_tax_type_rate => ${@tax_type_rate},
+					                                 p_pur_organization_id => ${@pur_organization_id},
+					                                 p_pur_organization_name => ${@pur_organization_name},
+					                                 p_currency_code => ${@currency_code},
+					                                 p_currency_name => ${@currency_name},
+					                                 p_exchange_rate => ${@exchange_rate},
+					                                 p_header_comments => ${@header_comments},
+					                                 p_user_id => ${/session/@user_id},
+					                                 x_req_header_id => ${@req_header_id});
+	            end;
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        	begin
+        		      pur_req_pkg.update_req_headers(p_req_header_id => ${@req_header_id},
+        		      								 p_req_type_id => ${@req_type_id},
+					                                 p_req_type_name => ${@req_type_name},
+					                                 p_company_id => ${@company_id},
+					                                 p_company_name => ${@company_name},
+					                                 p_unit_id => ${@unit_id},
+					                                 p_unit_name => ${@unit_name},
+					                                 p_tax_flag => ${@tax_flag},
+					                                 p_tax_id => ${@tax_id},
+					                                 p_tax_name => ${@tax_name},
+					                                 p_tax_type_rate => ${@tax_type_rate},
+					                                 p_pur_organization_id => ${@pur_organization_id},
+					                                 p_pur_organization_name => ${@pur_organization_name},
+					                                 p_currency_code => ${@currency_code},
+					                                 p_currency_name => ${@currency_name},
+					                                 p_exchange_rate => ${@exchange_rate},
+					                                 p_header_comments => ${@header_comments},
+					                                 p_user_id => ${/session/@user_id});
+        	end;
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+        	begin
+        		pur_requisition_pkg.modify_head_functional_amount(p_pur_requisition_header_id =>${@pur_requisition_header_id},
+                                                 p_user_id => ${/session/@user_id});
+        	end;
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="h.status = &apos;NEW&apos;"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="req_header_id" queryExpression="h.req_header_id = ${@req_header_id}"/>
+        <bm:query-field name="company_id" queryExpression="h.company_id = ${@company_id}"/>
+        <bm:query-field name="req_number" queryExpression="h.req_number = ${@req_number}"/>
+        <bm:query-field name="unit_id" queryExpression="h.unit_id = ${@unit_id}"/>
+        <bm:query-field name="created_by" queryExpression="h.created_by = ${@created_by}"/>
+        <bm:query-field name="creation_date_from" queryExpression="h.creation_date&gt;= to_date(${@creation_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="creation_date_to" queryExpression="h.creation_date &lt;= to_date(${@creation_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+        <bm:query-field name="status" queryExpression="h.status = ${@status}"/>
+        <bm:query-field name="pur_organization_id" queryExpression="h.pur_organization_id = ${@pur_organization_id}"/>
+    </bm:query-fields>
+    <authority client_alias="h" client_name="client" create_alias="h" create_name="created_by">
+        <authority-segment source_alias="h" source_name="company_id" type="COMPANY"/>
+        <authority-segment source_alias="h" source_name="inv_organization_id" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="h" source_name="pur_organization_id" type="PUR_ORGANIZATION"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

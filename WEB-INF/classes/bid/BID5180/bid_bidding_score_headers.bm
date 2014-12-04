@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-5-16 下午06:59:11  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    dh.bid_header_id,
+                    sh.score_header_id,
+                    dh.bid_header_number,
+                    dh.bidder_id,
+                    b.bidder_desc,
+                    su.description AS bidder_user_desc,
+                    sh.bid_score_sum,
+                    sh.expert_suggestion,
+                    sh.comments,
+                    sh.score_status,
+                    (SELECT
+                        scv.code_value_name
+                    FROM
+                        sys_code_values_v scv
+                    WHERE
+                        scv.code                    = 'BID_SCORING_STATUS' AND
+                        scv.code_value              = sh.score_status AND
+                        scv.code_enabled_flag       = 'Y' AND
+                        scv.code_value_enabled_flag = 'Y'
+                    ) AS score_status_desc
+                FROM
+                    bid_bidding_docm_headers dh,
+                    bid_bidding_score_headers sh,
+                    bid_bidders_v b,
+                    sys_user su
+                WHERE
+                    dh.entrustment_header_id = ${@entrustment_header_id} AND
+                    dh.round                 = ${@round} AND
+                    sh.bid_header_id         = dh.bid_header_id AND
+                    sh.expert_id             = ${@expert_id} AND
+                    dh.bidder_id             = b.bidder_id(+) AND
+                    dh.created_by            = su.user_id(+)
+                ORDER BY
+                    dh.bid_header_number ASC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

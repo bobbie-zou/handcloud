@@ -1,0 +1,622 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-11 下午1:19:01  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <!-- <s:server-script import="fnd_flex_dynamic_page_link.js" optimizeLevel="1"/>
+        <s:server-script import="fnd_flex_dynamic_page_main.js" optimizeLevel="2"/>
+        <s:server-script import="fnd_flex_dynamic_page_appl_view.js" optimizeLevel="3"/> --><![CDATA[
+        
+        
+        
+        
+    ]]></a:init-procedure>
+    <a:view>
+        <a:link id="bid5040_edit_entrustment_save_link" url="${/request/@context_path}/modules/bid/BID5040/bid_entrustment_save.svc"/>
+        <a:link id="bid5040_edit_entrustment_submit_link" url="${/request/@context_path}/modules/bid/BID5040/bid_entrustment_submit.svc"/>
+        <a:link id="bid5040_edit_entrustment_cancel_link" model="bid.BID5040.bid_cancel" modelaction="execute"/>
+        <script><![CDATA[
+            var bid5040_tax_type_id = null;
+            var bid5040_currency_code_change_flag = false;
+            var bid5040_currency_name_change_flag = false;
+            
+            function bid5040EntrustmentEditOnLoad(ds) {
+                var record = ds.getCurrentRecord();
+                var company_id = record.get('company_id');
+                var using_company_id = record.get('using_company_id');
+                var entrustment_type_id = record.get('entrustment_type_id');
+                var functional_currency_code = record.get('functional_currency_code');
+                var currency_code = record.get('currency_code');
+                var suggested_bidding_method = record.get('suggested_bidding_method');
+                bid5040_tax_type_id = record.get('tax_type_id');
+            
+                if (!Aurora.isEmpty(company_id)) {
+                    record.getField('applicant_desc').setLovPara('company_id', company_id);
+                }
+                if (!Aurora.isEmpty(using_company_id)) {
+                    record.getMeta().getField('inv_organization_desc').setReadOnly(false);
+                    record.getField('inv_organization_desc').setLovPara('company_id', using_company_id);
+                }
+                if (!Aurora.isEmpty(entrustment_type_id)) {
+                    record.getField('tendering_tmpl_desc').setLovPara('entrustment_type_id', entrustment_type_id);
+                }
+                if (functional_currency_code != currency_code) {
+                    record.getMeta().getField('exchange_rate').setReadOnly(false);
+                    record.getMeta().getField('exchange_rate').setRequired(true);
+                } else {
+                    record.getMeta().getField('exchange_rate').setReadOnly(true);
+                    record.getMeta().getField('exchange_rate').setRequired(false);
+                }
+                if (suggested_bidding_method == 'OPEN') {
+                    $('bid5040_edit_entrustment_tab').setDisabled(1);
+                } else if (suggested_bidding_method == 'INVITATION') {
+                    $('bid5040_edit_entrustment_tab').setEnabled(1);
+                }
+            }
+            
+            function bid5040EntrustmentEditOnUpdate(ds, record, name, value, oldvalue) {
+                if (name == "using_company_id") {
+                    record.set('inv_organization_id', '');
+                    record.set('inv_organization_desc', '');
+            
+                    if (!Aurora.isEmpty(value)) {
+                        record.getMeta().getField('inv_organization_desc').setReadOnly(false);
+                        record.getField('inv_organization_desc').setLovPara('company_id', value);
+                    } else {
+                        record.getMeta().getField('inv_organization_desc').setReadOnly(true);
+                    }
+            
+                    bid5040_currency_code_change_flag = true;
+                    bid5040_currency_name_change_flag = true;
+                    record.set('exchange_rate', 1);
+                } else if (name == "entrustment_type_id") {
+                    record.set('tendering_tmpl_id', '');
+                    record.set('tendering_tmpl_desc', '');
+                    record.getField('tendering_tmpl_desc').setLovPara('entrustment_type_id', value);
+                } else if (name == "functional_currency_code") {
+                    if (bid5040_currency_code_change_flag == true) {
+                        record.set('currency_code', value);
+            
+                        bid5040_currency_code_change_flag = false;
+                    }
+                } else if (name == "functional_currency_name") {
+                    if (bid5040_currency_name_change_flag == true) {
+                        record.set('currency_name', value);
+            
+                        bid5040_currency_name_change_flag = false;
+                    }
+                } else if (name == "currency_code") {
+                    var functional_currency_code = record.get('functional_currency_code');
+                    if (functional_currency_code != value) {
+                        record.getMeta().getField('exchange_rate').setReadOnly(false);
+                        record.getMeta().getField('exchange_rate').setRequired(true);
+                        record.set('exchange_rate', '');
+                    } else {
+                        record.getMeta().getField('exchange_rate').setReadOnly(true);
+                        record.getMeta().getField('exchange_rate').setRequired(false);
+                        record.set('exchange_rate', 1);
+                    }
+                } else if (name == 'suggested_bidding_method') {
+                    if (value == 'OPEN') {
+                        $('bid5040_edit_entrustment_tab').setDisabled(1);
+                    } else if (value == 'INVITATION') {
+                        $('bid5040_edit_entrustment_tab').setEnabled(1);
+                    }
+                }
+            }
+            
+            function bid5040EntrustmentEditItemsOnAdd(ds, rec, index) {
+                var header_ds = $('bid5040_edit_entrustment_header_ds');
+                var header_rec = header_ds.getCurrentRecord();
+            
+                rec.set('need_by_date', header_rec.get('complete_date'));
+                rec.set('tax_included_flag', header_rec.get('tax_included_flag'));
+                rec.set('tax_type_id', header_rec.get('tax_type_id'));
+                rec.set('tax_type_code', header_rec.get('tax_type_code'));
+                rec.set('tax_type_rate', header_rec.get('tax_type_rate'));
+            }
+            
+            function bid5040EntrustmentEditItemsOnUpdate(ds, record, name, value, oldvalue) {
+                if (name == "base_price" || name == 'quantity' || name == 'tax_type_rate' || name == 'tax_included_flag') {
+                    var base_price = record.get('base_price');
+                    var quantity = record.get('quantity');
+                    var unit_price = record.get('unit_price');
+                    var net_price = record.get('net_price');
+                    var net_amount = record.get('net_amount');
+                    var tax_amount = record.get('tax_amount');
+                    var total_amount = record.get('total_amount');
+                    var tax_included_flag = record.get('tax_included_flag');
+                    var tax_type_rate = record.get('tax_type_rate');
+            
+                    if (!Aurora.isEmpty(quantity) && !Aurora.isEmpty(base_price) && !Aurora.isEmpty(tax_type_rate)) {
+                        if (tax_included_flag == 'N') {
+                            record.set('unit_price', parseFloat((base_price * (1 + tax_type_rate / 100)).toFixed(8)));
+                            record.set('net_price', parseFloat(base_price.toFixed(8)));
+                            unit_price = record.get('unit_price');
+                            net_price = record.get('net_price');
+                            record.set('net_amount', parseFloat((net_price * quantity).toFixed(2)));
+                            record.set('tax_amount', parseFloat(((unit_price - net_price) * quantity).toFixed(2)));
+                            net_amount = record.get('net_amount');
+                            tax_amount = record.get('tax_amount');
+                            record.set('total_amount', parseFloat((net_amount + tax_amount).toFixed(2)));
+                        } else if (tax_included_flag == 'Y') {
+                            record.set('unit_price', parseFloat(base_price.toFixed(8)));
+                            record.set('net_price', parseFloat((base_price / (1 + (tax_type_rate / 100))).toFixed(8)));
+                            unit_price = record.get('unit_price');
+                            net_price = record.get('net_price');
+                            record.set('net_amount', parseFloat((net_price * quantity).toFixed(2)));
+                            record.set('tax_amount', parseFloat(((unit_price - net_price) * quantity).toFixed(2)));
+                            net_amount = record.get('net_amount');
+                            tax_amount = record.get('tax_amount');
+                            record.set('total_amount', parseFloat((net_amount + tax_amount).toFixed(2)));
+                        }
+                    } else {
+                        record.set('unit_price', '');
+                        record.set('net_price', '');
+                        record.set('net_amount', '');
+                        record.set('tax_amount', '');
+                        record.set('total_amount', '');
+                    }
+                }
+            }
+            
+            function bid5040EntrustmentEditSave() {
+                var header_ds = $('bid5040_edit_entrustment_header_ds');
+                var item_ds = $('bid5040_edit_entrustment_items_ds');
+                var bidder_ds = $('bid5040_edit_entrustment_bidders_ds');
+            
+                if (!header_ds.validate()) {
+                    return;
+                }
+                if (!item_ds.validate()) {
+                    return;
+                }
+                if (!bidder_ds.validate()) {
+                    return;
+                }
+            
+                var data = header_ds.getCurrentRecord().data;
+                data['items'] = item_ds.getJsonData();
+                data['bidders'] = bidder_ds.getJsonData();
+            
+                Aurora.Masker.mask($('bid5040_entrustment_edit_window').wrap, '${l:LOADING}');
+            
+                Aurora.request({
+                    url: $('bid5040_edit_entrustment_save_link').getUrl(),
+                    para: data,
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '${l:BID_ENTRUSTMENT_HEADERS.SAVED_MSG}!', function() {
+                            header_ds.query();
+                            item_ds.query();
+                            bidder_ds.query();
+                        });
+                    },
+                    failure: function() {
+                        return;
+                    },
+                    error: function() {
+                        return;
+                    }
+                });
+            
+                Aurora.Masker.unmask($('bid5040_entrustment_edit_window').wrap);
+            }
+            
+            function bid5040EntrustmentEditSubmit() {
+                var header_ds = $('bid5040_edit_entrustment_header_ds');
+                var item_ds = $('bid5040_edit_entrustment_items_ds');
+                var bidder_ds = $('bid5040_edit_entrustment_bidders_ds');
+            
+                if (!header_ds.validate()) {
+                    return;
+                }
+                if (!item_ds.validate()) {
+                    return;
+                }
+                if (!bidder_ds.validate()) {
+                    return;
+                }
+            
+                var data = header_ds.getCurrentRecord().data;
+                data['items'] = item_ds.getJsonData();
+                data['bidders'] = bidder_ds.getJsonData();
+                Aurora.showConfirm('${l:PROMPT}', '${l:BID_ENTRUSTMENT_HEADERS.CONFIRM_SUBMIT_MSG}？', function() {
+                    Aurora.Masker.mask($('bid5040_entrustment_edit_window').wrap, '${l:LOADING}');
+            
+                    Aurora.request({
+                        url: $('bid5040_edit_entrustment_submit_link').getUrl(),
+                        para: data,
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:BID_ENTRUSTMENT_HEADERS.SUBMITED_MSG}!', function() {
+                                $('bid5040_entrustment_result_ds').query();
+                                $('bid5040_entrustment_edit_window').close();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+            
+                    Aurora.Masker.unmask($('bid5040_entrustment_edit_window').wrap);
+                });
+            }
+            
+            function bid5040EntrustmentEditCancel() {
+                var header_ds = $('bid5040_edit_entrustment_header_ds');
+                var data = header_ds.getCurrentRecord().data;
+            
+                Aurora.showConfirm('${l:PROMPT}', '${l:BID_ENTRUSTMENT_HEADERS.CONFIRM_CANCEL_MSG}？', function() {
+                    Aurora.Masker.mask($('bid5040_entrustment_edit_window').wrap, '${l:LOADING}');
+            
+                    Aurora.request({
+                        url: $('bid5040_edit_entrustment_cancel_link').getUrl(),
+                        para: data,
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:BID_ENTRUSTMENT_HEADERS.CANCELED_MSG}!', function() {
+                                $('bid5040_entrustment_result_ds').query();
+                                $('bid5040_entrustment_edit_window').close();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+            
+                    Aurora.Masker.unmask($('bid5040_entrustment_edit_window').wrap);
+                });
+            }
+            
+            function bid5040EntrustmentEditReturn() {
+                $('bid5040_entrustment_result_ds').query();
+                $('bid5040_entrustment_edit_window').close();
+            }
+            
+            function bid5040EntrustmentItemEditEditor(rec, name) {
+                if (name == 'tax_type_code') {
+                    if (!Aurora.isEmpty(bid5040_tax_type_id)) {
+                        return '';
+                    } else {
+                        return 'bid5040_edit_entrustment_items_lov';
+                    }
+                }
+            }
+            
+            function bid5040EntrustmentItemEditRender(value, rec, name) {
+                if (name == 'quantity') {
+                    if (!Aurora.isEmpty(value)) {
+                        return Aurora.formatNumber(value, 2);
+                    }
+                    return value;
+                } else if (name == 'base_price') {
+                    if (!Aurora.isEmpty(value)) {
+                        return Aurora.formatNumber(value, 8);
+                    }
+                    return value;
+                } else if (name == 'unit_price') {
+                    if (!Aurora.isEmpty(value)) {
+                        return Aurora.formatNumber(value, 8);
+                    }
+                    return value;
+                } else if (name == 'net_price') {
+                    if (!Aurora.isEmpty(value)) {
+                        return Aurora.formatNumber(value, 8);
+                    }
+                    return value;
+                } else if (name == 'net_amount') {
+                    if (!Aurora.isEmpty(value)) {
+                        return Aurora.formatNumber(value, 2);
+                    }
+                    return value;
+                } else if (name == 'tax_amount') {
+                    if (!Aurora.isEmpty(value)) {
+                        return Aurora.formatNumber(value, 2);
+                    }
+                    return value;
+                } else if (name == 'total_amount') {
+                    if (!Aurora.isEmpty(value)) {
+                        return Aurora.formatNumber(value, 2);
+                    }
+                    return value;
+                }
+            }
+            
+            function bid5040EntrustmentEditAtmUpload() {
+                if ('${/parameter/@entrustment_header_id}') {
+                    var url = "${/request/@context_path}/uploadFile.screen?table_name=BID_ENTRUSTMENT_HEADERS&header_id=${/parameter/@entrustment_header_id}";
+                    new Aurora.Window({
+                        url: url,
+                        title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                        id: 'bid5040_entrustment_edit_atm_window',
+                        width: 350,
+                        height: 400
+                    }).on('beforeclose', function() {
+                        $('bid5040_edit_atm_files_ds').query();
+                    });
+                }
+            }
+            
+            function bid5040EntrustmentEditAtmRender(value, rec, name) {
+                if (name == 'file_download_link') {
+                    var file_download_link = rec.get('file_download_link');
+                    return file_download_link;
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5040_edit_bidding_methods_ds" lookupCode="BID_BIDDING_METHODS"/>
+            <a:dataSet id="bid5040_edit_entrustment_status_ds" lookupCode="BID_ENTRUSTMENT_STATUS"/>
+            <a:dataSet id="bid5040_edit_yes_no_ds" lookupCode="YES_OR_NO"/>
+            <a:dataSet id="bid5040_edit_currency_list_ds" fetchAll="true" loadData="true" model="public.currency_list"/>
+            <a:dataSet id="bid5040_edit_entrustment_header_ds" autoQuery="true" fetchAll="true" model="bid.BID5040.bid_entrustment_headers" queryUrl="${/request/@context_path}/autocrud/bid.BID5040.bid_entrustment_headers/query?entrustment_header_id=${/parameter/@entrustment_header_id}">
+                <a:fields>
+                    <a:field name="entrustment_header_id"/>
+                    <a:field name="entrustment_header_number"/>
+                    <a:field name="entrustment_type_id" required="true"/>
+                    <a:field name="entrustment_type_desc" autoComplete="true" autoCompleteField="entrustment_type_desc" lovGridHeight="320" lovHeight="500" lovService="bid.public.bid_entrustment_types_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TYPE_DESC">
+                        <a:mapping>
+                            <a:map from="entrustment_type_id" to="entrustment_type_id"/>
+                            <a:map from="entrustment_type_desc" to="entrustment_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="title" required="true"/>
+                    <a:field name="company_id" required="true"/>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="company_full_name" lovGridHeight="320" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_COMPANY_DESC">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="applicant_id" required="true"/>
+                    <a:field name="applicant_desc" autoComplete="true" autoCompleteField="employee_name" lovGridHeight="320" lovHeight="500" lovService="bid.public.exp_employees_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_HEADERS.APPLICANT">
+                        <a:mapping>
+                            <a:map from="employee_id" to="applicant_id"/>
+                            <a:map from="employee_name" to="applicant_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="application_date" required="true"/>
+                    <a:field name="using_company_id" required="true"/>
+                    <a:field name="using_company_code" required="true"/>
+                    <a:field name="using_company_desc" autoComplete="true" autoCompleteField="company_full_name" lovGridHeight="320" lovHeight="500" lovService="bid.public.bid_company_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_HEADERS.USING_COMPANY_DESC">
+                        <a:mapping>
+                            <a:map from="company_id" to="using_company_id"/>
+                            <a:map from="company_code" to="using_company_code"/>
+                            <a:map from="company_full_name" to="using_company_desc"/>
+                            <a:map from="functional_currency_code" to="functional_currency_code"/>
+                            <a:map from="functional_currency_name" to="functional_currency_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="inv_organization_id" required="true"/>
+                    <a:field name="inv_organization_desc" autoComplete="true" autoCompleteField="organization_name" lovGridHeight="320" lovHeight="500" lovService="public.inv_organizations_lov" lovWidth="500" readOnly="true" required="true" title="INV_ORGANIZATIONS.INV_ORGANIZATION">
+                        <a:mapping>
+                            <a:map from="organization_id" to="inv_organization_id"/>
+                            <a:map from="organization_name" to="inv_organization_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pur_organization_id" required="true"/>
+                    <a:field name="pur_organization_desc" autoComplete="true" autoCompleteField="pur_organization_name" lovGridHeight="320" lovHeight="500" lovService="public.pur_organization_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_HEADERS.PUR_ORGANIZATION_DESC">
+                        <a:mapping>
+                            <a:map from="pur_organization_id" to="pur_organization_id"/>
+                            <a:map from="pur_organization_name" to="pur_organization_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="suggested_bidding_method" required="true"/>
+                    <a:field name="suggested_bidding_method_desc" displayField="code_value_name" options="bid5040_edit_bidding_methods_ds" required="true" returnField="suggested_bidding_method" valueField="code_value"/>
+                    <a:field name="winning_bidder_maxcount" required="true"/>
+                    <a:field name="suggested_qty_of_bidders"/>
+                    <a:field name="authorized_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="margin_required_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="bidder_qualified_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="tax_included_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="tax_type_id" required="true"/>
+                    <a:field name="tax_type_code" autoComplete="true" autoCompleteField="tax_type_code" lovGridHeight="350" lovHeight="500" lovService="public.fnd_tax_type_code_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_LN_ITEMS.TAX_RATE">
+                        <a:mapping>
+                            <a:map from="tax_type_id" to="tax_type_id"/>
+                            <a:map from="tax_type_code" to="tax_type_code"/>
+                            <a:map from="tax_type_rate" to="tax_type_rate"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="currency_code" required="true"/>
+                    <a:field name="currency_name" displayField="currency_name" options="bid5040_edit_currency_list_ds" required="true" returnField="currency_code" valueField="currency_code"/>
+                    <!-- <a:field name="tendering_tmpl_id"/>
+                    <a:field name="tendering_tmpl_desc" autoComplete="true" autoCompleteField="quick_value" lovGridHeight="320" lovHeight="500" lovService="public.bid_templates_lov" lovWidth="500" readOnly="true" title="招标模版">
+                        <a:mapping>
+                            <a:map from="template_id" to="tendering_tmpl_id"/>
+                            <a:map from="template_desc" to="tendering_tmpl_desc"/>
+                        </a:mapping>
+                    </a:field> -->
+                    <!-- <a:field name="authorized_flag_desc" displayField="code_value_name" options="bid5040_create_yes_no_ds" returnField="authorized_flag" valueField="code_value"/> -->
+                    <!-- <a:field name="margin_required_flag_desc" displayField="code_value_name" options="bid5040_create_yes_no_ds" returnField="margin_required_flag" valueField="code_value"/> -->
+                    <!-- <a:field name="bidder_qualified_flag_desc" displayField="code_value_name" options="bid5040_create_yes_no_ds" returnField="bidder_qualified_flag" valueField="code_value"/> -->
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="bid5040EntrustmentEditOnLoad"/>
+                    <a:event name="update" handler="bid5040EntrustmentEditOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5040_edit_entrustment_items_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="bid.BID5040.bid_entrustment_ln_items" queryUrl="${/request/@context_path}/autocrud/bid.BID5040.bid_entrustment_ln_items/query?entrustment_header_id=${/parameter/@entrustment_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="line_item_id"/>
+                    <a:field name="entrustment_header_id" defaultValue="${/parameter/@entrustment_header_id}"/>
+                    <a:field name="line_num" required="true"/>
+                    <a:field name="item_id"/>
+                    <a:field name="item_code" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="public.mtl_system_items_b_mv_lov" lovWidth="500" title="BID_ENTRUSTMENT_LN_ITEMS.ITEM_CODE">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_name" to="item_desc"/>
+                            <a:map from="primary_uom_code" to="uom_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_desc"/>
+                    <a:field name="item_category_code"/>
+                    <a:field name="item_category_desc"/>
+                    <a:field name="need_by_date" required="true"/>
+                    <a:field name="quantity" required="true"/>
+                    <a:field name="uom_code" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="public.fnd_uom_codes_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_LN_ITEMS.UOM">
+                        <a:mapping>
+                            <a:map from="uom_code" to="uom_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="base_price" required="true"/>
+                    <a:field name="total_amount"/>
+                    <a:field name="tax_included_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="tax_type_code" autoComplete="true" autoCompleteField="tax_type_code" lovGridHeight="350" lovHeight="500" lovService="public.fnd_tax_type_code_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_LN_ITEMS.TAX_RATE">
+                        <a:mapping>
+                            <a:map from="tax_type_id" to="tax_type_id"/>
+                            <a:map from="tax_type_code" to="tax_type_code"/>
+                            <a:map from="tax_type_rate" to="tax_type_rate"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="bid5040EntrustmentEditItemsOnAdd"/>
+                    <a:event name="update" handler="bid5040EntrustmentEditItemsOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5040_edit_entrustment_bidders_ds" autoCount="true" autoQuery="true" fetchAll="true" model="bid.BID5040.bid_entrustment_ln_bidders" queryUrl="${/request/@context_path}/autocrud/bid.BID5040.bid_entrustment_ln_bidders/query?entrustment_header_id=${/parameter/@entrustment_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="line_bidder_id"/>
+                    <a:field name="entrustment_header_id" defaultValue="${/parameter/@entrustment_header_id}"/>
+                    <a:field name="bidder_id"/>
+                    <a:field name="bidder_code" autoComplete="true" autoCompleteField="code_name" lovGridHeight="350" lovHeight="500" lovService="bid.public.bid_bidders_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_HEADERS.BIDDER">
+                        <a:mapping>
+                            <a:map from="bidder_id" to="bidder_id"/>
+                            <a:map from="bidder_code" to="bidder_code"/>
+                            <a:map from="bidder_desc" to="bidder_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bidder_desc"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="bid5040_edit_atm_files_ds" autoCount="true" autoQuery="true" fetchAll="true" model="public.fnd_attachment_file" queryUrl="${/request/@context_path}/autocrud/public.fnd_attachment_file/query?table_name=BID_ENTRUSTMENT_HEADERS&amp;pk_value=${/parameter/@entrustment_header_id}"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid5040EntrustmentEditSave" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="bid5040EntrustmentEditSubmit" text="PROMPT.SUBMIT" width="100"/>
+                <a:toolbarButton click="bid5040EntrustmentEditCancel" text="PROMPT.CANCEL" width="100"/>
+                <a:toolbarButton click="bid5040EntrustmentEditReturn" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100">
+                <a:vBox labelWidth="100">
+                    <a:label name="entrustment_header_number" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_HEADER_NUMBER"/>
+                    <a:textField name="title" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TITLE"/>
+                    <a:lov name="using_company_desc" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.USING_COMPANY_DESC"/>
+                    <a:numberField name="winning_bidder_maxcount" allowDecimals="false" allowNegative="false" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.WINNING_BIDDER_MAXCOUNT"/>
+                    <a:checkBox name="authorized_flag" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.AUTHORIZED_FLAG"/>
+                    <a:lov name="tax_type_code" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.TAX_TYPE_CODE"/>
+                    <a:label name="functional_amount" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.FUNCTIONAL_AMOUNT"/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:lov name="entrustment_type_desc" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TYPE_DESC"/>
+                    <a:lov name="company_desc" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_COMPANY_DESC"/>
+                    <a:lov name="inv_organization_desc" bindTarget="bid5040_edit_entrustment_header_ds" prompt="INV_ORGANIZATIONS.INV_ORGANIZATION"/>
+                    <a:numberField name="suggested_qty_of_bidders" allowDecimals="false" allowNegative="false" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.SUGGESTED_QTY_OF_BIDDERS"/>
+                    <a:checkBox name="margin_required_flag" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.MARGIN_REQUIRED_FLAG"/>
+                    <a:label name="tax_type_rate" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.TAX_TYPE_RATE"/>
+                    <a:label name="entered_amount" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTERED_AMOUNT"/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:label name="round" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ROUND"/>
+                    <a:lov name="applicant_desc" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICANT"/>
+                    <a:lov name="pur_organization_desc" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.PUR_ORGANIZATION_DESC"/>
+                    <a:datePicker name="complete_date" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.COMPLETE_DATE"/>
+                    <a:checkBox name="bidder_qualified_flag" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_QUALIFIED_FLAG"/>
+                    <a:comboBox name="currency_name" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.CURRENCY_CODE"/>
+                    <a:label/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:label name="version" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.VERSION"/>
+                    <a:datePicker name="application_date" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICATION_DATE"/>
+                    <a:comboBox name="suggested_bidding_method_desc" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.SUGGESTED_BIDDING_METHOD"/>
+                    <a:numberField name="necessary_lead_time" allowDecimals="false" allowNegative="false" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.NECESSARY_LEAD_TIME"/>
+                    <a:checkBox name="tax_included_flag" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.TAX_INCLUDED_FLAG"/>
+                    <a:numberField name="exchange_rate" allowDecimals="true" allowFormat="true" allowNegative="false" bindTarget="bid5040_edit_entrustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.EXCHANGE_RATE" readOnly="true"/>
+                    <a:label/>
+                </a:vBox>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:textArea name="comments" bindTarget="bid5040_edit_entrustment_header_ds" height="40" prompt="BID_ENTRUSTMENT_HEADERS.COMMENTS" width="750"/>
+            </a:hBox>
+            <a:tabPanel id="bid5040_edit_entrustment_tab" height="380" marginWidth="50">
+                <a:tabs>
+                    <a:tab prompt="BID_ENTRUSTMENT_HEADERS.ITEM" width="100">
+                        <a:grid id="bid5040_edit_entrustment_items_grid" bindTarget="bid5040_edit_entrustment_items_ds" height="350" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="line_num" align="center" editor="bid5040_edit_entrustment_items_nf" prompt="BID_ENTRUSTMENT_LN_ITEMS.LINE_NUM" sortable="true" width="30"/>
+                                <a:column name="item_code" align="left" editor="bid5040_edit_entrustment_items_lov" prompt="BID_ENTRUSTMENT_LN_ITEMS.ITEM_CODE" width="100"/>
+                                <a:column name="item_desc" align="left" editor="bid5040_edit_entrustment_items_tf" prompt="BID_ENTRUSTMENT_LN_ITEMS.ITEM_DESC" width="150"/>
+                                <a:column name="item_category_code" align="left" prompt="BID_ENTRUSTMENT_LN_ITEMS.ITEM_TYPE_CODE" width="100"/>
+                                <a:column name="item_category_desc" align="left" prompt="BID_ENTRUSTMENT_LN_ITEMS.ITEM_TYPE_NAME" width="150"/>
+                                <a:column name="need_by_date" align="center" editor="bid5040_edit_entrustment_items_dp" prompt="BID_ENTRUSTMENT_LN_ITEMS.NEED_BY_DATE" renderer="Aurora.formatDate" width="60"/>
+                                <a:column name="quantity" align="right" editor="bid5040_edit_entrustment_items_nf2" prompt="BID_ENTRUSTMENT_LN_ITEMS.APPLY_QUANTITY" width="80"/>
+                                <a:column name="uom_code" align="center" editor="bid5040_edit_entrustment_items_lov" prompt="BID_ENTRUSTMENT_LN_ITEMS.UOM" width="60"/>
+                                <a:column name="base_price" align="right" editor="bid5040_edit_entrustment_items_nf3" prompt="BID_ENTRUSTMENT_LN_ITEMS.BASE_PRICE" width="80"/>
+                                <a:column name="tax_included_flag" align="center" prompt="BID_ENTRUSTMENT_LN_ITEMS.TAX_FLAG" width="30"/>
+                                <a:column name="tax_type_code" align="center" editorFunction="bid5040EntrustmentItemEditEditor" prompt="BID_ENTRUSTMENT_LN_ITEMS.TAX_RATE_CODE" width="60"/>
+                                <a:column name="tax_type_rate" align="right" prompt="BID_ENTRUSTMENT_LN_ITEMS.TAX_RATE" width="60"/>
+                                <a:column name="net_price" align="right" prompt="BID_ENTRUSTMENT_LN_ITEMS.PRE_TAX_NET_PRICE" width="80"/>
+                                <a:column name="net_amount" align="right" prompt="BID_ENTRUSTMENT_LN_ITEMS.NET_AMOUNT" renderer="bid5040EntrustmentItemEditRender" width="80"/>
+                                <a:column name="tax_amount" align="right" prompt="BID_ENTRUSTMENT_LN_ITEMS.TAX_AMOUNT" renderer="bid5040EntrustmentItemEditRender" width="80"/>
+                                <a:column name="total_amount" align="right" prompt="BID_ENTRUSTMENT_LN_ITEMS.AMOUNT" renderer="bid5040EntrustmentItemEditRender" width="80"/>
+                                <!-- <a:dynamicPage id="segmentMaintain" columns="bid5040_grid_columns" datasetid="bid5040_edit_entrustment_items_ds" pagetype="edit" pkname="line_item_id" scriptid="script_1" type="grid"/>
+                            <a:dynamicPage id="dynamicMaintain" columns="bid5040_grid_columns" datasetid="bid5040_edit_entrustment_items_ds" pagetype="edit" pkname="line_item_id" scriptid="script_1" type="grid"/> -->
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="bid5040_edit_entrustment_items_tf"/>
+                                <a:numberField id="bid5040_edit_entrustment_items_nf" allowDecimals="false" allowNegative="false"/>
+                                <a:lov id="bid5040_edit_entrustment_items_lov"/>
+                                <a:numberField id="bid5040_edit_entrustment_items_nf2" allowDecimals="true" allowNegative="false" decimalPrecision="2"/>
+                                <a:numberField id="bid5040_edit_entrustment_items_nf3" allowDecimals="true" allowFormat="true" allowNegative="false" decimalPrecision="8"/>
+                                <a:datePicker id="bid5040_edit_entrustment_items_dp"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_BIDDERS" width="100">
+                        <a:grid id="bid5040_edit_entrustment_bidders_grid" bindTarget="bid5040_edit_entrustment_bidders_ds" height="350" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="bidder_code" align="left" editor="bid5040_edit_entrustment_bidders_lov" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_CODE" width="100"/>
+                                <a:column name="bidder_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_NAME" width="150"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="bid5040_edit_entrustment_bidders_lov"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="PROMPT.ATTACHMENT" width="100">
+                        <a:grid id="bid5040_edit_atm_files_grid" bindTarget="bid5040_edit_atm_files_ds" height="350" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button click="bid5040EntrustmentEditAtmUpload" text="PROMPT.UPLOAD_DELETE"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="file_download_link" align="left" prompt="PROMPT.ATTACHMENT_NAME" renderer="bid5040EntrustmentEditAtmRender" width="150"/>
+                                <a:column name="upload_user_name" align="left" prompt="PROMPT.UPLOADED_BY" width="80"/>
+                                <a:column name="upload_date" align="center" prompt="PROMPT.UPLOAD_DATE" renderer="Aurora.formatDateTime" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:defaultScreen>
+        <!-- <a:dynamicPage id="dynamicPageApplSelect" pagetype="edit" pkname="entrustment_header_id" tablename="bid_entrustment_headers"/> -->
+    </a:view>
+</a:screen>

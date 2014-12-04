@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[		select t.*,${@bgt_solution_header_id} bgt_solution_header_id
+		  from ( select * from (
+					  select a.company_code,
+							 a.company_short_name,
+							 a.company_id
+							from fnd_companies_vl a
+					   union
+					   select b.code_value as company_code,
+							 b.code_value_name as company_short_name,
+							 to_number(b.code_value) as company_id
+						from sys_codes_vl a, sys_code_values_vl b
+					   where a.code_id = b.code_id
+						 and a.code = 'BGT_SOLUTION_PARAMETER_VALUE'  
+						) a  
+			 where exists (select 1
+				  from bgt_solution_tmp b
+				 where b.parameter_type = 'BGT_SOLUTION_PARAMETER_ORG'
+				   and b.parameter_code = 'COMPANY'
+				   and b.session_id = ${/session/@session_id}
+				   and b.bgt_solution_header_id = ${@bgt_solution_header_id}
+				   and b.parameter_value_id = a.company_id)) t
+		   #WHERE_CLAUSE#
+		 order by t.company_code]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

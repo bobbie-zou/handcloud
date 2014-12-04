@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2014-3-5 下午5:02:17  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="segment1 desc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            select *from (  SELECT
+                    h.pur_header_id,
+                    h.srm_status,
+                    (SELECT
+                        v.code_value_name
+                    FROM
+                        sys_code_values_v v
+                    WHERE
+                        v.code       = 'SRM_STATUS' AND
+                        v.code_value = h.srm_status
+                    ) AS srm_name_desc,
+                    h.erp_status,
+                    (SELECT
+                        v.code_value_name
+                    FROM
+                        sys_code_values_v v
+                    WHERE
+                        v.code       = 'PUR_HEADER_ERP_STATUS' AND
+                        v.code_value = h.erp_status
+                    ) AS erp_status_desc,
+                    h.company_id,
+                    h.company_name,
+                    h.vendor_id,
+                    nvl(pv.display_vendor_code,h.vendor_code) vendor_code,
+                    h.vendor_name,
+                    h.segment1,
+                    h.display_po_number,
+                    h.revision_num,
+                    h.release_id,
+                    h.release_num,
+                    h.display_release_num,
+                    (SELECT
+                        gc.CURRENCY_NAME
+                    FROM
+                        gld_currency_vl gc
+                    WHERE
+                        gc.CURRENCY_CODE = h.currency_code
+                    ) currency_code,
+                    h.type_lookup_code,
+                    nvl(h.type_lookup_desc,h.erp_po_type_desc) type_lookup_desc,
+                    h.vendor_site_id,
+                    h.vendor_site_code,
+                    h.vendor_site_name,
+                    h.agent_id,
+                    h.agent_code,
+                    h.agent_name,
+                    h.ship_to_location_id,
+                    h.ship_to_location_code,
+                    nvl(h.ship_to_location_name,h.ship_to_location_address) ship_to_location_name,
+                    h.bill_to_location_id,
+                    h.bill_to_location_code,
+                    h.bill_to_location_name,
+                    TO_CHAR(h.creation_date,'yyyy-mm-dd hh24:mi') AS creation_date_desc,
+                    h.release_date,
+                    TO_CHAR(h.release_date,'yyyy-mm-dd hh24:mi') AS release_date_desc,
+                    h.confirm_date,
+                    TO_CHAR(h.confirm_date,'yyyy-mm-dd hh24:mi') AS confirm_date_desc,
+                    h.reply_date,
+                    TO_CHAR(h.reply_date,'yyyy-mm-dd') AS reply_date_desc,
+                    h.data_source,
+                    h.reply_over_flag,
+                    h.urgent_status,
+                    (select code_value_name from sys_code_values_v sc where sc.code_value = h.urgent_status and sc.code= 'PUR_PO_URGENT_STATUS') urgent_status_desc,
+                    to_char(h.urgent_date,'yyyy-mm-dd hh24:mi') urgent_date_desc,
+                    h.urgent_date,
+                    h.last_version,
+                    (SELECT su.user_id
+                  FROM sys_user   su,
+                       pur_buyers pb
+                 WHERE su.user_id = pb.user_id
+                       AND pb.buyer_id = h.agent_id
+                       AND ROWNUM = 1) agent_user_id,
+                    pv.coop_company_id,
+                    pv.coop_business_group,
+                    h.owner_company_id,
+                    h.owner_business_group,
+                    h.inv_organization_id,
+                    h.business_unit_id,
+                    h.inv_organization_name ship_to_organization_name,
+                    (SELECT SUM(l.unit_price * pll.quantity)
+                  FROM pur_lines_all          l,
+                       pur_line_locations_all pll
+                 WHERE l.pur_line_id = pll.pur_line_id
+                       AND l.pur_header_id = h.pur_header_id) sum_amount,
+                    null useless_id_3,
+                    null useless_id_4,
+                    null useless_id_5,
+                    null useless_id_6,
+                    null useless_id_7,
+                    null useless_id_8,
+                    null useless_id_9,
+                    null useless_id_10,
+                    null useless_id_11,
+                    h.comments
+                FROM pur_vendors             pv,
+                     pur_headers_all h
+                WHERE pv.vendor_id = h.vendor_id
+                 AND h.pur_header_id = ${@pur_header_id}) v
+               #AUTHORIY_FROM#  #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE# 
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                pur_po_pkg.modified_pur_headers_all
+                (
+                  p_pur_header_id=>${@pur_header_id},
+                  p_type_lookup_code=>${@type_lookup_code},
+                  p_type_lookup_desc=>${@type_lookup_desc},
+                  p_agent_id=>${@agent_id},
+                  p_agent_code=>${@agent_code},
+                  p_agent_name=>${@agent_name},
+                  p_release_id=>${@release_id},
+                  p_release_num=>${@release_num},
+                  p_vendor_site_id=>${@vendor_site_id},
+                  p_vendor_site_code=>${@vendor_site_code},
+                  p_vendor_site_name=>${@vendor_site_name},
+                  p_vendor_contact_id=>${@vendor_contact_id},
+                  p_vendor_contact_name=>${@vendor_contact_name},
+                  p_ship_to_location_id=>${@ship_to_location_id},
+                  p_ship_to_location_code=>${@ship_to_location_code},
+                  p_ship_to_location_name=>${@ship_to_location_name},
+                  p_bill_to_location_id=>${@bill_to_location_id},
+                  p_bill_to_location_code=>${@bill_to_location_code},
+                  p_bill_to_location_name=>${@bill_to_location_name},
+                  p_currency_code=>${@currency_code},
+                  p_rate_type=>${@rate_type},
+                  p_rate_date=>to_date(${@rate_date},'yyyy-mm-dd'),
+                  p_rate=>${@rate},
+                  p_comments=>${@comments},
+                  p_agent_desc=>${@agent_name},
+                  p_header_desc=>${@comments},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority foundation_code="PUR_PO">
+        <authority-segment source_alias="v" source_name="agent_user_id" type="CREATER"/>
+        <authority-segment source_alias="v" source_name="owner_company_id" type="COMPANY"/>
+        <authority-segment source_alias="v" source_name="useless_id_3" type="RECEIVER"/>
+        <authority-segment source_alias="v" source_name="business_unit_id" type="BUSINESS_UNIT"/>
+        <authority-segment source_alias="v" source_name="useless_id_5" type="PUR_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="inv_organization_id" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_7" type="SD_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="vendor_id" type="VENDOR"/>
+        <authority-segment source_alias="v" source_name="useless_id_9" type="CLIENT"/>
+        <authority-segment source_alias="v" source_name="useless_id_10" type="PURHASE_MATERIAL"/>
+        <authority-segment source_alias="v" source_name="useless_id_11" type="SALES_PRODUCTION"/>
+        <authority-segment source_alias="v" source_name="useless_id_4" type="CLIENT_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id_6" type="VENDOR_SITE"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+            var cx = Packages.aurora.javascript.Context.getCurrentContext();
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

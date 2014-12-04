@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-2-25 下午4:17:02  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT *
+				  FROM (SELECT fg.tmpl_group_id           flexfield_group_id,
+				               fg.tmpl_group_code         flexfield_group_code,
+				               fg.tmpl_group_desc         flexfield_group_desc,
+				               fc.flexfield_category_id,
+				               fc.flexfield_category_code,
+				               fc.flexfield_category_desc,
+				               fc.framework_type,
+				               fc.framework_type_desc,
+				               fc.sys_flag                flexfield_category_sys_flag,
+				               fg.enabled_flag
+				          FROM fnd_flex_tmpl_groups_vl fg,
+				               (SELECT c.tmpl_category_id flexfield_category_id,
+				                       c.tmpl_category_code flexfield_category_code,
+				                       c.tmpl_category_desc flexfield_category_desc,
+				                       c.framework_type,
+				                       (SELECT scv.code_value_name
+				                          FROM sys_code_values_vl scv,
+				                               sys_codes_vl       sc
+				                         WHERE sc.code_id = scv.code_id
+				                               AND scv.code_value = c.framework_type
+				                               AND sc.code = 'FND_FLEX_FRAMEWORK_TYPE') framework_type_desc,
+				                       c.sys_flag
+				                  FROM fnd_flex_tmpl_categories_vl c
+				                 WHERE c.framework_type = 'KEY'
+				                       AND c.tmpl_category_code = 'INV_ITEM_ATTR_CONFIGS') fc
+				         WHERE fg.tmpl_category_id = fc.flexfield_category_id) t
+                    #WHERE_CLAUSE#
+                ORDER BY
+                    t.flexfield_category_code,
+                    flexfield_group_code
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="flexfield_group_id" queryExpression="flexfield_group_id=${@flexfield_group_id}"/>
+        <bm:query-field name="flexfield_group_code" queryExpression="flexfield_group_code like &apos;%&apos;||${@flexfield_group_code}||&apos;%&apos;"/>
+        <bm:query-field name="flexfield_group_desc" queryExpression="flexfield_group_desc like &apos;%&apos;||${@flexfield_group_desc}||&apos;%&apos;"/>
+        <bm:query-field name="quick_value" queryExpression="(flexfield_group_code like &apos;%&apos;||upper(${@quick_value})||&apos;%&apos; or flexfield_group_desc like &apos;%&apos;||${@quick_value}||&apos;%&apos;)"/>
+    </bm:query-fields>
+</bm:model>

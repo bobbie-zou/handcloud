@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-4 下午2:58:37  
+    $Revision: 1.0  
+    $Purpose: 合作邀约申请
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" model="fnd.FND9310.fnd_cooperative_partners_confirm" rootPath="FND9310_requisition"/>
+        <a:model-query model="fnd.FND9310.fnd_cooperative_partner_requisition_client_coop_type_show" rootPath="cooperative_type_default"/>
+    </a:init-procedure>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="FND9310_coopPartnerReqAgree_link" model="fnd.FND9310.fnd_cooperative_partners_confirm" modelaction="update"/>
+        <a:link id="FND9310_coopPartnerReqReject_link" model="fnd.FND9310.fnd_cooperative_partners_confirm" modelaction="execute"/>
+        <style type="text/css"><![CDATA[
+      body {
+                margin:0px;
+                padding:0px;
+            }
+            .newstopic {
+                font-size: 18px;
+                font-weight: bold;
+                color: #009689;
+                height: 40px;
+                line-height: 40px;
+                text-align: center;
+                vertical-align: middle;
+            }
+            .newscontent {
+                margin-left: 70px;
+                margin-top: 0px;
+                margin-right: 70px;
+                margin-bottom: 0px;
+                background-color: #FFFFFF;
+                color:#656565;
+            }
+            .filedownload {
+                margin-left: 70px;
+                margin-top: 5px;
+                margin-right: 70px;
+                margin-bottom: 0px;
+                background-color: #FFFFFF;
+                color:#656565;
+            }
+            .newstime{
+                font-family: Arial;
+                font-size: 12px;
+                color: #656565;
+                font-weight: bold;
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+      ]]></style>
+        <div/>
+        <script><![CDATA[
+        //关闭
+            
+            
+            function FND9310_coopPartnerReq_closeFun() {
+                window.close();
+                window.opener.location.reload();
+            }
+            
+            //Init
+            function fnd9310_inviteRequisition_initFun(){
+                var cooperative_type_show = '${/model/cooperative_type_default/record/@cooperative_type_show}';
+                if(cooperative_type_show == 'CLIENT'){
+                    document.getElementById("fnd9310_inviteRequisitionHbox").style.display = "none";
+                    $('fnd9310_coopPartnerInvitePartnerName_ds').getAt(0).set('client_flag','Y');
+                    $('fnd9310_coopPartnerInvitePartnerName_ds').getAt(0).set('accept_service_flag','N');
+                }else if(cooperative_type_show == 'ACCEPT_SERVICE'){
+                    document.getElementById("fnd9310_inviteRequisitionHbox").style.display = "none";
+                    $('fnd9310_coopPartnerInvitePartnerName_ds').getAt(0).set('client_flag','Y');
+                    $('fnd9310_coopPartnerInvitePartnerName_ds').getAt(0).set('accept_service_flag','N');
+                }else if(cooperative_type_show == 'BOTH'){
+                }else{
+                    document.getElementById("fnd9310_inviteRequisitionHbox").style.display = "none";   
+                }
+            }
+            
+            //CHECK
+            function fnd9310_checkInviteRequisition_validatorFun(record,name,value){
+                var client_flag = record.get('client_flag');
+                var accept_service_flag = record.get('accept_service_flag');
+                
+                if (client_flag == 'N' && accept_service_flag == 'N'){
+                    return '${l:FND9310.INVITE_COOPERATIVE_TYPE_CHOOSE}';
+                }
+                
+                return true;
+            }
+            
+            //同意
+            
+            
+            function FND9310_coopPartnerReq_AgreeFun() {
+                Aurora.Masker.mask(Ext.getBody());
+                var record = $('FND9310_coopPartnerReq_ds').getAt(0);
+                Aurora.request({
+                    url: $('FND9310_coopPartnerReqAgree_link').getUrl(),
+                    para: {
+                        requisition_id:'${/parameter/@requisition_id}',
+                        vendor_flag :record.get('vendor_flag'),
+                        client_flag :record.get('client_flag'),
+                        service_flag :record.get('service_flag'),
+                        accept_service_flag :record.get('accept_service_flag')
+                    },
+                    success: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                        $('FND9310_coopPartnerReq_AgreeBtu').disable();
+                        $('FND9310_coopPartnerReq_RejectBtu').disable();
+                        Aurora.showMessage('${l:PROMPT_MESSAGE}', '${l:SYS_COOPERATIVE_PARTNERS.AGREE_SUCCESS}');
+                    },
+                    failure: function() {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    error: function() {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+            
+            //拒绝
+            
+            
+            function FND9310_coopPartnerReq_RejectFun() {
+                Aurora.Masker.mask(Ext.getBody());
+                Aurora.request({
+                    url: $('FND9310_coopPartnerReqReject_link').getUrl(),
+                    para: {
+                        requisition_id:'${/parameter/@requisition_id}'
+                    },
+                    success: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                        $('FND9310_coopPartnerReq_AgreeBtu').disable();
+                        $('FND9310_coopPartnerReq_RejectBtu').disable();
+                        Aurora.showMessage('${l:PROMPT_MESSAGE}', '${l:SYS_COOPERATIVE_PARTNERS.AGREE_SUCCESS}');
+                    },
+                    failure: function() {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    error: function() {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="FND9310_coopPartnerReq_ds" autoCreate="true" model="fnd.FND9310.fnd_cooperative_partners_confirm">
+                <a:datas dataSource="/model/FND9310_requisition"/>
+                <a:fields>
+                    <a:field name="client_flag" checkedValue="Y" defaultValue="N" prompt="FND9310.DIRECT_SUPPLIER" uncheckedValue="N" validator="fnd9310_checkInviteRequisition_validatorFun"/>
+                    <a:field name="accept_service_flag" checkedValue="Y" defaultValue="N" prompt="FND9310.SERVICE_PROVIDER" uncheckedValue="N" validator="fnd9310_checkInviteRequisition_validatorFun"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton id="FND9310_coopPartnerReq_AgreeBtu" click="FND9310_coopPartnerReq_AgreeFun" text="PUR5150.AGREE" width="100"/>
+                <a:toolbarButton id="FND9310_coopPartnerReq_RejectBtu" click="FND9310_coopPartnerReq_RejectFun" text="PROMPT.REJECT" width="100"/>
+                <a:toolbarButton click="FND9310_coopPartnerReq_closeFun" text="PROMPT.CLOSE" width="100"/>
+            </a:screenTopToolbar>
+            <a:fieldSet title="SYS_COOPERATIVE_PARTNERS.INVITE" width="480">
+                <a:vBox labelWidth="100">
+                    <a:hBox>
+                        <a:textField name="requisition_name" bindTarget="FND9310_coopPartnerReq_ds" prompt="SYS_COOPERATIVE_PARTNERS.REQUISITION_TITLE" readOnly="true" width="320"/>
+                    </a:hBox>
+                    <a:hBox id="fnd9310_inviteRequisitionHbox">
+                        <a:label prompt="FND9310.INVITE_COOPERATIVE_TYPE" width="0"/>
+                        <a:checkBox name="client_flag" bindTarget="FND9310_coopPartnerReq_ds"/>
+                        <a:checkBox name="accept_service_flag" bindTarget="FND9310_coopPartnerReq_ds"/>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:textField name="requisition_date" bindTarget="FND9310_coopPartnerReq_ds" prompt="SYS_COOPERATIVE_PARTNERS.REQUISITION_DATE" readOnly="true" width="320"/>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:textArea name="comments" bindTarget="FND9310_coopPartnerReq_ds" height="90" prompt="SYS_COOPERATIVE_PARTNERS.REQUISITION_COMMENT" readOnly="true" width="316"/>
+                    </a:hBox>
+                </a:vBox>
+            </a:fieldSet>
+        </a:screenBody>
+        <script><![CDATA[
+            fnd9310_inviteRequisition_initFun();
+        ]]></script>
+    </a:view>
+</a:screen>

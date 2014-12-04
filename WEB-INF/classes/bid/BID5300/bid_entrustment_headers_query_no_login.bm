@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-3-12 下午2:15:39  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        SUBSTR('['
+                        || sv.code_value_name
+                        || ']:   ['
+                        || fv.COMPANY_SHORT_NAME
+                        || ']发布'
+                        || sv.code_value_name
+                        || '单,单据编号['
+                        || rh.rfx_number
+                        || '],标题['
+                        || rh.title
+                        || ']', 0, 65) document_desc,
+                        '['
+                        || sv.code_value_name
+                        || ']:   ['
+                        || fv.COMPANY_SHORT_NAME
+                        || ']发布'
+                        || sv.code_value_name
+                        || '单,单据编号['
+                        || rh.rfx_number
+                        || '],标题['
+                        || rh.title
+                        || ']' document_desc_all,
+                        'RFx' document_type,
+                        rh.rfx_header_id header_id,
+                        rh.issued_date release_date,
+                        TO_CHAR(rh.issued_date, 'yyyy-mm-dd hh24:mi:ss') release_date_desc
+                    FROM
+                        pur_rfx_headers rh,
+                        fnd_companies_vl fv,
+                        sys_code_values_v sv
+                    WHERE
+                        rh.rfx_method = 'OPEN' AND
+                        rh.status     = 'ISSUED' AND
+                        sv.code_value = rh.rfx_category AND
+                        sv.code       = 'PUR_RFX_CATEGORY' AND
+                        fv.COMPANY_ID = rh.company_id
+                    UNION ALL
+                    SELECT
+                        SUBSTR(b.bulletin_title, 0, 65) document_desc,
+                        b.bulletin_title document_desc_all,
+                        'BLT' document_type,
+                        b.bulletin_id header_id,
+                        b.release_date release_date,
+                        TO_CHAR(b.release_date, 'yyyy-mm-dd hh24:mi:ss') release_date_desc
+                    FROM
+                        blt_bulletin_list b
+                    WHERE
+                        b.bulletin_category = 'HOMEPAGE_BULLETIN' AND
+                        b.bulletin_type     = 'BULLETINS' AND
+                        b.object_category   = 'ALL' AND
+                        b.status            = 'RELEASED'
+                    ) t
+                ORDER BY
+                    t.release_date DESC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-7-5 上午10:22:42  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select rownum feedback_count,t.* from(
+ select 
+		h.rfx_header_id,
+		h.rfx_round,
+		h.rfx_version,
+		h.vendor_id,
+		h.vendor_code,
+		h.vendor_desc,
+		h.feedback_header_id,
+		rfxh.rfx_method,
+       rfxh.auction_direction,
+       rfxh.auction_rule,
+       rfxh.open_rule,
+       rfxh.ranking_rule,
+       rfxh.auction_ranking,
+		l.item_id,
+		r.feedback_record_id,
+       r.feedback_line_id,
+       to_char(r.promised_date,'yyyy-mm-dd') promised_date,
+       to_char(r.feedback_expiry_date_from,'yyyy-mm-dd') feedback_expiry_date_from,
+       to_char(r.feedback_expiry_date_to,'yyyy-mm-dd') feedback_expiry_date_to,
+       r.feedback_by,
+       (select u.user_desc from sys_user_v u where u.user_id = r.feedback_by) feedback_by_desc,
+       r.feedback_quantity,
+       r.feedback_wholesale_price,
+       r.feedback_retail_price,
+       r.flex_appl_relevance_id,
+       r.feedback_time feedback_time_rk,
+       to_char(r.feedback_time,'yyyy-mm-dd hh24:mi:ss') feedback_time
+  from pur_rfx_feedback_records r,pur_rfx_feedback_headers h,pur_rfx_feedback_lines l,pur_rfx_headers rfxh
+ where h.feedback_header_id = l.feedback_header_id
+ and rfxh.rfx_header_id = h.rfx_header_id
+ and l.feedback_line_id = r.feedback_line_id
+ and h.rfx_header_id =  ${@rfx_header_id}
+ and h.rfx_round = ${@rfx_round}
+ and h.rfx_version = ${@rfx_version}
+ and l.rfx_line_item_id = ${@rfx_line_item_id}
+ order by feedback_time asc)t
+ order by feedback_time_rk desc
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

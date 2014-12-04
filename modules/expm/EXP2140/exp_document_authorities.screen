@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tangrunyu3837 $
+    $Date: 2013/06/19 07:28:17 $
+    $Revision: 1.3 $
+    $Purpose: 单据集中授权
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" model="expm.exp_doc_category" queryOrderBy="code" rootPath="exp2140_category_md"/>
+        <!-- <a:model-query autoCount="false" fetchAll="true" model="expm.EXP2140.exp_doc_unit" queryOrderBy="code" rootPath="unit_md"/> -->
+        <!-- <a:model-query autoCount="false" fetchAll="true" model="expm.exp_document_self" queryOrderBy="code" rootPath="self_md"/> -->
+        <!-- <a:model-query autoCount="false" fetchAll="true" model="expm.EXP2140.exp_doc_position" queryOrderBy="code" rootPath="position_md"/> -->
+    </a:init-procedure>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+        
+            function exp2140_queryDocumentAuthorities(){
+                $('exp2140_exp_document_authorities_query_result_ds').query();
+            }
+            function exp2140_resetDocumentAuthorities(){
+            	$('exp2140_exp_document_authorities_query_ds').reset();
+            }
+            function exp2140_documentTypeEdit(record,name){
+                if(record.isNew){
+                    return 'exp2140_document_type_grid_tf';
+                }
+                return '';
+            }
+            
+            function exp2140_saveDocument(){
+             	
+                $('exp2140_exp_document_authorities_query_result_ds').submit();
+            }
+            function exp2140_onFormUpdate(ds,record,name,value){
+                  if(name == 'granted_position_id'){
+                        var field = record.getMeta().getField('granted_employee_code');
+                        field.setLovPara('p_current_granted_pos_id',record.get('granted_position_id'));
+                        record.set('granted_employee_code','');
+                        record.set('granted_employee_name','');
+                        record.set('granted_employee_id','');
+                    }
+            }        
+            function onUpdate(ds,record,name,value){
+                  if(name == 'granted_position_id'){
+                        var field = record.getMeta().getField('granted_employee_code');
+                        field.setLovPara('p_current_granted_pos_id',record.get('granted_position_id'));
+                        record.set('granted_employee_code','');
+                        record.set('granted_employee_name','');
+                        record.set('granted_employee_id','');
+                        return;
+                    }
+                  if(name == 'start_date' || name == 'end_date'){
+                        record.validate((name == 'start_date') ? 'end_date' : 'start_date');
+                        return;
+                   }
+              
+                  if(name=="company_id"){                                              
+                        record.set('unit',null);
+                        record.set('unit_id',null);
+                        record.set('position',null);
+                        record.set('position_id',null);
+                        record.set('employee_id',null);
+                        record.set('employee_code',null);
+                        record.set('employee_name',null);                        
+                        return;
+                  }    
+                  if(name=='company_code'){
+                  		$('exp2140_position_cb').setQueryParameter('company_id',record.get('company_id'));	           
+		              	$('exp2140_position_cb').setQueryParameter('unit_id',record.get("unit_id"));
+		              	$('exp2140_position_cb').query();
+		              	return;
+                  }              
+                  if(name=="unit_id"){
+                        record.set('position',null);
+                        record.set('position_id',null);
+                        record.set('employee_id',null);
+                        record.set('employee_code',null);
+                        record.set('employee_name',null);
+                        var field = record.getMeta().getField('employee_code');
+                        field.setLovPara('unit_id',record.get("unit_id"));
+                        return;
+                  }
+                  if(name=="position_id"){
+                        record.set('employee_id',null);
+                        record.set('employee_code',null);
+                        record.set('employee_name',null);
+                        var field = record.getMeta().getField('employee_code');
+                        field.setLovPara('position_id',record.get("position_id"));
+                        return;
+                  }
+                  if ('granted_position_code'==name||'granted_employee_code'==name){
+                     var metadata = record.getMeta();
+                     if (''==record.get('granted_position_code')||undefined==record.get('granted_position_code')){
+                          metadata.getField('granted_employee_code').setRequired(true);
+                     }
+                      else 
+                          metadata.getField('granted_employee_code').setRequired(false);    
+                          if (''==record.get('granted_employee_code')||undefined==record.get('granted_employee_code'))
+                             metadata.getField('granted_position_code').setRequired(true);
+                          else  
+                             metadata.getField('granted_position_code').setRequired(false);
+                    
+                    return;
+                  } 
+                    
+            }
+            
+            function exp2140_dateValidator(record, name, value){//日期校验方法
+	          if(name == 'start_date' || name == 'end_date'){
+	              var start_date = record.get('start_date');
+	              var end_date = record.get('end_date');
+	              if(!!end_date){//由于结束日期非必填，只有在结束日期填了才进行比较
+	                  if(!exp2140_compareDate(start_date, end_date)){
+	                      return '${l:START_GREATER_THAN_END}';//校验不通过返回字符串
+	                  }
+	              }
+	              return true;//校验通过返回true
+	          }
+           }
+      
+          function exp2140_compareDate(start, end){
+	          if(start > end){
+	              return false;
+	          }
+	          return true;
+         }
+      
+         function exp2140_cellClick(grid,row,name,record){
+            var company_id=record.get("company_id");        
+	        if(name=="unit"){
+	          if(!company_id)
+	            Aurora.showMessage("${l:PROMPT}","${l:PROMPT.SELECT_COMPANY}!");
+	          else{
+	            $('exp2140_unit_cb').setQueryParameter('company_id',company_id);
+	            $('exp2140_unit_cb').query();
+	          }
+	        }
+           if(name=="position"){
+	          if(!company_id)
+	            Aurora.showMessage("${l:PROMPT}","${l:PROMPT.SELECT_COMPANY}!");
+	          else{  
+	              $('exp2140_position_cb').setQueryParameter('company_id',company_id);	            
+	              $('exp2140_position_cb').setQueryParameter('unit_id',record.get("unit_id"));
+	              $('exp2140_position_cb').query();
+	             
+              }
+          }
+          if(name=="employee_code"){
+              if(!company_id)
+                Aurora.showMessage("${l:PROMPT}","${l:PROMPT.SELECT_COMPANY}!");
+	          else{  
+	            var field = record.getMeta().getField('employee_code');
+	                         field.setLovPara('company_id',company_id);
+	                         
+	            if(record.get("unit_id"))
+	               field.setLovPara('unit_id',record.get("unit_id"));
+	            if(record.get("position_id"))
+	               field.setLovPara('position_id',record.get("position_id"));
+	          }
+          }
+          if(name=='granted_employee_code'){
+      		if(!record.isNew){	          		         	            
+	            var granted_position_id=record.get('granted_position_id');	            
+	            if(granted_position_id){
+	            	var field=record.getMeta().getField('granted_employee_code');
+	            	field.setLovPara('p_current_granted_pos_id',granted_position_id);		            	
+	            }		          
+            }
+          }
+      }
+            
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="exp2140_category_cb">
+                <a:datas dataSource="/model/exp2140_category_md"/>
+            </a:dataSet>
+            <a:dataSet id="exp2140_unit_cb" fetchAll="true" model="expm.EXP2140.exp_doc_unit"/>
+            <a:dataSet id="exp2140_position_cb" fetchAll="true" model="expm.EXP2140.exp_doc_position"/>
+            <a:dataSet id="exp2140_exp_document_authorities_query_ds" autoCreate="true" model="expm.EXP2140.exp_document_authorities_query">
+                <a:fields>
+                    <a:field name="document_type_name" displayField="name" options="exp2140_category_cb" returnField="document_type_id" valueField="code"/>
+                    <a:field name="company_code" autoComplete="true" autoCompleteField="company_code" lovGridHeight="320" lovHeight="450" lovService="fnd.EXP2140.fnd_companies1" lovWidth="540" title="EXP_DOCUMENT_AUTHORITIES_COMPANY">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_code_name" to="company_code"/>
+                            <a:map from="company_code" to="aaa"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="granted_position_code" autoComplete="true" autoCompleteField="position_code" lovGridHeight="320" lovHeight="450" lovService="expm.exp_document_authorities_position_lov" lovWidth="540" title="EXP_DOCUMENT_AUTHORITIES_POSITION">
+                        <a:mapping>
+                            <a:map from="position_code" to="granted_position_code"/>
+                            <a:map from="position_name" to="granted_position_name"/>
+                            <a:map from="position_id" to="granted_position_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="granted_employee_code" autoComplete="true" autoCompleteField="employee_code" lovGridHeight="320" lovHeight="450" lovService="expm.exp_document_person_authorities_employee_lov" lovWidth="540" title="EXP_DOCUMENT_AUTHORITIES_EMPLOYEE">
+                        <a:mapping>
+                            <a:map from="employee_code" to="granted_employee_code"/>
+                            <a:map from="granted_employee_name" to="granted_employee_name"/>
+                            <a:map from="employee_id" to="granted_employee_id"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="exp2140_onFormUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="exp2140_exp_document_authorities_query_result_ds" autoCount="true" autoQuery="true" fetchAll="false" model="expm.EXP2140.exp_document_authorities_query" queryDataSet="exp2140_exp_document_authorities_query_ds" selectable="true" submitUrl="${/request/@context_path}/autocrud/expm.EXP2140.exp_document_authorities_save/batch_update">
+                <a:fields>
+                    <a:field name="document_type" displayField="name" options="exp2140_category_cb" required="true" returnField="document_type_code" valueField="code"/>
+                    <a:field name="granted_position_code" autoComplete="true" autoCompleteField="position_code" lovGridHeight="320" lovHeight="450" lovService="expm.exp_document_authorities_position_lov" lovWidth="540" title="EXP_DOCUMENT_AUTHORITIES_POSITION">
+                        <a:mapping>
+                            <a:map from="position_code" to="granted_position_code"/>
+                            <a:map from="position_name" to="granted_position_name"/>
+                            <a:map from="position_id" to="granted_position_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="granted_employee_code" autoComplete="true" autoCompleteField="granted_employee_name" lovGridHeight="320" lovHeight="450" lovService="expm.exp_document_person_authorities_employee_lov" lovWidth="540" required="true" title="EXP_DOCUMENT_AUTHORITIES_EMPLOYEE">
+                        <a:mapping>
+                            <a:map from="employee_code" to="granted_employee_code"/>
+                            <a:map from="granted_employee_name" to="granted_employee_name"/>
+                            <a:map from="employee_id" to="granted_employee_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_code" autoComplete="true" autoCompleteField="company_code" lovGridHeight="320" lovHeight="450" lovService="fnd.EXP2140.fnd_companies1" lovWidth="500" required="true" title="EXP_DOCUMENT_AUTHORITIES_COMPANY">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_code" to="company_code"/>
+                            <a:map from="company_short_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="unit" displayField="code" options="exp2140_unit_cb" returnField="unit_id" valueField="id"/>
+                    <a:field name="position" displayField="code" options="exp2140_position_cb" returnField="position_id" valueField="id"/>
+                    <a:field name="employee_code" autoComplete="true" autoCompleteField="employee_code" lovGridHeight="320" lovHeight="450" lovService="expm.EXP2140.exp_document_authorities_author_lov" lovWidth="540" title="EXP_DOCUMENT_AUTHORITIES_SELF">
+                        <a:mapping>
+                            <a:map from="id" to="employee_id"/>
+                            <a:map from="employee_code" to="employee_code"/>
+                            <a:map from="employee_name" to="employee_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="start_date" dataType="date" required="true" validator="exp2140_dateValidator"/>
+                    <a:field name="end_date" dataType="date" validator="exp2140_dateValidator"/>
+                    <a:field name="query_authority" checkedValue="Y" defaultValue="N" unCheckedValue="N"/>
+                    <a:field name="maintenance_authority" checkedValue="Y" defaultValue="N" unCheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="onUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="exp_2140_grid" type="add" width="100"/>
+            <a:gridButton bind="exp_2140_grid" type="clear" width="100"/>
+            <a:toolbarButton click="exp2140_saveDocument" text="HAP_SAVE" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="exp2140_exp_document_authorities_query_ds" resultTarget="exp2140_exp_document_authorities_query_result_ds" style="width:100%">
+            <a:formToolBar>
+                <a:hBox labelWidth="100">
+                    <a:comboBox name="document_type_name" bindTarget="exp2140_exp_document_authorities_query_ds" prompt="EXP_DOCUMENT_PERSON_AUTH.DOCUMENT_TYPE" width="150">
+                        <a:events>
+                            <a:event name="enterdown" handler="exp2140_queryDocumentAuthorities"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:lov name="company_code" bindTarget="exp2140_exp_document_authorities_query_ds" prompt="EXP_DOCUMENT_PERSON_AUTH.COMPANY">
+                        <a:events>
+                            <a:event name="enterdown" handler="exp2140_queryDocumentAuthorities"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="granted_position_code" bindTarget="exp2140_exp_document_authorities_query_ds" prompt="EXP_DOCUMENT_PERSON_AUTH.GRANTED_POSITION_CODE">
+                        <a:events>
+                            <a:event name="enterdown" handler="exp2140_queryDocumentAuthorities"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="granted_employee_code" bindTarget="exp2140_exp_document_authorities_query_ds" prompt="EXP_DOCUMENT_PERSON_AUTH.GRANTED_EMPLOYEE_CODE">
+                        <a:events>
+                            <a:event name="enterdown" handler="exp2140_queryDocumentAuthorities"/>
+                        </a:events>
+                    </a:lov>
+                </a:hBox>
+            </a:formToolBar>
+        </a:queryForm>
+        <a:grid id="exp_2140_grid" bindTarget="exp2140_exp_document_authorities_query_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="document_type" Prompt="EXP_DOCUMENT_PERSON_AUTH.DOCUMENT_TYPE" align="center" editorFunction="exp2140_documentTypeEdit" width="80"/>
+                <a:column name="granted_position_code" Prompt="EXP_DOCUMENT_PERSON_AUTH.GRANTED_POSITION_CODE" align="center" editor="exp2140_granted_position_code_grid_tf" width="70"/>
+                <a:column name="granted_position_name" Prompt="EXP_DOCUMENT_PERSON_AUTH.GRANTED_POSITION_NAME" align="center" width="110"/>
+                <a:column name="granted_employee_code" Prompt="EXP_DOCUMENT_PERSON_AUTH.GRANTED_EMPLOYEE_CODE" align="center" editor="exp2140_granted_employee_code_grid_tf" width="70"/>
+                <a:column name="granted_employee_name" Prompt="EXP_DOCUMENT_PERSON_AUTH.GRANTED_EMPLOYEE_NAME" align="center" width="110"/>
+                <a:column name="company_code" Prompt="EXP_DOCUMENT_PERSON_AUTH.COMPANY" align="center" editor="exp2140_company_grid_tf" width="70"/>
+                <a:column name="company_name" Prompt="EXP_DOCUMENT_PERSON_AUTH.COMPANY_DESC" align="center" width="110"/>
+                <a:column name="unit" Prompt="EXP_DOCUMENT_PERSON_AUTH.UNIT" align="center" editor="exp2140_unit_id_cb" width="100"/>
+                <a:column name="position" Prompt="EXP_DOCUMENT_PERSON_AUTH.POSITION" align="center" editor="exp2140_position_id_cb" width="100"/>
+                <a:column name="employee_code" Prompt="EXP_DOCUMENT_PERSON_AUTH.SELF_CODE" align="center" editor="exp2140_self_code_grid_tf" width="70"/>
+                <a:column name="employee_name" Prompt="EXP_DOCUMENT_PERSON_AUTH.SELF" align="center" width="110"/>
+                <a:column name="start_date" Prompt="EXP_DOCUMENT_PERSON_AUTH.START_DATE" align="center" editor="exp2140_date_grid_dp" renderer="Aurora.formatDate" sortable="true"/>
+                <a:column name="end_date" Prompt="EXP_DOCUMENT_PERSON_AUTH.END_DATE" align="center" editor="exp2140_date_grid_dp" renderer="Aurora.formatDate" sortable="true"/>
+                <a:column name="query_authority" Prompt="EXP_DOCUMENT_PERSON_AUTH.QUERY_AUTHORITY" align="center" editor="exp2140_common_cb" sortable="false" width="30"/>
+                <a:column name="maintenance_authority" Prompt="EXP_DOCUMENT_PERSON_AUTH.MAINTENANCE_AUTHORITY" align="center" editor="exp2140_common_cb" sortable="false" width="30"/>
+            </a:columns>
+            <a:editors>
+                <a:comboBox id="exp2140_document_type_grid_tf"/>
+                <a:lov id="exp2140_company_grid_tf"/>
+                <a:comboBox id="exp2140_unit_id_cb"/>
+                <a:comboBox id="exp2140_position_id_cb"/>
+                <a:lov id="exp2140_granted_position_code_grid_tf"/>
+                <a:lov id="exp2140_granted_employee_code_grid_tf"/>
+                <a:lov id="exp2140_self_code_grid_tf"/>
+                <a:datePicker id="exp2140_date_grid_dp"/>
+                <a:checkBox id="exp2140_common_cb"/>
+            </a:editors>
+            <a:events>
+                <a:event name="cellclick" handler="exp2140_cellClick"/>
+            </a:events>
+        </a:grid>
+    </a:view>
+</a:screen>

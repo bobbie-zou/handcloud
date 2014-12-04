@@ -1,0 +1,550 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-7 下午03:23:44  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="bid5100_get_attchment_id_link" model="bid.BID5100.bid_expert_get_atachement_id" modelaction="query"/>
+        <a:link id="bid5100_attachments_upload_link" url="${/request/@context_path}/uploadFile.screen"/>
+        <a:link id="bid5100_expert_fields_select_link" url="${/request/@context_path}/sys_menutree_select.screen"/>
+        <script><![CDATA[
+            function bid5100ExpertValidator(record, name, value) {
+                if (name == 'date_of_birth') {
+                    var current_date = Aurora.formatDate(new Date());
+                    value = Aurora.formatDate(value);
+                    if (!Aurora.isEmpty(value) && !record.getField(value).isReadOnly()) {
+                        if (value > current_date) {
+                            return '${l:PROMPT.BIRTH_DATE_FORMATION}';
+                        }
+                    }
+                    return true;
+                } else if (name == 'email') {
+                    var myreg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,4})+$/;
+                    if (!Aurora.isEmpty(value)) {
+                        if (!myreg.test(value)) {
+                            return '${l:PROMPT.EMAIL_FORMATION}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function bid5100ExpertFieldsOnAdd(ds, record, index) {
+                var head_ds = $('bid5100_expert_ds');
+                var expert_id = head_ds.getAt(0).get('expert_id');
+                record.set('expert_id', expert_id);
+                if (index == 0) {
+                    record.set('major_flag', 'Y');
+                }
+            }
+            
+            function bid5100ExpertFieldsOnUpdate(ds, record, name, value, old_value) {
+                var records = ds.getAll();
+                if (name == 'major_flag') {
+                    if (value == 'Y') {
+                        for (var i = 0;i < records.length;i++) {
+                            if (ds.indexOf(record) != ds.indexOf(records[i])) {
+                                ds.indexOf(record);
+                                records[i].set('major_flag', 'N');
+                            }
+                        }
+                    }
+                }
+            }
+            
+            function bid5100ExpertAchievementsOnAdd(ds, record, index) {
+                var head_ds = $('bid5100_expert_ds');
+                var expert_id = head_ds.getAt(0).get('expert_id');
+                record.set('expert_id', expert_id);
+            }
+            
+            function bid5100ExpertCareersValidator(record, name, value) {
+                if (name == 'start_date') {
+                    value = Aurora.formatDate(value);
+                    var end_date = Aurora.formatDate(record.get('end_date'));
+                    var current_date = Aurora.formatDate(new Date());
+                    if (!Aurora.isEmpty(value)) {
+                        if (value > current_date) {
+                            return '${l:PROMPT.TIME_FORMATION}';
+                        }
+                    } else if (!Aurora.isEmpty(value) && !Aurora.isEmpty(end_date)) {
+                        if (value > end_date) {
+                            return '${l:PROMPT.TIME_FORMATION}';
+                        }
+                    }
+                    return true;
+                } else if (name == 'end_date') {
+                    value = Aurora.formatDate(value);
+                    var start_date = Aurora.formatDate(record.get('start_date'));
+                    if (!Aurora.isEmpty(value) && !Aurora.isEmpty(start_date)) {
+                        if (start_date > value) {
+                            return '${l:PROMPT.TIME_FORMATION}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function bid5100ExpertCareersOnAdd(ds, record, index) {
+                var head_ds = $('bid5100_expert_ds');
+                var expert_id = head_ds.getAt(0).get('expert_id');
+                record.set('expert_id', expert_id);
+            }
+            
+            function bid5100ExpertCareersOnUpdate(ds, record, name, value, old_value) {
+                if (name == 'end_date') {
+                    record.validate('start_date');
+                } else if (name == 'start_date') {
+                    record.validate('end_date');
+                }
+            }
+            
+            function bid5100ExpertEducationsValidator(record, name, value) {
+                if (name == 'start_date') {
+                    value = Aurora.formatDate(value);
+                    var end_date = Aurora.formatDate(record.get('end_date'));
+                    var current_date = Aurora.formatDate(new Date());
+                    if (value > current_date) {
+                        return '${l:PROMPT.TIME_FORMATION}';
+                    }
+                    if (!Aurora.isEmpty(value) && !Aurora.isEmpty(end_date)) {
+                        if (value > end_date || value > current_date) {
+                            return '${l:PROMPT.TIME_FORMATION}';
+                        }
+                    }
+                    return true;
+                } else if (name == 'end_date') {
+                    value = Aurora.formatDate(value);
+                    var start_date = Aurora.formatDate(record.get('start_date'));
+                    if (!Aurora.isEmpty(value) && !Aurora.isEmpty(start_date)) {
+                        if (start_date > value) {
+                            return '${l:PROMPT.TIME_FORMATION}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function bid5100ExpertEducationsOnAdd(ds, record, index) {
+                var head_ds = $('bid5100_expert_ds');
+                var expert_id = head_ds.getAt(0).get('expert_id');
+                record.set('expert_id', expert_id);
+                if (index == 0) {
+                    record.set('highest_degree_flag', 'Y');
+                }
+            }
+            
+            function bid5100ExpertEducationsOnUpdate(ds, record, name, value, old_value) {
+                var records = ds.getAll();
+                if (name == 'highest_degree_flag') {
+                    if (value == 'Y') {
+                        for (var i = 0;i < records.length;i++) {
+                            if (ds.indexOf(record) != ds.indexOf(records[i])) {
+                                ds.indexOf(record);
+                                records[i].set('highest_degree_flag', 'N');
+                            }
+                        }
+                    }
+                } else if (name == 'end_date') {
+                    record.validate('start_date');
+                } else if (name == 'start_date') {
+                    record.validate('end_date');
+                }
+            }
+            
+            function bid5100ExpertAttachmentsOnAdd(ds, record, index) {
+                var head_ds = $('bid5100_expert_ds');
+                var expert_id = head_ds.getAt(0).get('expert_id');
+                record.set('expert_id', expert_id);
+            }
+            
+            function bid5100ExpertAttachmentsOnSubmitsuccess(ds, res) {
+            
+               }
+            
+            function bid5100Save() {
+                var ds = $('bid5100_expert_ds');
+                ds.submit();
+            }
+            
+            function bid5100FieldAdd() {
+                var window_id = 'bid5100_expert_fields_select_window';
+                var show_select_service = 'bid.BID5100.bid_expert_field_select';
+                var show_select_title = '123';
+                var parent_ds_id = 'bid5100_expert_fields_ds';
+                var tree_display_field = 'description_text';
+                var tree_id_field = 'flex_value_id';
+                var tree_parent_field = 'parent_flex_value_id';
+                var tree_sequence_field = 'flex_value_id';
+                var from_1 = 'field_code_cnt';
+                var to_1 = 'expert_field_code';
+                var from_2 = 'flex_desc_cnt';
+                var to_2 = 'expert_field_desc';
+                var from_3 = 'flex_value_id';
+                var to_3 = 'expert_field_id';
+                var from_4 = 'source_flex_value_set_id';
+                var to_4 = 'source_flex_value_set_id';
+            
+                new Aurora.Window({
+                    id: 'bid5100_expert_fields_select_window',
+                    title: '${l:BID_EXPERT_APP_FIELDS.ADD_FIELD}',
+                    url: $('bid5100_expert_fields_select_link').getUrl() + '?' + 'window_id=' + window_id + '&' + 'show_select_title=' + show_select_title + '&' + 'show_select_service=' + show_select_service + '&' + 'parent_ds_id=' + parent_ds_id + '&' + 'tree_display_field=' + tree_display_field + '&' + 'tree_id_field=' + tree_id_field + '&' + 'tree_parent_field=' + tree_parent_field + '&' + 'tree_sequence_field=' + tree_sequence_field + '&' + 'from_1=' + from_1 + '&' + 'to_1=' + to_1 + '&' + 'from_2=' + from_2 + '&' + 'to_2=' + to_2 + '&' + 'from_3=' + from_3 + '&' + 'to_3=' + to_3 + '&' + 'from_4=' + from_4 + '&' + 'to_4=' + to_4 + '&',
+                    width: '700',
+                    height: '550'
+                });
+            }
+            
+            function bid5100ExpertAttachmentsRender(value, record, name) {
+                if (name == 'file_name') {
+                    if (Aurora.isEmpty(value)) {
+                        return '${l:PROMPT.UPLOAD_WAITING}';
+                    } else {
+                        return value;
+                    }
+                } else if (name == 'preview') {
+                    if (record.isNew) {
+                        return '<a href="javascript:bid5100ExpertAttachmentsUpload(' + record.get('line_attachment_id') + ')">${l:PROMPT.UPLOAD_ATTACHMENT}</a>';
+                    } else {
+                        return '<a href="javascript:bid5100ExpertAttachmentsUpload(' + record.get('line_attachment_id') + ')">${l:PROMPT.PREVIEW}</a>';
+                    }
+                }
+            }
+            
+            /* function bid5100ExpertAttachmentsUpload(line_attachment_id) {
+             var record = $('bid5100_expert_attachments_ds').getCurrentRecord();
+             if (Aurora.isEmpty(line_attachment_id)) {
+             Aurora.request({
+             url: $('bid5100_get_attchment_id_link').getUrl(),
+             para: '',
+             success: function(res) {
+             line_attachment_id = res.result.record.line_attachment_id;
+             record.set('line_attachment_id', line_attachment_id);
+             bid5100ExpertAttachmentsOpenUpload(line_attachment_id);
+             },
+             scope: this
+             });
+             } else {
+             bid5100ExpertAttachmentsOpenUpload(line_attachment_id);
+             }
+             }
+             function bid5100ExpertAttachmentsOpenUpload(line_attachment_id) {
+             new Aurora.Window({
+             url: $('bid5100_attachments_upload_link').getUrl() + '?table_name=BID_EXPERT_APP_ATTACHMENTS&header_id=' + line_attachment_id,
+             title: '${l:ATM.UPLOAD_ATTACHMENT}',
+             id: 'bid5100_upload_window',
+             width: 600,
+             height: 400
+             });
+             } */
+            
+            function bid5100ExpertEditOnSubmitsuccess(ds, res) {
+                Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SAVE_SUCCESS}');
+            }
+            
+            function bid5100ExpertAtmUpload() {
+                if ('${/parameter/@expert_id}') {
+                    var url = "${/request/@context_path}/uploadFile.screen?table_name=BID_EXPERTS&header_id=${/parameter/@expert_id}";
+                    new Aurora.Window({
+                        url: url,
+                        title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                        id: 'bid5100_expert_atm_window',
+                        width: 350,
+                        height: 400
+                    }).on('beforeclose', function() {
+                        $('bid5100_expert_atm_files_ds').query();
+                    });
+                }
+            }
+            
+            function bid5100ExpertAtmRender(value, rec, name) {
+                if (name == 'file_download_link') {
+                    var file_download_link = rec.get('file_download_link');
+                    return file_download_link;
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5100_id_type_ds" lookupCode="ID_TYPE"/>
+            <a:dataSet id="bid5100_sex_ds" lookupCode="SEX"/>
+            <a:dataSet id="bid5100_expert_ds" loadData="true" model="bid.BID5100.bid_experts" queryUrl="${/request/@context_path}/autocrud/bid.BID5100.bid_experts/query?expert_id=${/parameter/@expert_id}" submitUrl="${/request/@context_path}/modules/bid/BID5100/bid_expert_edit_save.svc">
+                <a:fields>
+                    <a:field name="expert_id"/>
+                    <a:field name="employee_id"/>
+                    <a:field name="sex_desc" displayField="code_value_name" options="bid5100_sex_ds" readOnly="true" returnField="sex" valueField="code_value"/>
+                    <a:field name="sex"/>
+                    <a:field name="name" readOnly="true"/>
+                    <a:field name="date_of_birth" validator="bid5100ExpertValidator"/>
+                    <a:field name="expert_level_desc" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="public.bid_expert_level_lov" lovWidth="500" required="true" title="BID_EXPERT_APP_HEADERS.EXPERT_LEVEL_ID">
+                        <a:mapping>
+                            <a:map from="expert_level_desc" to="expert_level_desc"/>
+                            <a:map from="expert_level_id" to="expert_level_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="expert_level_id"/>
+                    <a:field name="expert_type_desc" displayField="code_value_name" options="bid5100_bid_expert_types_ds" returnField="expert_type" valueField="code_value"/>
+                    <a:field name="expert_type"/>
+                    <a:field name="registration_date" readOnly="true"/>
+                    <a:field name="employee_code" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="public.bid_expert_inner_expert_lov" lovWidth="500" title="BID_EXPERT_APP_HEADERS.EMPLOYEE_CODE">
+                        <a:mapping>
+                            <a:map from="employee_code" to="employee_code"/>
+                            <a:map from="employee_id" to="employee_id"/>
+                            <a:map from="primary_position_id" to="primary_position_id"/>
+                            <a:map from="original_date_of_hair" to="original_date_of_hair"/>
+                            <a:map from="name" to="name"/>
+                            <a:map from="date_of_birth" to="date_of_birth"/>
+                            <a:map from="id_type_desc" to="id_type_desc"/>
+                            <a:map from="id_type" to="id_type"/>
+                            <a:map from="id_code" to="id_code"/>
+                            <a:map from="mobil" to="mobil"/>
+                            <a:map from="phone" to="phone"/>
+                            <a:map from="email" to="email"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="original_date_of_hair" readOnly="true"/>
+                    <a:field name="id_type_desc" displayField="code_value_name" options="bid5100_id_type_ds" required="true" returnField="id_type" valueField="code_value"/>
+                    <a:field name="id_type"/>
+                    <a:field name="id_code" required="true"/>
+                    <a:field name="enabled_flag"/>
+                    <a:field name="email" validator="bid5100ExpertValidator"/>
+                    <a:field name="mobil" required="true"/>
+                    <a:field name="phone"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="bid5100ExpertEditOnSubmitsuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5100_expert_bid_history_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="bid.BID5100.bid_history" queryUrl="${/request/@context_path}/autocrud/bid.BID5100.bid_history/query?expert_id=${/parameter/@expert_id}"/>
+            <a:dataSet id="bid5100_expert_fields_ds" autoCount="true" autoPageSize="true" autoQuery="true" bindName="fields" bindTarget="bid5100_expert_ds" model="bid.BID5100.bid_expert_fields" modifiedCheck="false" queryUrl="${/request/@context_path}/autocrud/bid.BID5100.bid_expert_fields/query?expert_id=${/parameter/@expert_id}" selectable="true" submitUrl="${/request/@context_path}/modules/bid/BID5100/bid_expert_fields_submit.svc">
+                <a:fields>
+                    <a:field name="line_field_id"/>
+                    <a:field name="expert_id"/>
+                    <a:field name="expert_field_id"/>
+                    <a:field name="source_flex_value_set_id"/>
+                    <a:field name="expert_field_code" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="public.bid_expr_field_lov" lovWidth="500" title="选择领域">
+                        <a:mapping>
+                            <a:map from="expert_field_code" to="expert_field_code"/>
+                            <a:map from="expert_field_desc" to="expert_field_desc"/>
+                            <a:map from="expert_field_id" to="expert_field_id"/>
+                            <a:map from="flex_value_set_id" to="source_flex_value_set_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="expert_field_desc"/>
+                    <a:field name="major_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="bid5100ExpertFieldsOnAdd"/>
+                    <a:event name="update" handler="bid5100ExpertFieldsOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5100_expert_achievements_ds" autoCount="true" autoPageSize="true" autoQuery="true" bindName="achievements" bindTarget="bid5100_expert_ds" model="bid.BID5100.bid_expert_achievements" modifiedCheck="false" queryUrl="${/request/@context_path}/autocrud/bid.BID5100.bid_expert_achievements/query?expert_id=${/parameter/@expert_id}" selectable="true">
+                <a:fields>
+                    <a:field name="line_achievement_id"/>
+                    <a:field name="expert_id"/>
+                    <a:field name="acheivement"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="bid5100ExpertAchievementsOnAdd"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5100_expert_careers_ds" autoCount="true" autoPageSize="true" autoQuery="true" bindName="careers" bindTarget="bid5100_expert_ds" model="bid.BID5100.bid_expert_careers" modifiedCheck="false" queryUrl="${/request/@context_path}/autocrud/bid.BID5100.bid_expert_careers/query?expert_id=${/parameter/@expert_id}" selectable="true">
+                <a:fields>
+                    <a:field name="line_achievement_id"/>
+                    <a:field name="expert_id"/>
+                    <a:field name="start_date" validator="bid5100ExpertCareersValidator"/>
+                    <a:field name="end_date" validator="bid5100ExpertCareersValidator"/>
+                    <a:field name="company_name"/>
+                    <a:field name="position"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="bid5100ExpertCareersOnAdd"/>
+                    <a:event name="update" handler="bid5100ExpertCareersOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5100_expert_educations_ds" autoCount="true" autoPageSize="true" autoQuery="true" bindName="educations" bindTarget="bid5100_expert_ds" model="bid.BID5100.bid_expert_educations" modifiedCheck="false" queryUrl="${/request/@context_path}/autocrud/bid.BID5100.bid_expert_educations/query?expert_id=${/parameter/@expert_id}" selectable="true" submitUrl="${/request/@context_path}/modules/bid/BID5100/bid_expert_educations_submit.svc">
+                <a:fields>
+                    <a:field name="line_education_id"/>
+                    <a:field name="expert_id"/>
+                    <a:field name="start_date" validator="bid5100ExpertEducationsValidator"/>
+                    <a:field name="end_date" validator="bid5100ExpertEducationsValidator"/>
+                    <a:field name="education_institution_name"/>
+                    <a:field name="education"/>
+                    <a:field name="degree"/>
+                    <a:field name="certificate_and_license"/>
+                    <a:field name="reference_no"/>
+                    <a:field name="highest_degree_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="bid5100ExpertEducationsOnAdd"/>
+                    <a:event name="update" handler="bid5100ExpertEducationsOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <!-- <a:dataSet id="bid5100_expert_attachments_ds" autoCount="true" autoPageSize="true" autoQuery="true" bindName="attachments" bindTarget="bid5100_expert_ds" model="bid.BID5100.bid_expert_attachments" modifiedCheck="false" queryUrl="${/request/@context_path}/autocrud/bid.BID5100.bid_expert_attachments/query?expert_id=${/parameter/@expert_id}" selectable="true">
+                <a:fields>
+                    <a:field name="attachment_id"/>
+                    <a:field name="expert_id"/>
+                    <a:field name="file_name"/>
+                    <a:field name="comments"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="bid5100ExpertAttachmentsOnAdd"/>
+                    <a:event name="submitsuccess" handler="bid5100ExpertAttachmentsOnSubmitsuccess"/>
+                </a:events>
+            </a:dataSet> -->
+            <a:dataSet id="bid5100_expert_atm_files_ds" autoCount="true" autoQuery="true" fetchAll="true" model="public.fnd_attachment_file" queryUrl="${/request/@context_path}/autocrud/public.fnd_attachment_file/query?table_name=BID_EXPERTS&amp;pk_value=${/parameter/@expert_id}"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid5100Save" text="PROMPT.SAVE" width="100"/>
+            </a:screenTopToolbar>
+            <a:vBox>
+                <a:hBox labelWidth="100">
+                    <a:vBox labelWidth="100">
+                        <a:textField name="name" bindTarget="bid5100_expert_ds" maxLength="30" prompt="EXP_EMPLOYEE.NAME"/>
+                        <a:textField name="expert_level_desc" bindTarget="bid5100_expert_ds" prompt="BID_EXPERT_APP_HEADERS.EXPERT_LEVEL_ID"/>
+                        <a:textField name="employee_code" bindTarget="bid5100_expert_ds" maxLength="200" prompt="BID_EXPERT_APP_HEADERS.EMPLOYEE_CODE"/>
+                        <a:comboBox name="id_type_desc" bindTarget="bid5100_expert_ds" prompt="BID_EXPERT_APP_HEADERS.ID_TYPE"/>
+                        <a:textField name="mobil" bindTarget="bid5100_expert_ds" maxLength="30" prompt="BID_EXPERT_APP_HEADERS.MOBILE_PHONE"/>
+                    </a:vBox>
+                    <a:vBox labelWidth="100">
+                        <a:textField name="sex_desc" bindTarget="bid5100_expert_ds" prompt="BID_EXPERT_APP_HEADERS.SEX"/>
+                        <a:textField name="expert_type_desc" bindTarget="bid5100_expert_ds" maxLength="30" prompt="BID_EXPERT_APP_HEADERS.EXPERT_TYPE"/>
+                        <a:textField name="original_date_of_hair" bindTarget="bid5100_expert_ds" prompt="EXP_EMPLOYEES.ORIGINAL_DATE_OF_HAIR" renderer="Aurora.formatDate"/>
+                        <a:textField name="id_code" bindTarget="bid5100_expert_ds" maxLength="30" prompt="BID_EXPERT_APP_HEADERS.ID_CODE"/>
+                        <a:textField name="email" bindTarget="bid5100_expert_ds" maxLength="100" prompt="Email"/>
+                    </a:vBox>
+                    <a:vBox labelWidth="100">
+                        <a:datePicker name="date_of_birth" bindTarget="bid5100_expert_ds" prompt="BID_EXPERT_APP_HEADERS.BIRTHDAY"/>
+                        <a:textField name="registration_date" bindTarget="bid5100_expert_ds" prompt="BID_EXPERTS.REGISTRATION_DATE" renderer="Aurora.formatDate"/>
+                        <a:radio name="enabled_flag" bindTarget="bid5100_expert_ds" prompt="SYS_CODE.ENABLED_FLAG">
+                            <a:items>
+                                <a:item label="HAP_ENABLE" value="Y"/>
+                                <a:item label="HAP_DISABLE" value="N"/>
+                            </a:items>
+                        </a:radio>
+                        <a:textField name="phone" bindTarget="bid5100_expert_ds" maxLength="30" prompt="BID_EXPERT_APP_HEADERS.TELEPHONE"/>
+                    </a:vBox>
+                </a:hBox>
+            </a:vBox>
+            <a:tabPanel id="bid_5100_tabpanel" height="380" marginWidth="50">
+                <a:tabs>
+                    <a:tab id="bid_5100_tb_1" prompt="BID_EXPERT_APP_HEADERS.BID_HISTORY" width="100">
+                        <a:grid id="bid5100_expert_bid_history_grid" bindTarget="bid5100_expert_bid_history_ds" height="350" marginWidth="60" navBar="true">
+                            <a:columns>
+                                <a:column name="entrustment_header_number" align="center" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_HEADER_NUMBER" width="80"/>
+                                <a:column name="title" align="left" prompt="BID_ENTRUSTMENT_HEADERS.TITLE" width="100"/>
+                                <a:column name="principal_name" align="left" prompt="BID_EXPERT_APP_HEADERS.BID_COMPANY" width="100"/>
+                                <a:column name="date_from" align="center" prompt="BID_EXPERT_APP_HEADERS.DATE_FROM" renderer="Aurora.formatDate" width="60"/>
+                                <a:column name="date_to" align="center" prompt="BID_EXPERT_APP_HEADERS.DATE_TO" renderer="Aurora.formatDate" width="60"/>
+                                <a:column name="status_desc" align="left" prompt="STATUS" width="50"/>
+                                <a:column name="leader_flag" align="center" prompt="BID_EXPERT_ALTERATION.LEADER_FLAG" width="30"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab id="bid_5100_tb_2" prompt="BID_EXPERT_APP_FIELDS.FIELDS">
+                        <a:grid id="bid5100_expert_fields_grid" bindTarget="bid5100_expert_fields_ds" height="290" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button click="bid5100FieldAdd" icon="${/request/@context_path}/images/add.gif" text="PROMPT.NEW"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="expert_field_code" align="left" prompt="BID_EXPERT_APP_FIELDS.FIELDS" width="100"/>
+                                <a:column name="expert_field_desc" align="left" prompt="BID_EXPERT_APP_FIELDS.FIELD_DESC" width="300"/>
+                                <a:column name="major_flag" align="center" editor="bid5100_expert_fields_cb" prompt="BID_EXPERT_APP_FIELDS.MAJOR_FLAG" width="50"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:checkBox id="bid5100_expert_fields_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab id="bid_5100_tb_3" prompt="BID_EXPERT_APP_ACHIEVEMENTS.ACHIEVEMENTS">
+                        <a:grid id="bid5100_expert_achievements_grid" bindTarget="bid5100_expert_achievements_ds" height="290" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="achievement" align="left" editor="bid5100_expert_achievements_tf" prompt="BID_EXPERT_APP_ACHIEVEMENTS.PROFESSIONAL_ACHIEVEMENTS" width="650"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="bid5100_expert_achievements_tf" maxLength="1000"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab id="bid_5100_tb_4" prompt="BID_EXPERT_APP_CAREERS.CAREERS">
+                        <a:grid id="bid5100_expert_careers_grid" bindTarget="bid5100_expert_careers_ds" height="290" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="start_date" align="center" editor="bid5100_expert_careers_dp" prompt="BID_EXPERT_APP_EDUCATIONS.START_DATE" renderer="Aurora.formatDate" width="60"/>
+                                <a:column name="end_date" align="center" editor="bid5100_expert_careers_dp" prompt="BID_EXPERT_APP_EDUCATIONS.END_DATE" renderer="Aurora.formatDate" width="60"/>
+                                <a:column name="company_name" align="left" editor="bid5100_expert_careers_tf" prompt="BID_EXPERT_APP_CAREERS.COMPANY_NAME" width="200"/>
+                                <a:column name="position" align="left" editor="bid5100_expert_careers_tf" prompt="BID_EXPERT_APP_EDUCATIONS.HIGHEST_DEGREE" width="100"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:datePicker id="bid5100_expert_careers_dp"/>
+                                <a:textField id="bid5100_expert_careers_tf" maxLength="500"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab id="bid_5100_tb_5" prompt="BID_EXPERT_APP_EDUCATIONS.EDUCATION">
+                        <a:grid id="bid5100_expert_educations_grid" bindTarget="bid5100_expert_educations_ds" height="290" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="start_date" align="center" editor="bid5100_expert_educations_dp" prompt="BID_EXPERT_APP_EDUCATIONS.START_DATE" renderer="Aurora.formatDate" width="60"/>
+                                <a:column name="end_date" align="center" editor="bid5100_expert_educations_dp" prompt="BID_EXPERT_EDUCATIONS.END_DATE" renderer="Aurora.formatDate" width="60"/>
+                                <a:column name="education_institution_name" align="left" editor="bid5100_expert_educations_tf" prompt="BID_EXPERT_APP_EDUCATIONS.SCHOOL_OR_INSTITUTION" width="100"/>
+                                <a:column name="education" align="left" editor="bid5100_expert_educations_tf" prompt="BID_EXPERT_APP_EDUCATIONS.EDUCATION" width="60"/>
+                                <a:column name="degree" align="left" editor="bid5100_expert_educations_tf" prompt="BID_EXPERT_APP_EDUCATIONS.DEGREE" width="60"/>
+                                <a:column name="certificate_and_license" align="left" editor="bid5100_expert_educations_tf" prompt="BID_EXPERT_APP_EDUCATIONS.LICENSE_PERMIT_OR_QUALIFICATION" width="80"/>
+                                <a:column name="reference_no" align="left" editor="bid5100_expert_educations_tf" prompt="BID_EXPERT_APP_EDUCATIONS.REFERENCE_NO" width="80"/>
+                                <a:column name="highest_degree_flag" align="center" editor="bid5100_expert_educations_cb" prompt="BID_EXPERT_APP_EDUCATIONS.HIGHEST_DEGREE" width="50"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:datePicker id="bid5100_expert_educations_dp"/>
+                                <a:textField id="bid5100_expert_educations_tf" maxLength="500"/>
+                                <a:checkBox id="bid5100_expert_educations_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab id="bid_5100_tb_6" prompt="ATM.UPLOAD_ATTACHMENT">
+                        <!-- <a:grid id="bid5100_expert_attachments_grid" bindTarget="bid5100_expert_attachments_ds" height="350" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="save"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="file_name" align="left" prompt="附件名称" renderer="bid5100ExpertAttachmentsRender" width="100"/>
+                                <a:column name="preview" align="center" prompt="上传附件" renderer="bid5100ExpertAttachmentsRender" width="60"/>
+                                <a:column name="comments" align="left" editor="bid5090_expert_attachments_tf" prompt="附件说明" width="450"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="bid5100_expert_attachments_tf" maxLength="500"/>
+                            </a:editors>
+                        </a:grid> -->
+                        <a:grid id="bid5100_expert_atm_files_grid" bindTarget="bid5100_expert_atm_files_ds" height="350" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button click="bid5100ExpertAtmUpload" text="PROMPT.UPLOAD_DELETE"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="file_download_link" align="left" prompt="PROMPT.ATTACHMENT_NAME" renderer="bid5100ExpertAtmRender" width="150"/>
+                                <a:column name="upload_user_name" align="left" prompt="PROMPT.UPLOADED_BY" width="80"/>
+                                <a:column name="upload_date" align="center" prompt="PROMPT.UPLOAD_DATE" renderer="Aurora.formatDateTime" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

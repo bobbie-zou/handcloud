@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: ronghui.xu  
+    $Date: 2012-3-27 上午14:27:15  
+    $Revision: 1.0  
+    $Purpose: 子责任中心定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure><![CDATA[
+    ]]></a:init-procedure>
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <script><![CDATA[
+            function fnd2150_subresponsibilityCodeEdit(record, name) {
+                if (record.isNew) {
+                    return 'fnd2150_responsibility_center_code_lov';
+                }
+                return '';
+            }
+            
+            function fnd2150_saveInfosub() {
+
+                var f_ds = $('fnd2150_fnd_resp_centers_hierarchy_ds');
+                var f_ds2 = $('fnd2150_fnd_responsibility_centers_result_ds');
+                var record = f_ds.getCurrentRecord();
+                var record2 = f_ds2.getCurrentRecord();
+                // var resp_center_id = record.get('responsibility_center_id');               
+                // var resp_center_code = record2.get('responsibility_center_code');
+                // var responsibility_center_name = record2.get('responsibility_center_name');
+                // var resp_center_type_code = record2.get('resp_center_type_code');
+                // var summary_flag = record2.get('summary_flag');
+                // var start_date_active = record2.get('start_date_active');
+                // var end_date_active = record2.get('end_date_active');
+
+                // /*f_ds.setSubmitUrl('${/request/@context_path}/autocrud/fnd.FND2510.fnd_update_set_book_resp_centers/batch_update');*/
+                // Aurora.request({
+                    // url: '${/request/@context_path}/autocrud/fnd.FND2510.fnd_update_set_book_resp_centers/execute',
+                    // para:{
+                        // '_status': 'update',
+                        // 'responsibility_center_id' :resp_center_id,
+                        // 'responsibility_center_code': resp_center_code,
+                        // 'resp_center_type_code': resp_center_type_code,
+                        // 'summary_flag': summary_flag,
+                        // 'responsibility_center_name': responsibility_center_name,
+                        // 'start_date_active': start_date_active,
+                        // 'end_date_active': end_date_active
+                    // }
+                // });
+                f_ds.setSubmitParameter('set_of_books_id','${/parameter/@set_of_books_id}');
+                f_ds.submit();
+            }
+            function fnd2150_period_number_validate(record, name, value)
+            {
+                var end_period_number=record.get('end_period_number');
+                var start_period_number=record.get('start_period_number');
+                if (typeof(end_period_number) != 'undefined' && end_period_number!='') {
+	                if(start_period_number>end_period_number)
+	                {
+	                    Aurora.showMessage('${l:PROMPT}','${l:FND_PERIOD_ERROR.START_PRIOD_GREATER}');
+	                }    
+                }
+                return true;
+            }    
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2150_fnd_responsibility_centers_info_ds" loadData="true" model="fnd.FND2510.fnd_set_book_resp_centers" queryUrl="${/request/@context_path}/autocrud/fnd.FND2510.fnd_set_book_resp_centers/query?responsibility_center_id=${/parameter/@responsibility_center_id}">
+                <a:fields>
+                    <a:field name="responsibility_center_code" readOnly="true"/>
+                    <a:field name="responsibility_center_name" readOnly="true"/>
+                    <a:field name="resp_center_type_code_display" displayField="code_value_name" options="fnd2150_resp_center_type_code_ds" readOnly="true" returnField="resp_center_type_code" valueField="code_value"/>
+                    <a:field name="start_date_active" readOnly="true"/>
+                    <a:field name="end_date_active" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd2150_fnd_resp_centers_hierarchy_ds" autoQuery="true" fetchAll="false" model="fnd.FND2510.fnd_set_book_resp_centers_hierarchy" queryUrl="${/request/@context_path}/autocrud/fnd.FND2510.fnd_set_book_resp_centers_hierarchy/query?responsibility_center_id=${/parameter/@responsibility_center_id}" selectable="true">
+                <a:fields>
+                    <a:field name="resp_centers_hierarchy_id"/>
+                    <a:field name="responsibility_center_code" lovGridHeight="300" lovHeight="460" lovService="fnd.FND2510.fnd_set_book_resp_centers_hierarchy_lov" lovWidth="500" required="true" title="FND_RESPONSIBILITY_CENTERS.RESPONSIBILITY_CENTER_CODE">
+                        <a:mapping>
+                            <a:map from="responsibility_center_id" to="responsibility_subcenter_id"/>
+                            <a:map from="responsibility_center_code" to="responsibility_center_code"/>
+                            <a:map from="responsibility_center_name" to="responsibility_center_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="responsibility_center_id" defaultValue="${/parameter/@responsibility_center_id}"/>
+                    <a:field name="start_period_name" lovGridHeight="300" lovHeight="450" lovService="gld.gld_period_lov" lovWidth="470" required="true" title="FND_RESP_CENTERS_HIERARCHY.START_PERIOD_NAME">
+                        <a:mapping>
+                            <a:map from="internal_period_num" to="start_period_number"/>
+                            <a:map from="period_name" to="start_period_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="start_period_number" validator="period_number_validate"/>
+                    <a:field name="set_of_books_id"/>
+                    <a:field name="end_period_name" lovGridHeight="300" lovHeight="450" lovService="gld.gld_period_lov" lovWidth="470" title="FND_RESP_CENTERS_HIERARCHY.END_PERIOD_NAME">
+                        <a:mapping>
+                            <a:map from="internal_period_num" to="end_period_number"/>
+                            <a:map from="period_name" to="end_period_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="end_period_number" validator="fnd2150_period_number_validate"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet column="2" labelWidth="100" title="" width="530">
+                <a:textField name="responsibility_center_code" bindTarget="fnd2150_fnd_responsibility_centers_info_ds" prompt="FND_RESPONSIBILITY_CENTERS.RESPONSIBILITY_CENTER_CODE"/>
+                <a:textField name="responsibility_center_name" bindTarget="fnd2150_fnd_responsibility_centers_info_ds" prompt="FND_RESPONSIBILITY_CENTERS.RESPONSIBILITY_CENTER_NAME"/>
+                <a:textField name="resp_center_type_code_display" bindTarget="fnd2150_fnd_responsibility_centers_info_ds" prompt="FND_RESPONSIBILITY_CENTERS.RESP_CENTER_TYPE_CODE"/>
+                <a:datePicker name="start_date_active" bindTarget="fnd2150_fnd_responsibility_centers_info_ds" prompt="HAP_START_DATE"/>
+                <a:datePicker name="end_date_active" bindTarget="fnd2150_fnd_responsibility_centers_info_ds" prompt="HAP_END_DATE"/>
+            </a:fieldSet>
+            <a:grid bindTarget="fnd2150_fnd_resp_centers_hierarchy_ds" height="340" navBar="true" width="580">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="delete"/>
+                    <a:button click="fnd2150_saveInfosub" icon="${/request/@context_path}/images/save.gif" text="HAP_SAVE"/>
+                    <!--<a:button type="save"/>-->
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="responsibility_center_code" align="center" editorFunction="fnd2150_subresponsibilityCodeEdit" sortable="true" width="150"/>
+                    <a:column name="responsibility_center_name" align="left" prompt="FND_RESP_CENTERS_HIERARCHY.RESPONSIBILITY_CENTER_NAME" width="160"/>
+                    <a:column name="start_period_name" align="center" editor="fnd2150_start_period_name_lov"/>
+                    <a:column name="end_period_name" align="center" editor="fnd2150_end_period_name_lov"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="fnd2150_responsibility_center_code_lov"/>
+                    <a:lov id="fnd2150_start_period_name_lov"/>
+                    <a:lov id="fnd2150_end_period_name_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangcheng6595
+    $Date: 2014-10-10 14:56:47  
+    $Revision: 1.0  
+    $Purpose: 供应方查看库存事务BM
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        t.trx_header_id,
+                        t.trx_number,
+                        t.display_number,
+                        t.business_group,
+                        t.trx_type,
+                        a.description1 AS trx_type_desc,
+                        t.erp_trx_type,
+                        t.erp_trx_type_desc,
+                        t.trx_date,
+                        v.from_inv_org_id,
+                        fiov.description AS from_inv_org_desc,
+                        v.to_inv_org_id,
+                        tiov.description AS to_inv_org_desc,
+                        tiov.business_unit_id AS business_unit_id,
+                        fbu.business_unit_name AS business_unit_name,
+                        fbu.company_id AS owner_company_id,
+                        fcv.company_full_name AS owner_company_name,
+                        t.vendor_id,
+                        pvv.full_name AS vender_full_name,
+                        pvv.coop_business_group AS coop_business_group,
+                        pvv.coop_company_id AS coop_company_id,
+                        t.vendor_site_id,
+                        pvsv.site_name AS site_name,
+                        v.from_document_type,
+                        v.from_document_id,
+                        v.from_document_num,
+                        v.from_document_display_num,
+                        t.processed_flag,
+                        t.cloud_adjusted_flag,
+                        t.comments,
+                        v.trx_line_id,
+                        v.trx_line_number,
+                        v.item_id,
+                        siv.item_code AS item_code,
+                        siv.display_item_code AS display_item_code,
+                        siv.item_name AS item_name,
+                        v.from_warehouse_id,
+                        fiwv.description AS from_warehouse_desc,
+                        v.to_warehouse_id,
+                        tiwv.description AS to_warehouse_desc,
+                        v.from_inv_location_id,
+                        filv.description AS from_location_desc,
+                        v.to_inv_location_id,
+                        tilv.description AS to_location_desc,
+                        v.from_stock_type,
+                        v.to_stock_type,
+                        v.uom_code,
+                        v.trx_quantity,
+                        v.trx_price,
+                        v.parent_trx_line_id,
+                        v.reverse_flag,
+                        v.reversed_trx_line_id,
+                        v.from_document_line_id,
+                        v.from_document_line_num,
+                        v.from_documen_reference,
+                        v.posted_flag,
+                        v.currency_code,
+                        v.rcv_trx_line_id,
+                        v.functional_trx_price,
+                        v.functional_trx_amount,
+                        v.functional_currency_code,
+                        v.exchange_rate_type,
+                        v.exchange_rate,
+                        v.consignment_flag,
+                        v.csm_po_line_location_id,
+                        NULL AS useless_id_1,
+                        NULL AS useless_id_2,
+                        NULL AS useless_id_4,
+                        NULL AS useless_id_5,
+                        NULL AS useless_id_6,
+                        NULL AS useless_id_7,
+                        NULL AS useless_id_8,
+                        NULL AS useless_id_9,
+                        NULL AS useless_id_10,
+                        NULL AS useless_id_11,
+                        NULL AS useless_id_12,
+                        NULL AS useless_id_13
+                    FROM
+                        inv_trx_headers_v t,
+                        inv_trx_types_vl a,
+                        inv_trx_lines_v v,
+                        pur_vendors_vl pvv,
+                        pur_vendor_sites_vl pvsv,
+                        mtl_system_items_vl siv,
+                        inv_warehouses_vl fiwv,
+                        inv_warehouses_vl tiwv,
+                        inv_locations_vl filv,
+                        inv_locations_vl tilv,
+                        inv_organizations_vl fiov,
+                        inv_organizations_vl tiov,
+                        fnd_business_units_vl fbu,
+                        fnd_companies_vl fcv
+                    WHERE
+                        t.trx_type              = a.trx_type AND
+                        t.vendor_id             = pvv.vendor_id AND
+                        t.vendor_site_id        = pvsv.vendor_site_id AND
+                        t.trx_header_id         = v.trx_header_id AND
+                        v.item_id               = siv.item_id AND
+                        v.from_warehouse_id     = fiwv.warehouse_id(+) AND
+                        v.to_warehouse_id       = tiwv.warehouse_id(+) AND
+                        v.from_inv_location_id  = filv.location_id(+) AND
+                        v.to_inv_location_id    = tilv.location_id(+) AND
+                        v.from_inv_org_id       = fiov.inv_organization_id(+) AND
+                        v.to_inv_org_id         = tiov.inv_organization_id(+) AND
+                        tiov.business_unit_id   = fbu.business_unit_id AND
+                        fbu.company_id          = fcv.company_id AND
+                        pvv.coop_business_group = ${/session/@business_group} AND
+                        t.cloud_adjusted_flag   = 'N'
+                    ) v #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE#
+                ORDER BY
+                    trx_date DESC,
+                    display_number
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="display_number" queryExpression="display_number like &apos;%&apos;||${@display_number}||&apos;%&apos;"/>
+        <bm:query-field name="trx_line_number" queryExpression="trx_line_number like &apos;%&apos;||${@trx_line_number}||&apos;%&apos;"/>
+        <bm:query-field name="vendor_id" queryExpression="vendor_id=${@vendor_id}"/>
+        <bm:query-field name="vendor_site_id" queryExpression="vendor_site_id=${@vendor_site_id}"/>
+        <bm:query-field name="from_inv_org_id" queryExpression="from_inv_org_id = ${@from_inv_org_id}"/>
+        <bm:query-field name="to_inv_org_id" queryExpression="to_inv_org_id = ${@to_inv_org_id}"/>
+        <bm:query-field name="trx_date_from" queryExpression="trx_date &gt;= to_date(${@trx_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="trx_date_to" queryExpression="trx_date &lt;= to_date(${@trx_date_to},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="from_warehouse_id" queryExpression="from_warehouse_id like ${@from_warehouse_id}"/>
+        <bm:query-field name="to_warehouse_id" queryExpression="to_warehouse_id like ${@to_warehouse_id}"/>
+        <bm:query-field name="trx_type" queryExpression="trx_type like ${@trx_type}"/>
+        <bm:query-field name="item_id" queryExpression="item_id like ${@item_id}"/>
+        <bm:query-field name="owner_company_id" queryExpression="owner_company_id = ${@owner_company_id}"/>
+        <bm:query-field name="business_unit_id" queryExpression="business_unit_id = ${@business_unit_id}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+        <!-- <bm:data-filter expression="coop_business_group = ${/session/@business_group}"/>
+        <bm:data-filter expression="cloud_adjusted_flag=&apos;N&apos;"/> -->
+        <!-- <bm:data-filter expression="processed_flag=&apos;Y&apos;"/> -->
+    </bm:data-filters>
+    <authority foundation_code="INV_TRX">
+        <authority-segment source_alias="v" source_name="useless_id_1" type="CREATER"/>
+        <authority-segment source_alias="v" source_name="useless_id_2" type="RECEIVER"/>
+        <authority-segment source_alias="v" source_name="coop_company_id" type="COMPANY"/>
+        <authority-segment source_alias="v" source_name="useless_id_4" type="BUSINESS_UNIT"/>
+        <authority-segment source_alias="v" source_name="useless_id_5" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_6" type="PUR_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_7" type="SD_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_8" type="CLIENT"/>
+        <authority-segment source_alias="v" source_name="useless_id_9" type="VENDOR"/>
+        <authority-segment source_alias="v" source_name="useless_id_10" type="PURHASE_MATERIAL"/>
+        <authority-segment source_alias="v" source_name="useless_id_11" type="SALES_PRODUCTION"/>
+        <authority-segment source_alias="v" source_name="useless_id_12" type="VENDOR_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id_13" type="CLIENT_SITE"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+            var cx = Packages.aurora.javascript.Context.getCurrentContext();
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

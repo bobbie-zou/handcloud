@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-2 下午11:12:48  
+    $Revision: 1.0  
+    $Purpose: 注册核心企业审批
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+    select *from (SELECT f.company_registed_id,
+       f.email,
+       f.statement_read_flag,
+       f.enterprise_scale_code,
+       (select sc.code_value_name from sys_code_values_v sc where sc.code_value = f.enterprise_scale_code and sc.code = 'FND_COMPANIES.ENTERPRISE_SCALE' ) enterprise_scale_desc,
+       f.business_group,
+       (select bg.business_group_name from fnd_business_groups_vl bg where bg.business_group_code = f.business_group)business_group_name,
+       f.full_name,
+       f.short_name,
+       f.business_license_number,
+       f.registered_country_code,
+       (SELECT fc.description FROM fnd_country_code_vl fc WHERE fc.country_code = f.registered_country_code) registered_country_name,
+       f.registered_province_id,
+       (SELECT r.description FROM fnd_region_code_vl r WHERE r.region_id = f.registered_province_id) registered_province_desc,
+       f.registered_city_id,
+       (SELECT r.description FROM fnd_region_code_vl r WHERE r.region_id = f.registered_city_id) registered_city_desc,
+       to_char(f.business_license_end_date,
+               'YYYY-MM-DD') business_license_end_date,
+       nvl(f.business_license_forever,
+           'N') business_license_forever,
+       f.address,
+       f.telephone,
+       f.national_organization_code,
+       f.business_scope,
+       f.registered_currency_code,
+       (select gc.currency_name from gld_currency_vl gc where gc.currency_code = f.registered_currency_code) registered_currency_name,
+       f.registered_capital,
+       f.fax_no,
+       f.legal_rep_of_ownership,
+       (SELECT s.code_value_name
+          FROM sys_code_values_v s
+         WHERE s.code_value = f.legal_rep_of_ownership
+               AND s.code = 'LEGAL_REP_OF_OWNERSHIP') legal_rep_of_ownership_desc,
+       f.legal_rep_name,
+       f.legal_rep_identity_num,
+       f.legal_rep_identity_type,
+       (SELECT s.code_value_name
+          FROM sys_code_values_v s
+         WHERE s.code_value = f.legal_rep_identity_type
+               AND s.code = 'SYS_IDENTITY_CARD_TYPES') legal_rep_identity_type_desc,
+       f.legal_rep_phone,
+       f.agent_name,
+       f.agent_identity_num,
+       f.agent_identity_type,
+       (SELECT s.code_value_name
+          FROM sys_code_values_v s
+         WHERE s.code_value = f.agent_identity_type
+               AND s.code = 'SYS_IDENTITY_CARD_TYPES') agent_identity_type_desc,
+       f.agent_phone,
+       f.submit_date,
+       to_char(f.submit_date,'YYYY-MM-DD HH24:MI:SS') submit_date_desc
+ FROM FND_COMPANY_REGISTED_VL f
+  WHERE nvl(f.submit_flag,
+           'N') = 'Y'
+       AND nvl(f.approved_flag,
+               'N') = 'N'
+       AND nvl(f.rejected_flag,
+               'N') = 'N')
+         #WHERE_CLAUSE# #ORDER_BY_CLAUSE#]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+  fnd_company_registed_pkg.approve_company_registed(p_company_registed_id => ${@company_registed_id},
+                                                    p_approving_comments => ${@approving_comments},
+                                                    p_user_id          => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+                BEGIN
+  fnd_company_registed_pkg.reject_company_registed(p_company_registed_id => ${@company_registed_id},
+                                                   p_approving_comments => ${@approving_comments},
+                                                   p_user_id          => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_registed_id" queryExpression="company_registed_id = ${@company_registed_id}"/>
+        <bm:query-field name="email" queryExpression="email like &apos;%&apos;||trim(${@email})||&apos;%&apos;"/>
+        <bm:query-field name="full_name" queryExpression="full_name like &apos;%&apos;||trim(${@full_name})||&apos;%&apos;"/>
+        <bm:query-field name="business_license_number" queryExpression="business_license_number like &apos;%&apos;||trim(${@business_license_number})||&apos;%&apos;"/>
+        <bm:query-field name="legal_rep_name" queryExpression="legal_rep_name like &apos;%&apos;||trim(${@legal_rep_name})||&apos;%&apos;"/>
+        <bm:query-field name="agent_name" queryExpression="agent_name like &apos;%&apos;||trim(${@agent_name})||&apos;%&apos;"/>
+        <bm:query-field name="submit_date_from" queryExpression="submit_date &gt;= to_date(${@submit_date_from},&apos;YYYY-MM-DD HH24:MI:SS&apos;)"/>
+        <bm:query-field name="submit_date_to" queryExpression="submit_date &lt;= to_date(${@submit_date_to},&apos;YYYY-MM-DD HH24:MI:SS&apos;)"/>
+        <bm:query-field name="business_group" queryExpression="business_group = ${@business_group}"/>
+        <bm:query-field name="enterprise_scale_code" queryExpression="enterprise_scale_code = ${@enterprise_scale_code}"/>
+    </bm:query-fields>
+</bm:model>

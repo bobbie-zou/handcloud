@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Mouse Chow  
+    $Date: 2012-3-21 下午02:41:46  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="fc.company_id = ${/session/@company_id}" model="fnd.fnd_companies" rootPath="current_company"/>
+        <a:model-query model="gld.gld_set_of_books_of_sessioncompany" rootPath="set_of_books"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="GL1020_gl_interface_rules_assign_account_link" url="${/request/@context_path}/modules/gl/GL1020/gl_interface_rules_assign_account.screen"/>
+        <a:link id="GL1020_gl_interface_rules_assign_segment_link" url="${/request/@context_path}/modules/gl/GL1020/gl_interface_rules_assign_segments.screen"/>
+        <script><![CDATA[
+			
+			function GL1020_interfaceRulesQueryFun(){
+			    $('GL1020_gld_interface_rules_ds').query();
+			}
+			
+			function GL1020_accountAssignRendererFun(value,record,name){
+			    var recordIndex = $('GL1020_gld_interface_rules_ds').indexOf(record);
+			    var ruleId = record.get('rule_id');
+			    if(record.isNew){
+			        return '';
+			    }
+			    return '<a href="javascript:GL1020_jumpAssignAcountFun(' + recordIndex + ',' + ruleId + ');">${l:GL.ASSIGN_ACCOUNT}</a>';
+			}
+			
+			function GL1020_ruleDetailRendererFun(value,record,name){
+			    var recordIndex = $('GL1020_gld_interface_rules_ds').indexOf(record);
+			    var ruleId = record.get('rule_id');
+				if(record.isNew){
+			        return '';
+			    }
+			    return '<a href="javascript:GL1020_jumpRuleDetailFun(' + recordIndex + ',' + ruleId + ');">${l:GL.RULE_DETAIL}</a>';    
+			}
+			
+			function GL1020_jumpAssignAcountFun(recordIndex,ruleId){
+			    new Aurora.Window({
+			        url:$('GL1020_gl_interface_rules_assign_account_link').getUrl() + '?rule_id=' + ruleId + '&recordIndex=' + recordIndex + '&set_of_books_id=${/model/set_of_books/record/@set_of_books_id}',
+			        id:'GL1020_gl_interface_rules_assign_account_screen',
+			        title:'${l:CSH_ACCOUNT_CODE}',
+			        width:620,
+			        height:630
+			    });
+			}
+			
+			function GL1020_jumpRuleDetailFun(recordIndex,ruleId){
+			    new Aurora.Window({
+			        url:$('GL1020_gl_interface_rules_assign_segment_link').getUrl() + '?rule_id=' + ruleId + '&recordIndex=' + recordIndex,
+			        id:'GL1020_gl_interface_rules_assign_segment_screen',
+			        title:'${l:GL.SEGMENTS}',
+			        width:680,
+			        height:600
+			    });    
+			}
+			
+			function GL1020_ruleCodeEditFun(record,name){
+			    if(record.isNew){
+			        return 'GL1020_textfield_editor';
+			    }
+			    return '';
+			}
+			
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="GL1020_gld_interface_rules_query_ds" autoCreate="true" model="gl.gld_interface_rules">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/model/current_company/record/@company_id}"/>
+                    <a:field name="company_name" defaultValue="${/model/current_company/record/@company_short_name}" prompt="FND_COMPANIES.COMPANY_NAME"/>
+                    <a:field name="company_code" defaultValue="${/model/current_company/record/@company_code}" prompt="COMPANY_CODE"/>
+                    <a:field name="rule_code"/>
+                    <a:field name="description"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="GL1020_gld_interface_rules_ds" autoQuery="true" model="gl.gld_interface_rules" pageSize="15" queryDataSet="GL1020_gld_interface_rules_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="rule_id"/>
+                    <a:field name="set_of_books_id" defaultValue="${/model/set_of_books/record/@set_of_books_id}" required="true"/>
+                    <a:field name="rule_code" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="GL1020_interface_rules_grid" type="add" width="100"/>
+            <a:gridButton bind="GL1020_interface_rules_grid" type="save" width="100"/>
+            <a:gridButton bind="GL1020_interface_rules_grid" type="delete" width="100"/>
+            <a:gridButton bind="GL1020_interface_rules_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="gld1020_query_form" bindTarget="GL1020_gld_interface_rules_query_ds" resultTarget="GL1020_gld_interface_rules_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox labelWidth="120">
+                    <a:textField name="company_name" bindTarget="GL1020_gld_interface_rules_query_ds" prompt="公司代码">
+                        <a:events>
+                            <a:event name="enterdown" handler="GL1020_interfaceRulesQueryFun"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="company_code" bindTarget="GL1020_gld_interface_rules_query_ds" prompt="公司描述">
+                        <a:events>
+                            <a:event name="enterdown" handler="GL1020_interfaceRulesQueryFun"/>
+                        </a:events>
+                    </a:textField>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox labelWidth="120">
+                    <a:textField name="rule_code" bindTarget="GL1020_gld_interface_rules_query_ds" prompt="规则代码">
+                        <a:events>
+                            <a:event name="enterdown" handler="GL1020_interfaceRulesQueryFun"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="description" bindTarget="GL1020_gld_interface_rules_query_ds" prompt="规则描述">
+                        <a:events>
+                            <a:event name="enterdown" handler="GL1020_interfaceRulesQueryFun"/>
+                        </a:events>
+                    </a:textField>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="GL1020_interface_rules_grid" bindTarget="GL1020_gld_interface_rules_ds" marginHeight="160" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="rule_code" align="center" editorFunction="GL1020_ruleCodeEditFun" width="120"/>
+                <a:column name="description" editor="GL1020_textfield_editor" width="180"/>
+                <a:column name="account_assign" align="center" prompt="GL.ASSIGN_ACCOUNT" renderer="GL1020_accountAssignRendererFun" width="120"/>
+                <a:column name="rule_detail" align="center" prompt="GL.RULE_DETAIL" renderer="GL1020_ruleDetailRendererFun" width="120"/>
+                <a:column name="enabled_flag" align="center" editor="GL1020_checkbox_editor" width="80"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="GL1020_textfield_editor"/>
+                <a:checkBox id="GL1020_checkbox_editor"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

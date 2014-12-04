@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-10-15 下午3:28:04  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:ns2="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="RPT_SETTING_DETAILS">
+    <bm:fields>
+        <bm:field name="rpt_detail_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="RPT_DETAIL_ID" prompt="RPT_SETTING_DETAILS.RPT_DETAIL_ID"/>
+        <bm:field name="rpt_line_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="RPT_LINE_ID" prompt="RPT_SETTING_DETAILS.RPT_LINE_ID"/>
+        <bm:field name="flex_value_set_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FLEX_VALUE_SET_CODE" prompt="RPT_SETTING_DETAILS.FLEX_VALUE_SET_CODE"/>
+        <bm:field name="flex_value_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FLEX_VALUE_CODE" prompt="RPT_SETTING_DETAILS.FLEX_VALUE_CODE"/>
+        <bm:field name="rpt_required_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="RPT_REQUIRED_FLAG" prompt="RPT_SETTING_DETAILS.RPT_REQUIRED_FLAG"/>
+        <bm:field name="flex_value_set_desc" forInsert="false" forUpdate="false"/>
+        <bm:field name="flex_value_desc" forInsert="false" forUpdate="false"/>
+        <bm:field name="rpt_order_no" databaseType="NUMBER" datatype="java.lang.Long"/>
+    </bm:fields>
+    <bm:features>
+        <ns2:sequence-pk/>
+        <f:standard-who/>
+    </bm:features>
+    <bm:primary-key>
+        <bm:pk-field name="rpt_detail_id"/>
+    </bm:primary-key>
+    <bm:query-fields>
+        <bm:query-field field="rpt_line_id" queryExpression="t1.rpt_line_id = ${@rpt_line_id}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t1.rpt_detail_id,
+                    t1.rpt_line_id,
+                    t1.flex_value_set_code,
+                    t1.flex_value_code,
+                    t1.rpt_required_flag,
+                    t1.rpt_order_no,
+                    DECODE(t1.rpt_required_flag,'Y','是','N','否','') rpt_required,
+                    (SELECT
+                        t.flex_desc
+                    FROM
+                        fnd_flex_values_v t
+                    WHERE
+                        t.flex_value_set_code = 'RPT_DEFAULT_SETTING' AND
+                        t.flex_value          = t1.flex_value_set_code
+                    ) AS flex_value_set_desc,
+                    DECODE(t1.flex_value_set_code,'1_CREATION_DATE',t1.flex_value_code,
+                    (SELECT
+                        t.flex_desc
+                    FROM
+                        fnd_flex_values_v t
+                    WHERE
+                        t.flex_value_set_code = SUBSTR( t1.flex_value_set_code,3) AND
+                        t.flex_value          = t1.flex_value_code
+                    )) AS flex_value_desc
+                FROM
+                    RPT_SETTING_DETAILS t1
+                WHERE
+                    rpt_line_id = ${@rpt_line_id}
+                ORDER BY
+                    t1.rpt_order_no
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+                   begin
+                        rpt_setting_detail_pkg.rpt_setting_detail_insert(p_rpt_line_id         =>${@rpt_line_id},
+                                                                         p_flex_value_set_code =>${@flex_value_set_code},
+                                                                         p_flex_value_code     =>to_char(${@flex_value_code}),
+                                                                         p_rpt_required_flag   =>${@rpt_required_flag},
+                                                                         p_created_by          =>${/session/@user_id},
+                                                                         p_rpt_order_no        =>${@rpt_order_no},
+                                                                         p_rpt_detail_id       =>${@rpt_detail_id});
+                   end;
+            ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="rpt_detail_id" dataType="java.lang.Long" output="true" outputPath="@rpt_detail_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                   begin
+                        rpt_setting_detail_pkg.rpt_setting_detail_update(p_rpt_detail_id       =>${@rpt_detail_id},
+                                                                         p_flex_value_set_code =>${@flex_value_set_code},
+                                                                         p_flex_value_code     =>to_char(${@flex_value_code}),
+                                                                         p_rpt_required_flag   =>${@rpt_required_flag},
+                                                                         p_rpt_order_no        =>${@rpt_order_no},
+                                                                         p_created_by          =>${/session/@user_id});
+                   end;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    rpt_setting_data_validate_pkg.rpt_setting_data_validate(p_rpt_line_id =>${@rpt_line_id},
+                                                                            p_user_id =>${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+            <!--             <bm:parameters>
+                <bm:parameter name="rpt_line_id" dataType="java.lang.Long" input="true" output="false" inputPath="@rpt_line_id"/>
+            </bm:parameters> -->
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-5-17 下午05:14:16  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:c="aurora.application.action" xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc" trace="true">
+    <a:view>
+        <a:link id="bid6020_quote_again_confirm_link" url="${/request/@context_path}/modules/bid/BID6020/bid_quote_again.svc"/>
+        <script><![CDATA[
+            function bid6020QuoteAgainRender(value, record, name) {
+                if (name == 'min_price_weight') {
+                    return value + '%';
+                }
+            }
+            
+            function bid6020QuoteAgainConfirm() {
+                Aurora.showConfirm('提示', '确认所选投标方进行多轮报价？', function() {
+                    var selected_ds = $('bid6020_bidding_docm_selected_ds').getAll();
+                    var quote_again_ds = $('bid6020_quote_again_ds');
+                    var quote_again_rec = quote_again_ds.getCurrentRecord();
+                    var entrustment_header_ds = $('bid6020_entrustment_header_ds');
+                    var entrustment_rec = entrustment_header_ds.getCurrentRecord();
+            
+                    if (quote_again_ds.validate()) {
+                        var selected_data = [];
+                        for (var i = 0;i < selected_ds.length;i++) {
+                            selected_data.push(selected_ds[i].data);
+                        }
+            
+                        Aurora.request({
+                            url: $('bid6020_quote_again_confirm_link').getUrl(),
+                            para: {
+                                'entrustment_header_id': '${/parameter/@entrustment_header_id}',
+                                'status': entrustment_rec.get('status'),
+                                'start_date': quote_again_rec.get('start_date'),
+                                'end_date': quote_again_rec.get('end_date'),
+                                'selected': selected_data
+                            },
+                            success: function(res) {
+                                Aurora.showMessage('提示', '已确认！', function() {
+                                    $('bid6020_quote_again_window').close();
+                                });
+            
+                            },
+                            socpe: this
+                        });
+                    }
+                }, function() {});
+            }
+            
+            function bid6020QuoteAgainCancel() {
+                $('bid6020_quote_again_window').close();
+            }
+            
+            function bid6020QuoteAgainValidator(record, name, value) {
+                if (name == 'start_date') {
+                    var end_date = record.get('end_date');
+                    if (!Aurora.isEmpty(value) && !Aurora.isEmpty(end_date) && value > end_date) {
+                        return '开始日期不可大于结束日期！';
+                    } else {
+                        return true;
+                    }
+                } else if (name == 'end_date') {
+                    var start_date = record.get('start_date');
+                    if (!Aurora.isEmpty(start_date) && !Aurora.isEmpty(value) && start_date > value) {
+                        return '开始日期不可大于结束日期！';
+                    } else {
+                        return true;
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid6020_quote_again_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="start_date" required="true" validator="bid6020QuoteAgainValidator"/>
+                    <a:field name="end_date" required="true" validator="bid6020QuoteAgainValidator"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid6020QuoteAgainConfirm" text="确认" width="100"/>
+                <a:toolbarButton click="bid6020QuoteAgainCancel" text="取消" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox>
+                <a:datePicker name="start_date" bindTarget="bid6020_quote_again_ds" prompt="开始日期"/>
+                <a:datePicker name="end_date" bindTarget="bid6020_quote_again_ds" prompt="结束日期"/>
+            </a:hBox>
+            <a:grid id="bid6020_quote_again_grid" bindTarget="bid6020_bidding_docm_selected_ds" height="320" navBar="false" width="750">
+                <a:columns>
+                    <a:column name="bidder_code" align="left" prompt="投标方编码" width="80"/>
+                    <a:column name="bidder_desc" align="left" prompt="投标方名称" width="150"/>
+                    <a:column name="bidder_user_desc" align="left" prompt="投标人" width="80"/>
+                    <a:column name="sum_unit_price" align="right" prompt="投标方总价" width="80"/>
+                    <a:column name="min_price_weight" align="right" prompt="最低价比重" renderer="bid6020QuoteAgainRender" width="80"/>
+                    <a:column name="bidding_score" align="right" prompt="总分" width="80"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

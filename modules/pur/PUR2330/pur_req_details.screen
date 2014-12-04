@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tony  
+    $Date: 2013-7-16 上午9:15:01  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="pur2330_pur_req_approved_link" model="pur.PUR2330.pur_req_approved" modelaction="execute"/>
+        <a:link id="pur2330_pur_req_refuse_link" model="pur.PUR2330.pur_req_refuse" modelaction="execute"/>
+        <script><![CDATA[
+            function PUR2330_detail_return() {
+                $('PUR2330_header_detail_window').close();
+            }
+            
+            
+            function PUR2330_line_operation_record() {
+            
+                new Aurora.Window({
+                    id: 'pur_req_operation_record_win',
+                    url: $('PUR2330_req_operation_record_link').getUrl() + '?operation_table_id=' + ${/parameter/@req_header_id} + '&operation_table=PUR_REQ_HEADERS',
+                    title: '${l:PUR_REQ_HEADERS.OPERATION_RECORD}',
+                    height: 450,
+                    width: 600
+                });
+            
+            
+            }
+            
+            
+            function PUR2330_confirm_approval() {
+                var data = {};
+                data.pur_req_header_id = ${/parameter/@req_header_id};
+                Aurora.showConfirm('${l:PROMPT}', '${l:PUR2330_PUR_REQ_DETAILS.SHOWCONFIRM}', function() {
+                    Aurora.Masker.mask($('PUR2330_header_detail_window').wrap, '${l:BLT_BULLETIN.LOAD}');
+                    Aurora.request({
+                        url: $('pur2330_pur_req_approved_link').getUrl(),
+                        para: data,
+                        success: function() {
+                            Aurora.Masker.unmask($('PUR2330_header_detail_window').wrap);
+                            Aurora.showMessage('${l:PROMPT}', '${l:PUR2330_PUR_REQ_DETAILS.SHOWMESSAGE}!');
+                            $('PUR2330_header_detail_window').close();
+                            $('PUR2330_header_result_ds').query();
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask($('PUR2330_header_detail_window').wrap);
+                            return;
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask($('PUR2330_header_detail_window').wrap);
+                            return;
+                        }
+                    });
+                });
+            }
+            
+            function PUR2330_confirm_refuse() {
+                var data = {};
+                data.pur_req_header_id = ${/parameter/@req_header_id};
+                Aurora.showConfirm('${l:PROMPT}', '${l:PROMPTS.REJECT_MSG}', function() {
+                    Aurora.Masker.mask($('PUR2330_header_detail_window').wrap, '${l:BLT_BULLETIN.LOAD}');
+                    Aurora.request({
+                        url: $('pur2330_pur_req_refuse_link').getUrl(),
+                        para: data,
+                        success: function() {
+                            Aurora.Masker.unmask($('PUR2330_header_detail_window').wrap);
+                            Aurora.showMessage('${l:PROMPT}', '${l:PUR2330_PUR_REQ_DETAILS.SHOWMESSAGE_REFUSE_SUCCESS}');
+                            $('PUR2330_header_detail_window').close();
+                            $('PUR2330_header_result_ds').query();
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask($('PUR2330_header_detail_window').wrap);
+                            return;
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask($('PUR2330_header_detail_window').wrap);
+                            return;
+                        }
+                    });
+                });
+            }
+            
+            function PUR2330_download(value, record, name) {
+                var req_attachment_id = record.get('req_attachment_id');
+                if (record.get('req_attachment_id')) {
+            
+                    var atm_file = record.get('atm_file');
+                    return atm_file;
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="PUR2330_req_detail_header_ds" autoCreate="true" autoQuery="true" model="pur.PUR2330.pur_req_headers" queryUrl="${/request/@context_path}/autocrud/pur.PUR2330.pur_req_headers/query?req_header_id=${/parameter/@req_header_id}">
+                <a:fields>
+                    <a:field name="req_header_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="PUR2330_req_line_ds" autoQuery="true" bindName="PUR2330_req_line_result_ds" bindTarget="PUR2330_req_detail_header_ds" fetchAll="true" model="pur.PUR2330.pur_req_lines" queryUrl="${/request/@context_path}/autocrud/pur.PUR2330.pur_req_lines/query?req_header_id=${/parameter/@req_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="req_line_id"/>
+                    <a:field name="req_header_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="PUR2330_req_line_contract_ds" bindName="PUR2330_req_line_result_ds" bindTarget="PUR2330_req_line_ds" fetchAll="true" model="pur.PUR2330.pur_req_line_contact" selectable="true">
+                <a:fields>
+                    <a:field name="contract_id"/>
+                    <a:field name="req_line_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="PUR2330_req_attachment_ds" autoQuery="true" bindName="PUR2330_req_attachment_result_ds" bindTarget="PUR2330_req_detail_header_ds" model="pur.PUR2330.pur_req_line_attachment" queryUrl="${/request/@context_path}/autocrud/pur.PUR2330.pur_req_line_attachment/query?req_header_id=${/parameter/@req_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="atm_file"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <!-- <a:toolbarButton click="PUR2330_line_operation_record" text="操作记录" width="100"/> -->
+                <a:toolbarButton click="PUR2330_confirm_approval" text="PROMPTS.APPROVE" width="100"/>
+                <a:toolbarButton click="PUR2330_confirm_refuse" text="PROMPTS.REJECT" width="100"/>
+                <a:toolbarButton click="PUR2330_detail_return" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="req_number" bindTarget="PUR2330_req_detail_header_ds" prompt="PUR_REQ_HEADERS.PUR_REQ_NUMBER"/>
+                <a:label name="company_name" bindTarget="PUR2330_req_detail_header_ds" prompt="SYS_COMPANY_PROMPTS.COMPANY_ID"/>
+                <a:label name="unit_name" bindTarget="PUR2330_req_detail_header_ds" prompt="PUR_REQ_HEADERS.DEMAND_UNIT"/>
+                <a:label name="req_type_name" bindTarget="PUR2330_req_detail_header_ds" prompt="PUR_REQ_HEADERS.REQ_TYPE_ID"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="currency_name" bindTarget="PUR2330_req_detail_header_ds" prompt="PUR_REQ_HEADERS.CURRENCY_CODE"/>
+                <a:label name="exchange_rate" allowNegative="false" bindTarget="PUR2330_req_detail_header_ds" prompt="PUR_REQ_LINES.EXCHANGE_RATE"/>
+                <a:label name="tax_flag_desc" bindTarget="PUR2330_req_detail_header_ds" prompt="PUR_REQ_HEADERS.TAX_FLAG" width="150"/>
+                <a:label name="tax_name" bindTarget="PUR2330_req_detail_header_ds" prompt="PUR_REQ_LINES.TAX_TYPE_RATE"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="create_user" bindTarget="PUR2330_req_detail_header_ds" prompt="PROMPTS.CREATED_BY"/>
+                <a:label name="creation_date" bindTarget="PUR2330_req_detail_header_ds" prompt="PROMPTS.CREATION_DATE"/>
+                <a:label name="version_num" bindTarget="PUR2330_req_detail_header_ds" prompt="PUR_REQ_HEADERS.VERSION"/>
+                <a:label name="status" bindTarget="PUR2330_req_detail_header_ds" prompt="STATUS"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="requisition_functional_amount" bindTarget="PUR2330_req_detail_header_ds" prompt="PUR_REQ_HEADERS.TOTAL_CURRENCY&apos;"/>
+                <a:label name="pur_organization_name" bindTarget="PUR2330_req_detail_header_ds" prompt="PUR_REQ_HEADERS.PUR_ORGANIZATION_ID"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="header_comments" bindTarget="PUR2330_req_detail_header_ds" prompt="PROMPTS.COMMENTS" width="600"/>
+            </a:hBox>
+            <a:tabPanel height="570" marginHeight="180" marginWidth="60">
+                <a:tabs>
+                    <a:tab prompt="PUR_LINES_ALL.ITEM_DETAIL" width="100">
+                        <a:grid bindTarget="PUR2330_req_line_ds" height="320" marginWidth="65">
+                            <a:columns>
+                                <a:column name="line_num" align="center" prompt="PUR_REQ_LINES.LINE_NUM" width="40"/>
+                                <a:column name="pur_line_type_name" align="center" prompt="PROMPTS.TYPE" width="60"/>
+                                <a:column name="item_category_desc" align="center" prompt="PUR_REQ_HEADERS.PURCHASE_CATEGORY" width="60"/>
+                                <a:column name="item_code" align="center" prompt="PUR_REQ_LINES.ITEM_CODE" width="80"/>
+                                <a:column name="item_desc" align="center" prompt="PUR_REQ_LINES.ITEM_DESC" width="80"/>
+                                <a:column name="pro_mode_name" align="center" prompt="PUR_REQ_LINES.PRO_MODE_CODE" width="80"/>
+                                <a:column name="approve_number" align="center" prompt="PUR_REQ_HEADERS.APPROVAL_NUMBER" width="80"/>
+                                <a:column name="quantity" align="center" prompt="PUR_REQ_LINES.QUANTITY" width="80"/>
+                                <a:column name="unit_meas_lookup_code" align="center" prompt="PUR_REQ_LINES.UNIT_MEAS_LOOKUP_CODE" width="80"/>
+                                <a:column name="need_by_date" align="center" prompt="PUR_REQ_LINES.NEED_BY_DATE" renderer="Aurora.formatDate" width="80"/>
+                                <a:column name="ship_to_organization_name" align="center" prompt="PUR_REQ_LINES.SHIP_TO_ORGANIZATION_ID" width="80"/>
+                                <a:column name="ship_to_location_name" align="center" prompt="PUR_REQ_LINES.SHIP_TO_LOCATION_ID" width="80"/>
+                                <a:column name="budget_price" align="center" prompt="PUR_REQ_LINES.BUDGET_PRICE" width="80"/>
+                                <a:column name="tax_flag" align="center" prompt="PUR_ORDER_LINES.TAX_FLAG" width="80"/>
+                                <a:column name="tax" align="center" prompt="PUR_REQ_LINES.TAX_TYPE_RATE" width="80"/>
+                                <a:column name="currency_name" align="center" prompt="PUR_REQUISITION_TYPES.CURRENCY_CODE" width="80"/>
+                                <a:column name="exchange_rate" align="center" prompt="PUR_REQ_LINES.EXCHANGE_RATE" width="80"/>
+                                <a:column name="tax_amount" align="right" prompt="PUR_REQ_LINES.TAX_AMOUNT" width="80"/>
+                                <a:column name="line_amount" align="right" prompt="PUR_REQ_LINES.LINE_AMOUNT" width="80"/>
+                                <a:column name="functional_amount" align="right" prompt="PUR_REQ_HEADERS.CURRENCY_TOTAL_AMOUNT" width="80"/>
+                                <a:column name="line_comments" align="left" prompt="PROMPTS.COMMENTS" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                        <a:grid bindTarget="PUR2330_req_line_contract_ds" height="180" marginWidth="65">
+                            <a:columns>
+                                <a:column name="contract_id" align="center" prompt="PUR_PURCHASE_ORDER.CONTRACT_ID" width="80"/>
+                                <a:column name="vendor_code" align="center" prompt="PUR_REQ_HEADERS.RECOMMENDED_VENDOR" width="80"/>
+                                <a:column name="vendor_name" align="center" prompt="PUR_RFX_LN_VENDORS.VENDOR_DESC" width="100"/>
+                                <a:column name="vendor_site_name" align="center" prompt="PUR_RFX_LN_VENDORS.VENDOR_ADDRESS" width="120"/>
+                                <a:column name="contact_persion" align="center" prompt="PUR_RFX_LN_VENDORS.CONTACT_PERSON" width="60"/>
+                                <a:column name="mobile" align="center" prompt="PUR_RFX_LN_VENDORS.CONTACT_MOBILE" width="80"/>
+                                <a:column name="email" align="center" prompt="PUR_SYS_VENDOR_CONTACTS.EMAIL" width="80"/>
+                                <a:column name="comments" align="center" prompt="PROMPTS.COMMENTS" width="150"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="PUR_REQ_HEADERS.ATTACHMENT_INFOMATION" width="100">
+                        <a:grid bindTarget="PUR2330_req_attachment_ds" height="350" marginWidth="65">
+                            <a:columns>
+                                <a:column name="attachment_num" align="center" prompt="PUR_REQ_LINES.LINE_NUM" width="40"/>
+                                <a:column name="attachment_name" align="center" prompt="PROMPT.FILE_TYPE" width="80"/>
+                                <a:column name="comments" align="center" prompt="PROMPTS.COMMENTS" width="150"/>
+                                <a:column name="download_file" align="center" prompt="ATM.UPLOAD_ATTACHMENT" renderer="PUR2330_download" width="200"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

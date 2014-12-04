@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-6-16 上午11:31:41  
+    $Revision: 1.0  
+    $Purpose: 用户消息-供应商确认取消订单加急
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT pll.pur_line_location_id,
+               l.pur_line_id,
+               l.pur_header_id,
+               h.srm_status,
+               (SELECT v.code_value_name
+                  FROM sys_code_values_v v
+                 WHERE v.code = 'SRM_STATUS'
+                       AND v.code_value = h.srm_status) AS srm_name_desc,
+               h.company_name,
+               h.vendor_id,
+               h.vendor_code,
+               h.vendor_name,
+               h.segment1,
+               h.display_po_number,
+               h.revision_num,
+               h.release_id,
+               h.release_num,
+               h.display_release_num,
+               l.line_num,
+               pll.shipment_num,
+               l.item_id,
+               l.item_code,
+               l.item_description,
+               l.unit_meas_lookup_code,
+               l.quantity quantity,
+               decode(h.type_lookup_code,
+                      'BLANKET',
+                      pll.price_override,
+                      l.unit_price) unit_price,
+               (SELECT gc.currency_name FROM gld_currency_vl gc WHERE gc.currency_code = h.currency_code) currency_code,
+               l.quantity * decode(h.type_lookup_code,
+                                   'BLANKET',
+                                   pll.price_override,
+                                   l.unit_price) line_amount,
+               pll.need_by_date,
+               to_char(pll.need_by_date,
+                       'yyyy-mm-dd') AS need_by_date_desc,
+               pll.promised_date,
+               to_char(pll.promised_date,
+                       'yyyy-mm-dd') AS promised_date_desc,
+               nvl(pll.consigned_flag,
+                   'N') consigned_flag,
+               pll.quantity_received,
+               pll.deliver_quantity,
+               pll.quantity_shipped,
+               pll.quantity_billed,
+               nvl(l.closed_code,
+                   'OPEN') AS closed_code,
+               nvl(l.cancel_flag,
+                   'N') AS cancel_flag,
+               l.line_type_id,
+               l.line_type_name,
+               l.category_id,
+               l.category_name,
+               l.secondary_unit_of_measure,
+               l.vendor_desc,
+               h.type_lookup_code,
+               h.type_lookup_desc,
+               h.vendor_site_id,
+               h.vendor_site_code,
+               h.vendor_site_name,
+               h.agent_id,
+               h.agent_code,
+               h.agent_name,
+               h.ship_to_location_id,
+               h.ship_to_location_code,
+               h.ship_to_location_name,
+               h.bill_to_location_id,
+               h.bill_to_location_code,
+               h.bill_to_location_name,
+               l.secondary_quantity,
+               to_char(h.creation_date,
+                       'yyyy-mm-dd hh24:mi:ss') AS creation_date_desc,
+               h.release_date,
+               to_char(h.release_date,
+                       'yyyy-mm-dd hh24:mi:ss') AS release_date_desc,
+               h.confirm_date,
+               to_char(h.confirm_date,
+                       'yyyy-mm-dd hh24:mi:ss') AS confirm_date_desc,
+               h.reply_date,
+               to_char(h.reply_date,
+                       'yyyy-mm-dd') AS reply_date_desc,
+               h.data_source,
+               h.reply_over_flag
+          FROM pur_headers_all        h,
+               pur_lines_all          l,
+               pur_line_locations_all pll
+         WHERE h.pur_header_id = l.pur_header_id
+               AND h.pur_header_id = pll.pur_header_id
+               AND l.pur_line_id = pll.pur_line_id
+               AND h.last_version = 'Y'
+               AND EXISTS (SELECT 1
+                  FROM sys_user_messages     SUM,
+                       sys_user_message_list suml
+                 WHERE sum.message_id = suml.message_id
+                       AND sum.source_table = 'PUR_LINE_LOCATIONS_ALL_ABOLISH'
+                       AND sum.source_id = pll.pur_line_location_id
+                       AND suml.push_user_id = ${/session/@user_id})
+               AND pll.pur_line_location_id = ${@pur_line_location_id})
+       #WHERE_CLAUSE# ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[BEGIN
+  pur_po_urgent_pkg.confirm_abolish_line_location(p_pur_line_location_id => ${@pur_line_location_id},
+                                      p_user_id              => ${/session/@user_id});
+END;
+]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

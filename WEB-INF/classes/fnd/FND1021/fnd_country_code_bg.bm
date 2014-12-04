@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="country_code_bg_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="country_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="country_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="PROMPT.REFERENCE_CODE"/>
+        <bm:field name="country_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="PROMPT.REFERENCE_NAME"/>
+        <bm:field name="bg_country_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="FND_COUNTRY_CODE.COUNTRY_CODE"/>
+        <bm:field name="bg_country_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="FND_COUNTRY_CODE.DESCRIPTION"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="bg_enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="PROMPT.ENABLED_FLAG"/>
+        <bm:field name="business_group" databaseType="VARCHAR2" datatype="java.lang.String" prompt="FND_BUSINESS_GROUPS.BUSINESS_GROUP_CODE"/>
+        <bm:field name="business_group_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="FND_BUSINESS_GROUPS.BUSINESS_GROUP_NAME_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="business_unit_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="country_id" queryOperator="="/>
+        <bm:query-field field="country_code" queryOperator="="/>
+        <bm:query-field name="country_code_name" queryExpression="(t1.country_code like &apos;%&apos;||trim(upper(${@country_code_name}))||&apos;%&apos; or t1.country_name like &apos;%&apos;||${@country_code_name}||&apos;%&apos; or t1.bg_country_code like &apos;%&apos;||trim(upper(${@country_code_name}))||&apos;%&apos; or t1.bg_country_name like &apos;%&apos;||${@country_code_name}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t1.country_code_bg_id,
+                    t1.country_id,
+                    t1.country_code,
+                    t1.country_name,
+                    t1.bg_country_code,
+                    t1.bg_country_name,
+                    t1.enabled_flag,
+                    t1.bg_enabled_flag,
+                    t1.business_group,
+                    t1.business_group_name,
+                    t1.company_id,
+                    t1.business_unit_id
+                FROM
+                    (SELECT
+                        fccbv.country_code_bg_id,
+                        fccbv.country_id,
+                        fccbv.country_code,
+                        fccbv.country_name,
+                        NULL AS bg_country_code,
+                        NULL AS bg_country_name,
+                        fccbv.enabled_flag,
+                        fccbv.bg_enabled_flag,
+                        fccbv.business_group,
+                        (SELECT
+                            fbgv.business_group_name
+                        FROM
+                            fnd_business_groups_vl fbgv
+                        WHERE
+                            fccbv.business_group = fbgv.business_group_code
+                        ) business_group_name,
+                        fccbv.company_id,
+                        fccbv.business_unit_id
+                    FROM
+                        fnd_country_code_bg_v fccbv
+                    WHERE
+                        fccbv.business_group=${/session/@business_group}
+                    ORDER BY
+                        fccbv.country_code
+                    ) t1 #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="country_code_bg_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@country_code_bg_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              BEGIN
+                fnd_country_code_pkg.create_fnd_country_code_bg
+                (
+                  o_country_code_bg_id=>${@country_code_bg_id},
+                  p_country_code=>${@country_code},
+                  p_bg_enabled_flag=>${@bg_enabled_flag},
+                  p_business_group=>${/session/@business_group},
+                  p_company_id=>${@company_id},
+                  p_business_unit_id=>${@business_unit_id},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                fnd_country_code_pkg.modify_fnd_country_code_bg
+                (
+                  p_country_code_bg_id=>${@country_code_bg_id},
+                  p_bg_country_code=>${@bg_country_code},
+                  p_bg_country_name=>${@bg_country_name},
+                  p_bg_enabled_flag=>${@bg_enabled_flag},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                fnd_country_code_pkg.load_cloud_fnd_country_code
+                (
+                  p_business_group=>${/session/@business_group},
+                  p_company_id=>${@company_id},
+                  p_business_unit_id=>${@business_unit_id},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

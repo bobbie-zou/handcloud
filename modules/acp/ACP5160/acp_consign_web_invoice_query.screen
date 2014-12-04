@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2014年1月17日 下午2:55:17  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="acp5160_consign_web_invoice_submit_link" url="${/request/@context_path}/modules/acp/ACP5160/acp_consign_web_invoice_submit.svc"/>
+        <a:link id="acp5160_consign_web_invoice_cancel_link" url="${/request/@context_path}/modules/acp/ACP5160/acp_consign_web_invoice_cancel.svc"/>
+        <a:link id="acp5160_consign_web_invoice_edit_link" url="${/request/@context_path}/modules/acp/ACP5160/acp_consign_web_invoice_edit.screen"/>
+        <script><![CDATA[
+            function acp5160Query() {
+                $('acp5160_consign_web_invoice_result_ds').query();
+            }
+            
+            function acp5160ConsignWebInvoiceSubmit() {
+                var result_ds = $('acp5160_consign_web_invoice_result_ds');
+                var selected_recs = result_ds.getSelected();
+            
+                if (selected_recs.length > 0) {
+                    Aurora.showConfirm('${l:PROMPT}', '${l:ACP5160.COMMIT_CONFIRM}', function() {
+                        Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+            
+                        Aurora.request({
+                            url: $('acp5160_consign_web_invoice_submit_link').getUrl(),
+                            para: selected_recs.data,
+                            success: function() {
+                                Aurora.showMessage('${l:PROMPT}', '${l:ACP5160.COMMIT_SUCCESSFULLY}', function() {
+                                    acp5160Query();
+                                });
+                            },
+                            failure: function() {
+                                return;
+                            },
+                            error: function() {
+                                return;
+                            }
+                        });
+            
+                        Aurora.Masker.unmask(Ext.getBody());
+                    });
+                }
+            }
+            
+            function acp5160ConsignWebInvoiceCancel() {
+                var result_ds = $('acp5160_consign_web_invoice_result_ds');
+                var selected_recs = result_ds.getSelected();
+            
+                if (selected_recs.length > 0) {
+                    Aurora.showConfirm('${l:PROMPT}', '${l:ACP5120.CONSIGN_BILL_CANCEL_CONFIRM}', function() {
+                        Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+            
+                        Aurora.request({
+                            url: $('acp5160_consign_web_invoice_cancel_link').getUrl(),
+                            para: selected_recs.data,
+                            success: function() {
+                                Aurora.showMessage('${l:PROMPT}', '${l:ACP5120.CONSIGN_BILL_CANCEL_SUCCESSFULLY}', function() {
+                                    acp5160Query();
+                                });
+                            },
+                            failure: function() {
+                                return;
+                            },
+                            error: function() {
+                                return;
+                            }
+                        });
+            
+                        Aurora.Masker.unmask(Ext.getBody());
+                    });
+                }
+            }
+            
+            function acp5160ConsignWebInvoiceResultRender(value, rec, name) {
+                var invoice_header_id = rec.get('invoice_header_id');
+                if (name == 'invoice_num') {
+                    return '<a href="javascript:acp5160ConsignWebInvoiceDetail(' + invoice_header_id + ')">' + value + '</a>';
+                }
+            }
+            
+            function acp5160ConsignWebInvoiceDetail(invoice_header_id) {
+                new Aurora.Window({
+                    id: 'acp5160_consign_web_invoice_edit_window',
+                    title: 'MODULES/ACP/ACP5160/ACP_CONSIGN_WEB_INVOICE_EDIT.SCREEN.TITLE',
+                    url: $('acp5160_consign_web_invoice_edit_link').getUrl() + '?invoice_header_id=' + invoice_header_id,
+                    fullScreen: true
+                }).on('beforeclose', function() {
+                    acp5160Query();
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp5160_consign_web_invoice_query_ds">
+                <a:fields>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="company_full_name" lovGridHeight="320" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" title="ACP_CSGN_WEB_INVOICE_HDS.COMPANY_ID">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="acp5160_consign_web_invoice_result_ds" autoCount="true" autoPageSize="true" model="acp.ACP5160.acp_consign_web_invoice_query" queryDataSet="acp5160_consign_web_invoice_query_ds" selectable="true"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="acp5160ConsignWebInvoiceSubmit" text="HAP_SUBMIT" width="100"/>
+                <a:toolbarButton click="acp5160ConsignWebInvoiceCancel" text="PROMPT.CANCEL" width="100"/>
+                <a:gridButton bind="acp5160_consign_web_invoice_result_grid" type="excel" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="acp5160_consign_web_invoice_query_ds" resultTarget="acp5160_consign_web_invoice_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="bill_number_from" bindTarget="acp5160_consign_web_invoice_query_ds" prompt="ACP5160.WEB_BILL_NUMBER_FROM">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5160Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="bill_number_to" bindTarget="acp5160_consign_web_invoice_query_ds" prompt="ACP5161.WEB_BILL_NUMBER_TO">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5160Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:lov name="company_desc" bindTarget="acp5160_consign_web_invoice_query_ds" prompt="ACP_CSGN_WEB_INVOICE_HDS.COMPANY_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5160Query"/>
+                        </a:events>
+                    </a:lov>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:vBox labelWidth="100">
+                            <a:textField name="po_num_from" bindTarget="acp5160_consign_web_invoice_query_ds" prompt="ACP5160.PO_NUMBER_FROM">
+                                <a:events>
+                                    <a:event name="enterdown" handler="acp5160Query"/>
+                                </a:events>
+                            </a:textField>
+                        </a:vBox>
+                        <a:vBox labelWidth="100">
+                            <a:textField name="po_num_to" bindTarget="acp5160_consign_web_invoice_query_ds" prompt="ACP5160.PO_NUMBER_TO">
+                                <a:events>
+                                    <a:event name="enterdown" handler="acp5160Query"/>
+                                </a:events>
+                            </a:textField>
+                        </a:vBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="acp5160_consign_web_invoice_result_grid" bindTarget="acp5160_consign_web_invoice_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="invoice_num" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.INVOICE_NUM" renderer="acp5160ConsignWebInvoiceResultRender" sortable="true" width="80"/>
+                    <a:column name="company_code" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.COMPANY_CODE" sortable="true" width="60"/>
+                    <a:column name="company_desc" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.COMPANY_DESC" sortable="true" width="100"/>
+                    <a:column name="vendor_site_desc" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.VENDOR_SITE_ID" sortable="true" width="60"/>
+                    <a:column name="currency_code" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.CURRENCY_CODE" sortable="true" width="60"/>
+                    <a:column name="invoice_amount_system" align="right" prompt="ACP_CSGN_WEB_INVOICE_HDS.INVOICE_AMOUNT_SYSTEM" sortable="true" width="80"/>
+                    <a:column name="invoice_tax_amount_system" align="right" prompt="ACP_CSGN_WEB_INVOICE_HDS.INVOICE_TAX_AMOUNT_SYSTEM" sortable="true" width="80"/>
+                    <a:column name="invoice_amount" align="right" prompt="ACP_CSGN_WEB_INVOICE_HDS.INVOICE_AMOUNT" sortable="true" width="80"/>
+                    <a:column name="invoice_tax_amount" align="right" prompt="ACP_CSGN_WEB_INVOICE_HDS.INVOICE_TAX_AMOUNT" sortable="true" width="80"/>
+                    <a:column name="tax_invoice_num" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.TAX_INVOICE_NUM" sortable="true" width="60"/>
+                    <a:column name="status_desc" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.STATUS" sortable="true" width="60"/>
+                    <a:column name="creation_date" align="center" prompt="ACP_CSGN_WEB_INVOICE_HDS.CREATION_DATE" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                    <a:column name="approved_date" align="center" prompt="ACP_CSGN_WEB_INVOICE_HDS.APPROVED_DATE" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                    <a:column name="data_source" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.DATA_SOURCE" sortable="true" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

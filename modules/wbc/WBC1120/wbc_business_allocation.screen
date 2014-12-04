@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaobo  
+    $Date: 2011-12-22 上午10:23:07  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="wbc_report_readonly_wfl_link_3" url="${/request/@context_path}/modules/expm/public/exp_report_readonly_wfl.screen"/>
+        <a:link id="wbc_business_allocation_page_link" url="${/request/@context_path}/modules/wbc/WBC1120/wbc_business_allocation_page.screen"/>
+        <div/>
+        <script><![CDATA[
+          	function businessAllocationQuery(){
+          	    $('wbc_business_allocation_ds').query();
+          	}
+          	
+          	function businessAllocationReset(){
+                $('wbc_business_allocation_query_ds').reset();
+            }
+            
+            //打开分配页面
+            function openAllocationPage(){
+                var selRecords = $('wbc_business_allocation_ds').getSelected();
+          	    if (selRecords.length == 0){
+          	        Aurora.showMessage('${l:PROMPT}','${l:WBC_DISPATCH_PROCESS_AUDIT_REQUIRE_RETURN.PROMPT}');
+          	        return;
+          	    }
+                new Aurora.Window({id:'allocationPage', 
+                        			   url:/*wbc_business_allocation_page.screen*/$('wbc_business_allocation_page_link').getUrl(), 
+                        			   title:'${l:WBC_BUSINESS ALLOCATION.TITLE}',
+                        			   height:490,
+                        			   width:500});
+            }
+            
+            //查看详细
+            function docDetail(value, record, field){				
+				url = '${/request/@context_path}/'+record.get('page_name')+'?' + record.get('param_name') + '=' + record.get('document_id') + '&canUploadFlag=false';				
+				return '<a href="#" onclick="window.open(\'' + url + '\',\'\',\'fullscreen=no,resizable=yes,width=1024,height=620\')">' + value + '</a>';
+			}
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="doc_category_ds" lookupCode="EXP_DOCUMENT_CATEGORY"/>
+            <a:dataSet id="wbc_business_allocation_query_ds">
+                <a:fields>
+                    <a:field name="business_type_name" displayField="code_value_name" options="doc_category_ds" returnField="doc_category" valueField="code_value"/>
+                    <a:field name="doc_category"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wbc_business_allocation_ds" model="wbc.WBC1120.wbc_business_allocation" queryDataSet="wbc_business_allocation_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="dispatching_header_id"/>
+                    <a:field name="business_node_id"/>
+                    <a:field name="business_type_name" displayField="code_value_name" options="doc_category_ds" returnField="doc_category" valueField="code_value"/>
+                    <a:field name="doc_category"/>
+                    <a:field name="document_num"/>
+                    <a:field name="business_node_description"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" title="WBC_BUSINESS ALLOCATION.TITLE" width="500">
+                <a:comboBox name="business_type_name" bindTarget="wbc_business_allocation_query_ds" prompt="WBC_DISPATCH_PROCESS_AUDIT_REQUIRE_RETURN.DOC_CATEGORY"/>
+                <a:textField name="document_num" bindTarget="wbc_business_allocation_query_ds" prompt="WBC_DISPATCH_PROCESS_AUDIT_REQUIRE_RETURN.DOCUMENT_NUM"/>
+            </a:form>
+            <a:box column="2">
+                <a:button click="businessAllocationQuery" text="HAP_QUERY"/>
+                <a:button click="businessAllocationReset" text="HAP_RESET"/>
+            </a:box>
+            <a:grid bindTarget="wbc_business_allocation_ds" height="400" navBar="true" width="700">
+                <a:columns>
+                    <a:column name="business_type_name" align="center" prompt="WBC_DISPATCH_PROCESS_AUDIT_REQUIRE_RETURN.DOC_CATEGORY" width="200"/>
+                    <a:column name="document_num" align="center" prompt="WBC_DISPATCH_PROCESS_AUDIT_REQUIRE_RETURN.DOCUMENT_NUM" renderer="docDetail" width="300"/>
+                    <a:column name="business_node_description" align="center" prompt="WBC_DISPATCH_PROCESS_AUDIT_REQUIRE_RETURN.BUSINESS_NODE_DESCRIPTION" width="174"/>
+                </a:columns>
+            </a:grid>
+            <a:box height="50">
+                <a:button click="openAllocationPage" text="WBC_BUSINESS ALLOCATION.DISPATCHING"/>
+            </a:box>
+        </a:screenBody>
+    </a:view>
+</a:screen>

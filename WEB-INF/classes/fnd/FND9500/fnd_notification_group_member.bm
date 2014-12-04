@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-14 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 业务通知单发布管理，快捷组成员维护BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	SELECT gm.member_id,
+				       gm.group_id,
+				       gm.member_vendor_id as vendor_id,
+				       (SELECT pv.display_vendor_code FROM pur_vendors_v pv WHERE pv.vendor_id = gm.member_vendor_id) AS vendor_code,
+				       (SELECT pv.full_name FROM pur_vendors_v pv WHERE pv.vendor_id = gm.member_vendor_id) AS vendor_name,
+				       gm.member_company_id as coop_company_id
+				  FROM fnd_notify_conv_group_mbers gm
+				 where gm.group_id = ${@group_id}
+			 ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  fnd_business_notification_pkg.save_group_members
+				  	(
+				  		p_group_id			=> nvl(${@group_id},${/parameter/@group_id}),
+				  		p_member_vendor_id	=> ${@vendor_id},
+				  		p_member_company_id	=> ${@coop_company_id},
+				  		p_session_user_id	=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  fnd_business_notification_pkg.delete_convenient_member
+				  	(
+				  		p_group_id			=> nvl(${@group_id},${/parameter/@group_id}),
+				  		p_member_id			=> ${@member_id},
+				  		p_session_user_id	=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

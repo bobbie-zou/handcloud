@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: Apr 28, 2014 4:10:17 PM  
+    $Revision: 1.0  
+    $Purpose: 系统级接口结构维护
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        iss.system_structure_id,
+                        iss.system_interface_id,
+                        iss.itf_structure_id,
+                        iss.parent_system_structure_id,
+                        iss.objective_structure_code,
+                        iss.enabled_flag,
+                        iss.comments,
+                        iss.created_by,
+                        iss.creation_date,
+                        iss.last_updated_by,
+                        iss.last_update_date,
+                        iis.structure_id,
+                        i.interface_category_id,
+                        i.structure_code,
+                        i.structure_description_id,
+                        i.structure_desc,
+                        i.parent_structure_id,
+                        (SELECT
+                            pi.structure_code
+                        FROM
+                            itf_structures_vl pi
+                        WHERE
+                            pi.structure_id = i.parent_structure_id
+                        ) parent_structure_code,
+                        (SELECT
+                            pi.structure_desc
+                        FROM
+                            itf_structures_vl pi
+                        WHERE
+                            pi.structure_id = i.parent_structure_id
+                        ) parent_structure_desc,
+                        i.itf_table_name,
+                        i.pk_name,
+                        i.parent_pk_name,
+                        i.sequence_name
+                    FROM
+                        itf_system_structures iss,
+                        itf_interface_structures iis,
+                        itf_structures_vl i
+                    WHERE
+                        iis.structure_id     = i.structure_id AND
+                        iss.itf_structure_id = iis.itf_structure_id
+                    ) v #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            begin
+            	itf_system_interface_pkg.update_system_structure(p_system_structure_id      =>${@system_structure_id},
+															     p_objective_structure_code =>${@objective_structure_code},
+															     p_enabled_flag             =>${@enabled_flag},
+															     p_comments                 =>${@comments},
+															     p_user_id                  =>${/session/@user_id});
+            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="system_interface_id" queryExpression="v.system_interface_id = ${@system_interface_id}"/>
+    </bm:query-fields>
+</bm:model>

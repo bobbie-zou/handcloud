@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: QHW  
+    $Date: 2012-11-09 下午01:55:16  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:service xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc" trace="true">
+    <a:init-procedure>
+        <a:batch-apply sourcepath="/parameter">
+            <p:switch test="@current_parameter/@_status">
+                <p:case value="insert">
+                    <a:model-insert model="pur.PUR2200.pur_req_headers"/>
+                    <a:batch-apply sourcepath="@current_parameter/pur2200_req_create_line_result_ds">
+                        <a:model-insert model="pur.PUR2200.pur_req_lines"/>
+                        <a:model-batch-update model="pur.PUR2200.pur_req_line_contact" sourcePath="@current_parameter/pur2200_req_create_result_ds"/>
+                    </a:batch-apply>
+                    <a:model-batch-update model="pur.PUR2200.pur_req_line_attachment" sourcePath="@current_parameter/pur2200_req_create_attachment_result_ds"/>
+                </p:case>
+                <p:case value="update">
+                    <a:model-update model="pur.PUR2200.pur_req_headers"/>
+                    <a:batch-apply sourcepath="@current_parameter/pur2200_req_create_line_result_ds">
+                        <p:switch test="@current_parameter/@_status">
+                            <p:case value="insert">
+                                <a:model-insert model="pur.PUR2200.pur_req_lines"/>
+                            </p:case>
+                            <p:case value="update">
+                                <a:model-update model="pur.PUR2200.pur_req_lines"/>
+                            </p:case>
+                        </p:switch>
+                        <a:model-batch-update model="pur.PUR2200.pur_req_line_contact" sourcePath="@current_parameter/pur2200_req_create_result_ds"/>
+                    </a:batch-apply>
+                    <a:model-batch-update model="pur.PUR2200.pur_req_line_attachment" sourcePath="@current_parameter/pur2200_req_create_attachment_result_ds"/>
+                </p:case>
+            </p:switch>
+        </a:batch-apply>
+    </a:init-procedure>
+    <a:service-output output="/parameter"/>
+</a:service>

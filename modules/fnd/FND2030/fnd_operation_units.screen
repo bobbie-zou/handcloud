@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duxiaofu4653 $
+    $Date: 2013/10/21 01:47:06 $
+    $Revision: 1.6 $
+    $Purpose: 经营单位定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="fnd2030_fnd_op_unit_hierarchy_link" url="${/request/@context_path}/modules/fnd/FND2030/fnd_op_unit_hierarchy.screen"/>
+        <script><![CDATA[
+            var fnd2030_current_company_id = '${/session/@default_company_id}';
+            var fnd2030_current_company_desc = '${/session/@default_company_desc}';
+            
+            function fnd2030_result_query(ds) {
+                fnd2030_current_company_id = $('fnd2030_fnd_operation_units_query_ds').getAt(0).get('company_id');
+                fnd2030_current_company_desc = $('fnd2030_fnd_operation_units_query_ds').getAt(0).get('company_desc');
+            }
+            
+            function fnd2030_result_add(ds, record, index) {
+                record.set('company_id', fnd2030_current_company_id);
+                record.set('company_desc', fnd2030_current_company_desc);
+            }
+            
+            
+            function fnd2030_queryOperationUnits() {
+                $('fnd2030_fnd_operation_units_result_ds').query();
+            }
+            
+            function fnd2030_resetOperationUnits() {
+                $('fnd2030_fnd_operation_units_query_ds').reset();
+            }
+            
+            function fnd2030_setOpUnitHierarchy(value, record, name) {
+                if (!record.isNew && record.get('summary_flag') == 'Y') {
+                    var operationUnitId = record.get('operation_unit_id');
+                    var company_id = record.get('company_id');
+                    return '<a href="javascript:fnd2030_setOpUnitHierarchyInfo(' + operationUnitId + ',' + company_id + ')">${l:FND_OPERATION_UNITS.SUB_OP_UNITS}</a>';
+                }
+            }
+            
+            function fnd2030_setOpUnitHierarchyInfo(operationUnitId, company_id) {
+                new Aurora.Window({
+                    id: 'fnd2030_fnd_operation_units_window',
+                    url: $('fnd2030_fnd_op_unit_hierarchy_link').getUrl() + '?operation_unit_id=' + operationUnitId + '&company_id=' + company_id,
+                    title: '${l:FND_OPERATION_UNITS.SUB_OP_UNITS}',
+                    height: 500,
+                    width: 600
+                });
+            }
+            
+            function fnd2030_summaryEdit(record, name) {
+                if (record.isNew) {
+                    return 'fnd2030_fnd_operation_units_summary_cb';
+                } else {
+                    return '';
+                }
+            }
+            
+            function fnd2030_summaryRenderer(value, record, name) {
+                if (!record.isNew && value == 'Y') {
+                    return '${l:HAP_YES}';
+                }
+                if (!record.isNew && value == 'N') {
+                    return '${l:HAP_NO}';
+                }
+            }
+            
+            function fnd2030_unitCodeEditorFunction(record, name) {
+                if (record.isNew) {
+                    return 'fnd2030_operation_unit_code_grid_tf';
+                }
+                return '';
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2030_assign_company_ds" loadData="true" model="public.fnd_assign_company_list"/>
+            <a:dataSet id="fnd2030_fnd_operation_units_query_ds" model="fnd.fnd_operation_units">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@default_company_id}"/>
+                    <a:field name="company_desc" defaultValue="${/session/@default_company_desc}" displayField="company_desc" options="fnd2030_assign_company_ds" required="true" returnField="company_id" valueField="company_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd2030_fnd_operation_units_result_ds" autoPageSize="true" autoQuery="true" fetchAll="false" model="fnd.fnd_operation_units" queryDataSet="fnd2030_fnd_operation_units_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="operation_unit_code" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="company_id" defaultValue="${/session/@default_company_id}"/>
+                    <a:field name="company_desc" defaultValue="${/session/@default_company_desc}" displayField="company_desc" options="fnd2030_assign_company_ds" required="true" returnField="company_id" valueField="company_id"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="summary_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="fnd2030_result_add"/>
+                    <a:event name="query" handler="fnd2030_result_query"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="fnd2030_grid" text="HAP_NEW" type="add" width="100"/>
+                <a:gridButton bind="fnd2030_grid" text="保存" type="save" width="100"/>
+                <a:gridButton bind="fnd2030_grid" text="清除" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd2030_fnd_operation_units_query_ds" resultTarget="fnd2030_fnd_operation_units_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="150">
+                        <a:textField name="operation_unit_code" bindTarget="fnd2030_fnd_operation_units_query_ds" typeCase="upper">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd2030_queryOperationUnits"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="description" bindTarget="fnd2030_fnd_operation_units_query_ds">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd2030_queryOperationUnits"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="company_desc" bindTarget="fnd2030_fnd_operation_units_query_ds" prompt="公司">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd2030_queryOperationUnits"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="fnd2030_grid" bindTarget="fnd2030_fnd_operation_units_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="operation_unit_code" align="left" editorFunction="fnd2030_unitCodeEditorFunction" sortable="true" width="100"/>
+                    <a:column name="description" align="center" editor="fnd2030_description_grid_tf" width="200"/>
+                    <a:column name="company_desc" align="center" prompt="公司" width="100"/>
+                    <a:column name="summary_flag" align="center" editorFunction="fnd2030_summaryEdit" renderer="fnd2030_summaryRenderer" sortable="true"/>
+                    <a:column name="enabled_flag" align="center" editor="fnd2030_fnd_operation_units_enabled_cb" sortable="true"/>
+                    <a:column name="op_unit_hierarchy" align="center" prompt="FND_OPERATION_UNITS.SUB_OP_UNITS" renderer="fnd2030_setOpUnitHierarchy"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd2030_operation_unit_code_grid_tf" typeCase="upper"/>
+                    <a:textField id="fnd2030_description_grid_tf"/>
+                    <a:checkBox id="fnd2030_fnd_operation_units_summary_cb"/>
+                    <a:checkBox id="fnd2030_fnd_operation_units_enabled_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

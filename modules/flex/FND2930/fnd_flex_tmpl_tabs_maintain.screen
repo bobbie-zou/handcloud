@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-12-13 下午1:22:03  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="fnd29302_flex_flex_tmpl_subpage_link" url="${/request/@context_path}/modules/flex/FND2930/fnd_flex_tmpl_dynamic_pages_maintain.screen"/>
+        <a:link id="fnd29302_create_template_link" model="flex.FND2930.auto_create_tables" modelaction="execute"/>
+        <a:link id="fnd29302_release_link" model="flex.FND2930.fnd_flex_instance_release" modelaction="execute"/>
+        <script><![CDATA[
+        	function fnd29302_template_tab_code_edited(record, name){
+	               if(record.isNew){
+	                    return 'fnd29302_template_tab_code_tf';
+	                }
+	                return '';
+	        }
+	        
+	        function fnd29302_subpage_renderer(value,record,name){
+	            var template_tab_id = record.get('template_tab_id');
+	            if(!Aurora.isEmpty(template_tab_id)){
+	            	return '<a href="javascript:fnd29302_new_subpage_window(\'' + template_tab_id + '\');">'+'页面元素'+'</a>';
+	            }
+	            return '';
+	        }
+	         
+	        function fnd29302_new_subpage_window(template_tab_id){
+	            new Aurora.Window({
+	                id:'fnd29302_flex_tmpl_subpage_window',
+	                url:$('fnd29302_flex_flex_tmpl_subpage_link').getUrl()+'?template_tab_id='+template_tab_id,
+	                title:'子段维护',
+	                fullScreen:true});
+	        }
+	        
+	        function fnd29302_create_temp(){
+	            var template_id = ${/parameter/@template_id};
+	            
+	            var ds = $('fnd29302_flex_tmpl_tabs_ds');
+              
+                
+                if(!ds.validate()){
+                    return;
+                }
+                
+                Aurora.showConfirm('提示','请确认已经维护页面元素？',function(){
+                    Aurora.Masker.mask($('fnd29302_flex_tmpl_insc_window').wrap, '正在加载...');
+	             	Aurora.request({
+	                	url: $('fnd29302_create_template_link').getUrl(),
+	                    para: {template_id:template_id},
+	                    success: function(rec) {
+	                        Aurora.Masker.unmask($('fnd29302_flex_tmpl_insc_window').wrap);
+	                        Aurora.showMessage('提示','编译成功！');
+	                        fnd2930_query(); 
+	                    },
+	                    failure: function() {
+                            Aurora.Masker.unmask($('fnd29302_flex_tmpl_insc_window').wrap);
+                            return;
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask($('fnd29302_flex_tmpl_insc_window').wrap);
+                            return;
+                        },
+	                    scope: this
+	                });   
+                });
+	        }
+	        
+	        function fnd29302_release(){
+         	    var ds = $('fnd29302_flex_tmpl_tabs_ds');
+                if(!ds.validate()){
+                    return;
+                }
+                
+                var instance_record = $('fnd29302_flex_template_ds').getCurrentRecord();
+                var tmpl_instance_id = instance_record.get('tmpl_instance_id');
+                var version	= instance_record.get('version');
+                
+                Aurora.showConfirm('提示','是否发布此模版？',function(){
+                    Aurora.Masker.mask($('fnd29302_flex_tmpl_insc_window').wrap, '正在加载...');
+	             	Aurora.request({
+	                	url: $('fnd29302_release_link').getUrl(),
+	                    para: {tmpl_instance_id:tmpl_instance_id,
+	                    	   version:version},
+	                    success: function(rec) {
+	                        Aurora.Masker.unmask($('fnd29302_flex_tmpl_insc_window').wrap);
+	                        Aurora.showMessage('提示','发布成功！',function(){
+	                            fnd29302_reback();
+	                        });
+	                    },
+	                    failure: function() {
+                            Aurora.Masker.unmask($('fnd29302_flex_tmpl_insc_window').wrap);
+                            return;
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask($('fnd29302_flex_tmpl_insc_window').wrap);
+                            return;
+                        },
+	                    scope: this
+	                });   
+                });  
+         	}
+         	
+         	function fnd29302_reback(){
+        	 	$('fnd29302_flex_tmpl_insc_window').close();   
+        	}
+	        
+	        function fnd29302_flex_tmpl_tabs_ds_add(ds,record,index){
+        	    record.set('display_sequence',index+1);
+        	}    
+	          
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd29302_flex_template_ds" autoQuery="true" queryUrl="${/request/@context_path}/autocrud/flex.FND2930.fnd_flex_templates/query?template_id=${/parameter/@template_id}"/>
+            <a:dataSet id="fnd29302_flex_tmpl_tabs_ds" autoPageSize="true" autoQuery="true" fetchAll="true" model="flex.FND2930.fnd_flex_tmpl_tabs" queryUrl="${/request/@context_path}/autocrud/flex.FND2930.fnd_flex_tmpl_tabs/query?template_id=${/parameter/@template_id}" selectable="true">
+                <a:fields>
+                    <a:field name="display_sequence"/>
+                    <a:field name="template_tab_id"/>
+                    <a:field name="template_id" defaultValue="${/parameter/@template_id}"/>
+                    <a:field name="template_tab_code" required="true"/>
+                    <a:field name="template_tab_desc" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="fnd29302_flex_tmpl_tabs_ds_add"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar id="fnd29302_screenTopToolbar">
+                <a:screenTitle/>
+                <a:gridButton bind="fnd29302_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="fnd29302_grid" type="save" width="100"/>
+                <a:gridButton bind="fnd29302_grid" type="clear" width="100"/>
+                <a:toolbarButton click="fnd29302_create_temp" text="编译" width="100"/>
+                <a:toolbarButton click="fnd29302_release" text="发布" width="100"/>
+                <a:toolbarButton click="fnd29302_reback" text="返回" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox padding="0">
+                <a:textField name="template_code" bindTarget="fnd29302_flex_template_ds" prompt="模板代码" readOnly="true"/>
+                <a:textField name="template_desc" bindTarget="fnd29302_flex_template_ds" prompt="模板描述" readOnly="true"/>
+            </a:hBox>
+            <a:grid id="fnd29302_grid" bindTarget="fnd29302_flex_tmpl_tabs_ds" marginHeight="120" marginWidth="40" navBar="true">
+                <a:columns>
+                    <a:column name="display_sequence" align="left" editor="fnd29302_display_sequence_nf" prompt="编号" width="50"/>
+                    <a:column name="template_tab_code" align="left" editorFunction="fnd29302_template_tab_code_edited" prompt="段代码" width="150"/>
+                    <a:column name="template_tab_desc" align="left" editor="fnd29302_template_tab_desc_tf" prompt="段名称" width="200"/>
+                    <a:column name="subpage" align="center" prompt="页面元素" renderer="fnd29302_subpage_renderer" width="60"/>
+                    <a:column name="enabled_flag" align="left" editor="fnd29302_enabled_flag_tf" prompt="启用" width="40"/>
+                </a:columns>
+                <a:editors>
+                    <a:numberField id="fnd29302_display_sequence_nf" allowDecimals="false" allowNegative="false"/>
+                    <a:textField id="fnd29302_template_tab_code_tf" maxLength="17" typeCase="upper"/>
+                    <a:textField id="fnd29302_template_tab_desc_tf"/>
+                    <a:checkBox id="fnd29302_enabled_flag_tf" checkedValue="Y" uncheckedValue="N"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

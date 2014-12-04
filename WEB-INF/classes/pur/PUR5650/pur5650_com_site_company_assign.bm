@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-12-20 下午4:09:37  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        pc.site_company_id,
+                        ps.vendor_site_id,
+                        ${@company_id} company_id,
+                        pc.purchasing_site_flag,
+                        pc.rfq_only_site_flag,
+                        pc.pay_site_flag,
+                        pc.enabled_flag,
+                        ps.vendor_id,
+                        ps.country_code,
+                        (SELECT
+                            fc.description
+                        FROM
+                            fnd_country_code_vl fc
+                        WHERE
+                            fc.country_code=ps.country_code
+                        ) country_name,
+                        ps.province_id,
+                        (SELECT
+                            d.description_text
+                        FROM
+                            fnd_region_code c,
+                            fnd_descriptions d
+                        WHERE
+                            c.region_id      = ps.province_id AND
+                            d.description_id = c.description_id AND
+                            d.language       = userenv('LANG')
+                        ) province_name,
+                        ps.city_id,
+                        (SELECT
+                            d.description_text
+                        FROM
+                            fnd_region_code c,
+                            fnd_descriptions d
+                        WHERE
+                            c.region_id      = ps.city_id AND
+                            d.description_id = c.description_id AND
+                            d.language       = userenv('LANG')
+                        ) city_name,
+                        ps.address_id,
+                        (SELECT
+                            fd.description_text
+                        FROM
+                            fnd_descriptions fd
+                        WHERE
+                            fd.description_id=ps.address_id AND
+                            fd.language      =userenv('LANG')
+                        ) address,
+                        ps.address_comments,
+                        ps.site_name_id,
+                        (SELECT
+                            fd.description_text
+                        FROM
+                            fnd_descriptions fd
+                        WHERE
+                            fd.description_id=ps.site_name_id AND
+                            fd.language      =userenv('LANG')
+                        ) site_name,
+                        ps.post_code
+                    FROM
+                        pur_vendor_sites ps,
+                        (SELECT
+                            *
+                        FROM
+                            pur_vendor_site_company psc
+                        WHERE
+                            psc.company_id=${@company_id}
+                        ) pc
+                    WHERE
+                        ps.vendor_site_id = pc.vendor_site_id(+)
+                    ) t
+                    #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        		begin
+        			pur_vendor_pkg.update_com_site_assign_company(
+        								   p_site_company_id      => ${@site_company_id},
+                                           p_vendor_site_id       => ${@vendor_site_id},
+                                           p_site_name            => ${@site_name},
+                                           p_company_id           => ${@company_id},
+                                           p_purchasing_site_flag => ${@purchasing_site_flag},
+                                           p_rfq_only_site_flag   => ${@rfq_only_site_flag},
+                                           p_pay_site_flag        => ${@pay_site_flag},
+                                           p_enabled_flag         => ${@enabled_flag},
+                                           p_user_id              => ${/session/@user_id});
+        		end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+        		begin
+        			pur_vendor_pkg.check_vendor_site_unique(p_vendor_id => ${@vendor_id}, p_user_id => ${/session/@user_id});
+        		end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="vendor_site_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_SITE_ID"/>
+        <bm:field name="vendor_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_ID"/>
+        <bm:field name="country_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COUNTRY_CODE"/>
+        <bm:field name="country_name"/>
+        <bm:field name="province_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PROVINCE_ID"/>
+        <bm:field name="province_name"/>
+        <bm:field name="city_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="CITY_ID"/>
+        <bm:field name="city_name"/>
+        <bm:field name="address_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ADDRESS_ID"/>
+        <bm:field name="address"/>
+        <bm:field name="address_comments" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ADDRESS_COMMENTS"/>
+        <bm:field name="site_name_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SITE_NAME_ID"/>
+        <bm:field name="site_name" prompt="PUR_VENDOR_SITES.SITE_NAME_ID"/>
+        <bm:field name="post_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="POST_CODE"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG"/>
+        <bm:field name="site_company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SITE_COMPANY_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID"/>
+        <bm:field name="purchasing_site_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PURCHASING_SITE_FLAG" prompt="PUR5640_SITE_ASSIGN_COMPANY.CAN_BE_PURCHASED"/>
+        <bm:field name="rfq_only_site_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="RFQ_ONLY_SITE_FLAG"/>
+        <bm:field name="pay_site_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PAY_SITE_FLAG"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="vendor_id" queryExpression="vendor_id=${@vendor_id}"/>
+    </bm:query-fields>
+</bm:model>

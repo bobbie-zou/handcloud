@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-9-25 下午2:17:27  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="pur5660_vendorCompanySupplyDetail_link" url="${/request/@context_path}/modules/pur/PUR5660/pur5660_vendor_company_supplier_detail.screen"/>
+        <a:link id="pur5660_vendorDetail_link" url="${/request/@context_path}/modules/pur/PUR5660/pur_vendor_detail.screen"/>
+        <script><![CDATA[
+            function pur5660_vendor_code_render(value, record, name) {
+                if (name == 'relation_company') {
+                    if (!Ext.isEmpty(record.get('supplier_id'))) {
+                        return '<a href="javascript:pur5660_open_win(' + record.get('supplier_id') + ')">' + '${l:PUR5660.RELATION_COMPANY_SUPPLY}' + '</a>';
+                    } else {
+                        return '<a><font color="red">' + '${l:PUR_VENDORS.NO_COMPANY_SUPPLY_INFO}' + '</font></a>';
+                    }
+                } else if (name == 'display_vendor_code') {
+                    if (!Ext.isEmpty(record.get('vendor_id'))) {
+                        return '<a href="javascript:pur5660_openVendorDetail(' + record.get('vendor_id') + ')">' + value + '</a>';
+                    } else {
+                        return value;
+                    }
+                }
+            }
+            
+            
+            function pur5660_open_win(supplier_id) {
+                if (Ext.isEmpty(supplier_id) || supplier_id == -1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PUR_VENDORS.NO_COMPANY_SUPPLY_INFO}');
+                } else {
+                    new Aurora.Window({
+                        url: $('pur5660_vendorCompanySupplyDetail_link').getUrl() + '?supplier_id=' + supplier_id,
+                        id: 'pur5660_vendorCompanySupplier_window',
+                        title: '${l:FND_COMPANY_SUPPLYER_TITILE}',
+                        fullScreen: true
+                    });
+                }
+            }
+            
+            function pur5660_openVendorDetail(vendor_id) {
+                new Aurora.Window({
+                    url: $('pur5660_vendorDetail_link').getUrl() + '?vendor_id=' + vendor_id,
+                    id: 'pur5660_vendorDetail_window',
+                    title: '${l:PUR5660.VENDOR_DETAIL_TITLE}',
+                    fullScreen: true
+                });
+            }
+            
+            //查询条件update事件
+            
+            function pur5660_vendorBasicsQueryDs_updateHandler(ds, record, name, value, oldvalue) {
+                if (name == 'registered_country_code') {
+                    if (Ext.isEmpty(record.get('registered_country_code')) || record.get('registered_country_code') == undefined) {
+                        record.set('registered_province_id', '');
+                        record.set('registered_province_desc', '');
+                        record.getField("registered_province_desc").setReadOnly(true);
+                        record.getField("registered_province_desc").setRequired(false);
+            
+                        $('pur5660_registered_province_ds').setQueryParameter('country_code', '-1');
+                        $('pur5660_registered_province_ds').query();
+            
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc', '');
+                        record.getField("registered_city_desc").setReadOnly(true);
+                        record.getField("registered_city_desc").setRequired(false);
+            
+                        $('pur5660_registered_city_ds').setQueryParameter('province_id', -1);
+                        $('pur5660_registered_city_ds').query();
+                    } else {
+                        record.getField("registered_province_desc").setReadOnly(false);
+                        record.getField("registered_province_desc").setRequired(true);
+            
+                        $('pur5660_registered_province_ds').setQueryParameter('country_code', record.get('registered_country_code'));
+                        $('pur5660_registered_province_ds').query();
+                    }
+                } else if (name == 'registered_province_id') {
+                    if (Ext.isEmpty(record.get('registered_province_id')) || record.get('registered_province_id') == undefined) {
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc', '');
+                        record.getField("registered_city_desc").setReadOnly(true);
+                        record.getField("registered_city_desc").setRequired(false);
+            
+                        $('pur5660_registered_city_ds').setQueryParameter('province_id', -1);
+                        $('pur5660_registered_city_ds').query();
+                    } else {
+                        record.getField("registered_city_desc").setReadOnly(false);
+                        record.getField("registered_city_desc").setRequired(true);
+            
+                        $('pur5660_registered_city_ds').setQueryParameter('province_id', record.get('registered_province_id'));
+                        $('pur5660_registered_city_ds').query();
+                    }
+                }
+            }
+            
+            //查询
+            
+            function pur5660_queryFunction() {
+                $('pur5660_vendor_result_ds').query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5660_registered_country_ds" fetchAll="true" loadData="true" model="public.fnd_country_lov"/>
+            <a:dataSet id="pur5660_registered_province_ds" fetchAll="true" model="pur.public.fnd_region_province_by_country_lov"/>
+            <a:dataSet id="pur5660_registered_city_ds" fetchAll="true" model="pur.public.fnd_region_city_by_province_lov"/>
+            <a:dataSet id="pur5660_vendor_category_ds" lookupCode="PUR_VENDOR_CATEGORY"/>
+            <a:dataSet id="pur5660_vendor_query_ds">
+                <a:fields>
+                    <a:field name="vendor_category_name" displayField="code_value_name" options="pur5660_vendor_category_ds" returnField="vendor_category" valueField="code_value"/>
+                    <a:field name="registered_country_code"/>
+                    <a:field name="registered_country_name" displayField="country_name" options="pur5660_registered_country_ds" returnField="registered_country_code" valueField="country_code"/>
+                    <a:field name="registered_province_id"/>
+                    <a:field name="registered_province_desc" displayField="province_name" options="pur5660_registered_province_ds" readOnly="true" returnField="registered_province_id" valueField="province_id"/>
+                    <a:field name="registered_city_id"/>
+                    <a:field name="registered_city_desc" displayField="city_name" options="pur5660_registered_city_ds" readOnly="true" returnField="registered_city_id" valueField="city_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur5660_vendorBasicsQueryDs_updateHandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur5660_vendor_result_ds" autoCount="true" autoPageSize="true" model="pur.PUR5660.pur_vendor_query" queryDataSet="pur5660_vendor_query_ds">
+                <a:fields>
+                    <a:field name="vendor_type_id"/>
+                    <a:field name="vendor_type_name"/>
+                    <a:field name="enabled_flag" checkedValue="Y" readOnly="true" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:queryForm bindTarget="pur5660_vendor_query_ds" marginWidth="70" resultTarget="pur5660_vendor_result_ds" style="border:none;">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="display_vendor_code" bindTarget="pur5660_vendor_query_ds" prompt="PUR_SYS_VENDOR_BASICS.VENDOR_CODE" typeCase="upper">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5660_queryFunction"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="full_name" bindTarget="pur5660_vendor_query_ds" prompt="PUR_SYS_VENDOR_BASICS.FULL_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5660_queryFunction"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="short_name" bindTarget="pur5660_vendor_query_ds" prompt="PUR_VENDORS.SHORT_NAME_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5660_queryFunction"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="120">
+                        <a:comboBox name="registered_country_name" bindTarget="pur5660_vendor_query_ds" prompt="PUR_VENDORS.REGISTERED_COUNTRY_CODE">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5660_queryFunction"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="registered_province_desc" bindTarget="pur5660_vendor_query_ds" prompt="PUR_VENDORS.REGISTERED_PROVINCE_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5660_queryFunction"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="registered_city_desc" bindTarget="pur5660_vendor_query_ds" prompt="PUR_VENDORS.REGISTERED_CITY_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5660_queryFunction"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="national_organization_code" bindTarget="pur5660_vendor_query_ds" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5660_queryFunction"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="business_license_number" bindTarget="pur5660_vendor_query_ds" prompt="PUR_VENDORS.BUSINESS_LICENSE_NUMBER">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5660_queryFunction"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="pur5660_vendor_grid" autoAppend="false" bindTarget="pur5660_vendor_result_ds" marginHeight="110" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="relation_company" align="center" prompt="PUR5660.RELATION_COMPANY_SUPPLY" renderer="pur5660_vendor_code_render" width="100"/>
+                    <a:column name="display_vendor_code" align="center" prompt="VENDER_CODE" renderer="pur5660_vendor_code_render" width="100"/>
+                    <a:column name="full_name" prompt="PUR_SYS_VENDOR_BASICS.FULL_NAME" width="150"/>
+                    <a:column name="short_name" prompt="PUR_SYSTEM_VENDERS.SHORT_NAME" width="100"/>
+                    <!-- <a:column name="email" prompt="PUR_VENDORS.OFFICIAL_EMAIL" width="120"/> -->
+                    <a:column name="national_organization_code" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE" width="100"/>
+                    <a:column name="business_license_number" prompt="PUR_VENDORS.BUSINESS_LICENSE_NUMBER" width="100"/>
+                    <a:column name="registered_country_name" prompt="PUR_VENDORS.REGISTERED_COUNTRY_CODE" width="80"/>
+                    <a:column name="registered_province_desc" prompt="PUR_VENDORS.REGISTERED_PROVINCE_ID" width="80"/>
+                    <a:column name="registered_city_desc" prompt="PUR_VENDORS.REGISTERED_CITY_ID" width="80"/>
+                </a:columns>
+                <a:editors/>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:e="aurora.service.exception" xmlns:ns2="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="fc" baseTable="sys_role" defaultOrderBy="client desc,role_code">
+    <bm:fields>
+        <bm:field name="role_id" databaseType="BIGINT" datatype="java.lang.Long" prompt="HAP_OPERATION"/>
+        <bm:field name="service_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="service_name" databaseType="VARCHAR" datatype="java.lang.String" expression="(select t.service_name from sys_service t where t.service_id = fc.service_id)" forInsert="false" forUpdate="false" prompt="PAGE_NAME"/>
+        <bm:field name="role_code" databaseType="VARCHAR" datatype="java.lang.String" displayWidth="200" forDisplay="true" forQuery="true" prompt="SYS_ROLE.ROLE_CODE" queryWidth="150"/>
+        <bm:field name="role_name_id" databaseType="BIGINT" datatype="java.lang.Long" forInsert="false" forUpdate="false"/>
+        <bm:field name="role_name" databaseType="VARCHAR" datatype="java.lang.String" displayWidth="200" expression="(SELECT DESCRIPTION_TEXT FROM fnd_descriptions WHERE DESCRIPTION_ID=fc.role_name_id AND Language=${/session/@lang})" forDisplay="true" forInsert="false" forQuery="true" forUpdate="false" prompt="SYS_ROLE.ROLE_NAME"/>
+        <bm:field name="description_id" databaseType="BIGINT" datatype="java.lang.Long" forInsert="false" forUpdate="false"/>
+        <bm:field name="role_description" databaseType="VARCHAR" datatype="java.lang.String" expression="(SELECT DESCRIPTION_TEXT FROM fnd_descriptions WHERE DESCRIPTION_ID=fc.description_id AND Language=${/session/@lang})" forInsert="false" forUpdate="false" prompt="SYS_ROLE.ROLE_DESCRIPTION"/>
+        <bm:field name="start_date" databaseType="DATE" datatype="java.sql.Date" forInsert="true" forUpdate="true" prompt="HAP_START_DATE"/>
+        <bm:field name="end_date" databaseType="DATE" datatype="java.sql.Date" forInsert="true" forUpdate="true" prompt="HAP_END_DATE"/>
+        <bm:field name="client" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_CLIENTS.CLIENT_NAME"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="role_code" queryOperator="like"/>
+        <bm:query-field field="role_name" queryExpression="exists (select 1 from fnd_descriptions fd where fc.role_name_id=fd.description_id and fd.description_text like ${@role_name} and fd.language = ${/session/@lang})"/>
+        <bm:query-field field="role_id" queryOperator="="/>
+        <bm:query-field name="role_code_name" queryExpression="fc.role_code like &apos;%&apos;||trim(upper(${@role_code_name}))||&apos;%&apos; or (select fd.description_text from fnd_descriptions fd where fd.description_id=fc.description_id and fd.language=${/session/@lang}) like &apos;%&apos;||${@role_code_name}||&apos;%&apos;"/>
+        <bm:query-field name="client_role_query" queryExpression="fc.client = ${/session/@client}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="role_id" dataType="java.lang.Long" input="false" output="true" outputPath="@role_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+	            BEGIN
+	            	sys_role_pkg.create_sys_role
+	            		(
+                        	x_role_id      		=> ${@role_id},
+	            			p_role_code    		=> ${@role_code},
+                        	p_role_name    		=> ${@role_name},
+                        	p_service_id		=> ${@service_id},
+                        	p_description  		=> ${@role_description},
+                        	p_start_date   		=> to_date(${@start_date},'yyyy-mm-dd'),
+                        	p_end_date     		=> to_date(${@end_date},'yyyy-mm-dd'),
+                        	p_session_user_id	=> ${/session/@user_id}
+				        );
+	            END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+	            BEGIN
+	            	sys_role_pkg.modify_sys_role
+	            		(	
+	            			p_role_id         	=> ${@role_id},
+                        	p_role_name       	=> ${@role_name},
+                        	p_service_id	  	=> ${@service_id},
+                        	p_description    	=> ${@role_description},
+                        	p_start_date     	=> to_date(${@start_date},'yyyy-mm-dd'),
+                        	p_end_date        	=> to_date(${@end_date},'yyyy-mm-dd'),
+                        	p_session_user_id	=> ${/session/@user_id}
+                    	);
+	            END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+	            BEGIN
+	            	sys_role_pkg.remove_sys_role
+	            		(
+	            			p_role_code => ${@role_code}
+            			);
+	            END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:primary-key>
+        <bm:pk-field name="role_id"/>
+    </bm:primary-key>
+    <bm:features>
+        <ns2:sequence-pk/>
+        <f:standard-who/>
+        <f:multi-language-storage/>
+    </bm:features>
+</bm:model>

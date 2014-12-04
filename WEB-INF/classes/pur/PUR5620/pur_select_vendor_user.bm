@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lily  
+    $Date: 2013-8-22 上午9:57:44  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            select t.user_coding_rule_id,
+       t.vendor_basic_rule_id,
+       t.user_type_code,
+       t.type_desc_id,
+       (select fd.description_text
+          from fnd_descriptions fd
+         where fd.description_id = t.type_desc_id
+           and fd.language = ${/session/@lang}) type_desc,
+           t.role_id,
+       t.initial_passwd,
+       t.user_quantity,
+       t.enabled_flag,
+       t.selected_flag
+  from pur_vendor_user_rule t
+            #WHERE_CLAUSE#
+		]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        		begin
+        			pur_register_vendors_pkg.select_generate_user_type(
+        							  p_user_coding_rule_id => ${@user_coding_rule_id},
+                                      p_selected_flag       => ${@selected_flag},
+                                      p_user_id             => ${/session/@user_id});
+        		end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="t.enabled_flag=&apos;Y&apos; and t.vendor_basic_rule_id = (select f.vendor_basic_rule_id from pur_vendor_basic_rule f where f.vendor_change_type = &apos;VENDOR_TO_REGULAR&apos; and f.trigger_event = &apos;REGISTER_APPROVED&apos; and f.client = ${/session/@client})"/>
+    </bm:data-filters>
+</bm:model>

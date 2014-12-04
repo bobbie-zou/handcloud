@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: FelixDru  
+    $Date: 2014-05-06 下午6:24:37  
+    $Revision: 1.0  
+    $Purpose: 供应商填写邀请码
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="fnd.FND9100.fnd_company_registed_query" rootPath="company_data"/>
+    </a:init-procedure>
+    <a:view template="default">
+        <a:link id="fnd_enterprise_resiter_choose_link" url="${/request/@context_path}/modules/fnd/FND9100/fnd_enterprise_register_choose.screen"/>
+        <a:link id="fnd_enterprise_register_enterprise_save_link" model="fnd.FND9100.fnd_company_registed_enterprise_info_modify" modelaction="update"/>
+        <a:link id="fnd_enterprise_register_legal_link" url="${/request/@context_path}/modules/fnd/FND9100/fnd_enterprise_register_legal_representative_a.screen"/>
+        <a:link id="fnd_enterprise_register_attachment_link" url="${/request/@context_path}/modules/fnd/FND9100/attachment_file_upload.screen"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/boostrapv3/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/boostrapv3/css/bootstrap-theme.min.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/font-awesome/css/font-awesome.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/style.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/main.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/login.css" rel="stylesheet" type="text/css"/>
+        <script><![CDATA[
+            //自动查询处理
+            
+            Aurora.onReady(function() {
+                var company_registed_id= '${/model/company_data/record/@company_registed_id}';
+                if (Ext.isEmpty(company_registed_id)) {
+                    var win = Aurora.showMessage('${l:PROMPT.ERROR}', '${l:PUR5610.ILLEGAL_VISIT_GO_TO_INDEX}', function() {
+                        window.location.href = '${/request/@context_path}';
+                    });
+                    setTimeout(function() {
+                        win.close();
+                        window.location.href = '${/request/@context_path}';
+                    }, 3000);
+                }
+                if (company_registed_id) {
+                    Aurora.request({
+                        url: '${/request/@context_path}/autocrud/fnd.FND9100.fnd_company_registed/execute',
+                        para: {
+                            company_registed_id:company_registed_id
+                        },
+                        success: function(res) {
+                            var visit_feedback = res.result.visit_feedback;
+                            if (visit_feedback == 'SUCCESS') {
+                                return '';
+                            } else if (visit_feedback == 'ERROR') {
+                                var win = Aurora.showMessage('${l:PROMPT.ERROR}', '${l:PUR5610.ILLEGAL_VISIT_GO_TO_INDEX}', function() {
+                                    window.location.href = '${/request/@context_path}';
+                                });
+                                setTimeout(function() {
+                                    win.close();
+                                    window.location.href = '${/request/@context_path}';
+                                }, 3000);
+                            }
+                        },
+                        scope: this
+                    });
+                }
+            });
+            
+            //上一步
+            
+            function fnd9100_enterpriseRegister_last_page() {
+                var param = {};
+                param['company_registed_id'] = '${/parameter/@company_registed_id}';
+                Aurora.post($('fnd_enterprise_resiter_choose_link').getUrl(), param);
+            }
+            
+            //下一步
+            
+            function fnd9100_enterpriseRegister_save() {
+                var ds = $('fnd_enterprise_ds');
+                if (ds.validate()) {
+                    var record = ds.getCurrentRecord();
+                    Aurora.request({
+                        url: $('fnd_enterprise_register_enterprise_save_link').getUrl(),
+                        para: record.data,
+                        success: function(res) {
+                            var param = {};
+                            param['company_registed_id'] = '${/parameter/@company_registed_id}';
+                            Aurora.post($('fnd_enterprise_register_legal_link').getUrl(), param);
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            //
+            
+            //update
+            
+            function fnd9100_register_updateHandler(ds, record, name, value, oldvalue) {
+                if (name == 'registered_country_code') {
+                    if (Ext.isEmpty(record.get('registered_country_code')) || record.get('registered_country_code') == undefined) {
+                        record.set('registered_province_id', '');
+                        record.set('registered_province_desc', '');
+                        record.getField("registered_province_desc").setReadOnly(true);
+                        record.getField("registered_province_desc").setRequired(false);
+            
+                        $('registered_province_ds').setQueryParameter('country_code', '-1');
+                        $('registered_province_ds').query();
+            
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc', '');
+                        record.getField("registered_city_desc").setReadOnly(true);
+                        record.getField("registered_city_desc").setRequired(false);
+            
+                        $('registered_city_ds').setQueryParameter('province_id', -1);
+                        $('registered_city_ds').query();
+                    } else {
+                        record.getField("registered_province_desc").setReadOnly(false);
+                        record.getField("registered_province_desc").setRequired(true);
+            
+                        $('registered_province_ds').setQueryParameter('country_code', record.get('registered_country_code'));
+                        $('registered_province_ds').query();
+                    }
+                } else if (name == 'registered_province_id') {
+                    if (Ext.isEmpty(record.get('registered_province_id')) || record.get('registered_province_id') == undefined) {
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc', '');
+                        record.getField("registered_city_desc").setReadOnly(true);
+                        record.getField("registered_city_desc").setRequired(false);
+            
+                        $('registered_city_ds').setQueryParameter('province_id', -1);
+                        $('registered_city_ds').query();
+                    } else {
+                        record.getField("registered_city_desc").setReadOnly(false);
+                        record.getField("registered_city_desc").setRequired(true);
+            
+                        $('registered_city_ds').setQueryParameter('province_id', record.get('registered_province_id'));
+                        $('registered_city_ds').query();
+                    }
+                } else if (name == 'business_license_forever') {
+                    //根据用户营业执照类型标识设置到期日
+                    if (record.get('business_license_forever') == 'Y') {
+                        record.set('business_license_end_date', '');
+                        record.getField('business_license_end_date').setRequired(false);
+                        record.getField('business_license_end_date').setReadOnly(true);
+                    } else {
+                        record.getField('business_license_end_date').setReadOnly(false);
+                        record.getField('business_license_end_date').setRequired(true);
+                    }
+                } else if (name == 'enterprise_scale_code') {
+                    //企业规模
+                    if (value == 'LARGE') {
+                        record.getField('business_group_name').setReadOnly(false);
+                    } else {
+                        record.set('business_group_id', '');
+                        record.set('business_group_name', '');
+                        record.getField('business_group_name').setReadOnly(true);
+                    }
+                }
+            }
+            
+            //load
+            
+            function fnd9100_register_loadHandler(ds) {
+                var record = ds.getCurrentRecord();
+                //根据用户营业执照类型标识设置到期日
+                if (record.get('business_license_forever') == 'Y') {
+                    record.set('business_license_end_date', '');
+                    record.getField('business_license_end_date').setRequired(false);
+                    record.getField('business_license_end_date').setReadOnly(true);
+                } else {
+                    record.getField('business_license_end_date').setReadOnly(false);
+                    record.getField('business_license_end_date').setRequired(true);
+                }
+            
+                //国家、地区、城市级联更新
+                if (Ext.isEmpty(record.get('registered_country_code')) || record.get('registered_country_code') == undefined) {
+                    record.set('registered_province_id', '');
+                    record.set('registered_province_desc', '');
+                    record.getField("registered_province_desc").setReadOnly(true);
+                    record.getField("registered_province_desc").setRequired(false);
+                    $('registered_province_ds').setQueryParameter('country_code', '-1');
+                    $('registered_province_ds').query();
+            
+                    record.set('registered_city_id', '');
+                    record.set('registered_city_desc', '');
+                    record.getField("registered_city_desc").setReadOnly(true);
+                    record.getField("registered_city_desc").setRequired(false);
+            
+                    $('registered_city_ds').setQueryParameter('province_id', -1);
+                    $('registered_city_ds').query();
+                } else {
+                    record.getField("registered_province_desc").setReadOnly(false);
+                    record.getField("registered_province_desc").setRequired(true);
+            
+                    $('registered_province_ds').setQueryParameter('country_code', record.get('registered_country_code'));
+                    $('registered_province_ds').query();
+                }
+            
+                if (Ext.isEmpty(record.get('registered_province_id')) || record.get('registered_province_id') == undefined) {
+                    record.set('registered_city_id', '');
+                    record.set('registered_city_desc', '');
+                    record.getField("registered_city_desc").setReadOnly(true);
+                    record.getField("registered_city_desc").setRequired(false);
+                    $('registered_city_ds').setQueryParameter('province_id', -1);
+                    $('registered_city_ds').query();
+                } else {
+                    record.getField("registered_city_desc").setReadOnly(false);
+                    record.getField("registered_city_desc").setRequired(true);
+                    $('registered_city_ds').setQueryParameter('province_id', record.get('registered_province_id'));
+                    $('registered_city_ds').query();
+                }
+            
+                //企业规模
+                if (record.get('enterprise_scale_code') == 'LARGE') {
+                    record.getField('business_group_name').setReadOnly(false);
+                } else {
+                    record.set('business_group_id', '');
+                    record.set('business_group_name', '');
+                    record.getField('business_group_name').setReadOnly(true);
+                }
+            }
+            
+            //上传营业执照
+            
+            function fnd9100_uploadBusinessLicenceFun() {
+                var url = $('fnd_enterprise_register_attachment_link').getUrl()+"?table_name=FND_COPANY_REGISTED.BUSINESS_LICENSE&pkvalue=" + $('fnd_enterprise_ds').getAt(0).get('company_registed_id');
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:HAP_UPLOAD_TITLE}',
+                    id: 'fnd_enterprise_register',
+                    width: 610,
+                    height: 500
+                });
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="registered_country_ds" fetchAll="true" loadData="true" model="public.fnd_country_lov"/>
+            <a:dataSet id="registered_province_ds" fetchAll="true" model="pur.public.fnd_region_province_by_country_lov"/>
+            <a:dataSet id="registered_city_ds" fetchAll="true" model="pur.public.fnd_region_city_by_province_lov"/>
+            <a:dataSet id="fnd_company_enterprise_scale_ds" lookupCode="FND_COMPANIES.ENTERPRISE_SCALE"/>
+            <a:dataSet id="fnd_enterprise_ds" model="fnd.FND9100.fnd_company_registed">
+                <a:datas dataSource="/model/company_data"/>
+                <a:fields>
+                    <a:field name="company_registed_id"/>
+                    <a:field name="full_name" prompt="FND_COMPANY_REGISTED.FULL_NAME" required="true"/>
+                    <a:field name="short_name" prompt="FND_COMPANY_REGISTED.SHORT_NAME"/>
+                    <a:field name="business_license_number" prompt="FND_COMPANY_REGISTED.BUSINESS_LICENSE_NUMBER" required="true"/>
+                    <a:field name="registered_country_code"/>
+                    <a:field name="registered_country_name" displayField="country_name" options="registered_country_ds" prompt="FND_COMPANY_REGISTED.REGISTERED_COUNTRY_CODE" required="true" returnField="registered_country_code" valueField="country_code"/>
+                    <a:field name="registered_province_id"/>
+                    <a:field name="registered_province_desc" displayField="province_name" options="registered_province_ds" prompt="FND_COMPANY_REGISTED.REGISTERED_PROVINCE_ID" readOnly="true" required="true" returnField="registered_province_id" valueField="province_id"/>
+                    <a:field name="registered_city_id"/>
+                    <a:field name="registered_city_desc" displayField="city_name" options="registered_city_ds" prompt="FND_COMPANY_REGISTED.REGISTERED_CITY_ID" readOnly="true" required="true" returnField="registered_city_id" valueField="city_id"/>
+                    <a:field name="business_license_end_date" prompt="FND_COMPANY_REGISTED.BUSINESS_LICENSE_END_DATE" required="true"/>
+                    <a:field name="business_license_forever" checkedValue="Y" defaultValue="N" prompt="FND_COMPANY_REGISTED.BUSINESS_LICENSE_FOREVER" uncheckedValue="N"/>
+                    <a:field name="address" prompt="FND_COMPANY_REGISTED.ADDRESS" required="true"/>
+                    <a:field name="telephone" prompt="FND_COMPANY_REGISTED.TELEPHONE" required="true"/>
+                    <a:field name="national_organization_code" prompt="FND_COMPANY_REGISTED.NATIONAL_ORGANIZATION_CODE"/>
+                    <a:field name="business_scope" prompt="FND_COMPANY_REGISTED.BUSINESS_SCOPE"/>
+                    <a:field name="registered_currency_code"/>
+                    <a:field name="registered_currency_name" lovHeight="510" lovLabelWidth="100" lovService="fnd.FND9100.fnd_currency_code_lov" lovWidth="650" prompt="FND_COMPANY_REGISTED.REGISTERED_CURRENCY_CODE" title="CURRENCY_SELECTION">
+                        <a:mapping>
+                            <a:map from="currency_code" to="registered_currency_code"/>
+                            <a:map from="currency_name" to="registered_currency_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="registered_capital" prompt="FND_COMPANY_REGISTED.REGISTERED_CAPITAL"/>
+                    <a:field name="fax_no" prompt="FND_COMPANY_REGISTED.FAX_NO"/>
+                    <a:field name="enterprise_scale_desc" displayField="code_value_name" options="fnd_company_enterprise_scale_ds" prompt="FND_COMPANY_REGISTED.ENTERPRISE_SCALE_CODE" required="true" returnField="enterprise_scale_code" valueField="code_value"/>
+                    <a:field name="business_group_name" autoComplete="true" autoCompleteField="business_group_name" lovHeight="490" lovService="fnd.FND9100.fnd_business_groups_lov" lovWidth="490" prompt="FND_BUSINESS_GROUPS.TITLE" readOnly="true" title="FND_BUSINESS_GROUPS.QUERY_TITLE">
+                        <a:mapping>
+                            <a:map from="business_group_code" to="business_group"/>
+                            <a:map from="business_group_name" to="business_group_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="require_flag" checkedValue="Y" defaultValue="N" prompt="FND_COMPANY_REGISTED.REQUIRE_FLAG" uncheckedValue="N"/>
+                    <a:field name="supply_flag" checkedValue="Y" defaultValue="N" prompt="FND_COMPANY_REGISTED.SUPPLY_FLAG" uncheckedValue="N"/>
+                    <a:field name="service_flag" checkedValue="Y" defaultValue="N" prompt="FND_COMPANY_REGISTED.SERVICE_FLAG" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd9100_register_updateHandler"/>
+                    <a:event name="load" handler="fnd9100_register_loadHandler"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <div class="login-header">
+            <ul class="main-menu">
+                <div class="container">
+                    <div id="logo">
+                        <a href="${/request/@context_path}/" style="cursor:hand">
+                            <img src="${/request/@context_path}/index/images/HandIcon.png" style="height: 50px;"/>
+                        </a>
+                    </div>
+                </div>
+            </ul>
+        </div>
+        <div class="container">
+            <div class="row login-row-tp">
+                <center>
+                    <ul id="progress-bar" class="progress-bar-mini">
+                        <li>
+                            <div class="step finished"><![CDATA[1]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.EMAIL}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step finished"><![CDATA[2]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.READ_REG_INSTRUCTIONS}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step finished"><![CDATA[3]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.CHOOSE}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step active"><![CDATA[4]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.ENTERPRISE_INPUT}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step unfinished"><![CDATA[5]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.LEGAL_REPRESENTATIVE}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step unfinished"><![CDATA[6]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.AGENT}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step unfinished"><![CDATA[7]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.CONFIRM}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step unfinished"><![CDATA[8]]></div>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.PENDING_APPROVAL}]]></div>
+                        </li>
+                    </ul>
+                </center>
+            </div>
+            <div class="row">
+                <h3><![CDATA[${l:FND_COMPANY_REGISTED.ENTERPRISE_INPUT}]]></h3>
+                <a:vBox className="main_vbox">
+                    <a:hBox labelWidth="130">
+                        <a:textField name="full_name" bindTarget="fnd_enterprise_ds" width="438"/>
+                        <a:textField name="short_name" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:comboBox name="enterprise_scale_desc" bindTarget="fnd_enterprise_ds"/>
+                        <a:lov name="business_group_name" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:textField name="business_license_number" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:datePicker name="business_license_end_date" bindTarget="fnd_enterprise_ds"/>
+                        <a:checkBox name="business_license_forever" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:label prompt="FND_COMPANY_REGISTED.BUSINESS_DIRECTION" width="0"/>
+                        <a:checkBox name="require_flag" bindTarget="fnd_enterprise_ds"/>
+                        <a:checkBox name="supply_flag" bindTarget="fnd_enterprise_ds"/>
+                        <a:checkBox name="service_flag" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:comboBox name="registered_country_name" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:comboBox name="registered_province_desc" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:comboBox name="registered_city_desc" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:textField name="address" bindTarget="fnd_enterprise_ds" width="438"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:textField name="telephone" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:button className="item-btn-default" click="fnd9100_uploadBusinessLicenceFun" prompt="FND_COMPANY_REGISTED.BUSINESS_LICENSE_ATTM" text="PROMPT.CLICK_UPLOAD" width="80"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:textField name="national_organization_code" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:textField name="business_scope" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:lov name="registered_currency_name" bindTarget="fnd_enterprise_ds"/>
+                        <a:textField name="registered_capital" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="130">
+                        <a:textField name="fax_no" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                </a:vBox>
+            </div>
+            <div class="row content-row-bottom">
+                <a:button className="item-btn-default" click="fnd9100_enterpriseRegister_save" style="float: right; margin-right: 5px;" text="PROMPT.NEXT_STEP" width="60"/>
+                <a:button className="item-btn-default" click="fnd9100_enterpriseRegister_last_page" style="float: right; margin-right: 5px;" text="PROMPT.LAST_STEP" width="60"/>
+            </div>
+        </div>
+        <div class="login-bottom text-center">
+            <p><![CDATA[${l:HAND_COMPANY_SITE_INFO} ${l:HAND_COMPANY_CONTACT_INFO} ${l:HAND_COMPANY_ICP_INFO} Copyright Hand China Co.,Ltd.]]></p>
+        </div>
+    </a:view>
+</a:screen>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: niujiaqing1265 $
+    $Date: 2010/11/30 06:14:58 $
+    $Revision: 1.8 $
+    $Purpose: 系统级描述
+-->
+<a:screen xmlns:t="aurora.application.action" xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc" trace="true">
+    <a:init-procedure>
+        <a:model-query model="pur.PUR5610.sys_enable_image_system_query" rootPath="enable_image_system_flag"/>
+        <p:switch test="/model/enable_image_system_flag/record/@enable_image_system">
+            <p:case value="Y">
+                <a:model-query model="img.img_attachment_url" rootPath="att_url"/>
+                <a:model-query model="img.img_document_num_query" rootPath="doc_info"/>
+                <a:model-execute model="db.img_pkg.add_doc_to_interface"/>
+                <a:model-query model="img.img_upload_seqid_query" rootPath="upload"/>
+                <a:model-execute model="db.img_pkg.add_img_upload_control"/>
+                <a:model-query model="img.img_download_seqid_query" rootPath="download"/>
+                <a:model-execute model="db.img_pkg.add_img_download_control"/>
+            </p:case>
+        </p:switch>
+    </a:init-procedure>
+    <a:view package="aurora.ui.std" template="default">
+        <script><![CDATA[
+    		
+    			function selectTabFun(tab,tabIndex){
+    			    if(tabIndex == 0){
+    			        reloadUpload();
+    			    }else if (tabIndex == 1){
+    			        reloadDownload();
+    			    }
+    			}
+    			
+    			function reloadUpload(){
+					document.getElementById('upload_att').src = '${/model/att_url/record/@img_attachment_url}?type=1&barcode=${/model/doc_info/record/@document_number}&seqid=${/model/upload/record/@upload_seqid}&IMGTYPE=${/model/doc_info/record/@img_type}&IMGNAME=${/model/doc_info/record/@img_name}&CURRENTIMGTYPE=${/model/doc_info/record/@current_img_type}&CURRENTIMGNAME=${/model/doc_info/record/@current_img_name}';   			    
+    			}
+    			
+    			function reloadDownload(){
+    			    document.getElementById('download_att').src = '${/model/att_url/record/@img_attachment_url}?type=2&barcode=${/model/doc_info/record/@document_number}&seqid=${/model/download/record/@download_seqid}&IMGTYPE=${/model/doc_info/record/@img_type}&IMGNAME=${/model/doc_info/record/@img_name}&CURRENTIMGTYPE=${/model/doc_info/record/@current_img_type}&CURRENTIMGNAME=${/model/doc_info/record/@current_img_name}';
+    			}
+    		
+    	]]></script>
+        <a:screenBody>
+            <a:switch test="/model/enable_image_system_flag/record/@enable_image_system">
+                <a:case value="N">
+                    <div style="width:800px">
+                        <a:upload buttonWidth="75" fileType="*.*" pkvalue="${/parameter/@header_id}" sourcetype="${/parameter/@table_name}" text="附件上传"/>
+                        <br/>
+                    </div>
+                </a:case>
+                <a:case value="Y">
+                    <a:tabPanel height="380" width="580">
+                        <a:tabs>
+                            <a:tab prompt="附件上传">
+                                <iframe id="upload_att" frameborder="no" height="345" src="${/model/att_url/record/@img_attachment_url}?type=1&amp;barcode=${/model/doc_info/record/@document_number}&amp;seqid=${/model/upload/record/@upload_seqid}&amp;IMGTYPE=${/model/doc_info/record/@img_type}&amp;IMGNAME=${/model/doc_info/record/@img_name}&amp;CURRENTIMGTYPE=${/model/doc_info/record/@current_img_type}&amp;CURRENTIMGNAME=${/model/doc_info/record/@current_img_name}" style="broder:none;margin:0;padding:0;" width="570"/>
+                            </a:tab>
+                            <a:tab prompt="附件查看">
+                                <iframe id="download_att" frameborder="no" height="345" src="${/model/att_url/record/@img_attachment_url}?type=2&amp;barcode=${/model/doc_info/record/@document_number}&amp;seqid=${/model/download/record/@download_seqid}&amp;IMGTYPE=${/model/doc_info/record/@img_type}&amp;IMGNAME=${/model/doc_info/record/@img_name}&amp;CURRENTIMGTYPE=${/model/doc_info/record/@current_img_type}&amp;CURRENTIMGNAME=${/model/doc_info/record/@current_img_name}" style="broder:none;margin:0;padding:0;" width="570"/>
+                            </a:tab>
+                        </a:tabs>
+                        <a:events>
+                            <a:event name="select" handler="selectTabFun"/>
+                        </a:events>
+                    </a:tabPanel>
+                </a:case>
+            </a:switch>
+        </a:screenBody>
+    </a:view>
+</a:screen>

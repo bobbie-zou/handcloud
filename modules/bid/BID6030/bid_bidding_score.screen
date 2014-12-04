@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-5 下午02:19:38  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:c="aurora.application.action" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query model="bid.BID6030.bid_scoring_elements" rootPath="bid6030_scoring_elements_rp"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function bid6030BiddingScoreFootRender(data, name) {
+                if (name == 'expert_code') {
+                    return '${l:BID_ENTRUSTMENT_HEADERS.AVERAGE_SCORE}';
+                }
+            }
+            
+            function bid6030BiddingScoreScoreFootRender(data, name) {
+                var ds = $('bid6030_bidding_score_ds');
+                var recs = ds.getAll();
+                var sum = 0;
+                var count = recs.length;
+                for (var i = 0;i < recs.length;i++) {
+                    sum += parseFloat(recs[i].get(name));
+                }
+            
+                if (Aurora.isEmpty(count) || count == 0) {
+                    return 0;
+                } else {
+                    return parseFloat(sum / count).toFixed(2);
+                }
+            }
+            
+            function bid6030BiddingScoreReturn() {
+                $('bid6030_bidding_score_window').close();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid6030_bidding_score_ds" autoQuery="true" fetchAll="true" queryUrl="${/request/@context_path}/modules/bid/BID6030/bid_bidding_score_query.svc?bid_header_id=${/parameter/@bid_header_id}&amp;entrustment_header_id=${/parameter/@entrustment_header_id}"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid6030BiddingScoreReturn" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:grid id="bid6030_bidding_score_grid" bindTarget="bid6030_bidding_score_ds" height="320" width="750">
+                <a:columns>
+                    <a:column name="expert_code" align="left" footerRenderer="bid6030BiddingScoreFootRender" prompt="BID_ENTRUSTMENT_HEADERS.EXPERT_CODE" width="60"/>
+                    <a:column name="expert_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.EXPERT_NAME" width="100"/>
+                    <a:column name="leader_flag" align="center" prompt="BID_ENTRUSTMENT_HEADERS.LEADER_FLAG" width="40"/>
+                    <a:placeHolder id="bid6030_bidding_score_placeHolder"/>
+                    <a:column name="bid_score_sum" align="right" prompt="BID_ENTRUSTMENT_HEADERS.BID_SCORE_SUM" width="60"/>
+                    <a:column name="expert_suggestion" align="left" prompt="BID_BIDDING_SCORE_HEADERS.EXPERT_SUGGESTION" width="140"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+    <a:view-config>
+        <c:batch-config source="/model/bid6030_scoring_elements_rp" targetId="bid6030_bidding_score_placeHolder">
+            <a:column name="${@scoring_elements_id}" align="right" footerRenderer="bid6030BiddingScoreScoreFootRender" prompt="${@scoring_elements_desc}" width="80"/>
+        </c:batch-config>
+    </a:view-config>
+</a:screen>

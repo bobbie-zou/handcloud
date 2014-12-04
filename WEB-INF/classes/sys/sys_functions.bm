@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tuguanghui6743 $
+    $Date: 2014/10/23 11:31:05 $
+    $Revision: 1.0 $
+    $Purpose: 标准功能+签约功能
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        sf1.function_id,
+                        sf1.function_code,
+                        sf1.parent_function_id,
+                        s.service_name,
+                        (SELECT
+                            description_text
+                        FROM
+                            fnd_descriptions
+                        WHERE
+                            description_id = sf1.function_name_id AND
+                            LANGUAGE       = ${/session/@lang}
+                        )AS function_name,
+                        sf1.sequence
+                    FROM
+                        sys_function sf1,
+                        sys_service s,
+                        sys_role_function fu
+                    WHERE
+                        sf1.service_id     = s.service_id(+) AND
+                        sf1.function_level = 'F' AND
+                        sf1.function_type  = 'STANDARD' AND
+                        sf1.function_id    = fu.function_id AND
+                        fu.role_id         = ${/session/@role_id}
+                    UNION ALL
+                    SELECT
+                        sf2.function_id,
+                        sf2.function_code,
+                        sf2.parent_function_id,
+                        s.service_name,
+                        (SELECT
+                            description_text
+                        FROM
+                            fnd_descriptions
+                        WHERE
+                            description_id = sf2.function_name_id AND
+                            LANGUAGE       = ${/session/@lang}
+                        ) AS function_name,
+                        sf2.sequence
+                    FROM
+                        sys_function sf2,
+                        sys_service s,
+                        fnd_bg_role_function fbrf
+                    WHERE
+                        sf2.service_id      = s.service_id(+) AND
+                        sf2.function_level  = 'F' AND
+                        sf2.function_type   ='CUSTOMIZATION' AND
+                        sf2.function_id     = fbrf.function_id AND
+                        fbrf.role_id        = ${/session/@role_id} AND
+                        fbrf.business_group = ${/session/@business_group}
+                    ) t
+                ORDER BY
+                    t.sequence
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

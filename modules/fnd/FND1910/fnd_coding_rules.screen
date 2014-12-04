@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qiuhaowen4053 $
+    $Date: 2013/06/25 08:24:55 $
+    $Revision: 1.4 $
+    $Purpose: 编码规则定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <!-- <a:link id="fnd1910_fnd_coding_rules_link" model="fnd.FND1910.fnd_coding_rules" modelaction="query"/> -->
+        <a:link id="fnd1910_fnd_coding_rule_details_link" url="${/request/@context_path}/modules/fnd/FND1910/fnd_coding_rule_details.screen"/>
+        <a:link id="fnd1910_fnd_coding_rule_compaines_link" url="${/request/@context_path}/modules/fnd/FND1910/fnd_coding_rule_companies.screen"/>
+        <script><![CDATA[
+        
+        	function fnd1910_returnback(){
+        	    if($('fnd1910_fnd_coding_rules_ds').isModified()){
+        	     	Aurora.showConfirm('${l:PROMPT_MESSAGE}','${l:SYS_PROMPT.MODIFIED_WINDOW_CLOSE_CONFIRM}',function(){
+    	         		$('fnd1910_fnd_coding_rules_window').close(); 
+    	        	});   
+        	    }else{
+        	    	$('fnd1910_fnd_coding_rules_window').close(); 
+        	    }
+        	}
+        
+            function fnd1910_codingRuleCodeEditor(record, name) {
+                if (record.isNew) {
+                    return 'fnd1910_code_grid_tf_upper';
+                } else {
+                    return '';
+                }
+            }
+            
+            function fnd1090_codingRuleDef(value, record, name) {
+                if (!record.isNew) {
+                    var codingRuleId = record.get('coding_rule_id');
+                    return '<a href="javascript:fnd1910_codingRulesDetailsInfo(' + codingRuleId + ')">${l:BGT_JOURNAL_QUERY.DETAIL}</a>';
+                }
+            }
+            
+            function fnd1910_codingRulesDetailsInfo(codingRuleId) {
+                new Aurora.Window({
+                    id: 'fnd1910_fnd_coding_rule_details_window',
+                    url: $('fnd1910_fnd_coding_rule_details_link').getUrl() + '?coding_rule_id=' + codingRuleId,
+                    title: '${l:FND_CODING_RULES.DETAIL}',
+                    height: 520,
+                    width: 900
+                });
+            }
+            
+            function fnd1090_codingRuleCompany(value, record, name) {
+                if (!record.isNew) {
+                    var codingRuleId = record.get('coding_rule_id');
+                    var codingRuleObjectId = record.get('coding_rule_object_id');
+                    return '<a href="javascript:fnd1910_codingRulesCompany(' + codingRuleObjectId + ',' + codingRuleId + ')">${l:FND1910.CODE_RULE_COMPANY}</a>';
+                }
+            }
+            
+            function fnd1910_codingRulesCompany(codingRuleObjectId, codingRuleId) {
+                new Aurora.Window({
+                    id: 'fnd1910_fnd_coding_rule_company_window',
+                    url: $('fnd1910_fnd_coding_rule_compaines_link').getUrl() + '?coding_rule_object_id=' + codingRuleObjectId + '&coding_rule_id=' + codingRuleId,
+                    title: '${l:FND1910.CODE_RULE_COMPANY}',
+                    height: 460,
+                    width: 650
+                });
+            }
+            
+            function fnd1910_codingRuleOnUpdate(ds, record, name, value, oldvalue) {
+                var records = ds.getAll();
+                if (name == 'enabled_flag') {
+                    if (value && value == 'Y') {
+                        for (var i = 0;i < records.length;i++) {
+                            if (ds.indexOf(record) != ds.indexOf(records[i])) {
+                                ds.indexOf(record);
+                                records[i].set('enabled_flag', 'N');
+                            }
+                        }
+                    }
+                }
+            }
+            
+            function fnd1910_getLength(str) {
+                if (!Aurora.isEmpty(str)) {
+                    var realLength = 0,
+                        len = str.length,
+                        charCode = -1;
+                    for (var i = 0;i < len;i++) {
+                        charCode = str.charCodeAt(i);
+                        if (charCode >= 0 && charCode <= 128) {
+                            realLength += 1;
+                        } else {
+                            realLength += 3;
+                        }
+                    }
+                    return realLength;
+                }
+                return 0;
+            }
+            
+            function fnd1910_RuleCodeDescriptionNote(record, name, value) {
+                //长度30
+                var coding_rule_code = record.get('coding_rule_code');
+                //长度1000
+                var description = record.get('description');
+                //长度2000
+                var note = record.get('note');
+                if (name == 'coding_rule_code') {
+                    if (fnd1910_getLength(coding_rule_code) > 30) {
+                        return '${l:FND1910.RULE_CODE_OVERLENGTH}';
+                    }
+                }
+                if (name == 'description') {
+                    if (fnd1910_getLength(description) > 1000) {
+                        return '${l:FND1910.RULE_NAME_OVERLENGTH}';
+                    }
+                }
+                if (name == 'note') {
+                    if (fnd1910_getLength(note) > 2000) {
+                        return '${l:FND1910.RULE_NOTE_OVERLENGTH}';
+                    }
+                }
+                return true;
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd1910_coding_rule_reset_frequency_ds" lookupCode="CODING_RULE_RESET_FREQUENCY"/>
+            <a:dataSet id="fnd1910_fnd_coding_rule_objects_ds" autoQuery="true" model="fnd.FND1910.fnd_coding_rule_objects_query" queryUrl="${/request/@context_path}/autocrud/fnd.FND1910.fnd_coding_rule_objects_query/query?coding_rule_object_id=${/parameter/@coding_rule_object_id}">
+                <a:fields>
+                    <a:field name="rule_object_code" readOnly="true"/>
+                    <a:field name="rule_object_name" readOnly="true"/>
+                    <a:field name="rule_object_description" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd1910_fnd_coding_rules_ds" autoPageSize="true" autoQuery="true" model="fnd.FND1910.fnd_coding_rules" queryUrl="${/request/@context_path}/autocrud/fnd.FND1910.fnd_coding_rules/query?ORDER_FIELD=coding_rule_code&amp;coding_rule_object_id=${/parameter/@coding_rule_object_id}" selectable="true" submitUrl="${/request/@context_path}/modules/fnd/FND1910/fnd_coding_rules.svc">
+                <a:fields>
+                    <a:field name="coding_rule_object_id" defaultValue="${/parameter/@coding_rule_object_id}"/>
+                    <a:field name="coding_rule_code" required="true" validator="fnd1910_RuleCodeDescriptionNote"/>
+                    <a:field name="description" required="true" validator="fnd1910_RuleCodeDescriptionNote"/>
+                    <a:field name="note" required="true" validator="fnd1910_RuleCodeDescriptionNote"/>
+                    <a:field name="reset_frequence_display" displayField="code_value_name" options="fnd1910_coding_rule_reset_frequency_ds" required="true" returnField="reset_frequence" valueField="code_value"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <!-- <a:events>
+                    <a:event name="update" handler="fnd1910_codingRuleCodeCheck"/>
+                </a:events> -->
+                <a:events>
+                    <a:event name="update" handler="fnd1910_codingRuleOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="fnd1910_grid" style="margin-left:20px;" type="add" width="100"/>
+            <a:gridButton bind="fnd1910_grid" type="save" width="100"/>
+            <a:gridButton bind="fnd1910_grid" type="clear" width="100"/>
+            <a:gridButton click="fnd1910_returnback" text="HAP_BACK" width="100"/>
+        </a:screenTopToolbar>
+        <a:hBox labelWidth="120">
+            <a:textField name="rule_object_code" bindTarget="fnd1910_fnd_coding_rule_objects_ds"/>
+            <a:textField name="rule_object_name" bindTarget="fnd1910_fnd_coding_rule_objects_ds"/>
+            <a:textField name="rule_object_description" bindTarget="fnd1910_fnd_coding_rule_objects_ds"/>
+        </a:hBox>
+        <a:grid id="fnd1910_grid" bindTarget="fnd1910_fnd_coding_rules_ds" marginHeight="100" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="coding_rule_code" editorFunction="fnd1910_codingRuleCodeEditor"/>
+                <a:column name="description" editor="fnd1910_text_grid_tf" width="120"/>
+                <a:column name="note" editor="fnd1910_text_grid_tf" width="150"/>
+                <a:column name="reset_frequence_display" editor="fnd1910_reset_frequency_grid_cbm" prompt="FND_CODING_RULES.RESET_FREQUENCE"/>
+                <a:column name="enabled_flag" editor="fnd1910_enabled_flag_grid_cb"/>
+                <a:column name="coding_rule_def" prompt="HAP_DETAIL" renderer="fnd1090_codingRuleDef" width="60"/>
+                <a:column name="coding_rule_company" prompt="FND1910.CODE_RULE_COMPANY" renderer="fnd1090_codingRuleCompany"/>
+            </a:columns>
+            <a:editors>
+                <a:comboBox id="fnd1910_reset_frequency_grid_cbm"/>
+                <a:textField id="fnd1910_code_grid_tf_upper" typeCase="upper"/>
+                <a:textField id="fnd1910_text_grid_tf"/>
+                <a:checkBox id="fnd1910_enabled_flag_grid_cb"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

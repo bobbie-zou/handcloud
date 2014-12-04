@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui6743  
+    $Date: 2014/09/22 11:25:26
+    $Revision: 1.0 
+    $Purpose: 集团国家定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="fnd1021_load_cloud_link" model="fnd.FND1021.fnd_country_code_bg" modelaction="execute"/>
+        <script><![CDATA[
+            //查询
+            
+            function fnd1021_queryCountryCode() {
+                $('fnd1021_country_code_result_ds').query();
+            }
+            
+            //验证国家表字段的有效性
+            
+            function fnd1021_countryValidator(record, name, value) {
+                if (name == 'bg_country_code') {
+                    //验证国家代码的长度不能超过30
+                    if (fnd1021_getLength(value) >= 30) {
+                        return '${l:fnd1021.COUNTRY_CODE_OVERLENGTH}';
+                    }
+                } else if (name == 'bg_country_name') {
+                    //验证国家名称的长度不能超过1000
+                    if (fnd1021_getLength(value) >= 1000) {
+                        return '${l:fnd1021.COUNTRY_NAME_OVERLENGTH}';
+                    }
+                }
+                return true;
+            }
+            
+            //返回字符串真实长度
+            
+            function fnd1021_getLength(str) {
+                var realLength = 0,
+                    len = 0,
+                    charCode = -1;
+                if (!Aurora.isEmpty(str)) {
+                    len = str.length;
+                }
+                for (var i = 0;i < len;i++) {
+                    charCode = str.charCodeAt(i);
+                    if (charCode >= 0 && charCode <= 128) {
+                        realLength += 1;
+                    } else {
+                        realLength += 3;
+                    }
+                }
+                return realLength;
+            }
+            
+            
+            function fnd1021_country_code_result_onQuery(ds) {
+                //触发查询事件时，锁住按钮
+                $('fnd1021_country_code_grid_saveButton').disable();
+                $('fnd1021_country_code_grid_loadCloud').disable();
+            }
+            
+            function fnd1021_country_code_result_onLoad(ds) {
+                //触发加载数据事件时，解锁按钮
+                $('fnd1021_country_code_grid_saveButton').enable();
+                $('fnd1021_country_code_grid_loadCloud').enable();
+            }
+            
+            //导入云级数据
+            
+            function fnd1021_loadCloud() {
+                Aurora.showConfirm('${l:PROMPT}', '${l:PROMPT.LOAD_CLOUD_CONFIRM}', function() {
+                    Aurora.request({
+                        url: $('fnd1021_load_cloud_link').getUrl(),
+                        success: function(result) {
+                            Aurora.SideBar.enable = true;
+                            Aurora.SideBar.show({
+                                msg: '${l:PROMPT.LOAD_SUCCESS}'
+                            });
+                            $('fnd1021_country_code_result_ds').query();
+                        },
+                        scopo: this,
+                        sync: true
+                    });
+                });
+            }
+            
+            
+            
+            function fnd1021_country_code_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd1021_country_code_query_ds" model="fnd.FND1021.fnd_country_code_bg"/>
+            <a:dataSet id="fnd1021_country_code_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="fnd.FND1021.fnd_country_code_bg" pageSize="10" queryDataSet="fnd1021_country_code_query_ds">
+                <a:fields>
+                    <a:field name="country_code"/>
+                    <a:field name="country_name"/>
+                    <a:field name="bg_enabled_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="bg_country_code" validator="fnd1021_countryValidator"/>
+                    <a:field name="bg_country_name" validator="fnd1021_countryValidator"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd1021_country_code_result_onLoad"/>
+                    <a:event name="query" handler="fnd1021_country_code_result_onQuery"/>
+                    <a:event name="submitsuccess" handler="fnd1021_country_code_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton id="fnd1021_country_code_grid_saveButton" bind="fnd1021_country_code_grid" style="margin-left:20px;" type="save" width="100"/>
+                <a:toolbarButton id="fnd1021_country_code_grid_loadCloud" click="fnd1021_loadCloud" style="margin-left:20px;" text="PROMPT.LOAD_CLOUD_DATA" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd1021_country_code_query_ds" defaultQueryField="country_code_name" defaultQueryHint="FND1020.COUNTRY_CODE_QUERY_HINT" resultTarget="fnd1021_country_code_result_ds" style="width:100%;border:none"/>
+            <a:grid id="fnd1021_country_code_grid" bindTarget="fnd1021_country_code_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="country_code" align="left" sortable="true" typeCase="upper" width="100"/>
+                    <a:column name="country_name" align="left" sortable="true" width="250"/>
+                    <a:column name="bg_country_code" align="left" editor="fnd1021_upperTf" sortable="true" typeCase="upper" width="100"/>
+                    <a:column name="bg_country_name" align="left" editor="fnd1021_tf" sortable="true" width="250"/>
+                    <a:column name="bg_enabled_flag" align="center" editor="fnd1021_cb" width="30"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd1021_tf"/>
+                    <a:textField id="fnd1021_upperTf" typeCase="upper"/>
+                    <a:checkBox id="fnd1021_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

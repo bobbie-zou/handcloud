@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lily  
+    $Date: 2013-1-21 下午01:16:18  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="pur_puchase_order_verify_record_link" url="${/request/@context_path}/modules/ap/PUBLIC/pur_purchase_order_operate_record.screen"/>
+        <script><![CDATA[
+            
+            //执行查询操作
+            
+            function pur_purchase_order_query() {
+                $('pur_purchase_order_result_ds').query();
+            }
+            
+            //比较两个日期的大小
+            
+            function pur_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            //发布日期校验
+            
+            function pur_release_dateValidator(record, name, value) {
+                if (name == 'release_date_from' || name == 'release_date_to') {
+                    var start = record.get('release_date_from');
+                    var end = record.get('release_date_to');
+            
+                    if ( !! end) {
+                        if (!pur_compareDate(start, end)) {
+                            return '${l:ORDER_DATE_COMPARE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            //确认日期校验
+            
+            function pur_confirm_dateValidator(record, name, value) {
+                if (name == 'confirm_date_from' || name == 'confirm_date_to') {
+                    var start = record.get('confirm_date_from');
+                    var end = record.get('confirm_date_to');
+            
+                    if ( !! end) {
+                        if (!pur_compareDate(start, end)) {
+                            return '${l:PUR_COMFIRM_DATE_COMPARE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            //需求日期校验
+            
+            function pur_need_by_dateValidator(record, name, value) {
+                if (name == 'need_by_date_from' || name == 'need_by_date_to') {
+                    var start = record.get('need_by_date_from');
+                    var end = record.get('need_by_date_to');
+            
+                    if ( !! end) {
+                        if (!pur_compareDate(start, end)) {
+                            return '${l:PUR_NEED_BY_DATE_COMPARE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            //承诺日期校验
+            
+            function pur_promised_dateValidator(record, name, value) {
+                if (name == 'promised_date_from' || name == 'promised_date_to') {
+                    var start = record.get('promised_date_from');
+                    var end = record.get('promised_date_to');
+            
+                    if ( !! end) {
+                        if (!pur_compareDate(start, end)) {
+                            return '${l:PUR_PROMISE_DATE_COMPARE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            //操作记录
+            
+            function pur_recordRender(value, record, name) {
+                if (record.isNew) {
+                    return '';
+                }
+                return '<a href="javascript:pur_openRecord(' + record.get('pur_line_location_id') + ')">${l:PUR_HEADERS_ALL.OPERATION_RECORD}</a>';
+            }
+            
+            function pur_openRecord(id) {
+                new Aurora.Window({
+                    id: 'pur_purchase_order_record_window',
+                    url: $('pur_puchase_order_verify_record_link').getUrl() + '?transaction_object=PUR_LINE_LOCATIONS_ALL' + '&pur_line_location_id=' + id,
+                    title: '${l:PUR_HEADERS_ALL.OPERATION_RECORD}',
+                    height: 450,
+                    width: 700
+                });
+            }
+            
+            
+            
+            function pur_purchaseOrderResultGrid_rowRendererFun(record, rowindex) {
+                var urgent_status = record.get('urgent_status');
+                if ('URGENT' == urgent_status) {
+                    return 'color:#feb740';
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <!-- USER AUTHORITY COMPANY-->
+            <a:dataSet id="pur_userAuthorityCompany_ds" fetchAll="true" loadData="true" model="public.fnd_user_authority_company_query"/>
+            <a:dataSet id="pur_order_type_options" fetchAll="true" loadData="true" model="ap.PUBLIC.pur_purchase_order_type"/>
+            <a:dataSet id="pur_srm_status_ds" lookupCode="SRM_STATUS"/>
+            <a:dataSet id="pur_closed_code_ds" lookupCode="CLOSED_CODE"/>
+            <a:dataSet id="pur_yes_no_ds" lookupCode="YES_NO"/>
+            <!-- 加急状态 -->
+            <a:dataSet id="pur_po_urgent_status_ds" lookupCode="PUR_PO_URGENT_STATUS"/>
+            <a:dataSet id="pur_purchase_order_query_ds" model="ap.PUBLIC.pur_purchase_order_query">
+                <a:fields>
+                    <a:field name="invoice_id" defaultValue="${/parameter/@invoice_id}"/>
+                    <a:field name="invoice_line_id" defaultValue="${/parameter/@invoice_line_id}"/>
+                    <a:field name="pur_header_id" defaultValue="${/parameter/@pur_header_id}"/>
+                    <a:field name="company_id" defaultValue="${/model/pur_default_user_authority_company/record/@company_id}"/>
+                    <a:field name="company_name" defaultValue="${/model/pur_default_user_authority_company/record/@company_full_name}" displayField="company_full_name" options="pur_userAuthorityCompany_ds" returnField="company_id" valueField="company_id"/>
+                    <a:field name="type_lookup_desc" displayField="description" options="pur_order_type_options" returnField="type_lookup_code" valueField="order_type_code"/>
+                    <a:field name="agent_name" autoComplete="true" autoCompleteField="agent_code" lovGridHeight="320" lovHeight="480" lovService="public.pur_buyers_lov" lovWidth="500" title="PUR_BUYERS_SERVICE.PUR_BUYERS_QUERY">
+                        <a:mapping>
+                            <a:map from="buyer_id" to="agent_id"/>
+                            <a:map from="buyer_code" to="agent_code"/>
+                            <a:map from="description" to="agent_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_name" autoComplete="true" autoCompleteField="vendor_code" lovGridHeight="330" lovHeight="450" lovService="public.pur_vendors_by_user_authority_lov" lovWidth="500" title="VENDER_SEARCH">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_description" autoComplete="true" autoCompleteField="item_code" lovGridHeight="320" lovHeight="480" lovService="public.mtl_system_items_b_mv_lov" lovWidth="500" title="PUR_LINES_ALL.ITEM_ID">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_name" to="item_description"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="release_date_from" validator="pur_release_dateValidator"/>
+                    <a:field name="release_date_to" validator="pur_release_dateValidator"/>
+                    <a:field name="confirm_date_from" validator="pur_confirm_dateValidator"/>
+                    <a:field name="confirm_date_to" validator="pur_confirm_dateValidator"/>
+                    <a:field name="need_by_date_from" validator="pur_need_by_dateValidator"/>
+                    <a:field name="need_by_date_to" validator="pur_need_by_dateValidator"/>
+                    <a:field name="promised_date_from" validator="pur_promised_dateValidator"/>
+                    <a:field name="promised_date_to" validator="pur_promised_dateValidator"/>
+                    <a:field name="srm_name_desc" displayField="code_value_name" options="pur_srm_status_ds" returnField="srm_status" valueField="code_value"/>
+                    <a:field name="closed_code_desc" displayField="code_value_name" options="pur_closed_code_ds" returnField="closed_code" valueField="code_value"/>
+                    <a:field name="cancel_flag_desc" displayField="code_value_name" options="pur_yes_no_ds" returnField="cancel_flag" valueField="code_value"/>
+                    <a:field name="consigned_flag_code" displayField="code_value_name" options="pur_yes_no_ds" returnField="consigned_flag" valueField="code_value"/>
+                    <a:field name="reply_over_flag_desc" displayField="code_value_name" options="pur_yes_no_ds" returnField="reply_over_flag" valueField="code_value"/>
+                    <a:field name="urgent_status_desc" displayField="code_value_name" options="pur_po_urgent_status_ds" returnField="urgent_status" valueField="code_value"/>
+                    <a:field name="urgent_date_from"/>
+                    <a:field name="urgent_date_to"/>
+                    <a:field name="alread_shipped_flag" checkedValue="Y" defaultValue="N" prompt="PUR_LINE_LOCATIONS_QUANTITY.ALREADY_SHIPPED" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur_purchase_order_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="ap.PUBLIC.pur_purchase_order_query" queryDataSet="pur_purchase_order_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="cancel_flag_dis" displayField="code_value_name" options="pur_yes_no_ds" returnField="cancel_flag" valueField="code_value"/>
+                    <a:field name="closed_code_dis" displayField="code_value_name" options="pur_closed_code_ds" returnField="closed_code" valueField="code_value"/>
+                    <a:field name="consigned_flag_dis" displayField="code_value_name" options="pur_yes_no_ds" returnField="consigned_flag" valueField="code_value"/>
+                    <a:field name="srm_status_dis" displayField="code_value_name" options="pur_srm_status_ds" returnField="srm_status" valueField="code_value"/>
+                    <a:field name="reply_over_flag_dis" displayField="code_value_name" options="pur_yes_no_ds" returnField="reply_over_flag" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <!-- 整单查看 -->
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="pur_purchase_order_query_ds" marginWidth="90" resultTarget="pur_purchase_order_result_ds" style="border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="display_po_number" prompt="PUR_HEADERS_ALL.SEGMENT1">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="company_name" prompt="PUR_HEADERS_ALL.COMPANY">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="srm_name_desc" prompt="PUR_HEADERS_ALL.SRM_STATUS">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:checkBox name="alread_shipped_flag" prompt="PUR_LINE_LOCATIONS_QUANTITY.ALREADY_SHIPPED">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:checkBox>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody style="margin-left:8px">
+                    <a:hBox labelWidth="120">
+                        <a:lov name="vendor_name" prompt="PUR_HEADERS_ALL.VENDOR_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="item_description" prompt="PUR_LINES_ALL.ITEM_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:textField name="line_num" prompt="行号">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:lov name="agent_name" prompt="PUR_HEADERS_ALL.PUR_BUYER">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="display_release_num" prompt="PUR_HEADERS_ALL.RELEASE_NUM">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="urgent_status_desc" prompt="PUR_LINE_LOCATIONS_ALL.URGENT_STATUS">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:dateTimePicker name="urgent_date_from" prompt="PUR_LINE_LOCATIONS_ALL.URGENT_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:dateTimePicker>
+                        <a:dateTimePicker name="urgent_date_to" prompt="PUR_LINE_LOCATIONS_ALL.URGENT_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:dateTimePicker>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:datePicker name="release_date_from" prompt="PUR_HEADERS_ALL.RELEASE_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="release_date_to" prompt="PUR_HEADERS_ALL.RELEASE_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="confirm_date_from" prompt="PUR_HEADERS_ALL.CONFIRM_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="confirm_date_to" prompt="PUR_HEADERS_ALL.CONFIRM_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:datePicker name="need_by_date_from" prompt="PUR_LINE_LOCATIONS_ALL.NEED_BY_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="need_by_date_to" prompt="PUR_LINE_LOCATIONS_ALL.NEED_BY_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="promised_date_from" prompt="PUR_LINE_LOCATIONS_ALL.PROMISED_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="promised_date_to" prompt="PUR_LINE_LOCATIONS_ALL.PROMISED_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:comboBox name="closed_code_desc" prompt="PUR_LINES_ALL.CLOSED_FLAG">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="consigned_flag_code" prompt="PUR_LINE_LOCATIONS_ALL.CONSIGNED_FLAG">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="reply_over_flag_desc" prompt="PUR_HEADERS_ALL.REPLY_OVER_FLAG">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="cancel_flag_desc" prompt="PUR_LINE_LOCATIONS_ALL.CANCEL_FLAG">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_purchase_order_query"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="pur_purchase_order_query_grid" autoAppend="false" bindTarget="pur_purchase_order_result_ds" marginHeight="180" marginWidth="65" navBar="true" rowRenderer="pur_purchaseOrderResultGrid_rowRendererFun">
+                <a:columns>
+                    <a:column name="srm_name_desc" align="center" lock="true" prompt="PUR_HEADERS_ALL.SRM_STATUS" width="50"/>
+                    <a:column name="company_name" align="left" lock="true" prompt="PUR_HEADERS_ALL.COMPANY" sortable="true" width="60"/>
+                    <a:column name="c_attribute2" align="left" lock="true" prompt="PUR_LINE_LOCATIONS_ALL.S_ATTRIBUTE3" sortable="true" width="80"/>
+                    <a:column name="display_po_number" align="center" lock="true" prompt="PUR_HEADERS_ALL.SEGMENT1" sortable="true" width="60"/>
+                    <a:column name="vendor_code" align="center" lock="true" prompt="PUR_HEADERS_ALL.VENDOR_CODE" sortable="true" width="80"/>
+                    <a:column name="vendor_name" align="left" lock="true" prompt="PUR_HEADERS_ALL.VENDOR_NAME" sortable="true" width="80"/>
+                    <a:column name="revision_num" align="center" prompt="PUR_HEADERS_ALL.REVISION_NUM" width="25"/>
+                    <a:column name="display_release_num" align="center" prompt="PUR_HEADERS_ALL.RELEASE_NUM" sortable="true" width="40"/>
+                    <a:column name="line_num" align="center" prompt="PUR_LINES_ALL.LINE_NUM" sortable="true" width="25"/>
+                    <a:column name="shipment_num" align="center" prompt="PUR_LINE_LOCATIONS_ALL.SHIPMENT_NUM" sortable="true" width="40"/>
+                    <a:column name="item_code" align="center" prompt="PUR_LINES_ALL.ITEM_CODE" sortable="true" width="80"/>
+                    <a:column name="item_description" align="left" prompt="PUR_LINES_ALL.ITEM_DESCRIPTION" sortable="true" width="120"/>
+                    <a:column name="item_specs" align="left" prompt="MTL_SYSTEM_VENDOR_ITEMS.ITEM_SPECS" width="100"/>
+                    <a:column name="item_model" align="left" prompt="MTL_SYSTEM_VENDOR_ITEMS.ITEM_MODEL" width="100"/>
+                    <a:column name="quantity" align="right" prompt="PUR_LINES_ALL.QUANTITY" sortable="true" width="40"/>
+                    <a:column name="unit_meas_lookup_code" align="center" prompt="PUR_LINES_ALL.UNIT_MEAS_LOOKUP_CODE" width="40"/>
+                    <a:column name="quantity_received" align="right" prompt="PUR_LINE_LOCATIONS_ALL.QUANTITY_RECEIVED" width="40"/>
+                    <a:column name="deliver_quantity" align="right" prompt="PUR_LINE_LOCATIONS_ALL.DELIVER_QUANTITY" width="40"/>
+                    <a:column name="quantity_shipped" align="right" prompt="PUR_LINE_LOCATIONS_ALL.QUANTITY_SHIPPED" width="40"/>
+                    <a:column name="quantity_billed" align="right" prompt="PUR_LINE_LOCATIONS_ALL.QUANTITY_BILLED" width="40"/>
+                    <a:column name="unit_price" align="right" prompt="PUR_LINES_ALL.UNIT_PRICE" sortable="true" width="40"/>
+                    <a:column name="currency_code" align="center" prompt="PUR_HEADERS_ALL.CURRENCY_CODE" width="40"/>
+                    <a:column name="line_amount" align="right" prompt="PUR_LINES_ALL.LINE_AMOUNT" width="60"/>
+                    <a:column name="need_by_date_desc" align="center" prompt="PUR_LINE_LOCATIONS_ALL.NEED_BY_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                    <a:column name="promised_date_desc" align="center" prompt="PUR_LINE_LOCATIONS_ALL.PROMISED_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                    <a:column name="consigned_flag_dis" align="center" prompt="PUR_LINE_LOCATIONS_ALL.CONSIGNED_FLAG" width="30"/>
+                    <a:column name="c_attribute1" align="left" prompt="PUR_LINE_LOCATIONS_ALL.S_ATTRIBUTE2" width="80"/>
+                    <a:column name="c_attribute3" align="left" prompt="PUR_LINE_LOCATIONS_ALL.S_ATTRIBUTE4" width="80"/>
+                    <a:column name="closed_code_dis" align="center" prompt="PUR_LINE_LOCATIONS_ALL.CLOSED_FLAG" width="50"/>
+                    <a:column name="cancel_flag_dis" align="center" prompt="PUR_LINE_LOCATIONS_ALL.CANCEL_FLAG" width="50"/>
+                    <a:column name="line_type_name" align="center" prompt="PUR_LINES_ALL.LINE_TYPE_ID" width="50"/>
+                    <a:column name="category_name" align="center" prompt="PUR_LINES_ALL.CATEGORY_NAME" width="80"/>
+                    <a:column name="job_num" align="center" prompt="PUR_LINES_ALL.JOB_NUM" width="50"/>
+                    <a:column name="feedback_info" align="center" prompt="PUR_LINE_LOCATIONS_ALL.VENDOR_DESC" width="80"/>
+                    <a:column name="type_lookup_desc" align="center" prompt="PUR_ORDER_HEADERS.ORDER_TYPE_ID" width="80"/>
+                    <a:column name="vendor_site_name" align="center" prompt="PUR_HEADERS_ALL.VENDOR_SITE" width="80"/>
+                    <a:column name="agent_name" align="center" prompt="PUR_HEADERS_ALL.PUR_BUYER" width="50"/>
+                    <a:column name="ship_to_location_name" align="center" prompt="PUR_HEADERS_ALL.SHIP_TO_LOCATION_ID" width="50"/>
+                    <a:column name="warehouse_name" align="center" prompt="PUR_LINE_LOCATIONS_ALL.WAREHOUSE_ID" width="60"/>
+                    <a:column name="inv_location_name" align="center" prompt="PUR_LINE_LOCATIONS_ALL.INV_LOCATION_ID" width="60"/>
+                    <a:column name="bill_to_location_name" align="center" prompt="PUR_HEADERS_ALL.BILL_TO_LOCATION_ID" width="50"/>
+                    <a:column name="secondary_unit_price" align="center" prompt="PUR_LINES_ALL.SECONDARY_UNIT_OF_MEASURE" width="50"/>
+                    <a:column name="secondary_quantity" align="right" prompt="PUR_LINES_ALL.SECONDARY_QUANTITY" width="50"/>
+                    <a:column align="center" prompt="PUR_HEADERS_ALL.OPERATION_RECORD" renderer="pur_recordRender" width="50"/>
+                    <a:column name="creation_date_desc" align="center" prompt="PUR_HEADERS_ALL.CREATION_DATE" sortable="true" width="120"/>
+                    <a:column name="release_date_desc" align="center" prompt="PUR_HEADERS_ALL.RELEASE_DATE" sortable="true" width="120"/>
+                    <a:column name="reply_date_desc" align="center" prompt="PUR_HEADERS_ALL.REPLY_DATE" sortable="true" width="120"/>
+                    <a:column name="confirm_date_desc" align="center" prompt="PUR_HEADERS_ALL.CONFIRM_DATE" sortable="true" width="120"/>
+                    <a:column name="reply_over_flag_dis" align="center" prompt="PUR_HEADERS_ALL.REPLY_OVER_FLAG" width="70"/>
+                    <a:column name="urgent_status_desc" align="center" prompt="PUR_LINE_LOCATIONS_ALL.URGENT_STATUS" width="70"/>
+                    <a:column name="urgent_date_desc" align="center" prompt="PUR_LINE_LOCATIONS_ALL.URGENT_DATE" width="70"/>
+                    <a:column name="data_source" align="center" prompt="PUR_HEADERS_ALL.DATA_SOURCE" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+        <!-- <script><![CDATA[
+        //判断查询条件标志
+        if('${/parameter/@_queryFlag}' == 'Y'){
+            var query_record = $('pur_purchase_order_query_ds').getAt(0);
+            query_record.set('urgent_status','URGENT');
+            query_record.set('urgent_status_desc','已加急');
+            //query_record.set('alread_shipped_flag','Y');
+            $('pur_purchase_order_result_ds').query();
+        }
+        ]]></script> -->
+    </a:view>
+</a:screen>

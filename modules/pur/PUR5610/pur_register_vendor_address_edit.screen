@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-12-25 上午10:14:02  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="pur5610_register_address_update_link" model="pur.PUR5610.pur_register_vendor_address" modelaction="update"/>
+        <style type="text/css"><![CDATA[
+
+.tr {
+    margin-top:5px;
+    margin-bottom:5px;
+}			
+		]]></style>
+        <script><![CDATA[
+        
+        	//load事件
+        	function pur5610_site_edit_load_handler(ds){
+        	    var record = ds.getCurrentRecord();
+        	    
+        	    //国家、地区、城市级联更新
+                if (Ext.isEmpty(record.get('country_name')) || record.get('country_name') == undefined) {
+                    record.set('country_code', '');
+                    record.getField("province_name").setLovService('');
+                    record.getField("city_name").setLovService('');
+                } else {
+                    var temp_string = record.get('country_code');
+                    record.getField("city_name").setLovService('');
+                    record.getField("province_name").setLovService('pur.PUR5610.fnd_region_province_lov');
+                    record.getField("province_name").setLovPara('country_code', temp_string);
+                    record.getField("province_name").setLovPara('vendor_register_id', '${/parameter/@vendor_id}');
+                }
+            
+                if (Ext.isEmpty(record.get('province_name')) || record.get('province_name') == undefined) {
+                    record.set('province_id', '');
+                    record.getField("city_name").setLovService('');
+                } else {
+                    record.getField("city_name").setLovService('pur.PUR5610.fnd_region_city_lov');
+                    record.getField("city_name").setLovPara('province_id', record.get('province_id'));
+                }
+        	}
+        
+        	//国家、地区、城市级联更新
+        	function pur5610_site_edit_update_handler(ds, record, name, value, oldvalue){
+        	    //国家、地区、城市级联更新
+                if (name == 'country_name') {
+                    record.set('province_name', '');
+                    record.set('province_id', '');
+                    record.set('city_id', '');
+                    record.set('city_name', '');
+                    if (Ext.isEmpty(record.get('country_name')) || record.get('country_name') == undefined) {
+                        record.set('country_code', '');
+                        record.getField("province_name").setLovService('');
+                        record.getField("city_name").setLovService('');
+                    } else {
+                        var temp_string = record.get('country_code');
+                        record.getField("city_name").setLovService('');
+                        record.getField("province_name").setLovService('pur.PUR5610.fnd_region_province_lov');
+                        record.getField("province_name").setLovPara('country_code', temp_string);
+                        record.getField("province_name").setLovPara('vendor_register_id', '${/parameter/@vendor_id}');
+                    }
+                }
+                if (name == 'province_name') {
+                    record.set('city_name', '');
+                    record.set('city_id', '');
+                    if (Ext.isEmpty(record.get('province_name')) || record.get('province_name') == undefined) {
+                        record.set('province_id', '');
+                        record.getField("city_name").setLovService('');
+                    } else {
+                        record.getField("city_name").setLovService('pur.PUR5610.fnd_region_city_lov');
+                        record.getField("city_name").setLovPara('province_id', record.get('province_id'));
+                        record.getField("city_name").setLovPara('vendor_register_id', '${/parameter/@vendor_id}');
+                    }
+                }
+        	}
+        
+    		//保存
+    		
+    		function pur5610_site_edit_save() {
+    		    var ds = $('pur5610_vendor_site_edit_ds');
+    		    var record = ds.getCurrentRecord();
+    		    if (ds.validate()) {
+    		        Aurora.request({
+    		            url: $('pur5610_register_address_update_link').getUrl(),
+    		            para: record.data,
+    		            success: function(res) {
+    		
+    		                pur5610_site_edit_close();
+    		                $('pur5610_register_site_ds').query();
+    		                pur5610_site_init();
+    		            },
+    		            scope: this
+    		        });
+    		    }
+    		}
+    		
+    		//关闭
+    		
+    		function pur5610_site_edit_close() {
+    		    $('pur5610_site_edit_win').close();
+    		}
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5610_vendor_site_edit_ds" autoQuery="true" model="pur.PUR5610.pur_register_vendor_address" queryUrl="${/request/@context_path}/autocrud/pur.PUR5610.pur_register_vendor_address/query?vendor_site_id=${/parameter/@vendor_site_id}">
+                <a:fields>
+                    <a:field name="vendor_id" defaultValue="${/parameter/@vendor_id}"/>
+                    <a:field name="country_code"/>
+                    <a:field name="country_name" lovHeight="480" lovService="pur.PUR5610.fnd_country_lov?vendor_register_id=${/parameter/@vendor_id}" lovWidth="500" required="true" title="SYS_VENDOR_COUNTRY_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="country_code" to="country_code"/>
+                            <a:map from="country_name" to="country_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="province_id"/>
+                    <a:field name="province_name" lovHeight="480" lovWidth="500" title="SYS_VENDOR_REGION_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="province_id" to="province_id"/>
+                            <a:map from="province_name" to="province_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="city_id"/>
+                    <a:field name="city_name" lovHeight="480" lovWidth="500" title="SYS_VENDOR_CITY_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="city_id" to="city_id"/>
+                            <a:map from="city_name" to="city_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="address" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur5610_site_edit_update_handler"/>
+                    <a:event name="load" handler="pur5610_site_edit_load_handler"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <div style="margin-top:20px;">
+            <a:vBox labelWidth="110">
+                <a:lov name="country_name" bindTarget="pur5610_vendor_site_edit_ds" className="tr" prompt="PUR_SYSTEM_VENDERS.COUNTRY_CODE"/>
+                <a:lov name="province_name" bindTarget="pur5610_vendor_site_edit_ds" className="tr" prompt="PUR_SYSTEM_VENDERS.PROVINCE"/>
+                <a:lov name="city_name" bindTarget="pur5610_vendor_site_edit_ds" className="tr" prompt="PUR_SYSTEM_VENDERS.CITY_ID"/>
+                <a:textField name="address" bindTarget="pur5610_vendor_site_edit_ds" className="tr" prompt="PUR_SYSTEM_VENDERS.ADDRESS_ID"/>
+                <a:textField name="post_code" bindTarget="pur5610_vendor_site_edit_ds" className="tr" prompt="PUR_REGISTER_VENDOR_SITES.POST_CODE"/>
+                <a:textField name="address_comments" bindTarget="pur5610_vendor_site_edit_ds" className="tr" prompt="PUR_REGISTER_VENDORS.ADDRESS_COMMENTS"/>
+            </a:vBox>
+            <a:hBox style="margin-top:15px;">
+                <a:button click="pur5610_site_edit_save" style="float:left;margin-left:50px;" text="PUR5610.ADD" width="60"/>
+                <a:button click="pur5610_site_edit_close" style="float:left;margin-left:100px;" text="PUR5610.ABANDON" width="60"/>
+            </a:hBox>
+        </div>
+    </a:view>
+</a:screen>

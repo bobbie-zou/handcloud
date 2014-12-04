@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tony  
+    $Date: 2013-5-2 下午4:47:53  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="blt1010_blt_add_link" url="${/request/@context_path}/modules/blt/BLT1010/blt_bulletin_create.screen"/>
+        <a:link id="blt1010_editbulletinInfo_link" url="${/request/@context_path}/modules/blt/BLT1010/blt_bulletin_edit.screen"/>
+        <a:link id="blt1010_blt_release_link" url="${/request/@context_path}/modules/blt/BLT1010/blt_bulletin_release.svc"/>
+        <a:link id="blt1010_blt_delete_link" url="${/request/@context_path}/modules/blt/BLT1010/blt_bulletin_release.svc"/>
+        <a:link id="blt1010_blt_history_link" url="${/request/@context_path}/modules/blt/BLT1010/blt_bulletin_browsing_history.screen"/>
+        <a:link id="blt1010_create_bulletin_browsing_history_link" model="blt.BLT1010.create_bulletin_browsing_history" modelaction="execute"/>
+        <a:link id="blt1010_blt_bulletin_detail_link" url="${/request/@context_path}/modules/blt/BLT1010/blt_bulletin_details_no_login.screen"/>
+        <script><![CDATA[
+            function blt1010_query() {
+                $('blt1010_bulletin_result_ds').query();
+            }
+            
+            
+            function blt1010_add() {
+                window.open($('blt1010_blt_add_link').getUrl());
+            }
+            
+            function blt1010_edit_blt(value, record, name) {
+                var bulletin_id = record.get('bulletin_id');
+                var bulletin_title = record.get('bulletin_title');
+                var business_group = record.get('business_group');
+                return '<a href="javascript:blt1010_editbulletinInfo(' + bulletin_id + ',\'' + business_group + '\')">' + bulletin_title + '</a>';
+            }
+            
+            function blt1010_editbulletinInfo(id, business_group) {
+                if (business_group == 'undefined') {
+                    business_group = null;
+                }
+                if (Aurora.isEmpty('${/session/@business_group}') && (Aurora.isEmpty('${/session/@business_group}') != Aurora.isEmpty(business_group))) {
+                    Aurora.request({
+                        url: $('blt1010_create_bulletin_browsing_history_link').getUrl(),
+                        para: {
+                            'bulletin_id': id
+                        },
+                        success: function() {
+                            var new_url = $('blt1010_blt_bulletin_detail_link').getUrl() + '?bulletin_id=' + id;
+                            window.open(new_url, 'WFL_USER_MESSAGE_SHOW_WINDOWS', "left=" + 0 + ",top=" + 0 + ",width=" + (window.screen.availWidth - 10) + ",height=" + (window.screen.availHeight - 50) + ",status=0,toolbar=0,menubar=0,location=0,scrollbars=" + 1 + ",resizable=" + 1, false);
+                        },
+                        scope: this
+                    });
+                } else {
+                    var url = $('blt1010_editbulletinInfo_link').getUrl() + '?bulletin_id=' + id;
+                    window.open(url);
+                }
+            }
+            
+            function blt1010_show_history(value, record, name) {
+                var bulletin_id = record.get('bulletin_id');
+                var status = record.get('status');
+                var bulletin_category = record.get('bulletin_category');
+                if (status != 'NEW' && bulletin_category == 'LOGINED_BULLETIN') {
+                    return '<a href="javascript:blt1010_show_history_2(' + bulletin_id + ')">${l:BLT.BROWSE_HISTORY}</a>';
+                }
+            }
+            
+            function blt1010_show_history_2(id) {
+                new Aurora.Window({
+                    id: 'blt1010_history_window',
+                    title: '${l:BLT.BROWSE_HISTORY}',
+                    url: $('blt1010_blt_history_link').getUrl() + '?bulletin_id=' + id,
+                    width: 750,
+                    height: 500
+                });
+            }
+            
+            function blt1010_release() {
+                var blt1010_bulletin_result_ds = $('blt1010_bulletin_result_ds');
+                var datas = blt1010_bulletin_result_ds.getJsonData(true);
+                if (datas.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SELECT_LINE_DATE}!');
+                } else {
+                    for (var i = 0;i < datas.length;i++) {
+                        var record = datas[i];
+                        if (record.status == "1") {
+                            Aurora.showMessage('${l:PROMPT}', record.bulletin_title + '${l:BLT_BULLETIN.BULLETIN_HAS_BEEN_RELEASED}');
+                            return;
+                        }
+                    }
+                    Aurora.request({
+                        url: $('blt1010_blt_release_link').getUrl(),
+                        para: datas,
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:BLT_BULLETIN.RELEASED_SUCCEED}', function() {
+                                blt1010_query();
+                            });
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function blt1010_dateValidator(record, name, value) {
+                if (name == 'release_date_from' || name == 'release_date_to') {
+                    var release_date_from = record.get('release_date_from');
+                    var release_date_to = record.get('release_date_to');
+                    if (typeof(release_date_to) != 'undefined' && !Ext.isEmpty(release_date_to)) {
+                        if (!blt1010_compareDate(release_date_from, release_date_to)) {
+                            return '${l:BLT_BULLETIN.RELEASE_DATE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            
+                if (name == 'creation_date_from' || name == 'creation_date_to') {
+                    var creation_date_from = record.get('creation_date_from');
+                    var creation_date_to = record.get('creation_date_to');
+                    if (typeof(creation_date_to) != 'undefined' && !Ext.isEmpty(creation_date_to)) {
+                        if (!blt1010_compareDate(creation_date_from, creation_date_to)) {
+                            return '${l:BLT_BULLETIN.CREATION_DATE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+                if (name == 'date_from' || name == 'date_to') {
+                    var date_from = record.get('date_from');
+                    var date_to = record.get('date_to');
+                    if (typeof(date_to) != 'undefined' && !Ext.isEmpty(date_to)) {
+                        if (!blt1010_compareDate(date_from, date_to)) {
+                            return '${l:BLT_BULLETIN.DATE_FROM_TO_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function blt1010_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function blt1010_queryHook(value, ds) {
+                var record = ds.getCurrentRecord(0);
+                record.set('bulletin_title', null);
+                record.set('bulletin_title', value);
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="blt1010_status_ds" lookupCode="BLT_BULLETIN_STATUS"/>
+            <a:dataSet id="blt1010_bulletin_object_category_ds" lookupCode="BLT_BULLETIN_OBJECT_CATEGORY"/>
+            <a:dataSet id="blt1010_bulletin_category_ds" lookupCode="BLT_BULLETIN_CATEGORY"/>
+            <a:dataSet id="blt1010_bulletin_query_ds">
+                <a:fields>
+                    <a:field name="bulletin_title" prompt="BLT_BULLETIN_LIST.BULLETIN_TITLE"/>
+                    <a:field name="release_date_from" prompt="BLT_BULLETIN_LIST.RELEASE_DATE_FROM" validator="blt1010_dateValidator"/>
+                    <a:field name="release_date_to" prompt="BLT_BULLETIN_LIST.RELEASE_DATE_TO" validator="blt1010_dateValidator"/>
+                    <a:field name="status_desc" displayField="code_value_name" options="blt1010_status_ds" prompt="BLT_BULLETIN_LIST.STATUS" returnField="status" valueField="code_value"/>
+                    <a:field name="status"/>
+                    <a:field name="creation_date_from" prompt="BLT_BULLETIN_LIST.CREATION_DATE_FROM" validator="blt1010_dateValidator"/>
+                    <a:field name="creation_date_to" prompt="BLT_BULLETIN_LIST.CREATION_DATE_TO" validator="blt1010_dateValidator"/>
+                    <a:field name="object_category_desc" displayField="code_value_name" options="blt1010_bulletin_object_category_ds" prompt="BLT_BULLETIN_LIST.OBJECT_CATEGORY" returnField="object_category" valueField="code_value"/>
+                    <a:field name="object_category"/>
+                    <a:field name="bulletin_category_desc" displayField="code_value_name" options="blt1010_bulletin_category_ds" prompt="BLT_BULLETIN_LIST.BULLETIN_CATEGORY" returnField="bulletin_category" valueField="code_value"/>
+                    <a:field name="bulletin_category"/>
+                    <a:field name="show_delete_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="blt1010_bulletin_result_ds" autoPageSize="true" autoQuery="true" model="blt.BLT1010.blt_bulletin_list" queryDataSet="blt1010_bulletin_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="bulletin_id"/>
+                    <a:field name="bulletin_title"/>
+                    <a:field name="date_from"/>
+                    <a:field name="date_to"/>
+                    <a:field name="status_desc" displayField="code_value_name" options="blt1010_status_ds" returnField="status" valueField="code_value"/>
+                    <a:field name="object_category_desc"/>
+                    <a:field name="atm_file" checkedValue="Y" defaultValue="N" readOnly="true" uncheckedValue="N"/>
+                    <a:field name="business_group"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton click="blt1010_add" text="BLT_BULLETIN_LIST.NEW_BULLETIN" width="100"/>
+            <a:gridButton click="blt1010_release" text="BLT_BULLETIN_LIST.RELEASE_BULLETIN" width="100"/>
+            <a:gridButton bind="blt1010_bulletin_grid" text="BLT_BULLETIN_LIST.DELETE_BULLETIN" type="delete" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="fnd_bulletin_query_form" bindTarget="blt1010_bulletin_query_ds" defaultQueryHint="BLT.BULLETIN_MANAGE_DEFAULT_QUERY_HINT" queryHook="blt1010_queryHook" resultTarget="blt1010_bulletin_result_ds" style="width:100%;border:none">
+            <a:formBody style="margin-left:5px">
+                <a:hBox labelWidth="150">
+                    <a:datePicker name="creation_date_from" bindTarget="blt1010_bulletin_query_ds"/>
+                    <a:datePicker name="creation_date_to" bindTarget="blt1010_bulletin_query_ds"/>
+                    <a:checkBox name="show_delete_flag" bindTarget="blt1010_bulletin_query_ds" prompt="BLT_BULLETIN_LIST.SHOW_DELETED_BLT"/>
+                </a:hBox>
+                <a:hBox labelWidth="150">
+                    <a:datePicker name="release_date_from" bindTarget="blt1010_bulletin_query_ds"/>
+                    <a:datePicker name="release_date_to" bindTarget="blt1010_bulletin_query_ds"/>
+                </a:hBox>
+                <a:hBox labelWidth="150">
+                    <a:comboBox name="bulletin_category_desc" bindTarget="blt1010_bulletin_query_ds"/>
+                    <a:comboBox name="object_category_desc" bindTarget="blt1010_bulletin_query_ds"/>
+                    <a:comboBox name="status_desc" bindTarget="blt1010_bulletin_query_ds"/>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="blt1010_bulletin_grid" bindTarget="blt1010_bulletin_result_ds" marginHeight="150" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="bulletin_title" align="left" renderer="blt1010_edit_blt" sortable="true" width="110"/>
+                <a:column name="release_date_desc" align="left" width="90"/>
+                <a:column name="bulletin_category_desc" align="left" width="80"/>
+                <a:column name="bulletin_type_desc" align="left" width="80"/>
+                <a:column name="object_category_desc" align="left" width="80"/>
+                <a:column name="date_from" align="left" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                <a:column name="date_to" align="left" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                <a:column name="status_desc" align="left" sortable="true" width="50"/>
+                <a:column name="browse_history" align="left" prompt="BLT.BROWSE_HISTORY" renderer="blt1010_show_history" width="80"/>
+                <a:column name="atm_file" align="left" width="80"/>
+            </a:columns>
+            <a:editors>
+                <a:checkBox id="blt1010_bulletin_ckb"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

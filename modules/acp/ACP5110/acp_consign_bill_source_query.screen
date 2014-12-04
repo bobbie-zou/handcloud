@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2014年1月17日 下午2:55:17  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="acp5110_consign_bill_create_temp_link" url="${/request/@context_path}/modules/acp/ACP5110/acp_consign_bill_create_temp.svc"/>
+        <a:link id="acp5110_consign_bill_create_preview_link" url="${/request/@context_path}/modules/acp/ACP5110/acp_consign_bill_create_preview.screen"/>
+        <script><![CDATA[
+            function acp5110Query() {
+                $('acp5110_consign_bill_source_result_ds').query();
+            }
+            
+            function acp5110CreatePreview() {
+                var result_ds = $('acp5110_consign_bill_source_result_ds');
+                var records = result_ds.getSelected();
+            
+                if (records.length > 0) {
+                    var datas = [];
+                    for (var i = 0;i < records.length;i++) {
+                        datas.push(records[i].data);
+                    }
+            
+                    Aurora.Masker.mask(Ext.getBody(), '正在加载');
+            
+                    Aurora.request({
+                        url: $('acp5110_consign_bill_create_temp_link').getUrl(),
+                        para: datas,
+                        success: function() {
+                            new Aurora.Window({
+                                id: 'acp5110_consign_bill_create_preview_window',
+                                title: '寄销开票单预览',
+                                url: $('acp5110_consign_bill_create_preview_link').getUrl(),
+                                fullScreen: true
+                            }).on('beforeclose', function() {
+                                acp5110Query();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+            
+                    Aurora.Masker.unmask(Ext.getBody());
+                }
+            }
+            
+            function acp5110ConsignBillSourceResultRender(value, rec, name) {
+                if (name == 'po_num') {
+                    //TODO
+                    return value;
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp5110_consign_bill_source_query_ds">
+                <a:fields>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="company_full_name" lovGridHeight="320" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" title="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="acp5110_consign_bill_source_result_ds" autoCount="true" autoPageSize="true" model="acp.ACP5110.acp_consign_bill_source_query" queryDataSet="acp5110_consign_bill_source_query_ds" selectable="true"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="acp5110CreatePreview" text="预览" width="100"/>
+                <a:gridButton bind="acp5110_consign_bill_source_result_grid" type="excel" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="acp5110_consign_bill_source_query_ds" resultTarget="acp5110_consign_bill_source_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="po_num" bindTarget="acp5110_consign_bill_source_query_ds" prompt="采购订单号">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5110Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:lov name="company_desc" bindTarget="acp5110_consign_bill_source_query_ds" prompt="公司">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5110Query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="vendor_desc" bindTarget="acp5110_consign_bill_source_query_ds" prompt="供应商">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5110Query"/>
+                        </a:events>
+                    </a:lov>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:vBox labelWidth="100"/>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="acp5110_consign_bill_source_result_grid" bindTarget="acp5110_consign_bill_source_result_ds" marginHeight="130" marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="company_code" align="left" prompt="公司编码" sortable="true" width="60"/>
+                    <a:column name="company_desc" align="left" prompt="公司名称" sortable="true" width="100"/>
+                    <a:column name="vendor_code" align="left" prompt="供应商编码" sortable="true" width="60"/>
+                    <a:column name="vendor_desc" align="left" prompt="供应商名称" sortable="true" width="100"/>
+                    <a:column name="vendor_site_desc" align="left" prompt="供应商地点" sortable="true" width="60"/>
+                    <a:column name="po_num" align="left" prompt="采购订单号" renderer="acp5110ConsignBillSourceResultRender" sortable="true" width="60"/>
+                    <a:column name="release_num" align="left" prompt="发放号" sortable="true" width="50"/>
+                    <a:column name="currency_code" align="left" prompt="币种" sortable="true" width="60"/>
+                    <a:column name="bill_amount" align="right" prompt="可开票总额" sortable="true" width="80"/>
+                    <a:column name="buyer_desc" align="left" prompt="采购员" sortable="true" width="60"/>
+                    <a:column name="creation_date" align="center" prompt="订单创建日期" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                    <a:column name="data_source" align="left" prompt="数据来源" sortable="true" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

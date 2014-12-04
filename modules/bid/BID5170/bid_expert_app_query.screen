@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-5 下午02:19:38  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="bid5170_expert_app_detail_link" url="${/request/@context_path}/modules/bid/BID5170/bid_expert_app_detail.screen"/>
+        <a:link id="bid5170_operation_record_link" url="${/request/@context_path}/modules/bid/public/bid_operation_record.screen"/>
+        <script><![CDATA[
+            function bid5170Query() {
+                $('bid5170_expert_app_result_ds').query();
+            }
+            
+            function bid5170ExpertAppQueryValidator(record, name, value) {
+                if (name == 'date_from') {
+                    var date_to = record.get('date_to');
+                    if (!Aurora.isEmpty(value) && !Aurora.isEmpty(date_to)) {
+                        if (value > date_to) {
+                            return '${l:PROMPT.INCORRECT_QUERY_CONDITION}';
+                        } else {
+                            return true;
+                        }
+                    } else {
+                        return true;
+                    }
+                } else if (name == 'date_to') {
+                    var date_from = record.get('date_from');
+                    if (!Aurora.isEmpty(value) && !Aurora.isEmpty(date_from)) {
+                        if (value < date_from) {
+                            return '${l:PROMPT.INCORRECT_QUERY_CONDITION}';
+                        } else {
+                            return true;
+                        }
+                    } else {
+                        return true;
+                    }
+                }
+            }
+            
+            function bid5170ExpertAppQueryOnUpdate(ds, record, name, value, old_value) {
+                if (name == 'date_from') {
+                    record.validate('date_to');
+                } else if (name == 'date_to') {
+                    record.validate('date_from');
+                }
+            }
+            
+            function bid5170ExpertAppResultRender(value, record, name) {
+                if (name == 'expert_app_header_number') {
+                    return '<a href="javascript:bid5170ExpertAppDetail(' + record.get('expert_app_header_id') + ')">' + value + '</a>';
+                } else if (name == 'operation_record') {
+                    return '<a href="javascript:bid5170OperationRecord(' + record.get('expert_app_header_id') + ')">操作记录</a>';
+                }
+            }
+            
+            function bid5170ExpertAppDetail(expert_app_header_id) {
+                new Aurora.Window({
+                    id: 'bid5170_expert_app_detail_window',
+                    title: '${l:BID_EXPERT_APP_HEADERS.APP_MAINTAIN}',
+                    url: $('bid5170_expert_app_detail_link').getUrl() + '?expert_app_header_id=' + expert_app_header_id,
+                    fullScreen: true
+                }).on('beforeclose', bid5170Query);
+            }
+            
+            function bid5170OperationRecord(expert_app_header_id) {
+                new Aurora.Window({
+                    id: 'bid5170_operation_record_window',
+                    title: '${l:PROMPT.OPERATION_RECORD}',
+                    url: $('bid5170_operation_record_link').getUrl() + '?operation_table=BID_EXPERT_APP_HEADERS' + '&operation_table_id=' + expert_app_header_id,
+                    height: 450,
+                    width: 600
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5170_bid_expert_types_ds" lookupCode="BID_EXPERT_TYPES"/>
+            <a:dataSet id="bid5170_expert_app_query_ds">
+                <a:fields>
+                    <a:field name="date_from" validator="bid5170ExpertAppQueryValidator"/>
+                    <a:field name="date_to" validator="bid5170ExpertAppQueryValidator"/>
+                    <a:field name="expert_type_desc" displayField="code_value_name" options="bid5170_bid_expert_types_ds" returnField="expert_type" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="bid5170ExpertAppQueryOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5170_expert_app_result_ds" autoPageSize="true" autoQuery="false" model="bid.BID5170.bid_expert_app_query" queryDataSet="bid5170_expert_app_query_ds"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="bid5170_expert_app_query_ds" resultTarget="bid5170_expert_app_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="expert_app_header_number" bindTarget="bid5170_expert_app_query_ds" prompt="BID_EXPERT_APP_HEADERS.EXPERT_APP_HEADER_NUMBER">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5170Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="expert_type_desc" bindTarget="bid5170_expert_app_query_ds" prompt="BID_EXPERT_APP_HEADERS.EXPERT_NAME">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5170Query"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:datePicker name="date_from" bindTarget="bid5170_expert_app_query_ds" prompt="BID_EXPERT_APP_HEADERS.REGISTRATION_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5170Query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="date_to" bindTarget="bid5170_expert_app_query_ds" prompt="BID_EXPERT_APP_HEADERS.REGISTRATION_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5170Query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="bid5170_expert_app_result_grid" autoAppend="false" bindTarget="bid5170_expert_app_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="expert_app_header_number" align="center" prompt="BID_EXPERT_APP_HEADERS.EXPERT_APP_HEADER_NUMBER" renderer="bid5170ExpertAppResultRender" width="80"/>
+                    <a:column name="full_name" align="left" prompt="BID_EXPERT_APP_HEADERS.EXPERT_NAME" width="80"/>
+                    <a:column name="creation_date" align="center" prompt="BID_EXPERTS.REGISTRATION_DATE" renderer="Aurora.formatDate" width="60"/>
+                    <a:column name="expert_type_desc" align="left" prompt="BID_EXPERT_APP_HEADERS.EXPERT_TYPE" width="60"/>
+                    <a:column name="employee_code" align="left" prompt="BID_EXPERT_APP_HEADERS.EMPLOYEE_CODE" width="60"/>
+                    <a:column name="status_desc" align="left" prompt="BID_EXPERT_ALTERATION.STATUS" width="60"/>
+                    <a:column name="operation_record" align="center" prompt="PROMPT.OPERATION_RECORD" renderer="bid5170ExpertAppResultRender" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

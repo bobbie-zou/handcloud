@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-2-28 上午10:46:22  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="insert">
+            <bm:query-sql><![CDATA[
+            	begin
+            	    fnd_flex_appl_parameters_pkg.ins_fnd_flex_appl_tables(
+					    p_function_id =>${@function_id},
+					    p_function_code =>${@function_code},
+					    p_function_desc_id =>${@function_desc_id},
+					    p_appl_table_code =>${@appl_table_code},
+					    p_description =>${@appl_table_desc},
+					    p_column_pk_name =>${@column_pk_name},
+					    p_enabled_flag =>'Y',
+					    p_user_id =>${/session/@user_id},
+					    x_appl_table_id =>${@appl_table_id}
+				  );
+            	end;
+            ]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter name="appl_table_id" dataType="java.lang.Long" input="false" output="true" outputPath="@appl_table_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+            	begin
+            	    fnd_flex_appl_parameters_pkg.update_fnd_flex_appl_tables(
+					    p_appl_table_id =>${@appl_table_id},
+					    p_function_id =>${@function_id},
+					    p_function_code =>${@function_code},
+					    p_function_desc_id =>${@function_desc_id},
+					    p_appl_table_code =>${@appl_table_code},
+					    p_description =>${@appl_table_desc},
+					    p_description_id =>${@description_id},
+					    p_column_pk_name =>${@column_pk_name},
+					    p_enabled_flag =>'Y',
+					    p_user_id =>${/session/@user_id}
+					  );
+            	end;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    ffat.function_id,
+                    ffat.function_desc_id,
+                    ffat.description_id,
+                    ffat.function_code,
+                    ffat.appl_table_id,
+                    (SELECT
+                        fd.description_text
+                    FROM
+                        fnd_descriptions fd
+                    WHERE
+                        fd.description_id=ffat.description_id AND
+                        fd.language      =${/session/@lang}
+                    ) AS function_name,
+                    ffat.appl_table_code,
+                    (SELECT
+                        fd.description_text
+                    FROM
+                        fnd_descriptions fd
+                    WHERE
+                        fd.description_id=ffat.description_id AND
+                        fd.language      =${/session/@lang}
+                    ) AS appl_table_desc,
+                    ffat.column_pk_name,
+                    ffat.enabled_flag
+                FROM
+                    fnd_flex_appl_tables ffat
+                #WHERE_CLAUSE#    
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="function_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="function_desc_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="description_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="function_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="应用代码"/>
+        <bm:field name="function_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="应用描述"/>
+        <bm:field name="appl_table_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="appl_table_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="应用表名称"/>
+        <bm:field name="appl_table_desc" databaseType="VARCHAR2" datatype="java.lang.String" prompt="应用表描述"/>
+        <!-- <bm:field name="column_pk_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="应用表主键"/> -->
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="启用"/>
+        <!-- <bm:field name="company_id_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="公司ID名"/>
+        <bm:field name="company_code_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="公司CODE名"/> -->
+        <!-- <bm:field name="company_id_sql" databaseType="VARCHAR2" datatype="java.lang.String" prompt="公司ID获取SQL"/> -->
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="query_hook" queryExpression="(ffat.function_code like &apos;%&apos;||${@query_hook}||&apos;%&apos; or exists (SELECT 1 from fnd_descriptions fd  WHERE fd.description_id=ffat.description_id AND fd.language=${/session/@lang} and fd.description_text like &apos;%&apos;||${@query_hook}||&apos;%&apos;))"/>
+    </bm:query-fields>
+</bm:model>

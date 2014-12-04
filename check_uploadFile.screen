@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: niujiaqing1265 $
+    $Date: 2010/11/30 06:14:58 $
+    $Revision: 1.8 $
+-->
+<a:screen xmlns:c="aurora.application.action" xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc" trace="true">
+    <a:init-procedure>
+        <a:model-query model="sys.sys_enable_image_system_query" rootPath="enable_image_system_flag"/>
+        <p:switch test="/model/enable_image_system_flag/record/@enable_image_system">
+            <p:case value="Y">
+                <a:model-query model="img.img_attachment_url" rootPath="att_url"/>
+                <a:model-query model="img.img_document_num_query" rootPath="doc_info"/>
+                <a:model-execute model="db.img_pkg.add_doc_to_interface"/>
+                <a:model-query model="img.img_download_seqid_query" rootPath="download"/>
+                <a:model-execute model="db.img_pkg.add_img_download_control"/>
+            </p:case>
+        </p:switch>
+    </a:init-procedure>
+    <a:view package="aurora.ui.std" template="default">
+        <a:screenBody>
+            <a:switch test="/model/enable_image_system_flag/record/@enable_image_system">
+                <a:case value="N">
+                    <div style="width:578px">
+                        <a:upload buttonWidth="75" fileType="*.*" pkvalue="${/parameter/@header_id}" showDelete="false" showUpload="false" sourcetype="${/parameter/@table_name}" text=""/>
+                        <br/>
+                    </div>
+                </a:case>
+                <a:case value="Y">
+                    <a:tabPanel height="380" width="580">
+                        <a:tabs>
+                            <a:tab prompt="附件查看">
+                                <iframe id="download_att" frameborder="no" height="345" src="${/model/att_url/record/@img_attachment_url}?type=2&amp;barcode=${/model/doc_info/record/@document_number}&amp;seqid=${/model/download/record/@download_seqid}&amp;IMGTYPE=${/model/doc_info/record/@img_type}&amp;IMGNAME=${/model/doc_info/record/@img_name}" style="broder:none;margin:0;padding:0;" width="570"/>
+                            </a:tab>
+                        </a:tabs>
+                    </a:tabPanel>
+                </a:case>
+            </a:switch>
+        </a:screenBody>
+        <script><![CDATA[
+            var getElementsByClassName = function(className, tag, elm) {
+                    if (document.getElementsByClassName) {
+                        getElementsByClassName = function(className, tag, elm) {
+                            elm = elm || document;
+                            var elements = elm.getElementsByClassName(className),
+                                nodeName = (tag) ? new RegExp("//b" + tag + "//b", "i") : null,
+                                returnElements = [],
+                                current;
+                            for (var i = 0,
+                                il = elements.length;i < il;i += 1) {
+                                current = elements[i];
+                                if (!nodeName || nodeName.test(current.nodeName)) {
+                                    returnElements.push(current);
+                                }
+                            }
+                            return returnElements;
+                        };
+                    } else if (document.evaluate) {
+                        getElementsByClassName = function(className, tag, elm) {
+                            tag = tag || "*";
+                            elm = elm || document;
+                            var classes = className.split(" "),
+                                classesToCheck = "",
+                                xhtmlNamespace = "http://www.w3.org/1999/xhtml",
+                                namespaceResolver = (document.documentElement.namespaceURI === xhtmlNamespace) ? xhtmlNamespace : null,
+                                returnElements = [],
+                                elements, node;
+                            for (var j = 0,
+                                jl = classes.length;j < jl;j += 1) {
+                                classesToCheck += "[contains(concat(' ', @class, ' '), ' " + classes[j] + " ')]";
+                            }
+                            try {
+                                elements = document.evaluate(".//" + tag + classesToCheck, elm, namespaceResolver, 0, null);
+                            } catch (e) {
+                                elements = document.evaluate(".//" + tag + classesToCheck, elm, null, 0, null);
+                            }
+                            while ((node = elements.iterateNext())) {
+                                returnElements.push(node);
+                            }
+                            return returnElements;
+                        };
+                    } else {
+                        getElementsByClassName = function(className, tag, elm) {
+                            tag = tag || "*";
+                            elm = elm || document;
+                            var classes = className.split(" "),
+                                classesToCheck = [],
+                                elements = (tag === "*" && elm.all) ? elm.all : elm.getElementsByTagName(tag),
+                                current, returnElements = [],
+                                match;
+                            for (var k = 0,
+                                kl = classes.length;k < kl;k += 1) {
+                                classesToCheck.push(new RegExp("(^|//s)" + classes[k] + "(//s|$)"));
+                            }
+                            for (var l = 0,
+                                ll = elements.length;l < ll;l += 1) {
+                                current = elements[l];
+                                match = false;
+                                for (var m = 0,
+                                    ml = classesToCheck.length;m < ml;m += 1) {
+                                    match = classesToCheck[m].test(current.className);
+                                    if (!match) {
+                                        break;
+                                    }
+                                }
+                                if (match) {
+                                    returnElements.push(current);
+                                }
+                            }
+                            return returnElements;
+                        };
+                    }
+                    return getElementsByClassName(className, tag, elm);
+                };
+                ]]></script>
+    </a:view>
+</a:screen>

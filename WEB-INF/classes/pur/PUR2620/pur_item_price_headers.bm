@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="company_code,item_code">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT h.item_price_header_id,
+               h.company_id,
+               f.company_code,
+               f.company_full_name company_name,
+               h.business_unit_id,
+               (SELECT bu.business_unit_name FROM fnd_business_units_vl bu WHERE bu.business_unit_id = h.business_unit_id) business_unit_name,
+               h.item_id,
+               nvl(i.display_item_code,
+                   i.item_code) item_code,
+               i.item_name item_description,
+               h.business_group
+          FROM fnd_companies_vl       f,
+               mtl_system_items_vl    i,
+               pur_item_price_headers h
+         WHERE f.company_id = h.company_id
+               AND i.item_id = h.item_id
+               AND h.business_group = ${/session/@business_group})
+         #WHERE_CLAUSE# #ORDER_BY_CLAUSE#      ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:parameters>
+                <bm:parameter name="item_price_header_id" dataType="java.lang.Long" input="true" output="true" outputPath="@item_price_header_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+            BEGIN
+  pur_item_price_pkg.save_item_price_header(p_item_price_header_id => ${@item_price_header_id},
+                                            p_company_id           => ${@company_id},
+                                            p_business_unit_id     => ${@business_unit_id},
+                                            p_item_id              => ${@item_id},
+                                            p_business_group       => ${/session/@business_group},
+                                            p_user_id              => ${/session/@user_id});
+END;
+            
+             ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+            BEGIN
+  pur_item_price_pkg.delete_item_price_header(p_item_price_header_id => ${@item_price_header_id},
+                                              p_user_id              => ${/session/@user_id});
+END;
+            
+             ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+        <bm:query-field name="business_unit_id" queryExpression="business_unit_id = ${@business_unit_id}"/>
+        <bm:query-field name="item_id" queryExpression="item_id = ${@item_id}"/>
+    </bm:query-fields>
+</bm:model>

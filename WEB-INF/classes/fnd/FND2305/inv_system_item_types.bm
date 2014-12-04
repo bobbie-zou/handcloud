@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-5-28 下午2:13:55  
+    $Revision: 1.0  
+    $Purpose: 物品类型维护BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    itv.item_type_id,
+                    itv.item_type_code,
+                    itv.item_type_name,
+                    itv.srm_coding_flag,
+                    itv.coding_method,
+                    (select cvv.code_value_name
+			           from sys_code_values_v cvv
+			          where cvv.code = 'INV_ITEM_TYPE_METHODS'
+			            and cvv.code_value = itv.coding_method)as coding_method_display,
+                    itv.coding_rule,
+                    DECODE(itv.coding_method, 'SIMPLIFIED' ,
+                    (SELECT
+                        cvv.code_value_name
+                    FROM
+                        sys_code_values_v cvv
+                    WHERE
+                        cvv.code       = 'CODING_RULE_DOC_CATEGORY' AND
+                        cvv.code_value = itv.coding_rule
+                    )) AS coding_rule_display,
+                    itv.flex_template_instance_id,
+                    DECODE(itv.coding_method, 'ADVANCED' ,
+                    (SELECT
+                        tv.template_desc
+                    FROM
+                        fnd_flex_tmpl_instances ti,
+                        fnd_flex_templates_t_vl tv
+                    WHERE
+                        ti.tmpl_instance_id = itv.flex_template_instance_id AND
+                        ti.template_id      = tv.template_id
+                    )) AS flex_template_instance_display,
+                    itv.enabled_flag
+                FROM
+                    inv_system_item_types_vl itv #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="item_type_id" input="false" output="true" outputPath="@item_type_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+		       BEGIN
+				  inv_system_item_types_pkg.create_item_type
+				  	(
+			  			p_item_type_code 			=> ${@item_type_code},
+				  		p_item_type_name 			=> ${@item_type_name},
+				  		p_srm_coding_flag 			=> 'Y',
+				  		p_coding_method				=> ${@coding_method},
+				  		p_coding_rule				=> ${@coding_rule},
+				  		p_flex_template_instance_id	=> ${@flex_template_instance_id},
+				  		p_enabled_flag				=> ${@enabled_flag},
+                        p_user_id            		=> ${/session/@user_id},
+                        o_item_type_id				=> ${@item_type_id}
+                    );
+				END;
+   			]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+		        BEGIN
+				  inv_system_item_types_pkg.modify_item_type
+				  	(
+				  		p_item_type_id   			=> ${@item_type_id},
+				  		p_item_type_name 			=> ${@item_type_name},
+				  		p_srm_coding_flag 			=> 'Y',
+				  		p_coding_method				=> ${@coding_method},
+				  		p_coding_rule				=> ${@coding_rule},
+				  		p_flex_template_instance_id	=> ${@flex_template_instance_id},
+				  		p_enabled_flag       		=> ${@enabled_flag},
+				  		p_user_id            		=> ${/session/@user_id}
+				  	);
+				END;                               
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="item_type_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ITEM_TYPE_ID" prompt="INV_SYSTEM_ITEM_TYPES.ITEM_TYPE_ID"/>
+        <bm:field name="item_type_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_TYPE_CODE" prompt="INV_SYSTEM_ITEM_TYPES.ITEM_TYPE_CODE"/>
+        <bm:field name="item_type_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_TYPE_NAME" prompt="INV_SYSTEM_ITEM_TYPES.ITEM_TYPE_NAME"/>
+        <bm:field name="srm_coding_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="SRM_CODING_FLAG" prompt="INV_SYSTEM_ITEM_TYPES.SRM_CODING_FLAG"/>
+        <bm:field name="coding_method" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CODING_METHOD" prompt="INV_SYSTEM_ITEM_TYPES.CODING_METHOD"/>
+        <bm:field name="coding_method_display" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CODING_METHOD" prompt="INV_SYSTEM_ITEM_TYPES.CODING_METHOD"/>
+        <bm:field name="coding_rule" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CODING_RULE" prompt="INV_SYSTEM_ITEM_TYPES.CODING_RULE"/>
+        <bm:field name="coding_rule_display" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CODING_RULE" prompt="INV_SYSTEM_ITEM_TYPES.CODING_RULE"/>
+        <bm:field name="flex_template_instance_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="FLEX_TEMPLATE_INSTANCE_ID" prompt="INV_SYSTEM_ITEM_TYPES.FLEX_TEMPLATE_INSTANCE_ID"/>
+        <bm:field name="flex_template_instance_display" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FLEX_TEMPLATE_INSTANCE_ID" prompt="INV_SYSTEM_ITEM_TYPES.FLEX_TEMPLATE_INSTANCE_ID"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="INV_SYSTEM_ITEM_TYPES.ENABLED_FLAG"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="item_type_code_name" queryExpression="itv.item_type_code like &apos;%&apos;||trim(${@item_type_code_name})||&apos;%&apos; or itv.item_type_name like &apos;%&apos;||trim(${@item_type_code_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

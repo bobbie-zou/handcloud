@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="bg_function_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="function_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="function_code" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_FUNCTION.FUNCTION_CODE"/>
+        <bm:field name="function_name" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_FUNCTION.FUNCTION_NAME"/>
+        <bm:field name="business_group_code" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_FUNCTION.FUNCTION_CODE"/>
+        <bm:field name="business_group_name" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_FUNCTION.FUNCTION_NAME"/>
+        <bm:field name="start_date" datatype="java.sql.Date" displayWidth="100" prompt="FND8510.BG_FUNCTION_START_DATE"/>
+        <bm:field name="end_date" datatype="java.sql.Date" displayWidth="100" prompt="FND8510.BG_FUNCTION_END_DATE"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="function_id" queryExpression="fbgf.function_id = ${@function_id}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                	fbgf.bg_function_id,
+                    fbgf.function_id,
+                    (SELECT
+                        fv.function_code
+                    FROM
+                        sys_function_vl fv
+                    WHERE
+                        fv.function_id=fbgf.function_id
+                    ) function_code,
+                    (SELECT
+                        fv.function_name
+                    FROM
+                        sys_function_vl fv
+                    WHERE
+                        fv.function_id=fbgf.function_id
+                    ) function_name,
+                    fbgf.business_group as business_group_code,
+                    (SELECT
+                        bg.business_group_name
+                    FROM
+                        fnd_business_groups_vl bg
+                    WHERE
+                        bg.business_group_code=fbgf.business_group
+                    )AS business_group_name,
+                    fbgf.start_date,
+                    fbgf.end_date
+                FROM
+                    fnd_business_group_function fbgf 
+                    #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="bg_function_id" input="false" output="true" outputPath="@bg_function_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+	            begin
+	            	fnd_bg_function_pkg.insert_bg_function(p_business_group 	 => ${@business_group_code},
+							                               p_function_id         => ${../../@function_id},
+							                               p_start_date          => to_date(${@start_date},'YYYY-MM-DD'),
+							                               p_end_date            => to_date(${@end_date},'YYYY-MM-DD'),
+							                               p_session_user_id     => ${/session/@user_id},
+							                               p_bg_function_id      => ${@bg_function_id});
+	            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+	            begin
+	            	fnd_bg_function_pkg.update_bg_function(p_bg_function_id      => ${@bg_function_id},
+							                               p_start_date          => to_date(${@start_date},'YYYY-MM-DD'),
+							                               p_end_date            => to_date(${@end_date},'YYYY-MM-DD'),
+							                               p_session_user_id     => ${/session/@user_id});
+	            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    fnd_bg_function_pkg.delete_bg_function( p_bg_function_id  => ${@bg_function_id}, 
+                    										p_session_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

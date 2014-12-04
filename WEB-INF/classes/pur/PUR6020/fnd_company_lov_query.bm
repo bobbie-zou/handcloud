@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-6-1 下午1:41:46  
+    $Revision: 1.0  
+    $Purpose: 供应商公司地点分配-公司LOV查询
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT f.company_id,
+               f.company_code,
+               f.company_short_name,
+               f.company_full_name,
+               f.client,
+               (SELECT c.client_full_name FROM fnd_clients_vl c WHERE c.client = f.client) client_name
+          FROM fnd_companies_vl f
+         WHERE f.start_date_active <= trunc(SYSDATE)
+               AND (f.end_date_active IS NULL OR f.end_date_active >= trunc(SYSDATE))
+               AND EXISTS (SELECT 1
+                  FROM sys_cooperative_partners p
+                 WHERE p.partner_type = 'CLIENT'
+                       AND p.partner_code = f.client
+                       AND p.object_type = 'VENDOR'
+                       AND p.object_id = ${/session/@vendor_id})
+                AND f.client = ${@client})
+    #WHERE_CLAUSE# order by company_code]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID"/>
+        <bm:field name="company_code" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="100" forDisplay="true" forQuery="true" physicalName="COMPANY_CODE" prompt="PUR_VENDOR_SITE_COMPANY.COMPANY_CODE"/>
+        <bm:field name="company_short_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_SHORT_NAME"/>
+        <bm:field name="company_full_name" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="200" forDisplay="true" forQuery="true" physicalName="COMPANY_FULL_NAME" prompt="PUR_VENDOR_SITE_COMPANY.COMPANY_NAME"/>
+        <bm:field name="client"/>
+        <bm:field name="client_name"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="company_code" queryExpression="company_code like &apos;%&apos;||upper(trim(${@company_code}))||&apos;%&apos;"/>
+        <bm:query-field name="company_full_name" queryExpression="company_full_name like &apos;%&apos;||trim(${@company_full_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

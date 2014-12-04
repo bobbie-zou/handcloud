@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-8 下午4:01:36  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        fv.company_id unit_id,
+                        fv.company_code unit_code,
+                        fv.company_short_name unit_desc,
+                        fv.company_code
+                        || ' - '
+                        || fv.company_short_name code_name,
+                        sb.functional_currency_code
+                    FROM
+                        fnd_companies_vl fv,
+                        gld_set_of_books_vl sb
+                    WHERE
+                        fv.company_id IN
+                        (SELECT
+                            c.company_id comp_id
+                        FROM
+                            fnd_auth_company_v c
+                        WHERE
+                            c.session_id = ${/session/@session_id}
+                        ) AND
+                        fv.set_of_books_id = sb.set_of_books_id(+)
+                    ) fv #WHERE_CLAUSE#
+                ORDER BY
+                    fv.unit_code
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="unit_code" displayWidth="200" forDisplay="true" forQuery="true" prompt="COMPANY_CODE"/>
+        <bm:field name="unit_desc" displayWidth="250" forDisplay="true" forQuery="true" prompt="FND_COMPANIES.COMPANY_NAME"/>
+        <bm:field name="unit_id"/>
+        <bm:field name="code_name"/>
+        <bm:field name="functional_currency_code"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="code_name" queryExpression="(fv.company_code like &apos;%&apos;||${@code_name}||&apos;%&apos; or fv.unit_desc like &apos;%&apos;||${@code_name}||&apos;%&apos;)"/>
+        <bm:query-field name="unit_code" queryExpression="fv.company_code like &apos;%&apos;||${@unit_code}||&apos;%&apos;"/>
+        <bm:query-field name="unit_desc" queryExpression="fv.unit_desc like &apos;%&apos;||${@unit_desc}||&apos;%&apos;"/>
+        <bm:query-field name="quick_value" queryExpression="fv.company_code like &apos;%&apos;||${@quick_value}||&apos;%&apos; or fv.unit_desc like &apos;%&apos;||${@quick_value}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

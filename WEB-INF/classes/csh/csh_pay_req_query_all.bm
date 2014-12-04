@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+		select * from (select cprh.requisition_number,
+		        cprh.payment_method_id,
+		       (select cpmv.description from CSH_PAYMENT_METHODS_VL cpmv where cpmv.payment_method_id = cprh.payment_method_id) payment_method,
+               cprh.payment_requisition_header_id,
+               cprh.employee_id,
+               (select ee.name || '-' || ee.employee_code
+                  from exp_employees ee
+                 where ee.employee_id = cprh.employee_id) requisitor,
+               to_char(cprh.requisition_date, 'YYYY-MM-DD') requisition_date,
+               cprh.currency_code,
+               gld.currency_name,
+               cprh.amount,
+               cprh.partner_category,
+               (select b.code_value_name
+                  from sys_codes_vl a, sys_code_values_vl b
+                 where a.code_id = b.code_id
+                   and a.code = 'PAYMENT_OBJECT'
+                   and b.code_value = cprh.partner_category) p_partner_category,
+               cprh.partner_id,
+               decode(cprh.partner_category,
+                      'EMPLOYEE',
+                      (select ee.employee_code || '-' || ee.name
+                         from exp_employees ee
+                        where ee.employee_id = cprh.partner_id),
+                      'VENDER',
+                      (select svv.vender_code || '-' || svv.description
+                         from pur_system_venders_vl svv
+                        where svv.vender_id = cprh.partner_id),
+                      'CUSTOMER',
+                      (select scv.customer_code || '-' || scv.description
+                         from ord_system_customers_vl scv
+                        where scv.customer_id = cprh.partner_id)) payee_name,
+               cprh.description,
+                 
+               ( select sum(ef.amount)
+               from csh_payment_requisition_refs ef,
+                    csh_transaction_v            ct,
+                    csh_payment_requisition_lns  cprl
+              where ef.payment_requisition_line_id =
+                    cprl.payment_requisition_line_id
+                and ef.csh_transaction_line_id = ct.transaction_line_id
+                and ct.posted_flag = 'Y'
+                and cprl.payment_requisition_header_id = cprh.payment_requisition_header_id)  paymented_amount,
+               
+                   (select v.code_value_name
+                  from sys_code_values_vl v, sys_codes_vl t
+                 where t.code = 'PAYMENT_REQUISITION_STATUS' and t.code_id = v.code_id and v.code_value = cprh.status) status_des,
+               cprh.status,
+               cprh.closed_date
+          from csh_payment_requisition_hds cprh,gld_currency_vl gld
+         where cprh.company_id = ${/session/@company_id}
+           and  exp_document_authorities_pkg.exist_exp_doc_authorities('04',
+                                                                      (select employee_id
+                                                                         from sys_user
+                                                                        where user_id = ${/session/@user_id}),
+                                                                      cprh.employee_id,
+                                                                      'QUERY',
+                                                                      ${/session/@user_id}) = 'Y'
+        and cprh.currency_code=gld.currency_code(+) ) v 
+		#WHERE_CLAUSE# 
+		order by payment_requisition_header_id desc
+		]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter inputPath="/session/@company_id"/>
+                <bm:parameter inputPath="/session/@user_id"/>
+            </bm:parameters>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="requisition_number" dataType="java.lang.String" queryExpression="requisition_number like &apos;%&apos;||${@requisition_number}||&apos;%&apos;"/>
+        <bm:query-field name="employee_id" dataType="java.lang.Integer" queryExpression="employee_id = ${@employee_id}"/>
+        <bm:query-field name="requisition_date_from" dataType="java.lang.String" queryExpression="(${@requisition_date_from} is null  or requisition_date &gt;= ${@requisition_date_from})"/>
+        <bm:query-field name="requisition_date_to" dataType="java.lang.String" queryExpression="(${@requisition_date_to} is null  or requisition_date &lt;= ${@requisition_date_to})"/>
+        <bm:query-field name="amount_from" dataType="java.lang.String" queryExpression="amount &gt;= ${@amount_from}"/>
+        <bm:query-field name="amount_to" dataType="java.lang.String" queryExpression="amount  &lt;=${@amount_to}"/>
+        <bm:query-field name="partner_category" dataType="java.lang.String" queryExpression="partner_category = ${@partner_category}"/>
+        <bm:query-field name="partner_id" dataType="java.lang.String" queryExpression="partner_id = ${@partner_id}"/>
+        <bm:query-field name="currency_code" dataType="java.lang.String" queryExpression="currency_code like  &apos;%&apos;||${@currency_code}||&apos;%&apos;"/>
+        <bm:query-field name="status" dataType="java.lang.String" queryExpression="status like  &apos;%&apos;||${@status}||&apos;%&apos;"/>
+        <bm:query-field name="payment_method_id" dataType="java.lang.Long" queryExpression="payment_method_id = ${@payment_method_id}"/>
+    </bm:query-fields>
+</bm:model>

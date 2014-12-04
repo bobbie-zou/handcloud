@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select *
+		  from (select h.exp_requisition_header_id,
+					 h.period_name,
+					 v.company_code,
+					 v.company_code || '-' || v.company_short_name company,
+					 h.exp_requisition_number,
+					 h.exp_requisition_type_id,
+					 h.employee_id,
+					 h.company_id,
+					 (select erpv.expense_requisition_type_code
+					  from exp_expense_req_types_vl erpv
+					 where erpv.expense_requisition_type_id =
+						 h.exp_requisition_type_id) type_code,
+					 (select erpv.description
+					  from exp_expense_req_types_vl erpv
+					 where erpv.expense_requisition_type_id =
+						 h.exp_requisition_type_id) type_description,
+					 (select ee.name || '-' || ee.employee_code
+					  from exp_employees ee
+					 where ee.employee_id = h.employee_id) employee_name,
+					 h.currency_code,
+					 (select sum(l.requisition_amount)
+					  from exp_requisition_lines l
+					 where l.exp_requisition_header_id = h.exp_requisition_header_id) requisition_amount,
+					 to_char(h.requisition_date, 'YYYY-MM-DD') requisition_date,
+					 h.requisition_status,
+					 (select scvv.code_value_name
+					  from sys_code_values_v scvv
+					 where scvv.code = 'EXP_EXPENSE_REPORT_STATUS'
+					   and scvv.code_value = h.requisition_status) requisition_status_desc,
+					 h.description
+			    from exp_requisition_headers h,
+				     fnd_companies_vl        v
+			   where h.company_id = v.company_id
+			     and h.requisition_status in (${@req_generate}, ${@req_submit}, ${@req_approved})
+			     and exists (select 1
+								 from exp_accrued_accounts  k
+							    where k.document_type ='EXP_REQ'
+								  and k.document_id = h.exp_requisition_header_id 
+								  and k.period_name = ${@period_name})) a
+		#WHERE_CLAUSE#
+		 order by a.exp_requisition_number desc]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter name="@req_generate"/>
+                <bm:parameter name="@req_submit"/>
+                <bm:parameter name="@req_approved"/>
+                <bm:parameter name="@period_name"/>
+            </bm:parameters>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_code_from" queryExpression="a.company_code &gt;= ${@company_code_from}"/>
+        <bm:query-field name="company_code_to" queryExpression="a.company_code &lt;= ${@company_code_to}"/>
+        <bm:query-field name="document_type1" queryExpression="a.type_code = ${@document_type1}"/>
+        <bm:query-field name="document_number1" queryExpression="a.exp_requisition_number = ${@document_number1}"/>
+    </bm:query-fields>
+</bm:model>

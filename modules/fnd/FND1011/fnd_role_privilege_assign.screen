@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lily  
+    $Date: 2013-2-26 下午06:52:32  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:script><![CDATA[       	
+        	
+        	//类型改变，LOV跟着改变
+        	function fnd1011_assign_code_render(ds,record,name,value){
+        	    var record = $('fnd_1011_role_prv_assign_result_ds').getCurrentRecord();
+        	    if(name == 'assign_type'){
+        	        record.set('assign_id',null);
+	        	    record.set('assign_code',null);
+	        	    record.set('assign_name',null);
+        	    }
+        	    var assign_type = record.get('assign_type');
+        	    var lovField = record.getMeta().getField('assign_code');
+        	    if(assign_type == null || assign_type == undefined || assign_type == ''){
+        	        lovField.setLovService('');
+        	    }else if(assign_type == 'COMPANY'){
+        	        lovField.setLovService('public.fnd_companies_lov');
+        	        lovField.setTitle('公司查询');
+        	        lovField.setMapping([{
+        	            from:'company_id',
+        	            to:'assign_id'
+        	        },
+        	        {
+        	            from:'company_code',
+        	            to:'assign_code'
+        	        },
+        	        {
+        	            from:'company_short_name',
+        	            to:'assign_name'
+        	        }]);
+        	    }else if(assign_type == 'ORGANIZATION'){
+        	        lovField.setLovService('public.inv_organizations_lov');
+        	        lovField.setTitle('库存组织查询');
+        	        lovField.setMapping([{
+        	            from:'organization_id',
+        	            to:'assign_id'
+        	        },
+        	        {
+        	            from:'organization_code',
+        	            to:'assign_code'
+        	        },
+        	        {
+        	            from:'organization_name',
+        	            to:'assign_name'
+        	        }]);
+        	    }else if(assign_type == 'SUPPLIER_LOCATION'){
+        	        lovField.setLovService('public.pur_vendor_sites_lov');
+        	        lovField.setTitle('供应商地点查询');
+        	        lovField.setMapping([{
+        	            from:'vendor_site_id',
+        	            to:'assign_id'
+        	        },
+        	        {
+        	            from:'vendor_site_code',
+        	            to:'assign_code'
+        	        },
+        	        {
+        	            from:'vendor_site_name',
+        	            to:'assign_name'
+        	        }]);
+        	    }
+        	}        	
+        	
+        ]]></a:script>
+        <a:dataSets>
+            <a:dataSet id="fnd_1011_assign_type_ds" lookupCode="ASSIGN_TYPE"/>
+            <a:dataSet id="fnd_1011_role_prv_assign_query_ds">
+                <a:fields>
+                    <a:field name="assign_type_display" displayField="code_value_name" options="fnd_1011_assign_type_ds" returnField="assign_type" valueField="code_value"/>
+                    <a:field name="assign_type"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd_1011_role_prv_assign_result_ds" autoQuery="true" model="fnd.FND1011.fnd_role_prv_assign" queryDataSet="fnd_1011_role_prv_assign_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="role_id" required="true"/>
+                    <a:field name="role_code" lovGridHeight="300" lovHeight="460" lovService="public.sys_role" lovWidth="480" required="true" title="职责查询">
+                        <a:mapping>
+                            <a:map from="role_id" to="role_id"/>
+                            <a:map from="role_code" to="role_code"/>
+                            <a:map from="role_name" to="role_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="assign_type_display" displayField="code_value_name" options="fnd_1011_assign_type_ds" returnField="assign_type" valueField="code_value"/>
+                    <a:field name="assign_type" required="true"/>
+                    <a:field name="assign_code" lovGridHeight="300" lovHeight="450" lovWidth="500" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" required="true" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd1011_assign_code_render"/>
+                    <a:event name="update" handler="fnd1011_assign_code_render"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="fnd_1011_grid" style="margin-left:20px;" type="add" width="100"/>
+            <a:gridButton bind="fnd_1011_grid" type="save" width="100"/>
+            <a:gridButton bind="fnd_1011_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="fnd1011_role_prv_assign_query_form" bindTarget="fnd_1011_role_prv_assign_query_ds" resultTarget="fnd_1011_role_prv_assign_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:textField style="width:100%;display:none"/>
+                <a:hBox>
+                    <a:textField name="role_name" prompt="职责名称"/>
+                    <a:comboBox name="assign_type_display" prompt="类型"/>
+                    <a:textField name="assign_code" prompt="编码"/>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody style="margin-left:8px">
+                <a:hBox>
+                    <a:textField name="assign_name" prompt="名称"/>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="fnd_1011_grid" bindTarget="fnd_1011_role_prv_assign_result_ds" marginHeight="160" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="role_code" align="center" editor="fnd_1011_role_code_lov" prompt="职责编码"/>
+                <a:column name="role_name" align="center" prompt="职责名称"/>
+                <a:column name="assign_type_display" align="center" editor="fnd_1011_assign_type_cmb" prompt="类型"/>
+                <a:column name="assign_code" align="center" editor="fnd_1011_assign_code_lov" prompt="编码"/>
+                <a:column name="assign_name" align="center" prompt="名称"/>
+                <a:column name="enabled_flag" align="center" editor="fnd_1011_enabled_flag_rd" prompt="有效"/>
+            </a:columns>
+            <a:editors>
+                <a:lov id="fnd_1011_role_code_lov"/>
+                <a:comboBox id="fnd_1011_assign_type_cmb"/>
+                <a:lov id="fnd_1011_assign_code_lov"/>
+                <a:checkBox id="fnd_1011_enabled_flag_rd"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

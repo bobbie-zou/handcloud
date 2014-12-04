@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-27 上午10:25:29  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="bid5060_expert_alter_edit_save_link" url="${/request/@context_path}/modules/bid/BID5060/bid_expert_alter_edit_save.svc"/>
+        <a:link id="bid5060_expert_alter_edit_submit_link" url="${/request/@context_path}/modules/bid/BID5060/bid_expert_alter_edit_submit.svc"/>
+        <a:link id="bid5060_expert_alter_edit_cancel_link" model="bid.BID5060.bid_expert_alter_cancel" modelaction="execute"/>
+        <script><![CDATA[
+            function bid5060ExpertAlterLineEditOnAdd(ds, rec, index) {
+                if (!Aurora.isEmpty(rec.get('alter_mode'))) {
+                    if (rec.get('alter_mode') == 'NEW') {
+                        rec.getMeta().getField('replace_expert_code').setRequired(true);
+                    } else if (rec.get('alter_mode') == 'REPLACE') {
+                        rec.getMeta().getField('replace_expert_code').setRequired(true);
+                    } else {
+                        rec.getMeta().getField('replace_expert_code').setRequired(false);
+                        rec.set('replace_expert_id', null);
+                        rec.set('replace_expert_code', null);
+                        rec.set('replace_expert_desc', null);
+                    }
+                }
+            }
+            
+            function bid5060ExpertAlterLineEditOnUpdate(ds, rec, name, value, oldvalue) {
+                if (name == 'alter_mode') {
+                    if (value == 'NEW') {
+                        rec.getMeta().getField('replace_expert_code').setRequired(true);
+                    } else if (value == 'REPLACE') {
+                        rec.getMeta().getField('replace_expert_code').setRequired(true);
+                    } else {
+                        rec.getMeta().getField('replace_expert_code').setRequired(false);
+                        rec.set('replace_expert_id', null);
+                        rec.set('replace_expert_code', null);
+                        rec.set('replace_expert_desc', null);
+                    }
+                } else if (name == 'leader_flag') {
+                    var records = ds.getAll();
+                    if (value == 'Y') {
+                        for (var i = 0;i < records.length;i++) {
+                            if (ds.indexOf(rec) != ds.indexOf(records[i])) {
+                                records[i].set('leader_flag', 'N');
+                            }
+                        }
+                    }
+                }
+            }
+            
+            function bid5060EditSave() {
+                var header_ds = $('bid5060_expert_alter_header_edit_ds');
+                var line_ds = $('bid5060_expert_alter_line_edit_ds');
+            
+                if (!header_ds.validate()) {
+                    return;
+                }
+                if (!line_ds.validate()) {
+                    return;
+                }
+            
+                Aurora.Masker.mask($('bid5060_expert_alter_edit_window').wrap, '${l:LOADING}');
+            
+                var header_rec = header_ds.getCurrentRecord();
+                var header_data = header_rec.data;
+                header_data['lines'] = line_ds.getJsonData();
+            
+                Aurora.request({
+                    url: $('bid5060_expert_alter_edit_save_link').getUrl(),
+                    para: header_data,
+                    success: function(res) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SAVED}', function() {
+                            header_ds.query();
+                            line_ds.query();
+                        });
+                    },
+                    failure: function() {
+                        return;
+                    },
+                    error: function() {
+                        return;
+                    }
+                });
+            
+                Aurora.Masker.unmask($('bid5060_expert_alter_edit_window').wrap);
+            }
+            
+            function bid5060EditSubmit() {
+                Aurora.showConfirm('${l:PROMPT}', '${l:PROMPT.CONFIRM_SUBMIT}？', function() {
+                    var header_ds = $('bid5060_expert_alter_header_edit_ds');
+                    var line_ds = $('bid5060_expert_alter_line_edit_ds');
+            
+                    if (!header_ds.validate()) {
+                        return;
+                    }
+                    if (!line_ds.validate()) {
+                        return;
+                    }
+            
+                    Aurora.Masker.mask($('bid5060_expert_alter_edit_window').wrap, '${l:LOADING}');
+            
+                    var header_rec = header_ds.getCurrentRecord();
+                    var header_data = header_rec.data;
+                    header_data['lines'] = line_ds.getJsonData();
+            
+                    Aurora.request({
+                        url: $('bid5060_expert_alter_edit_submit_link').getUrl(),
+                        para: header_data,
+                        success: function(res) {
+                            Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SUBMITED}', function() {
+                                $('bid5060_expert_alter_edit_window').close();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+            
+                    Aurora.Masker.unmask($('bid5060_expert_alter_edit_window').wrap);
+                });
+            }
+            
+            function bid5060EditCancel() {
+                Aurora.showConfirm('${l:PROMPT}', '${l:PROMPT.CONFIRM_CANCEL}？', function() {
+                    Aurora.Masker.mask($('bid5060_expert_alter_edit_window').wrap, '${l:LOADING}');
+            
+                    var header_ds = $('bid5060_expert_alter_header_edit_ds');
+                    var header_rec = header_ds.getCurrentRecord();
+            
+                    Aurora.request({
+                        url: $('bid5060_expert_alter_edit_cancel_link').getUrl(),
+                        para: header_rec.data,
+                        success: function(res) {
+                            Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.CANCELED}', function() {
+                                $('bid5060_expert_alter_edit_window').close();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+            
+                    Aurora.Masker.unmask($('bid5060_expert_alter_edit_window').wrap);
+                });
+            }
+            
+            function bid5060EditReturn() {
+                $('bid5060_expert_alter_edit_window').close();
+            }
+            
+            function bid5060ExpertAlterLineEditEditor(rec, name) {
+                if (name == 'alter_mode_desc') {
+                    if ('NEW' == rec.get('alter_mode')) {
+                        return '';
+                    } else {
+                        return 'bid5060_expert_alter_line_edit_cmb';
+                    }
+                } else if (name == 'replace_expert_code') {
+                    if ('REPLACE' == rec.get('alter_mode') || 'NEW' == rec.get('alter_mode')) {
+                        return 'bid5060_expert_alter_line_edit_lov';
+                    } else {
+                        return '';
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5060_edit_expert_alter_mode_ds">
+                <a:datas>
+                    <a:record name="保留" value="RETAINE"/>
+                    <a:record name="替换为" value="REPLACE"/>
+                    <a:record name="移除" value="REMOVE"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="bid5060_expert_alter_header_edit_ds" autoQuery="true" model="bid.BID5060.bid_expert_alter_header_edit" queryUrl="${/request/@context_path}/autocrud/bid.BID5060.bid_expert_alter_header_edit/query?alter_header_id=${/parameter/@alter_header_id}">
+                <a:fields>
+                    <a:field name="applicant_desc" lovGridHeight="320" lovHeight="500" lovService="public.exp_employees_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_HEADERS.APPLICANT">
+                        <a:mapping>
+                            <a:map from="employee_id" to="applicant_id"/>
+                            <a:map from="name" to="applicant_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="application_date" required="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="bid5060_expert_alter_line_edit_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="bid.BID5060.bid_expert_alter_line_edit" queryUrl="${/request/@context_path}/autocrud/bid.BID5060.bid_expert_alter_line_edit/query?alter_header_id=${/parameter/@alter_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="alter_header_id" defaultValue="${/parameter/@alter_header_id}"/>
+                    <a:field name="alter_mode" defaultValue="NEW"/>
+                    <a:field name="alter_mode_desc" defaultValue="新增" displayField="name" options="bid5060_edit_expert_alter_mode_ds" required="true" returnField="alter_mode" valueField="value"/>
+                    <a:field name="replace_expert_code" lovGridHeight="320" lovHeight="500" lovService="bid.public.bid_experts_lov" lovWidth="500" title="BID_ENTRUSTMENT_LN_EXPERTS.EXPERT">
+                        <a:mapping>
+                            <a:map from="expert_id" to="replace_expert_id"/>
+                            <a:map from="expert_code" to="replace_expert_code"/>
+                            <a:map from="expert_desc" to="replace_expert_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="leader_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="bid5060ExpertAlterLineEditOnAdd"/>
+                    <a:event name="update" handler="bid5060ExpertAlterLineEditOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="bid5060_expert_alter_line_edit_grid" type="add" width="100"/>
+                <a:gridButton bind="bid5060_expert_alter_line_edit_grid" type="delete" width="100"/>
+                <a:toolbarButton click="bid5060EditSave" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="bid5060EditSubmit" text="PROMPT.SUBMIT" width="100"/>
+                <a:toolbarButton click="bid5060EditCancel" text="PROMPT.CANCEL" width="100"/>
+                <a:toolbarButton click="bid5060EditReturn" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100">
+                <a:vBox labelWidth="120">
+                    <a:label name="alter_header_number" bindTarget="bid5060_expert_alter_header_edit_ds" prompt="BID_EXPERT_ALTER_HEADERS.ALTER_HEADER_NUMBER"/>
+                    <a:label name="title" bindTarget="bid5060_expert_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TITLE"/>
+                </a:vBox>
+                <a:vBox labelWidth="120">
+                    <a:label name="entrustment_header_number" bindTarget="bid5060_expert_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_HEADER_NUMBER"/>
+                    <a:lov name="applicant_desc" bindTarget="bid5060_expert_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICANT"/>
+                </a:vBox>
+                <a:vBox labelWidth="120">
+                    <a:label name="round" bindTarget="bid5060_expert_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.ROUND"/>
+                    <a:datePicker name="application_date" bindTarget="bid5060_expert_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICATION_DATE" renderer="Aurora.formatDate"/>
+                </a:vBox>
+                <a:vBox labelWidth="120">
+                    <a:label name="version" bindTarget="bid5060_expert_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.VERSION"/>
+                </a:vBox>
+            </a:hBox>
+            <a:hBox labelWidth="120">
+                <a:textArea name="comments" bindTarget="bid5060_expert_alter_header_edit_ds" height="60" marginWidth="360" prompt="BID_EXPERT_APP_HEADERS.COMMENTS"/>
+            </a:hBox>
+            <a:grid id="bid5060_expert_alter_line_edit_grid" bindTarget="bid5060_expert_alter_line_edit_ds" height="350" marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="original_expert_code" align="left" prompt="BID_EXPERT_ALTER_HEADERS.ORIGINAL_EXPERT_CODE" width="80"/>
+                    <a:column name="original_expert_desc" align="left" prompt="BID_EXPERT_ALTER_HEADERS.ORIGINAL_EXPERT_DESC" width="80"/>
+                    <a:column name="alter_mode_desc" align="left" editorFunction="bid5060ExpertAlterLineEditEditor" prompt="BID_EXPERT_ALTERATION.ALTER_MODE" width="60"/>
+                    <a:column name="replace_expert_code" align="left" editorFunction="bid5060ExpertAlterLineEditEditor" prompt="BID_EXPERT_ALTER_HEADERS.NEW_EXPERT_CODE" width="80"/>
+                    <a:column name="replace_expert_desc" align="left" prompt="BID_EXPERT_ALTER_HEADERS.NEW_EXPERT_DESC" width="80"/>
+                    <a:column name="leader_flag" align="center" editor="bid5060_expert_alter_line_edit_cb" prompt="BID_EXPERT_ALTER_HEADERS.LEADER_FLAG" width="40"/>
+                    <a:column name="comments" align="left" editor="bid5060_expert_alter_line_edit_tf" prompt="BID_EXPERT_APP_HEADERS.COMMENTS" width="200"/>
+                </a:columns>
+                <a:editors>
+                    <a:comboBox id="bid5060_expert_alter_line_edit_cmb"/>
+                    <a:lov id="bid5060_expert_alter_line_edit_lov"/>
+                    <a:checkBox id="bid5060_expert_alter_line_edit_cb"/>
+                    <a:textField id="bid5060_expert_alter_line_edit_tf"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

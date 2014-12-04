@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace 
+    $Date: 2013-12-12 下午04:20:31  
+    $Revision: 1.0  
+    $Purpose: 采购品类树状lov
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <script><![CDATA[
+    		//记录首位置
+    		var local_index = 0;
+    		//数组记录查询到的结果在dataset中的row
+    		var row_list = [];
+    		//是否初始化定位数组
+    		var local_flag = false;
+    		//初始化定位数组
+    		function initRowList(para){
+    		    //获取dataset数据
+    		    var records = $('inv5050_purchase_category_tree_ds').getAll();
+    		    //对dataset进行遍历
+    		    for(var i = 0; i < records.length; i++){
+    		        var record = records[i];
+    		        //判断是否包含当前查询字符，且当前index不等于全局变量local_index
+    		        if(record.get('purchase_category_code').indexOf(para) != -1 || record.get('description_text').indexOf(para) != -1){
+    		            //记录当前指针
+    		            local_index = $('inv5050_purchase_category_tree_ds').indexOf(record)+1;
+    		            //定位行
+    		            row_list.push(local_index);
+    		        }
+    		    }
+    		    local_flag = true;
+    		}
+    		//JS模拟查询函数
+    		function inv5050_purchase_category_tree_query(){
+    		    //获取查询字符串
+    		    var para = $('inv5050_purchase_category_tree_query_ds').getCurrentRecord().get('query_para');
+    		    
+    		    if(para != undefined && !Ext.isEmpty(para)){
+	    		    //判断是否初始化定位数组
+	    		    if(!local_flag){
+	    		        initRowList(para);
+	    		    }
+	    		    if(row_list.length > 0){
+	    		        //定位至当前数组位置
+		    		    $('inv5050_purchase_category_tree_ds').locate(row_list[local_index]);
+		    		    //数组当前指针+1
+		    		    if(local_index < row_list.length-1){
+			    		    local_index++;
+		    		    }else{
+		    		        //若当前指针超过数组长度，从0开始
+		    		        local_index = 0;
+		    		    }
+	    		    }
+    		    }
+    		}
+    		
+    		//查询dataset更新事件
+    		function inv5050_purchaseCategoryLocalUpdateHandler(ds, record, name, value, oldvalue){
+    		    $('inv5050_purchase_category_tree_query_ds').getCurrentRecord().dirty = false;
+    		    if(name == 'query_para'){
+	    		    //查询条件改变，重置全局定位变量
+	    		    local_index = 0;
+	    		    row_list = [];
+	    		    local_flag = false;
+    		    }
+    		}
+    		
+    		//
+    		function inv5050_purchaseCategoryLocalValidHandler(ds, record, name){
+    		    $('inv5050_purchase_category_tree_query_ds').getCurrentRecord().dirty = false;
+    		}
+    		
+    		function inv5050_purchase_category_select_confirm(){
+    		    var result_records = $('inv5050_item_application_category_ds').getAll();
+    		    var records = $('inv5050_purchase_category_tree_ds').getSelected();
+    		    var selected_flag = true;
+    		    for(var i = 0; i < records.length; i++){
+    		        for(var a = 0; a < result_records.length; a++){
+    		            if(result_records[a].get('purchase_category_id') == records[i].get('purchase_category_id')){
+    		                selected_flag = false;
+    		            }
+    		        }
+    		        
+    		        if(selected_flag){
+    		            $('inv5050_item_application_category_ds').create();
+    		            var record = $('inv5050_item_application_category_ds').getCurrentRecord();
+    		            record.set('purchase_category_id', records[i].get('purchase_category_id'));
+    		            record.set('purchase_category_code', records[i].get('purchase_category_code'));
+    		            record.set('purchase_category_desc', records[i].get('description_text'));
+    		        }
+    		        selected_flag = true;
+    		    }
+    		    
+    		    $('inv5050_item_application_lns_category_add_wid').close();
+    		}
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv5050_purchase_category_tree_query_ds">
+                <a:events>
+                    <a:event name="valid" handler="inv5050_purchaseCategoryLocalValidHandler"/>
+                    <a:event name="update" handler="inv5050_purchaseCategoryLocalUpdateHandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="inv5050_purchase_category_tree_ds" fetchAll="true" loadData="true" model="inv.INV5050.pur_purchase_category_tree_query" selectable="true"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form row="1" width="500">
+                <a:textField name="query_para" bindTarget="inv5050_purchase_category_tree_query_ds" emptyText="请输入采购品类代码或名称" width="300">
+                    <a:events>
+                        <a:event name="enterdown" handler="inv5050_purchase_category_tree_query"/>
+                    </a:events>
+                </a:textField>
+                <a:toolbarButton click="inv5050_purchase_category_tree_query" style="margin-left:10px;" text="HAP_QUERY" width="100"/>
+                <a:toolbarButton click="inv5050_purchase_category_select_confirm" style="margin-left:10px;" text="HAP_OK" width="100"/>
+            </a:form>
+            <a:treeGrid id="inv5050_purchase_category_tree_grid" bindTarget="inv5050_purchase_category_tree_ds" height="500" idField="purchase_category_id" parentField="parent_category_id" width="550">
+                <a:columns>
+                    <a:column name="purchase_category_code" width="240"/>
+                    <a:column name="description_text" width="280"/>
+                </a:columns>
+            </a:treeGrid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

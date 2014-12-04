@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	$Author: Ye
+	$Date: 2014-9-24 下午9:47:47
+	$Revision: 1.0
+	$Purpose:  
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" defaultWhereClause="t1.web_service_url_id=${/parameter/@web_service_url_id}" fetchAll="false" model="sys.WS.sys_webservice_urls_for_query" rootPath="ws1010_web_service_url_edit_default_rootpath"/>
+        <a:model-query autoCount="false" defaultWhereClause="t1.web_service_id=${/parameter/@web_service_id}" fetchAll="false" model="sys.WS.WS1010.sys_webservices" rootPath="ws1010_web_service_default_rootpath"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="ws1010_webservice_edit_gen_link" url="${/request/@context_path}/modules/sys/WS/WS1010/sys_webservice_urls_edit.svc"/>
+        <script><![CDATA[
+            function ws1010WebServiceEditGenerateWsdl() {
+                var wsdl_para_ds = $('ws1010_web_service_url_parameters_ds');
+                var url_ds = $('ws1010_web_service_url_edit_ds');
+                var record_para = wsdl_para_ds.getCurrentRecord();
+                var record_url = url_ds.getCurrentRecord();
+                var web_service_url = record_url.get("web_service_url");
+                record_para.set('web_service_url',web_service_url);
+                Aurora.request({
+                    url: $('ws1010_webservice_edit_gen_link').getUrl(),
+                    para: record_para.data,
+                    success: function(res) {
+                        record_url.set('wsdl', res.result.wsdl);
+                    },
+                    scope: this
+                });
+            }
+            
+            function ws1010WebServiceUrlSave() {
+                var wsdl_para_ds = $('ws1010_web_service_url_parameters_ds');
+                var url_ds = $('ws1010_web_service_url_edit_ds');
+                var record_para = wsdl_para_ds.getCurrentRecord();
+                var record_url = url_ds.getCurrentRecord();
+                var web_service_id = record_para.get("web_service_id");
+                record_url.set('web_service_id',web_service_id);
+                $('ws1010_web_service_url_parameters_ds').submit();
+                $('ws1010_web_service_url_edit_ds').submit();
+            }
+            
+            function ws1010WebServiceUrlEditClose() {
+                $('ws1010_web_service_url_edit_window').close();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="ws1010_web_service_url_parameters_ds" model="sys.WS.WS1010.sys_webservices">
+                <a:datas dataSource="/model/ws1010_web_service_default_rootpath"/>
+                <a:field name="web_service_id"/>
+                <a:field name="soapaction"/>
+                <a:field name="request_xml"/>
+                <a:field name="response_xml"/>
+            </a:dataSet>
+            <a:dataSet id="ws1010_web_service_url_edit_ds" loadData="false" model="sys.WS.WS1010.sys_webservice_urls" submitUrl="${/request/@context_path}/modules/sys/WS/WS1010/sys_webservice_urls.svc">
+                <a:datas dataSource="/model/ws1010_web_service_url_edit_default_rootpath"/>
+                <a:fields>
+                    <a:field name="web_service_id"/>
+                    <a:field name="web_service_url" required="true"/>
+                    <a:field name="wsdl"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="ws1010WebServiceUrlSave" text="HAP_SAVE" width="90"/>
+                <a:toolbarButton click="ws1010WebServiceUrlEditClose" text="HAP_CLOSE" width="90"/>
+            </a:screenTopToolbar>
+            <a:fieldSet column="3" title="" width="1000">
+                <a:vBox labelWidth="100">
+                    <a:textField name="web_service_url" bindTarget="ws1010_web_service_url_edit_ds" prompt="Web Service地址" width="470"/>
+                    <a:textField name="soapaction" bindTarget="ws1010_web_service_url_parameters_ds" prompt="soapAction" width="470"/>
+                    <a:textArea name="request_xml" bindTarget="ws1010_web_service_url_parameters_ds" height="240" prompt="请求格式" width="470"/>
+                    <a:textArea name="response_xml" bindTarget="ws1010_web_service_url_parameters_ds" height="240" prompt="响应格式" width="470"/>
+                </a:vBox>
+                <a:button click="ws1010WebServiceEditGenerateWsdl" text="生成WSDL"/>
+                <a:textArea name="wsdl" bindTarget="ws1010_web_service_url_edit_ds" height="550" prompt="" width="470"/>
+            </a:fieldSet>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

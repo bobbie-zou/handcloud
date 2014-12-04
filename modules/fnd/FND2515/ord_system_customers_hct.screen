@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query autoCount="false" defaultWhereClause="t1.ENABLED_FLAG=&apos;Y&apos;and exists (select 1  from ord_company_customer_types c where c.customer_type_id = t1.customer_type_id and c.company_id = ${/session/@company_id})" fetchAll="true" model="fnd.FND2515.ord_system_customer_types_vl" rootPath="type_list"/>
+        <a:model-query autoCount="false" defaultWhereClause=" company_id = ${/session/@company_id}" fetchAll="true" model="fnd.fnd_companies_vl" rootPath="company"/>
+        <a:model-query autoCount="false" fetchAll="true" model="fnd.FND2515.ord_system_customers_com_flag_init" rootPath="com_flag"/>
+        <a:model-query autoCount="false" fetchAll="true" model="fnd.FND2515.ord_system_customers_mes_flag_init" rootPath="mes_flag"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd2515_ord_system_customers_assign_hct_link" url="${/request/@context_path}/modules/fnd/FND2515/ord_system_customers_assign_hct.screen"/>
+        <a:link id="fnd2515_sys_customer_company_assigned_batch_link" url="${/request/@context_path}/modules/fnd/FND2515/ord_system_customers_batch_company.screen"/>
+        <a:link id="fnd2515_ord_bank_assign_link" url="${/request/@context_path}/modules/fnd/FND2515/ord_bank_assign.screen"/>
+        <script><![CDATA[
+            var fnd2515_com_flag = '${/model/com_flag/record/@judge_fg}';
+            var fnd2515_mes = '${/model/mes_flag/record/@message}';
+            
+            function loadComplete() {
+                if (fnd2515_com_flag == 'N') {
+                    Aurora.showInfoMessage('${l:PROMPT}', fnd2515_mes, null, 250, 100);
+                    $('add_btn').disable();
+                    $('save_btn').disable();
+                }
+            }
+            
+            function fnd2515_queryCustomer() {
+                $('fnd2515_ord_system_customers_hct_result_ds').query();
+            }
+            
+            function fnd2515_resetCustomer() {
+                $('fnd2515_ord_system_customers_hct_result_ds').reset();
+            }
+            
+            function fnd2515_assign(value, record, name) {
+                if (record.isNew) {
+                    return '';
+                }
+                return '<a href="#" onclick="javascript:fnd2515_openAssignCM(\'' + encodeURIComponent(record.get('customer_id')) + '\',\'' + encodeURIComponent(record.get('customer_code')) + '\',\'' + encodeURIComponent(record.get('description')) + '\');">${l:INV_SYSTEM_ITEM_TYPES.ALLOCATE}</a>';
+            }
+            
+            function fnd2515_openAssignCM(id, code, description) {
+                new Aurora.Window({
+                    id: 'ord_system_customers_assign_hct_id',
+                    url: /*ord_system_customers_assign_hct.screen*/
+                    $('fnd2515_ord_system_customers_assign_hct_link').getUrl() + '?customer_id=' + id + '&customer_code=' + code + '&description=' + description,
+                    title: '${l:INV_SYSTEM_ITEM_TYPES.ALLOCATE}',
+                    height: 480,
+                    width: 520
+                });
+            }
+            
+            function fnd2515_cusTypeEditorFunction(record, name) {
+                if (record.isNew) {
+                    return 'fnd2515_comboBox_editor';
+                } else {
+                    return '';
+                }
+            }
+            
+            function fnd2515_cusCodeEditorFunction(record, name) {
+                if (record.isNew) {
+                    return 'fnd2515_description_tf';
+                } else {
+                    return '';
+                }
+            }
+            
+            function fnd2515_addFunction(dataSet, record, index) {
+                record.set('maintain_company_id', '${/session/@company_id}');
+                record.set("maint_com", '${/model/company/record/@company_short_name}');
+            }
+            
+            function fnd2515_refresh() {
+                $('fnd2515_ord_system_customers_hct_result_ds').query();
+            }
+            
+            function FND2515_batch_assign_company() {
+                var FND2515_Arr_system_customers_records = $('fnd2515_ord_system_customers_hct_result_ds').getSelected();
+                if (FND2515_Arr_system_customers_records.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}');
+                    return false;
+                }
+                for(var i=0;i<FND2515_Arr_system_customers_records.length;i++){
+                    if(FND2515_Arr_system_customers_records[i].isNew||FND2515_Arr_system_customers_records[i].dirty)
+                    {Aurora.showMessage('${l:PROMPT_MESSAGE}','${l:WORK_FLOW_ACTION.EXIT_BEFORE_SAVE}',null,230,100);
+                   	return false;}
+                }
+                new Aurora.Window({
+                    id: 'customer_batch_assign_company_id',
+                    url: $('fnd2515_sys_customer_company_assigned_batch_link').getUrl(),
+                    title: '${l:FND_SYS_VENDERS.BATCH_DISP_COMPANY}',
+                    width: 730,
+                    height: 510
+                });
+            }
+           
+            
+        	function fnd2515_bankAssign(value, record, name){
+        	    var customerId = record.get('customer_id');
+                if(customerId){
+                    return '<a href="javascript:fnd2515_bankAssignInfo(\''+customerId+ '\',\'' + encodeURIComponent(record.get('customer_code')) + '\',\'' + record.get('description') + '\');">${l:CSH_PAYMENT.BANK_ACCOUNT_CODE}</a>';
+                } 
+        	}
+        	
+        	function fnd2515_bankAssignInfo(customerId,customerCode,description){
+        	    new Aurora.Window({id:'exp_bank_assign_window',url:$('fnd2515_ord_bank_assign_link').getUrl()+'?customer_id='+customerId+'&customer_code='+encodeURIComponent(customerCode)+'&description='+encodeURIComponent(description), title:'${l:CSH_PAYMENT.BANK_ACCOUNT_CODE}', height:500,width:680});	
+        	}
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2515_type_list_ds">
+                <a:datas dataSource="/model/type_list"/>
+            </a:dataSet>
+            <a:dataSet id="fnd2515_ord_system_customers_hct_query_ds" model="fnd.FND2515.ord_system_customers_query_control_hct"/>
+            <a:dataSet id="fnd2515_ord_system_customers_hct_result_ds" autoQuery="true" model="fnd.FND2515.ord_system_customers_query_control_hct" queryDataSet="fnd2515_ord_system_customers_hct_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="customer_id"/>
+                    <a:field name="customer_type_code" displayField="customer_type_code" options="fnd2515_type_list_ds" required="true" returnField="customer_id" valueField="customer_type_id">
+                        <a:mapping>
+                            <a:map from="customer_type_code" to="customer_type_code"/>
+                            <a:map from="customer_type_id" to="customer_type_id"/>
+                            <a:map from="description" to="type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="type_desc"/>
+                    <a:field name="customer_type_id"/>
+                    <a:field name="customer_code" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="fnd2515_addFunction"/>
+                    <a:event name="submitsuccess" handler="fnd2515_refresh"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <!-- <a:screenBody> -->
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="fnd2515_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="fnd2515_grid" type="save" width="100"/>
+                <a:gridButton bind="fnd2515_grid" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd2515_ord_system_customers_hct_query_ds" resultTarget="fnd2515_ord_system_customers_hct_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="customer_type_code" bindTarget="fnd2515_ord_system_customers_hct_query_ds" prompt="ORD_CUSTOMER_TYPES.CUSTOMER_TYPE_CODE">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd2515_queryCustomer"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="customer_code" bindTarget="fnd2515_ord_system_customers_hct_query_ds" prompt="ORD_SYSTEM_CUSTOMERS.CUSTOMER_CODE">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd2515_queryCustomer"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:textField name="description" bindTarget="fnd2515_ord_system_customers_hct_query_ds" prompt="FND_COMPANY_PROMPTS.DESCRIPTION">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd2515_queryCustomer"/>
+                            </a:events>
+                        </a:textField>
+                        <!--                         <a:textField name="employee_name" bindTarget="sys_user_query_ds" prompt="EXP_EMPLOYEES.NAME"/>
+ -->
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <!--  <a:form title="ORD_SYSTEM_CUSTOMERS_DEFINE">
+                <a:hBox>
+                    <a:textField name="customer_type_code" bindTarget="fnd2515_ord_system_customers_hct_query_ds" prompt="ORD_CUSTOMER_TYPES.CUSTOMER_TYPE_CODE">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd2515_queryCustomer"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="customer_code" bindTarget="fnd2515_ord_system_customers_hct_query_ds" prompt="ORD_SYSTEM_CUSTOMERS.CUSTOMER_CODE">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd2515_queryCustomer"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="description" bindTarget="fnd2515_ord_system_customers_hct_query_ds" prompt="FND_COMPANY_PROMPTS.DESCRIPTION">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd2515_queryCustomer"/>
+                        </a:events>
+                    </a:textField>
+                </a:hBox>
+            </a:form>
+            <a:hBox>
+                <a:button click="queryCustomer" text="HAP_QUERY"/>
+                <a:button click="fnd2515_resetCustomer" text="HAP_RESET"/>
+            </a:hBox> -->
+            <!-- <a:button click="FND2515_batch_assign_company" text="FND_SYS_VENDERS.BATCH_DISP_COMPANY"/> -->
+            <a:grid id="fnd2515_grid" bindTarget="fnd2515_ord_system_customers_hct_result_ds" height="340" marginHeight="180" marginWidth="70" navBar="true">
+                <!-- <a:toolBar>
+                    <a:button id="add_btn" type="add"/>
+                    <a:button type="clear"/>
+                    <a:button id="save_btn" type="save"/>
+                </a:toolBar> -->
+                <a:columns>
+                    <a:column name="customer_type_code" align="center" editorFunction="fnd2515_cusTypeEditorFunction" prompt="ORD_CUSTOMER_TYPES.CUSTOMER_TYPE_CODE" width="100"/>
+                    <a:column name="type_desc" align="left" prompt="INV_SYSTEM_ITEM_TYPES.DESCRIPTION" width="100"/>
+                    <a:column name="customer_code" align="center" editorFunction="fnd2515_cusCodeEditorFunction" prompt="ORD_SYSTEM_CUSTOMERS.CUSTOMER_CODE" width="60"/>
+                    <a:column name="description" align="left" editor="fnd2515_description_tf" prompt="ORD_CUSTOMER_DESCRIPTION" width="100"/>
+                    <a:column name="address" align="center" editor="fnd2515_description_tf" prompt="FND_COMPANIES.ADDRESS" width="100"/>
+                    <a:column name="tax_id_number" align="center" editor="fnd2515_description_tf" prompt="ORD_SYSTEM_CUSTOMERS.TAX_ID_NUMBER" width="60"/>
+                    <!-- <a:column name="bank_branch_code" align="center" editor="fnd2515_description_tf" prompt="ORD_SYSTEM_CUSTOMERS.BANK_BRANCH_CODE" width="100"/>
+                    <a:column name="bank_account_code" align="center" editor="fnd2515_description_tf" prompt="ORD_SYSTEM_CUSTOMERS.BANK_ACCOUNT_CODE" width="100"/> -->
+                    <a:column name="maint_com" align="center" prompt="FND_COMPANIES.COMPANY_SHORT_NAME" width="100"/>
+                    <a:column name="enabled_flag" align="center" editor="fnd2515_enabled_flag_cb" prompt="FND_TAX_TYPE_CODES.ENABLED_FLAG" width="50"/>
+                    <a:column align="center" prompt="INV_SYSTEM_ITEM_TYPES.ALLOCATE" renderer="fnd2515_assign" width="80"/>
+                    <a:column align="center" prompt="CSH_PAYMENT.BANK_ACCOUNT_CODE" renderer="fnd2515_bankAssign"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd2515_description_tf"/>
+                    <a:checkBox id="fnd2515_enabled_flag_cb"/>
+                    <a:comboBox id="fnd2515_comboBox_editor"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+        <!-- </a:screenBody> -->
+    </a:view>
+</a:screen>

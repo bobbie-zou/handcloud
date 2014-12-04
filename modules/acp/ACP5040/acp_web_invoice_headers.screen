@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-2-26 下午03:04:15  
+    $Revision: 1.0  
+    $Purpose: 非寄销网上发票创建(界面2) 显示临时表中的数据
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="acp_5040_web_invoice_create_detail_link" url="${/request/@context_path}/modules/acp/ACP5040/acp_web_invoice_create.screen"/>
+        <a:link id="acp5040_web_invocie_delete_link" url="${/request/@context_path}/modules/acp/ACP5040/acp_web_invoice_delete.svc"/>
+        <script><![CDATA[
+
+            function acp5040_detail(value, record, name) {
+                var invoiceHeaderId = record.get('invoice_header_id');
+                var invoiceHeaderNum = record.get('invoice_num');
+                if (record.get('invoice_header_id')) {
+                    return '<a href="javascript:openacp5040_detail(' + invoiceHeaderId + ')">' + invoiceHeaderNum + '</a>';
+                }
+            }
+            
+            function openacp5040_detail(invoiceHeaderId) {
+                new Aurora.Window({
+                    id: 'acp5040_web_invoice_create_detail_window',
+                    url: $('acp_5040_web_invoice_create_detail_link').getUrl() + '?invoice_header_id=' + invoiceHeaderId,
+                    title: '${l:ACP_WEB_INVOICE.WEB_INVOICE_CREATE}',
+                    fullScreen: true
+                });
+            }
+            
+            function acp5040_header_back() {
+                $('acp5040_header_window').close();
+            }
+            
+            function acp5040_header_query() {
+                $('acp_5040_preview_result_ds').query();
+            }
+            
+            
+            function acp5040_header_delete() {
+                var list_ds = $('acp_5040_preview_result_ds');
+                var records = list_ds.getSelected();
+                if (records.length == 0) {
+                    Aurora.showMessage('提示', '请至少选择一条数据!');
+                    return;
+                }
+                Aurora.showConfirm('提示', '确认要删除吗？', function() {
+                    var datas = [];
+                    for (var i = 0;i < records.length;i++) {
+                        datas.push(records[i].data);
+                    }
+            
+                    Aurora.request({
+                        url: $('acp5040_web_invocie_delete_link').getUrl(),
+                        para: datas,
+                        success: function(res) {
+                            acp5040_delete_result(res.result.last_flag);
+            
+                        },
+                        failure: function(res) {
+                            acp5040_delete_result(res.result.last_flag);
+                        },
+                        error: function(res) {
+                            acp5040_delete_result(res.result.last_flag);
+                        },
+                        scope: this
+                    });
+                });
+            }
+            
+            function acp5040_delete_result(last_flag) {
+                if (last_flag == 'Y') {
+                    acp5040_header_back();
+                    acp_5040_web_invoice_query();
+                } else {
+                    acp5040_header_query();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp_5040_preview_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="acp.ACP5040.acp_web_invoice_headers_temp" selectable="true">
+                <a:fields>
+                    <a:field name="invoice_header_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="acp5040_header_delete" style="margin-left:10px;" text="删除" width="100"/>
+            <a:gridButton click="acp5040_header_back" text="ACP_BILL.BACK" width="100"/>
+        </a:screenTopToolbar>
+        <a:grid id="acp_5040_preview_grid" bindTarget="acp_5040_preview_result_ds" marginHeight="180" marginWidth="65" navBar="true">
+            <a:columns>
+                <a:column name="invoice_num" align="center" prompt="ACP_WEB_INVOICE.WEB_INVOICE_NUM" renderer="acp5040_detail" width="80"/>
+                <a:column name="company_name" align="center" prompt="ACP_WEB_INVOICE.COMPANY_NAME" width="120"/>
+                <a:column name="vendor_site_name" align="center" prompt="ACP_BILL_SOURCE.VENDOR_SITE_CODE_NAME" width="120"/>
+                <a:column name="currency_code" align="center" prompt="ACP_WEB_INVOICE.CURRENCY_CODE" width="60"/>
+                <a:column name="invoice_amount" align="right" prompt="ACP_WEB_INVOICE.TAX_TOTAL_AMOUNT" renderer="Aurora.formatNumber" width="110"/>
+                <a:column name="invoice_tax_amount" align="right" prompt="ACP_WEB_INVOICE.TAX_AMOUNT" renderer="Aurora.formatNumber" width="110"/>
+                <a:column name="data_source" align="center" prompt="ACP_BILL_SOURCE.DATA_SOURCE" width="60"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

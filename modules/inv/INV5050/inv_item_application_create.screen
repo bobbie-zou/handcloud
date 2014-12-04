@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace 
+    $Date: 2013-12-10 下午04:03:03  
+    $Revision: 1.0  
+    $Purpose: 物品主数据新建申请创建
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query model="inv.INV5050.user_employee_query" rootPath="current_employee"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="inv5050_item_application_lns_create_link" url="${/request/@context_path}/modules/inv/INV5050/inv_item_application_lns_create.screen"/>
+        <a:link id="inv5050_item_application_lns_maintain_link" url="${/request/@context_path}/modules/inv/INV5050/inv_item_application_lns_maintain.screen"/>
+        <a:link id="inv5050_item_application_lns_category_add_link" url="${/request/@context_path}/modules/inv/INV5050/pur_purchase_category_tree_lov.screen"/>
+        <a:link id="inv2010_sys_item_attachment_file_download_link" url="${/request/@context_path}/atm_download.svc"/>
+        <a:link id="inv5050_item_application_lns_file_upload_link" url="${/request/@context_path}/attachment_file_upload.screen"/>
+        <script><![CDATA[
+        	//申请头主库存组织变更标志
+        	//若发生变更，则提示“默认主库存组织发生变更，是否同时更新至当前单据全部物品？”
+        	var inv5050_org_update_flag = false;
+        	
+        	//数据保存操作
+        	function inv5050_item_application_save_todo(item_line_org_update_flag){
+        	    var record = $('inv5050_item_application_hds').getCurrentRecord();
+        	        
+    	        var lns_records = $('inv5050_item_application_lns').getJsonData(false);
+    	        
+    	        var data = {
+    	            'item_application_header_id':record.get('item_application_header_id'),
+    	            'company_id':record.get('company_id'),
+    	            'operation_unit_id':record.get('unit_id'),
+    	            'employee_id':record.get('employee_id'),
+    	            'position_id':record.get('position_id'),
+    	            'unit_id':record.get('unit_id'),
+    	            'status':record.get('status'),
+    	            'version_num':record.get('version_num'),
+    	            'comments':record.get('comments'),
+    	            'primary_inv_org_id':record.get('primary_inv_org_id'),
+    	            'item_line_org_update_flag':item_line_org_update_flag,
+    	            'application_lns':lns_records,
+    	            '_status':record.isNew?'insert':'update'
+    	        };
+    	        
+    	        Aurora.request({
+    	            url:$('inv5050_item_application_save_link').getUrl(),
+    	            para:data,
+    	            scope:this,
+    	            success:function(res){
+    	                var item_application_header_id;
+    	                if(res.result.item_application_header_id){
+    	                    item_application_header_id  = res.result.item_application_header_id;
+    	                }else{
+    	                	item_application_header_id = record.get('item_application_header_id');
+    	                }
+    	                inv5050_org_update_flag = false;
+    	                Aurora.showMessage('${l:PROMPT}', '${l:EBS_SAVE_SUCCESS}', function(){
+	    	                
+	    	                $('inv5050_item_application_hds').setQueryParameter('item_application_header_id', item_application_header_id);
+	    	                $('inv5050_item_application_hds').query();
+	    	                $('inv5050_item_application_lns').setQueryParameter('item_application_header_id', item_application_header_id);
+	    	                $('inv5050_item_application_lns').query();
+    	                });
+    	            }
+    	        });
+        	}
+        	
+        	//保存按钮事件
+        	function inv5050_item_application_save(){
+        	    var record = $('inv5050_item_application_hds').getCurrentRecord();
+        	    var item_line_org_update_flag = 'N';
+        	    if($('inv5050_item_application_hds').validate()){
+        	        if(inv5050_org_update_flag&&record.get('item_application_header_id')){
+        	            Aurora.showConfirm('${l:PROMPT}', '默认主库存组织发生变更，是否同时更新至当前单据全部物品？', function(){
+        	                item_line_org_update_flag = 'Y';
+        	                inv5050_item_application_save_todo(item_line_org_update_flag);
+        	            }, function(){
+        	                inv5050_item_application_save_todo(item_line_org_update_flag);
+        	            });
+        	        }else{
+        	            inv5050_item_application_save_todo(item_line_org_update_flag);
+        	        }        	        
+        	    }
+        	}
+        	
+        	//保存&&提交操作
+        	function inv5050_item_application_save_submit(){
+        	    if($('inv5050_item_application_hds').validate()){
+	        	    var record = $('inv5050_item_application_hds').getCurrentRecord();
+	        	        
+	    	        var lns_records = $('inv5050_item_application_lns').getJsonData(false);
+	    	        
+	    	        var data = {
+	    	            'item_application_header_id':record.get('item_application_header_id'),
+	    	            'company_id':record.get('company_id'),
+	    	            'operation_unit_id':record.get('unit_id'),
+	    	            'employee_id':record.get('employee_id'),
+	    	            'position_id':record.get('position_id'),
+	    	            'unit_id':record.get('unit_id'),
+	    	            'status':record.get('status'),
+	    	            'version_num':record.get('version_num'),
+	    	            'comments':record.get('comments'),
+	    	            'primary_inv_org_id':record.get('primary_inv_org_id'),
+	    	            'item_line_org_update_flag':'N',
+	    	            'application_lns':lns_records,
+	    	            '_status':record.isNew?'insert':'update'
+	    	        };
+	    	        //保存数据
+	    	        Aurora.request({
+	    	            url:$('inv5050_item_application_save_link').getUrl(),
+	    	            para:data,
+	    	            scope:this,
+	    	            success:function(res){
+	    	                var item_application_header_id;
+	    	                if(res.result.item_application_header_id){
+	    	                    item_application_header_id  = res.result.item_application_header_id;
+	    	                }else{
+	    	                	item_application_header_id = record.get('item_application_header_id');
+	    	                }
+	    	                //提交数据
+	    	                Aurora.request({
+			    	            url:$('inv5050_item_application_submit_link').getUrl(),
+			    	            para:{
+			    	                'item_application_header_id':item_application_header_id
+			    	            },
+			    	            scope:this,
+			    	            success:function(){
+			    	                Aurora.showMessage('${l:PROMPT}', '${l:SUCCESSFUL_OPERATION}', function(){
+			    	                    $('inv5050_item_application_create_win').close();
+			    	                });
+			    	                return;
+			    	            },
+			    	            failure:function(){},
+			    	            error:function(){}
+			    	        });
+	    	            }
+	    	        });
+        	    }
+        	}
+        	
+        	//提交按钮事件
+        	function inv5050_item_application_submit(){
+        	    var item_application_header_id = $('inv5050_item_application_hds').getCurrentRecord().get('item_application_header_id');
+        	    var is_dirty = false;
+        	    var head_record = $('inv5050_item_application_hds').getCurrentRecord();
+        	    var lns_records = $('inv5050_item_application_lns').getAll();
+        	    //校验数据是否保存
+        	    if(head_record.dirty){
+        	        is_dirty = true;        	        
+        	    }else{
+        	        for(var i = 0; i < lns_records.length; i++){
+        	            if(lns_records[i].dirty){
+        	                is_dirty = true;
+		        	        break;
+        	            }
+        	        }
+        	    }
+        	    if(is_dirty){
+        	        Aurora.showConfirm('${l:PROMPT}', '数据尚未保存，是否保存当前更改数据？', function(){
+        	            inv5050_item_application_save_submit();
+        	        }, function(){});
+        	    }else{
+	        	    Aurora.request({
+	    	            url:$('inv5050_item_application_submit_link').getUrl(),
+	    	            para:{
+	    	                'item_application_header_id':item_application_header_id
+	    	            },
+	    	            scope:this,
+	    	            success:function(){
+	    	                Aurora.showMessage('${l:PROMPT}', '${l:SUCCESSFUL_OPERATION}', function(){
+	    	                    $('inv5050_item_application_create_win').close();
+	    	                });
+	    	                return;
+	    	            },
+	    	            failure:function(){},
+	    	            error:function(){}
+	    	        });        	        
+        	    }
+        	}
+        	
+        	//取消按钮事件
+        	function inv5050_item_application_cancel(){
+        	    var item_application_header_id = $('inv5050_item_application_hds').getCurrentRecord().get('item_application_header_id');
+        	    Aurora.showConfirm('${l:PROMPT}', '是否确定取消本次申请？', function(){
+        	        Aurora.request({
+        	            url:$('inv5050_item_application_cancel_link').getUrl(),
+        	            para:{
+        	                'item_application_header_id':item_application_header_id
+        	            },
+        	            scope:this,
+        	            success:function(){
+        	                Aurora.showMessage('${l:PROMPT}', '${l:SUCCESSFUL_OPERATION}', function(){
+        	                    $('inv5050_item_application_create_win').close();
+        	                });
+        	                return;
+        	            },
+        	            failure:function(){},
+        	            error:function(){
+        	                $('inv5050_item_application_create_win').close();
+        	            }
+        	        });
+        	    }, function(){});
+        	}
+        	
+        	//申请头更新
+        	function inv5050_item_application_hds_update_handler(ds, record, name, value, oldvalue){
+        	    if(name == 'company_desc'){
+        	        if(!value){
+        	            record.set('company_id', '');
+        	        }
+        	    }
+        	    
+        	    if(name == 'company_id'){
+        	        //公司信息变更，清空部门、岗位信息
+        	        record.set('unit_desc', '');
+    	            record.set('unit_id', '');
+    	            record.set('position_id', '');
+    	            record.set('position_desc', '');
+        	        
+        	        if(value){
+						record.getField('unit_desc').setLovPara('company_id', value);
+        	        }else{
+        	            //去掉岗位lov对应的bm
+        	            record.getField('position_desc').setLovService('');
+        	        }
+        	    }
+        	    
+        	    if(name == 'unit_desc'){
+        	        if(!value){
+        	            record.set('unit_id', '');
+        	        }
+        	    }
+        	    
+        	    if(name == 'unit_id'){
+    	            record.set('position_id', '');
+    	            record.set('position_desc', '');
+    	            
+    	            if(value){
+    	                record.getField('position_desc').setLovPara('unit_id', value);
+    	                record.getField('position_desc').setLovPara('company_id', record.get('company_id'));    	                
+        	            record.getField('position_desc').setLovService('inv.INV5050.get_user_unit_position_lov');
+    	            }
+        	    }
+        	    
+        	    if(name == 'primary_inv_org_desc'){
+        	        if(!value){
+        	            record.set('primary_inv_org_id', '');
+        	        }
+        	    }
+        	    if(name == 'primary_inv_org_id'){
+        	        inv5050_org_update_flag = true;
+        	    }
+        	}
+        	
+        	//物品行新增事件
+        	function inv5050_item_application_lns_create(){
+        	    var item_application_header_id = $('inv5050_item_application_hds').getCurrentRecord().get('item_application_header_id');
+        	    if(item_application_header_id){
+	        	    new Aurora.Window({
+	        	        id:'inv5050_item_application_lns_create_win',
+	        	        title:'物品主数据创建',
+	        	        url:$('inv5050_item_application_lns_create_link').getUrl()+'?item_application_header_id='+item_application_header_id,
+	        	        fullScreen:true
+	        	    });
+	        	    $('inv5050_item_application_lns_create_win').on('close', function(){
+    	                $('inv5050_item_application_hds').setQueryParameter('item_application_header_id', item_application_header_id);
+    	                $('inv5050_item_application_hds').query();
+    	                $('inv5050_item_application_lns').setQueryParameter('item_application_header_id', item_application_header_id);
+    	                $('inv5050_item_application_lns').query();
+	        	    });
+        	    }else{
+        	        Aurora.showMessage('${l:PROMPT}', '请先保存，再点击新增物品行!');
+        	        return;
+        	    }
+        	}
+        	
+        	//申请头加载完成事件
+        	function inv5050_item_application_hds_load_handler(ds){
+        	    var record = ds.getCurrentRecord();
+        	    record.getField('unit_desc').setLovPara('company_id', record.get('company_id'));
+        	    
+                record.getField('position_desc').setLovPara('unit_id', record.get('unit_id'));
+                record.getField('position_desc').setLovPara('company_id', record.get('company_id'));    	                
+	            record.getField('position_desc').setLovService('inv.INV5050.get_user_unit_position_lov');
+        	}
+        	
+        	//物品代码渲染函数
+        	function inv5050_item_code_renderer(value, record, name){
+        	    return '<a href="javascript:inv5050_item_application_lns_maintain('+record.get('item_application_line_id')+','+record.get('coding_rule')+');">'+value+'</a>';
+        	}
+        	
+        	//物品行维护窗口
+        	function inv5050_item_application_lns_maintain(item_application_line_id,coding_rule){
+        	    new Aurora.Window({
+        	        id:'inv5050_item_application_lns_maintain_win',
+        	        title:'物品主数据维护',
+        	        url:$('inv5050_item_application_lns_maintain_link').getUrl()+'?item_application_header_id=${/parameter/@item_application_header_id}&item_application_line_id='+item_application_line_id+'&temp_instance_id='+coding_rule,
+        	        fullScreen:true
+        	    });
+        	    $('inv5050_item_application_lns_maintain_win').on('close', function(){
+	                $('inv5050_item_application_hds').setQueryParameter('item_application_header_id', '${/parameter/@item_application_header_id}');
+	                $('inv5050_item_application_hds').query();
+	                $('inv5050_item_application_lns').setQueryParameter('item_application_header_id', '${/parameter/@item_application_header_id}');
+	                $('inv5050_item_application_lns').query();
+        	    });
+        	}
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv5050_enabled_flag_ds" lookupCode="BID_EXPERT_STATUS"/>
+            <a:dataSet id="inv5050_item_application_hds" autoCreate="true" model="inv.INV5050.inv_item_application_hds_query">
+                <a:fields>
+                    <a:field name="item_application_num" readOnly="true"/>
+                    <a:field name="application_date" defaultValue="${/model/current_employee/record/@current_date}" readOnly="true"/>
+                    <a:field name="employee_id" defaultValue="${/model/current_employee/record/@employee_id}"/>
+                    <a:field name="employee_name" defaultValue="${/model/current_employee/record/@name}" readOnly="true"/>
+                    <a:field name="company_id"/>
+                    <a:field name="company_desc" lovHeight="500" lovService="inv.INV5050.get_user_authorization_company_lov" lovWidth="500" required="true" requiredMessage="公司不能为空" title="公司选择">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_desc" to="company_desc"/>
+                            <a:map from="position_id" to="position_id"/>
+                            <a:map from="position_desc" to="position_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="unit_desc" lovHeight="500" lovService="inv.INV5050.get_user_position_assigned_unit" lovWidth="500" required="true" requiredMessage="部门不能为空" title="部门选择">
+                        <a:mapping>
+                            <a:map from="unit_desc" to="unit_desc"/>
+                            <a:map from="unit_id" to="unit_id"/>
+                            <a:map from="position_id" to="position_id"/>
+                            <a:map from="position_desc" to="position_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="position_id"/>
+                    <a:field name="position_desc" lovHeight="500" lovWidth="500" required="true" requiredMessage="申请人岗位不能为空" title="岗位选择">
+                        <a:mapping>
+                            <a:map from="position_id" to="position_id"/>
+                            <a:map from="position_desc" to="position_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="primary_inv_org_id"/>
+                    <a:field name="primary_inv_org_desc" lovHeight="500" lovLabelWidth="100" lovService="inv.INV5050.inv_organization_lov" lovWidth="600" title="主库存组织选择">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="primary_inv_org_id"/>
+                            <a:map from="description" to="primary_inv_org_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="status" defaultValue="NEW"/>
+                    <a:field name="version_num" defaultValue="1.0"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="inv5050_item_application_hds_load_handler"/>
+                    <a:event name="update" handler="inv5050_item_application_hds_update_handler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="inv5050_item_application_lns" model="inv.inv_item_application_lns" selectable="true">
+                <a:fields>
+                    <a:field name="enabled_flag_display" displayField="code_value_name" options="inv5050_enabled_flag_ds" returnField="enabled_flag" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:hBox>
+                <a:toolbarButton click="inv5050_item_application_save" style="margin-left:0px;" text="HAP_SAVE" width="100"/>
+                <a:toolbarButton click="inv5050_item_application_submit" style="margin-left:20px;" text="HAP_SUBMIT" width="100"/>
+                <a:toolbarButton click="inv5050_item_application_cancel" style="margin-left:20px;" text="WORKFLOW_VIEW.CANCEL" width="100"/>
+            </a:hBox>
+            <a:fieldSet title="物品主数据新建申请创建">
+                <a:hBox labelWidth="100" style="float:left;">
+                    <a:textField name="item_application_num" bindTarget="inv5050_item_application_hds" prompt="单据编号" width="150"/>
+                    <a:textField name="application_date" bindTarget="inv5050_item_application_hds" prompt="申请日期" width="150"/>
+                    <a:lov name="primary_inv_org_desc" bindTarget="inv5050_item_application_hds" prompt="组库存组织" width="385"/>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:lov name="company_desc" bindTarget="inv5050_item_application_hds" prompt="公司" width="150"/>
+                    <a:lov name="unit_desc" bindTarget="inv5050_item_application_hds" prompt="部门" width="150"/>
+                    <a:textField name="employee_name" bindTarget="inv5050_item_application_hds" prompt="申请人" width="150"/>
+                    <a:lov name="position_desc" bindTarget="inv5050_item_application_hds" prompt="申请人岗位" width="150"/>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:textArea name="comments" bindTarget="inv5050_item_application_hds" prompt="备注" width="850"/>
+                </a:hBox>
+            </a:fieldSet>
+            <a:grid id="inv5050_item_application_lns_grid" bindTarget="inv5050_item_application_lns" height="370" navBar="true" width="945">
+                <a:toolBar>
+                    <a:button click="inv5050_item_application_lns_create" icon="${/request/@context_path}/images/add.gif" text="HAP_NEW"/>
+                    <a:button type="delete"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="item_code" align="center" prompt="物品代码" renderer="inv5050_item_code_renderer" width="150"/>
+                    <a:column name="item_name" prompt="物品描述" width="200"/>
+                    <a:column name="item_type_name" align="center" prompt="物品类型" width="150"/>
+                    <a:column name="primary_inv_org_desc" align="center" prompt="主库存组织" renderer="Aurora.formatDate" width="250"/>
+                    <a:column name="enabled_flag_display" align="center" editor="inv5050_item_application_lns_grid_cmb" lock="false" prompt="物品默认状态" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:comboBox id="inv5050_item_application_lns_grid_cmb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

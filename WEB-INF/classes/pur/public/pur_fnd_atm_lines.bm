@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua  
+    $Date: 2013-8-2 下午14:10:12  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    atm_line_id,
+                    line_number,
+                    source_table_name,
+                    source_pk_value,
+                    atm_desc,
+                    upload_user_id,
+                    upload_user_name,
+                    upload_user_desc,
+                    TO_CHAR(upload_date,'yyyy-mm-dd hh24:mi:ss') upload_date,
+                    srm_common_pkg.get_atm_file(l.atm_line_id, 'FND_ATM_LINES') AS atm_file,
+                    NVL(download_count,0) download_count
+                FROM
+                    fnd_atm_lines l
+                WHERE
+                    l.source_table_name = upper(${@source_table_name}) AND
+                    l.source_pk_value   = ${@source_pk_value}
+                ORDER BY
+                    l.line_number,
+                    l.upload_date
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="atm_line_id" input="false" output="true"/>
+            </bm:parameters>
+            <bm:query-sql><![CDATA[
+                DECLARE
+                    v_source_pk_value VARCHAR2(100);
+                    v_user_id number;
+                BEGIN
+                    IF ${@source_pk_value} IS NOT NULL THEN
+                        v_source_pk_value  := ${@source_pk_value};
+                    ELSE                                                
+                        IF ${../../@vendor_id} IS NOT NULL THEN
+                            v_source_pk_value  := ${../../@vendor_id};
+                        END IF;
+                    END IF;
+                    if ${/session/@user_id} is not null then
+                    	v_user_id := ${/session/@user_id};
+                    else
+                    	v_user_id := 0;
+                    end if;
+                    fnd_atm_file_pkg.insert_fnd_atm_lines(x_atm_line_id => ${@atm_line_id},
+                                        p_line_number => ${@line_number},
+                                        p_source_table_name => ${@source_table_name},
+                                        p_source_pk_value => v_source_pk_value,
+                                        p_atm_desc => ${@atm_desc},
+                                        p_upload_user_id => ${/session/@user_id},
+										p_user_id 		=>v_user_id);
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+				begin
+						fnd_atm_file_pkg.update_fnd_atm_lines(p_atm_line_id => ${@atm_line_id},
+                                        p_line_number => ${@line_number},
+                                        p_source_table_name => ${@source_table_name},
+                                        p_source_pk_value => ${@source_pk_value},
+                                        p_atm_desc => ${@atm_desc},
+										p_user_id 		=>${/session/@user_id});					    
+				end;
+			]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:query-sql><![CDATA[
+				begin
+						fnd_atm_file_pkg.delete_fnd_atm_lines(p_atm_line_id => ${@atm_line_id},
+                                        p_source_table_name => ${@source_table_name},
+                                        p_source_pk_value => ${@source_pk_value},
+										p_user_id 		=>${/session/@user_id});					    
+				end;
+			]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" alias="t1" defaultOrderBy="apply_date_view desc,is_late desc,creation_date_view desc" extend="wfl.wfl_workflow_instance" extendmode="override" needAccessControl="false">
+    <bm:fields>
+        <bm:field name="is_late" expression="decode(r.date_limit,               null,               0,               decode(sign(r.date_limit - sysdate), -1, 1, 0))"/>
+        <bm:field name="node_name" databasetype="varchar2" datatype="java.lang.String" expression="(         select wwn.name                            from wfl_workflow_node_vl wwn                              where wwn.node_id = r.node_id)" forinsert="false" forupdate="false" prompt="WFL_WORKFLOW.NODE_NAME"/>
+        <bm:field name="last_update_by_name" databasetype="varchar2" datatype="java.lang.String" expression="(      wfl_common_pkg.get_wfl_user_name((select r.created_by from wfl_approve_record r where r.record_id = (select max(record_id) from wfl_approve_record where instance_id = t1.instance_id))))" forinsert="false" forupdate="false" prompt="上一审批人"/>
+        <bm:field name="employee_name" databasetype="varchar2" datatype="java.lang.String" expression="wfl_common_pkg.get_wfl_user_name(t1.created_by)" forinsert="false" forupdate="false" prompt="WFL_WORKFLOW_INSTANCE.CREATED_BY_NAME"/>
+        <!-- <bm:field name="unit_desc" databasetype="varchar2" datatype="java.lang.String" expression="wfl_common_pkg.get_submit_unit_desc(t1.instance_id)" forinsert="false" forupdate="false" prompt="申请人部门"/> -->
+        <bm:field name="order_type" databasetype="varchar2" datatype="java.lang.String" expression="         (select wdr.document_desc     from wfl_document_reference_vl wdr            where ww.workflow_category = wdr.workflow_category)         " prompt="WFL_WORKFLOW.ORDER_TYPE"/>
+        <bm:field name="creation_date_view" expression="to_char(t1.creation_date, &apos;yyyy-mm-dd hh24:mi&apos;)" prompt="WFL_WORKFLOW_INSTANCE.CREATION_DATE"/>
+        <bm:field name="apply_date_view" expression="to_char(r.creation_date, &apos;yyyy-mm-dd hh24:mi&apos;)" prompt="WFL_WORKFLOW_INSTANCE.APPLY_DATE"/>
+        <bm:field name="date_limit_view" expression="to_char(r.date_limit, &apos;yyyy-mm-dd hh24:mi&apos;)" prompt="WFL_WORKFLOW_INSTANCE.DATE_LIMIT"/>
+        <bm:field name="instance_desc"/>
+        <bm:field name="instance_amount" prompt="WFL_INSTANCE.AMOUNT"/>
+        <bm:field name="project_title" expression="(wfl_core_pkg.get_document_title(t1.instance_id,r.RECORD_ID,${/session/@user_id}))"/>
+    </bm:fields>
+    <bm:relations>
+        <bm:relation name="r" jointype="INNER" refmodel="wfl.wfl_instance_node_recipient">
+            <bm:reference foreignfield="instance_id" localfield="instance_id"/>
+        </bm:relation>
+        <bm:relation name="ww" jointype="INNER" refmodel="wfl.wfl_workflow">
+            <bm:reference foreignfield="workflow_id" localfield="workflow_id"/>
+        </bm:relation>
+    </bm:relations>
+    <bm:data-filters>
+        <bm:data-filter enforceoperations="query" expression=" (r.user_id = ${/session/@user_id} or wfl_core_pkg.check_auto_commission(r.record_id,${/session/@user_id}) = &apos;Y&apos;)" field="user_id"/>
+    </bm:data-filters>
+    <bm:ref-fields>
+        <bm:ref-field name="record_id" relationname="r" sourcefield="record_id"/>
+        <bm:ref-field name="date_limit" relationname="r" sourcefield="date_limit"/>
+        <bm:ref-field name="apply_date" relationname="r" sourcefield="creation_date"/>
+        <!--  <bm:ref-field name="record_id" relationname="r" sourcefield="record_id"/>-->
+        <bm:ref-field name="node_id" relationname="r" sourcefield="node_id"/>
+        <bm:ref-field name="workflow_category" relationname="ww" sourcefield="workflow_id"/>
+    </bm:ref-fields>
+    <bm:query-fields>
+        <bm:query-field name="workflow_category" queryExpression="ww.workflow_category=${@workflow_category}"/>
+        <bm:query-field name="create_by_name" queryExpression="wfl_common_pkg.get_wfl_user_name(t1.created_by) like ${@create_by_name}"/>
+        <bm:query-field name="creation_date_from" queryExpression="t1.creation_date&gt;=to_date(${@creation_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="creation_date_to" queryExpression="t1.creation_date&lt;=to_date(${@creation_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+        <bm:query-field name="apply_date_from" queryExpression="r.creation_date &gt;=to_date(${@apply_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="apply_date_to" queryExpression="r.creation_date &lt;=to_date(${@apply_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+    </bm:query-fields>
+</bm:model>

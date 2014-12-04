@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace  
+    $Date: 2013-11-10 上午9:54:40  
+    $Revision: 1.0  
+    $Purpose: 用户已分配岗位的部门
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+		SELECT *
+		  FROM (SELECT t.unit_id,
+				       ouv.unit_code,
+				       ouv.description unit_name,
+				       ouv.unit_code||'-'||ouv.description unit_desc,
+				       t1.position_id,
+				       t1.position_code,
+				       t1.description position_desc
+				  FROM (SELECT uv.unit_id
+				          FROM exp_employee_assigns ea,
+				               sys_user             u,
+				               exp_org_position_vl  op,
+				               exp_org_unit_vl      uv
+				         WHERE ea.employee_id = u.employee_id
+				               AND u.user_id = ${/session/@user_id}
+				               AND op.position_id = ea.position_id
+				               AND op.company_id = ea.company_id
+				               AND uv.unit_id = op.unit_id
+				               AND ea.company_id = ${@company_id}
+				               AND uv.enabled_flag = 'Y'
+				               AND op.enabled_flag = 'Y'
+				         GROUP BY uv.unit_id) t,
+				       exp_org_unit_vl ouv,
+				       (SELECT opv.position_id,
+				               opv.position_code,
+				               opv.description,
+				               opv.unit_id
+				          FROM exp_org_position_vl  opv,
+				               exp_employee_assigns eea,
+				               sys_user				su
+				         WHERE opv.position_id = eea.position_id
+				               AND opv.company_id = eea.company_id
+				               AND eea.primary_position_flag = 'Y'
+				               AND su.user_id = ${/session/@user_id}
+				               AND eea.employee_id = su.employee_id
+				               AND eea.company_id = ${@company_id}) t1
+				 WHERE t.unit_id = ouv.unit_id
+				       AND t1.unit_id(+) = t.unit_id) t2
+		 #WHERE_CLAUSE#
+		 ORDER BY unit_code
+ 			]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="unit_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="position_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="position_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="unit_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="EXP_ORG_UNIT.UNIT_CODE"/>
+        <bm:field name="unit_name" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="EXP_ORG_UNIT.ORG_UNIT_DESCRIPTION"/>
+        <bm:field name="unit_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="unit_code" queryExpression="unit_code like &apos;%&apos;||upper(${@unit_code})||&apos;%&apos;"/>
+        <bm:query-field name="unit_name" queryExpression="unit_name like &apos;%&apos;||${@unit_name}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

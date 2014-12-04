@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru
+    $Date: 2014-9-4 下午3:19:08  
+    $Revision: 1.0  
+    $Purpose: 业务实体管理
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure><![CDATA[
+    ]]></a:init-procedure>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="fnd9230_oraginzation_syn_link" model="fnd.FND9230.fnd_inv_organization_syn" modelaction="update"/>
+        <a:link id="fnd9230_vendorBuRelation_link" url="${/request/@context_path}/modules/fnd/FND9230/pur_vendor_bu_relations.screen"/>
+        <a:link/>
+        <div/>
+        <script><![CDATA[
+            //page
+            var fnd9230_page;
+            //查询
+            
+            
+            function fnd9230_queryService() {
+                $('fnd9230_businessUnitResult_ds').query();
+            }
+            
+            //Load
+            
+            function fnd9230_businessUnitLoad_fun(ds) {
+                var records = ds.getAll();
+                ds.goPage(fnd9230_page);
+                fnd9230_page = '';
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].get('company_maintenance_flag') == 'N') {
+                        records[i].getMeta().getField('company_name').setReadOnly(false);
+                    } else {
+                        records[i].getMeta().getField('company_name').setReadOnly(true);
+                    }
+                }
+            }
+            
+            //submitsuccess
+            
+            function fnd9230_businessUnit_submitSuccessFun() {
+                fnd9230_page = $('fnd9230_businessUnitResult_ds').currentPage;
+                $('fnd9230_businessUnitResult_ds').query();
+            }
+            
+            function fnd9230_organization_syn() {
+                Aurora.Masker.mask(Ext.getBody(), '正在操作中..');
+                Aurora.request({
+                    url: $('fnd9230_oraginzation_syn_link').getUrl(),
+                    success: function() {
+                        Aurora.Masker.unmask(Ext.getBody());
+                        Aurora.SideBar.enable = true;
+                        Aurora.SideBar.show({
+                            msg: '${l:PROMPT.OPERATION_SUCCESS}',
+                            duration: 600
+                        });
+                    },
+                    scope: this
+                });
+            }
+            
+            //Renderer Function
+            function fnd9230_vendorBuRelationsFun(value, record, name){
+                if (record.get('business_unit_id')) {
+                    return '<a href="javascript:fnd9230_vendorBuRelations_openWindow(' + record.get('business_unit_id') + ')">' + '分配供应商' + '</a>';
+                }
+            }
+            
+            //Open Window
+            function fnd9230_vendorBuRelations_openWindow(business_unit_id){
+                new Aurora.Window({
+                    id: 'fnd9230_vendorBuRelation_window',
+                    title: '分配供应商',
+                    url: $('fnd9230_vendorBuRelation_link').getUrl() + '?business_unit_id=' + business_unit_id,
+                    width: 785,
+                    height: 500
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <!-- USER AUTHORITY COMPANY-->
+            <a:dataSet id="fnd9230_userAuthorityCompany_ds" fetchAll="true" loadData="true" model="public.fnd_user_authority_company_query"/>
+            <!--Query Ds-->
+            <a:dataSet id="fnd9230_businessUnitQuery_ds" model="fnd.FND9230.fnd_business_units">
+                <a:fields>
+                    <a:field name="company_id"/>
+                    <a:field name="company_name" displayField="company_full_name" options="fnd9230_userAuthorityCompany_ds" prompt="FND_COMPANIES.NAME_TITLE" returnField="company_id" valueField="company_id"/>
+                    <a:field name="business_unit_code" prompt="FND_BUSINESS_UNITS.BUSINESS_UNIT_CODE"/>
+                    <a:field name="business_unit_name" prompt="FND_BUSINESS_UNITS.BUSINESS_UNIT_NAME_ID"/>
+                </a:fields>
+            </a:dataSet>
+            <!--Result Ds-->
+            <a:dataSet id="fnd9230_businessUnitResult_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="fnd.FND9230.fnd_business_units" queryDataSet="fnd9230_businessUnitQuery_ds">
+                <a:fields>
+                    <a:field name="business_unit_code" prompt="FND_BUSINESS_UNITS.BUSINESS_UNIT_CODE"/>
+                    <a:field name="business_unit_name" prompt="FND_BUSINESS_UNITS.BUSINESS_UNIT_NAME_ID" required="true"/>
+                    <a:field name="company_id"/>
+                    <a:field name="company_name" displayField="company_full_name" options="fnd9230_userAuthorityCompany_ds" prompt="FND_COMPANIES.NAME_TITLE" required="true" returnField="company_id" valueField="company_id"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="FND_BUSINESS_UNITS.ENABLED_FLAG" uncheckedValue="N"/>
+                    <a:field name="comments" prompt="FND_BUSINESS_UNITS.COMMENTS"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd9230_businessUnitLoad_fun"/>
+                    <a:event name="submitsuccess" handler="fnd9230_businessUnit_submitSuccessFun"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="fnd9230_businessUnitResult_grid" type="add" width="100"/>
+                <a:gridButton bind="fnd9230_businessUnitResult_grid" type="save" width="100"/>
+                <a:gridButton bind="fnd9230_businessUnitResult_grid" type="clear" width="100"/>
+                <a:toolbarButton id="fnd9230_businessUnit_synButton" click="fnd9230_organization_syn" style="margin-left:5px;" text="FND.FND_ENABLED_FLAG_UPDATE" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd9230_businessUnitQuery_ds" resultTarget="fnd9230_businessUnitResult_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="100">
+                        <a:comboBox name="company_name" bindTarget="fnd9230_businessUnitQuery_ds">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9230_queryService"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:textField name="business_unit_code" bindTarget="fnd9230_businessUnitQuery_ds">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9230_queryService"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="business_unit_name" bindTarget="fnd9230_businessUnitQuery_ds">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9230_queryService"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="fnd9230_businessUnitResult_grid" bindTarget="fnd9230_businessUnitResult_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="business_unit_code" align="center" sortable="true" width="100"/>
+                    <a:column name="business_unit_name" align="center" editor="fnd9230_businessUnitResult_desc_tf" sortable="true" width="150"/>
+                    <a:column name="company_name" align="center" editor="fnd9230_businessUnitResult_cbB" sortable="true" width="150"/>
+                    <a:column name="enabled_flag" editor="fnd9230_businessUnitResult_cb" sortable="true" width="100"/>
+                    <a:column name="comments" editor="fnd9230_businessUnitResult_desc_tf" sortable="true" width="200"/>
+                    <a:column renderer="fnd9230_vendorBuRelationsFun" width="80"/>
+                </a:columns>
+                <a:editors>
+                    <a:comboBox id="fnd9230_businessUnitResult_cbB"/>
+                    <a:textField id="fnd9230_businessUnitResult_code_tf" maxLength="30"/>
+                    <a:textField id="fnd9230_businessUnitResult_desc_tf" maxLength="600"/>
+                    <a:checkBox id="fnd9230_businessUnitResult_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

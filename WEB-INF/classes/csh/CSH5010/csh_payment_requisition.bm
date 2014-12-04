@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+	            SELECT * FROM (
+				  SELECT V.* ,					
+							(SELECT B.CODE_VALUE_NAME 
+					           FROM SYS_CODES_VL A, SYS_CODE_VALUES_VL B
+					          WHERE A.CODE_ID = B.CODE_ID
+					            AND A.CODE = 'PAYMENT_REQUISITION_STATUS'
+					            AND B.CODE_VALUE = V.P_STATUS
+					            )  STATUS_NAME
+				  FROM 		  
+				  (SELECT CPRH.REQUISITION_NUMBER,
+							   CPRH.PAYMENT_REQUISITION_HEADER_ID,
+							   CPRH.EMPLOYEE_ID,
+							   (SELECT EE.NAME || '-' || EE.EMPLOYEE_CODE
+								  FROM EXP_EMPLOYEES EE
+								 WHERE EE.EMPLOYEE_ID = CPRH.EMPLOYEE_ID) REQUISITOR,
+							   TO_CHAR(CPRH.REQUISITION_DATE, 'YYYY-MM-DD') REQUISITION_DATE,
+							   CPRH.CURRENCY_CODE,
+							   gld.currency_name,
+							   CPRH.AMOUNT,
+							   CPRH.PARTNER_CATEGORY,
+							   (SELECT B.CODE_VALUE_NAME
+								  FROM SYS_CODES_VL A, SYS_CODE_VALUES_VL B
+								 WHERE A.CODE_ID = B.CODE_ID
+								   AND A.CODE = 'PAYMENT_OBJECT'
+								   AND B.CODE_VALUE = CPRH.PARTNER_CATEGORY) P_PARTNER_CATEGORY,
+							   CPRH.PARTNER_ID,
+							   DECODE(CPRH.PARTNER_CATEGORY,
+									  'EMPLOYEE',
+									  (SELECT EE.EMPLOYEE_CODE || '-' || EE.NAME
+										 FROM EXP_EMPLOYEES EE
+										WHERE EE.EMPLOYEE_ID = CPRH.PARTNER_ID),
+									  'VENDER',
+									  (SELECT SVV.VENDER_CODE || '-' || SVV.DESCRIPTION
+										 FROM PUR_SYSTEM_VENDERS_VL SVV
+										WHERE SVV.VENDER_ID = CPRH.PARTNER_ID),
+									  'CUSTOMER',
+									  (SELECT SCV.CUSTOMER_CODE || '-' || SCV.DESCRIPTION
+										 FROM ORD_SYSTEM_CUSTOMERS_VL SCV
+										WHERE SCV.CUSTOMER_ID = CPRH.PARTNER_ID)) PAYEE_NAME,
+							   CPRH.DESCRIPTION,					   
+							   
+								CPRH.STATUS P_STATUS,
+								CPRH.SOURCE_TYPE,
+								CPRH.PAYMENT_METHOD_ID,
+								(SELECT M.DESCRIPTION FROM CSH_PAYMENT_METHODS_VL M WHERE M.PAYMENT_METHOD_ID = CPRH.PAYMENT_METHOD_ID) PAYMENT_METHOD				 
+						  FROM CSH_PAYMENT_REQUISITION_HDS CPRH,gld_currency_vl gld
+						 WHERE CPRH.COMPANY_ID = ${/session/@company_id} and gld.currency_code(+)=CPRH.currency_code				 
+						 
+						   AND CPRH.STATUS IN( 'GENERATE','REJECTED','TAKEN_BACK')
+						   ) V	
+					where  exp_document_authorities_pkg.exist_exp_doc_authorities('04',
+		                                                                      (select employee_id
+		                                                                         from sys_user
+		                                                                        where user_id = ${/session/@user_id}),
+		                                                                      v.employee_id,
+		                                                                      nvl(${@authority},'QUERY'),
+		                                                                      ${/session/@user_id}) = 'Y'	   		    
+						)
+					#WHERE_CLAUSE# 
+					ORDER BY REQUISITION_NUMBER DESC
+			]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter inputPath="/session/@company_id"/>
+                <bm:parameter inputPath="/session/@user_id"/>
+                <bm:parameter name="@authority"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+        		
+	        		begin
+	        			csh_payment_requisition_pkg.delete_payment_requisition
+						(
+							${@payment_requisition_header_id},
+							${/session/@user_id}
+						);
+					end;
+        		
+        	]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="payment_requisition_header_id"/>
+            </bm:parameters>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="payment_requisition_header_id"/>
+        <bm:field name="requisition_number"/>
+        <bm:field name="employee_id"/>
+        <bm:field name="requisitor"/>
+        <bm:field name="requisition_date"/>
+        <bm:field name="currency_code"/>
+        <bm:field name="amount"/>
+        <bm:field name="p_partner_category"/>
+        <bm:field name="payee_name"/>
+        <bm:field name="payment_method"/>
+        <bm:field name="status_name"/>
+        <bm:field name="description"/>
+        <bm:field name="source_type"/>
+        <bm:field name="currency_name"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="requisition_number" dataType="java.lang.String" queryExpression="REQUISITION_NUMBER like &apos;%&apos;||${@requisition_number}||&apos;%&apos;"/>
+        <bm:query-field name="employee_id" dataType="java.lang.Integer" queryExpression="EMPLOYEE_ID = ${@employee_id}"/>
+        <bm:query-field name="requisition_date_from" dataType="java.lang.String" queryExpression=" REQUISITION_DATE &gt;= ${@requisition_date_from}"/>
+        <bm:query-field name="requisition_date_to" dataType="java.lang.String" queryExpression=" REQUISITION_DATE &lt;= ${@requisition_date_to}"/>
+        <bm:query-field name="amount_from" dataType="java.lang.Long" queryExpression="AMOUNT &gt;= ${@amount_from}"/>
+        <bm:query-field name="amount_to" dataType="java.lang.Long" queryExpression="AMOUNT &lt;= ${@amount_to}"/>
+        <bm:query-field name="partner_category" dataType="java.lang.String" queryExpression="PARTNER_CATEGORY = ${@partner_category}"/>
+        <bm:query-field name="partner_id" dataType="java.lang.String" queryExpression="PARTNER_ID = ${@partner_id}"/>
+        <bm:query-field name="currency_code" dataType="java.lang.String" queryExpression="CURRENCY_CODE like  &apos;%&apos;||${@currency_code}||&apos;%&apos;"/>
+        <bm:query-field name="p_status" dataType="java.lang.String" queryExpression="P_STATUS like  &apos;%&apos;||${@p_status}||&apos;%&apos;"/>
+        <bm:query-field name="payment_method_id" dataType="java.lang.Long" queryExpression="PAYMENT_METHOD_ID = ${@payment_method_id}"/>
+    </bm:query-fields>
+</bm:model>

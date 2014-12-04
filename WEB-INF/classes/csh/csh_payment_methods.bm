@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:e="aurora.service.exception" xmlns:ns3="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:ns2="aurora.database.features" alias="cpm" baseTable="csh_payment_methods">
+    <bm:fields>
+        <bm:field name="payment_method_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="payment_method_code" databaseType="VARCHAR" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="CSH_PAYMENT_METHODS.PAYMENT_METHOD_CODE"/>
+        <bm:field name="description_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="description" databaseType="VARCHAR" datatype="java.lang.String" expression="(SELECT description_text FROM fnd_descriptions WHERE description_id = cpm.description_id AND LANGUAGE = userenv(&apos;LANG&apos;)) " forDisplay="true" forInsert="false" forQuery="true" forUpdate="false" prompt="CSH_PAYMENT_METHODS.DESCRIPTION"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR" datatype="java.lang.String" prompt="CSH_PAYMENT_METHODS.ENABLED_FLAG"/>
+        <bm:field name="ebanking_flag" databaseType="VARCHAR" datatype="java.lang.String" prompt="CSH_PAYMENT_METHODS.EBANKING_FLAG"/>
+    </bm:fields>
+    <bm:primary-key>
+        <bm:pk-field name="payment_method_id"/>
+    </bm:primary-key>
+    <bm:query-fields>
+        <bm:query-field field="payment_method_code" queryOperator="like"/>
+        <bm:query-field field="description" queryExpression="exists (select 1 from fnd_descriptions fd where cpm.description_id=fd.description_id and fd.description_text like ${@description} and fd.language = ${/session/@lang})"/>
+        <!--bm:query-field field="bank_name" queryOperator="like"/-->
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter name="client" enforceOperations="query" expression="client = ${/session/@client}"/>
+    </bm:data-filters>
+    <bm:features>
+        <ns2:multi-language-storage/>
+        <ns3:sequence-pk/>
+        <ns2:standard-who/>
+    </bm:features>
+    <e:exception-descriptor-config>
+        <e:exception-descriptor exception="java.sql.SQLException" handleClass="aurora.database.SQLExceptionDescriptor">
+            <e:error-message code="1" message="CSH_PAYMENT_METHODS.PAYMENT_METHOD_CODE_DISTINCT"/>
+        </e:exception-descriptor>
+    </e:exception-descriptor-config>
+    <bm:operations>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+           BEGIN
+  csh_payment_methods_pkg.insert_csh_payment_method(p_payment_method_id   => ${@payment_method_id},
+                                                    p_payment_method_code => ${@payment_method_code},
+                                                    p_description         => ${@description},
+                                                    p_enabled_flag        => ${@enabled_flag},
+                                                    p_ebanking_flag       => ${@ebanking_flag},
+                                                    p_user_id             => ${/session/@user_id});
+END;
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+         BEGIN
+  csh_payment_methods_pkg.update_csh_payment_method(p_payment_method_id   => ${@payment_method_id},
+                                                    p_description         => ${@description},
+                                                    p_enabled_flag        => ${@enabled_flag},
+                                                    p_ebanking_flag       => ${@ebanking_flag},
+                                                    p_user_id             => ${/session/@user_id});
+END;
+
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="pv" baseTable="PUR_SYSTEM_VENDERS">
+    <bm:fields>
+        <bm:field name="vendor_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_ID"/>
+        <bm:field name="vendor_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="VENDOR_CODE"/>
+        <bm:field name="description_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="DESCRIPTION_ID"/>
+        <bm:field name="description" databaseType="VARCHAR" datatype="java.lang.String" expression="(select  a.description_text from  fnd_descriptions a where a.description_id=pv.description_id and a.language=${/session/@lang})" forInsert="false" forUpdate="false" prompt="PUR_SYSTEM_vendorS.DESCRIPTION"/>
+        <bm:field name="address" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ADDRESS"/>
+        <bm:field name="artificial_person" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ARTIFICIAL_PERSON"/>
+        <bm:field name="tax_id_number" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="TAX_ID_NUMBER"/>
+        <bm:field name="bank_branch_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BANK_BRANCH_CODE"/>
+        <bm:field name="bank_account_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BANK_ACCOUNT_CODE"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG"/>
+        <bm:field name="vendor_type_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_TYPE_ID"/>
+        <bm:field name="payment_term_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PAYMENT_TERM_ID"/>
+        <bm:field name="payment_method" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PAYMENT_METHOD"/>
+        <bm:field name="currency_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CURRENCY_CODE"/>
+        <bm:field name="tax_type_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="TAX_TYPE_ID"/>
+        <bm:field name="approved_vendor_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="APPROVED_vendor_FLAG"/>
+        <bm:field name="currency_code_display" expression=" (SELECT (select DESCRIPTION_TEXT from fnd_descriptions where DESCRIPTION_ID=gc.currency_name_id and Language=${/session/@lang}) AS currency_name from gld_currency gc where gc.currency_code = pv.currency_code)" forInsert="false" forUpdate="false"/>
+        <bm:field name="payment_method_display" expression=" (SELECT (select DESCRIPTION_TEXT from fnd_descriptions where DESCRIPTION_ID=cpm.description_id and Language=${/session/@lang}) AS description from csh_payment_methods cpm where cpm.payment_method_code = pv.payment_method)" forInsert="false" forUpdate="false"/>
+        <bm:field name="vendor_type_code" databaseType="VARCHAR2" datatype="java.lang.String" expression="(select pvt.vendor_type_code from pur_vendor_types pvt where pvt.vendor_type_id=pv.vendor_type_id)" forDisplay="false" forInsert="false" forUpdate="false"/>
+    </bm:fields>
+    <bm:primary-key>
+        <bm:pk-field name="vendor_id"/>
+    </bm:primary-key>
+    <bm:features>
+        <o:sequence-pk/>
+        <f:standard-who/>
+        <f:multi-language-storage/>
+    </bm:features>
+    <bm:query-fields>
+        <bm:query-field field="vendor_id" queryOperator="="/>
+        <bm:query-field field="vendor_type_id" queryExpression="pv.vendor_type_id=${@vendor_type_id}"/>
+        <bm:query-field field="vendor_code" queryOperator="like"/>
+        <bm:query-field field="description" queryExpression="exists (select 1 from fnd_descriptions fd where pv.description_id=fd.description_id and fd.description_text like ${@description} and fd.language = ${/session/@lang})"/>
+    </bm:query-fields>
+    <bm:relations>
+        <bm:relation name="pur" joinType="LEFT OUTER" refModel="fnd.pur_vender_types">
+            <bm:reference foreignField="vender_type_id" localField="vendor_type_id"/>
+        </bm:relation>
+        <bm:relation name="pay" joinType="LEFT OUTER" refModel="csh.csh_payment_terms">
+            <bm:reference foreignField="payment_term_id" localField="payment_term_id"/>
+        </bm:relation>
+        <bm:relation name="tax" joinType="LEFT OUTER" refModel="fnd.fnd_tax_type_codes">
+            <bm:reference foreignField="tax_type_id" localField="tax_type_id"/>
+        </bm:relation>
+    </bm:relations>
+    <bm:ref-fields>
+        <bm:ref-field name="vendor_type_name_id" multiLanguage="true" multiLanguageDescField="vendor_type_name" relationName="pur" sourceField="description_id"/>
+        <bm:ref-field name="payment_term_name_id" multiLanguage="true" multiLanguageDescField="payment_term_name" relationName="pay" sourceField="description_id"/>
+        <bm:ref-field name="tax_type_name_id" multiLanguage="true" multiLanguageDescField="tax_type_name" relationName="tax" sourceField="description_id"/>
+    </bm:ref-fields>
+    <bm:operations>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+    
+    begin
+
+  pur_system_venders_pkg.insert_pur_system_venders(p_vender_code => ${@vendor_code},
+                                                   p_description => ${@description},
+                                                   p_address => ${@address},
+                                                   p_artificial_person => ${@artificial_person},
+                                                   p_tax_id_number => ${@tax_id_number},
+                                                   p_bank_branch_code => ${@bank_branch_code},
+                                                   p_bank_account_code =>${@bank_account_code},
+                                                   p_enabled_flag =>${@enabled_flag},
+                                                   p_created_by => ${/session/@user_id},
+                                                   p_company_id =>${/session/@company_id},
+                                                   p_vender_type_id =>${@vendor_type_id},
+                                                   p_payment_term_id =>${@payment_term_id},
+                                                   p_payment_method => ${@payment_method},
+                                                   p_vender_id => ${@vendor_id},
+                                                   p_currency_code => ${@currency_code},
+                                                   p_tax_type_id => ${@tax_type_id},
+                                                   p_approved_vendor_flag =>${@approved_vendor_flag});
+end;
+    
+    ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="vendor_id" output="true" outputPath="@vendor_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        begin
+               UPDATE PUR_SYSTEM_VENDERS pv
+               SET pv.VENDOR_CODE=${@vendor_code},
+               pv.ADDRESS=${@address},
+               pv.ARTIFICIAL_PERSON=${@artificial_person},
+               pv.TAX_ID_NUMBER=${@tax_id_number},
+               pv.BANK_BRANCH_CODE=${@bank_branch_code},
+               pv.BANK_ACCOUNT_CODE=${@bank_account_code},
+               pv.ENABLED_FLAG=${@enabled_flag},
+               pv.VENDOR_TYPE_ID=${@vendor_type_id},
+               pv.PAYMENT_TERM_ID=${@payment_term_id},
+               pv.PAYMENT_METHOD=${@payment_method},
+               pv.CURRENCY_CODE=${@currency_code},
+               pv.TAX_TYPE_ID=${@tax_type_id},
+               pv.APPROVED_VENDER_FLAG=${@approved_vendor_flag},
+               pv.LAST_UPDATED_BY=${/session/@user_id},
+               pv.LAST_UPDATE_DATE=sysdate
+               WHERE pv.vendor_ID = ${@vendor_id};  
+           fnd_description_pkg.update_fnd_descriptions(p_description_text => ${@description},
+                                              p_description_id => ${@description_id},
+                                              p_last_updated_by => ${/session/@user_id},
+                                              p_language_code => ${/session/@lang},
+                                              p_function_name => null);
+                                              
+             update  pur_company_venders pcv
+             set pcv.enabled_flag=${@enabled_flag},
+             pcv.last_updated_by=${/session/@user_id},
+             pcv.last_update_date=sysdate
+             where pcv.vender_id=${@vendor_id};                                
+end;
+        
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

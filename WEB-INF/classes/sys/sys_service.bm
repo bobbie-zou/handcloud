@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:ns2="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:ns3="aurora.database.features" baseTable="sys_service" defaultOrderBy="service_name">
+    <bm:fields>
+        <bm:field name="service_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="service_name" databaseType="VARCHAR" datatype="java.lang.String" displayWidth="250" forQuery="true" fordisplay="true" prompt="SYS_FUNCTION.SERVICE_ID" queryWidth="250"/>
+        <bm:field name="is_entry_page" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="is_access_checked" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="is_login_required" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="is_system_access" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="title" databaseType="VARCHAR" datatype="java.lang.String" displayWidth="150" fordisplay="false" prompt="FND_SERVICE.TITLE"/>
+        <bm:field name="language_title" displayWidth="150" expression="(select p.description from sys_prompts p where p.prompt_code = title and p.language = ${/session/@lang})" forInsert="false" forUpdate="false" fordisplay="true" prompt="SYS_SERVICE.ZHS_TITLE"/>
+        <!-- <bm:field name="zhs_title" displayWidth="150" expression="(select p.description from sys_prompts p where p.prompt_code = title and p.language = &apos;ZHS&apos;)" forInsert="false" forUpdate="false" fordisplay="true" prompt="SYS_SERVICE.ZHS_TITLE"/>
+        <bm:field name="us_title" displayWidth="150" expression="(select p.description from sys_prompts p where p.prompt_code = title and p.language = &apos;US&apos;)" forInsert="false" forUpdate="false" fordisplay="true" prompt="SYS_SERVICE.US_TITLE"/> -->
+    </bm:fields>
+    <bm:primary-key>
+        <bm:pk-field name="service_id"/>
+    </bm:primary-key>
+    <bm:query-fields>
+        <bm:query-field field="service_name" queryOperator="like"/>
+        <bm:query-field name="title" queryOperator="like"/>
+        <bm:query-field name="service_name_title" queryExpression="service_name like &apos;%&apos;||${@service_name_title}||&apos;%&apos; or title like &apos;%&apos;||${@service_name_title}||&apos;%&apos; or exists (select 1 from sys_prompts p where p.prompt_code = title and p.description like &apos;%&apos;||${@service_name_title}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:features>
+        <ns2:sequence-pk/>
+        <ns3:standard-who/>
+    </bm:features>
+    <bm:operations>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="service_id" input="false" output="true"/>
+            </bm:parameters>
+            <bm:query-sql><![CDATA[
+                BEGIN
+                	sys_service_pkg.insert_sys_service(p_service_name => ${@service_name},
+                                     p_title => ${@language_title},
+                                     
+                                     p_is_access_checked => ${@is_access_checked},
+                                     p_is_login_required => ${@is_login_required},
+                                     p_is_system_access => ${@is_system_access},
+                                     p_user_id => ${/session/@user_id},
+                                     p_language => ${/session/@lang},
+                                     p_service_id => ${@service_id}
+                                     );
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                	sys_service_pkg.update_sys_service(p_service_name => ${@service_name},
+                                     p_title => ${@language_title},
+                                     p_is_access_checked => ${@is_access_checked},
+                                     p_is_login_required => ${@is_login_required},
+                                     p_is_system_access => ${@is_system_access},
+                                     p_user_id => ${/session/@user_id},
+                                     p_service_id => ${@service_id},
+                                     p_language => ${/session/@lang});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                    sys_service_pkg.delete_sys_service( p_service_id => ${@service_id}, p_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query autocount="false" fetchall="true" model="expm.exp_business_rules_for_wfl" rootpath="exp_business_rules"/>
+        <a:model-query autocount="false" fetchall="true" model="wfl.wfl_approval_list_id" rootpath="wfl_approval_list_seq"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="wfl_approve_link_1" model="db.wfl_core_pkg.insert_wfl_approve_method" modelaction="insert"/>
+        <script><![CDATA[
+            function wflappsave() {
+                //Update By FelixDru 2013-11-05 不保留处理意见设置
+                $('wfl_add_approve').getCurrentRecord().set('nonkeep_display_flag',$('commentsdata').getAt(0).get('nonkeep_display_flag'));
+                $('wfl_add_approve').submit();
+            
+            }
+            
+            function wflappreset() {
+                $('wfl_add_approve').reset();
+            }
+            
+            function addApproverList() {
+                var record = $('wfl_add_approve').getAt(0);
+            
+                if (record.get('mehtod_value') != null && record.get('mehtod_value') != '') {
+            
+                    Aurora.request({
+                        url: /*${/request/@context_path}/autocrud/wfl.wfl_approve/insert*/
+                        $('wfl_approve_link_1').getUrl(),
+                        para: record.data,
+                        success: loadwflapplistgrid,
+                        scope: this
+                    });
+                }
+            }
+            
+            function loadwflapplistgrid() {
+                $('wfl_app_list_ds').query();
+            }
+            
+            function setinitdata(ds, record, index) {
+                record.set('approval_list_id', '${/model/wfl_approval_list_seq/record/@approval_list_id}');
+                record.set('session_id', '${/session/@session_id}');
+                //Update By FelixDru 2013-8-30 设置初始化值
+                record.set('seq_number', 1);
+            }
+            
+            function appSuccess() {
+                /*$('wfl_workflow_instance_for_todo').query();
+                 $('apprecord').close();
+                 $('appwindow').close();*/
+            
+            
+                // if(opener && opener.removeApprove){
+                // opener.removeApprove();
+                // window.blur();
+                // }
+                // window.close();
+                
+                 //Update By FelixDru 2013-09-18 点击完成审批动作后,提示框：该事项已发送至**办理!
+                 var employee_names;
+                 var records = $('wfl_app_list_ds').getAll();
+                 for(var i = 0; i < records.length ;i++){
+                     if (i == 0) {
+                        employee_names = records[i].get('employee_name');
+                    } else {
+                        employee_names = employee_names +',' + records[i].get('employee_name');
+                    } 
+                 }
+                 
+                //Update By FelixDru 2013-09-05
+                //提交完成后,弹出提示框：已成功将单据发送至下一审批人/会办人
+                Aurora.showMessage('${l:PROMPT}', '${l:WFL_WORKFLOW_ADD_APPROVER_SUCCESS}' + employee_names + '${l:WFL_WORKFLOW_ADD_APPROVER_SUCCESS_MANAGE}', function(cmp) {
+                    //判断“审批优先级”，如果为会办，则按原有方法执行。为交办、请审批，则修改为关闭当前页面，执行“同意”动作
+                    var record = $('wfl_add_approve').getCurrentRecord();
+                    if (record.get('add_method_priority') == "BEFORE") {
+                        if (opener && opener.removeApprove) {
+                            opener.removeApprove();
+                            window.blur();
+                        }
+                        window.close();
+                    } else if (record.get('add_method_priority') == "AFTER" || record.get('add_method_priority') == "AUDIT") {
+                        //Update By FelixDru 2013-10-09 交办完成后执行审批操作,此处修改是为了将2个事务合在一起
+                        //注释掉  add_approval_flag = true;
+                       //add_approval_flag = true;
+                        //设置审批意见
+                        $('commentsdata').getAt(0).set('comments',record.get('approvedesc'));
+                        //$('appwindow').close();
+                        if (opener && opener.removeApprove) {
+                            opener.removeApprove();
+                            window.blur();
+                        }
+                        window.close();
+                    }
+                });
+            
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="exp_business_rules">
+                <a:datas datasource="/model/exp_business_rules"/>
+            </a:dataSet>
+            <a:dataSet id="wfl_add_method_priority" lookupcode="WFL_ADD_APPROVER_PRIORITY"/>
+            <a:dataSet id="wfl_add_approve" autoCreate="true" submiturl="${/request/@context_path}/modules/wfl/public/wfl_add_approval_list.svc">
+                <a:fields>
+                    <a:field name="mehtod_value" displayfield="description" options="exp_business_rules" prompt="WORKFLOW_APPR.CHOICE_PEO" valuefield="business_rule_code">
+                        <a:mapping>
+                            <a:map from="business_rule_id" to="business_rule_code"/>
+                            <a:map from="method_code" to="method_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="record_id" defaultValue="${/parameter/@record_id}"/>
+                    <a:field name="add_method_priority_name" defaultValue="会办" displayfield="code_value_name" options="wfl_add_method_priority" prompt="处理动作" required="true" requiredMessage="请选择处理动作" returnField="add_method_priority" valuefield="code_value"/>
+                    <a:field name="add_method_priority" defaultValue="BEFORE"/>
+                    <a:field name="approvedesc" emptyText="请填写处理意见..." prompt="处理意见" required="true" requiredMessage="请填写处理意见"/>
+                    <a:field name="method_code"/>
+                    <a:field name="business_rule_code"/>
+                    <a:field name="approval_list_id" defaultValue="${/model/wfl_approval_list_seq/record/@approval_list_id}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="appSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl_app_list_ds" bindName="applist" bindTarget="wfl_add_approve" model="wfl.wfl_add_approval_list" queryUrl="${/request/@context_path}/autocrud/wfl.wfl_approve_app_list/query?approval_list_id=${/model/wfl_approval_list_seq/record/@approval_list_id}" selectable="true">
+                <a:fields>
+                    <a:field name="seq_number" prompt="WORKFLOW_APPR.SEQ_NUMBER" required="true"/>
+                    <a:field name="employee_name" prompt="WORKFLOW_APPR.EMP_NAME"/>
+                    <a:field name="user_id"/>
+                    <a:field name="user_name" displayfield="user_name" lovHeight="480" lovWidth="990" lovurl="${/request/@context_path}/modules/wfl/public/wfl_users_lov.screen?instance_id=${/parameter/@instance_id}&amp;check_flag=Y" prompt="BM.SYS_USER.EMPLOYEE_CODE" required="true" title="EXP_EMPLOYEE.EMPLOYEE_SELECT" valuefield="user_id">
+                        <a:mapping>
+                            <a:map from="employee_name" to="employee_name"/>
+                            <a:map from="user_name" to="user_name"/>
+                            <a:map from="user_id" to="employee_id"/>
+                            <a:map from="position_desc" to="position_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="approval_list_id"/>
+                    <a:field name="employee_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="setinitdata"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <!--title="WORKFLOW_APPR.TITLE" -->
+            <a:fieldSet column="1" labelWidth="100">
+                <a:vBox>
+                    <!-- <a:comboBox name="mehtod_value" bindTarget="wfl_add_approve" width="200"/> -->
+                    <a:comboBox name="add_method_priority_name" bindTarget="wfl_add_approve" width="200"/>
+                    <a:textArea name="approvedesc" bindTarget="wfl_add_approve" width="400"/>
+                </a:vBox>
+            </a:fieldSet>
+            <a:hBox>
+                <!-- <a:button click="addApproverList" text="WORKFLOW_APPR.NEW_APPR_LIST"/> -->
+                <a:button click="wflappsave" text="HAP_SUBMIT"/>
+                <a:button click="wflappreset" text="HAP_RESET"/>
+            </a:hBox>
+            <a:grid bindtarget="wfl_app_list_ds" height="250" navbar="true" showRowNumber="true" width="495">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="delete"/>
+                </a:toolBar>
+                <a:columns>
+                    <!-- <a:column name="seq_number" align="center" editor="seq_number" width="60"/> -->
+                    <a:column name="user_name" align="center" editor="user_name" width="110"/>
+                    <a:column name="employee_name" align="left" width="110"/>
+                    <a:column name="position_desc" align="left" prompt="岗位" width="170"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="user_name"/>
+                    <a:numberField id="seq_number" allowdecimals="false"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

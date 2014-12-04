@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-1-17 下午07:05:19  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="inv_5010_relate_pur_locate_link" url="${/request/@context_path}/modules/inv/INV5010/inv_asn_pur_details.screen"/>
+        <a:link id="inv_5010_asn_header_link" url="${/request/@context_path}/modules/inv/INV5010/inv_asn_header.screen"/>
+        <a:link id="inv_5010_asn_header_go_create_link" url="${/request/@context_path}/modules/inv/INV5010/inv_asn_header_go_create.svc"/>
+        <a:link id="inv_5010_del_asn_temp_link" model="inv.INV5010.inv_del_asn_temp" modelaction="execute"/>
+        <script><![CDATA[  
+        	
+        	function inv_5010_query(){
+        	    $('inv_5010_asn_result_ds').query();
+        	}    
+        	
+        	// 判断本次发运数量
+        	function quantityValidator(record, name, value) {
+                if (name == 'ship_quantity') {
+            
+                    var hid_quantity = record.get('hid_quantity');
+                    if (value > hid_quantity || value == 0 || value == '') {
+                        Aurora.showMessage('提示', '本次创建数量有误，请查证！');
+                        record.set('ship_quantity', hid_quantity);
+                        return;
+                    }
+            
+                }
+            
+                return true;
+            }
+            
+            
+            // 勾选时所做的操作
+        	function inv_5010_asn_result_select(ds,record){
+        	    var list_ds=$('inv_5010_asn_selected_list_ds');
+        	    var pur_line_location_id=record.get('pur_line_location_id');
+        	    var ship_quantity=record.get('ship_quantity');
+        	    var result_record=list_ds.find('pur_line_location_id',pur_line_location_id);
+        	    if(Aurora.isEmpty(result_record)){
+        	        $('inv_5010_asn_selected_list_ds').create();
+        	        var list_record=$('inv_5010_asn_selected_list_ds').getCurrentRecord();
+        	        list_record.set('pur_line_location_id',pur_line_location_id);
+        	        list_record.set('ship_quantity',ship_quantity);
+        	    }    
+        	}    
+        	// 勾选去掉时所做的操作
+        	function inv_5010_asn_result_unselect(ds,record){
+        	    var list_ds=$('inv_5010_asn_selected_list_ds');
+        	    var location_id=record.get('pur_line_location_id');
+        	    var result_record=list_ds.find('pur_line_location_id',location_id);
+        	    if(!Aurora.isEmpty(result_record)){
+        	        list_ds.remove(result_record);
+        	    }    
+        	}    
+        	
+        	// 页面执行重新查询时所做的操作
+        	function inv_5010_asn_codes_grid_render(grid){
+        	    var ds=$('inv_5010_asn_result_ds');
+        	    var list_ds=$('inv_5010_asn_selected_list_ds');
+        	    var records=list_ds.getAll();
+	        	    for(var i=0;i<records.length;i++){
+	        	        var pur_line_location_id=records[i].get('pur_line_location_id');
+	        	        var ship_quantity=records[i].get('ship_quantity');
+	        	        var result_record=ds.find('pur_line_location_id',pur_line_location_id);
+	        	        if(!Aurora.isEmpty(result_record)){
+	        	        	ds.select(result_record);
+	        	        	result_record.set('ship_quantity',ship_quantity);
+	        	        }
+	        	    } 
+        	}    
+        	// 关联送货单的链接
+        	function inv_5010_relate_pur_locate_render(value,record,name){
+        	    var order_num=record.get('order_num');
+        	    var line_num=record.get('line_num');
+        	    var shipment_num=record.get('shipment_num');
+        	    var pur_line_location_id=record.get('pur_line_location_id');
+        	    return '<a href="javascript:inv_5010_open_relate_pur_locate_win('+"'"+order_num+"','"+line_num+"','"+shipment_num+"',"+pur_line_location_id+')">关联送货单</a>';
+        	}    
+        	
+        	 
+        	
+        	
+        	function inv_5010_open_relate_pur_locate_win(order_num,line_num,shipment_num,pur_line_location_id){
+        	    new Aurora.Window({
+        	       id:'inv_5010_relate_pur_locate_win',
+        	       title:'关联送货单',
+        	       url:$('inv_5010_relate_pur_locate_link').getUrl()+'?order_num='+order_num+'&line_num='+line_num+'&shipment_num='+shipment_num+'&pur_line_location_id='+pur_line_location_id,
+        	       width:'800',
+        	       height:'400' 
+        	    });
+        	}    
+        	
+        	// 送货单重置
+        	function inv_5010_inv_asn_query_reset(){
+        	    var query_ds=$('inv_5010_asn_query_ds');
+        	    query_ds.reset();
+        	}    
+        	
+        	
+        	function inv_5010_inv_asn_header_go_create(){
+        	    var list_ds=$('inv_5010_asn_selected_list_ds');
+        	    
+        	    var datas = [];
+        	    var records=list_ds.getAll();     
+        	    if(records.length==0){
+        	        Aurora.showMessage('提示', '请至少选择一条数据!');
+        	        return;
+        	    }
+        	    for(var i=0;i<records.length;i++){
+        	    	datas.push(records[i].data);
+        	    }    
+        	    Aurora.request({
+        	       url:$('inv_5010_asn_header_go_create_link').getUrl(),
+        	       para:datas,
+        	       success:function(res){
+        	           new Aurora.Window({
+        	               id:'inv_5010_asn_header_window',
+        	               url:$('inv_5010_asn_header_link').getUrl(),
+		        	       fullScreen:true
+        	           });
+        	       },
+        	       scope:this 
+        	    });
+        	}  
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv_5010_asn_selected_list_ds">
+                <a:fields>
+                    <a:field name="asn_line_id"/>
+                    <a:field name="pur_line_location_id"/>
+                    <a:field name="ship_quantity"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv_5010_asn_query_ds">
+                <a:fields>
+                    <a:field name="order_num_from"/>
+                    <a:field name="order_num_to"/>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_full_name" lovHeight="500" lovService="public.fnd_cooperative_company_by_supply_lov" lovWidth="500" title="FND_COMPANIES.QUERY">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="need_by_date_from"/>
+                    <a:field name="need_by_date_to"/>
+                    <a:field name="promised_date_from"/>
+                    <a:field name="promised_date_to"/>
+                    <a:field name="item_description" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="public.mtl_system_items_b_mv_lov" lovWidth="500">
+                        <a:mapping>
+                            <a:map from="item_name" to="item_description"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_site_name" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="public.po_vendor_sites_all_lov" lovWidth="500">
+                        <a:mapping>
+                            <a:map from="item_name" to="vendor_site_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="agent_name" lovHeight="500" lovWidth="500"/>
+                    <a:field name="ship_to_organization_name" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="public.inv_organizations_lov" lovWidth="500">
+                        <a:mapping>
+                            <a:map from="item_name" to="ship_to_organization_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv_5010_asn_result_ds" autoPageSize="true" autoQuery="true" model="inv.INV5010.inv_asn_query" queryDataSet="inv_5010_asn_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="hid_quantity"/>
+                    <a:field name="ship_quantity" validator="quantityValidator"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="select" handler="inv_5010_asn_result_select"/>
+                    <a:event name="unselect" handler="inv_5010_asn_result_unselect"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:queryForm bindTarget="inv_5010_asn_query_ds" defaultQueryField="journal_num" resultTarget="inv_5010_asn_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField name="order_num_from" bindTarget="inv_5010_asn_query_ds" prompt="订单号从">
+                        <a:events>
+                            <a:event name="enterdown" handler="inv_5010_query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="order_num_to" bindTarget="inv_5010_asn_query_ds" prompt="订单号至">
+                        <a:events>
+                            <a:event name="enterdown" handler="inv_5010_query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="company_name" bindTarget="inv_5010_asn_query_ds" prompt="公司">
+                        <a:events>
+                            <a:event name="enterdown" handler="inv_5010_query"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox>
+                        <a:datePicker name="need_by_date_from" bindTarget="inv_5010_asn_query_ds" prompt="需求日期从">
+                            <a:events>
+                                <a:event name="enterdown" handler="inv_5010_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="need_by_date_to" bindTarget="inv_5010_asn_query_ds" prompt="需求日期自">
+                            <a:events>
+                                <a:event name="enterdown" handler="inv_5010_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="promised_date_from" bindTarget="inv_5010_asn_query_ds" prompt="承诺日期从">
+                            <a:events>
+                                <a:event name="enterdown" handler="inv_5010_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="promised_date_to" bindTarget="inv_5010_asn_query_ds" prompt="承诺日期至">
+                            <a:events>
+                                <a:event name="enterdown" handler="inv_5010_query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:lov name="item_description" bindTarget="inv_5010_asn_query_ds" prompt="物料">
+                            <a:events>
+                                <a:event name="enterdown" handler="inv_5010_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="vendor_site_name" bindTarget="inv_5010_asn_query_ds" prompt="供应商地点">
+                            <a:events>
+                                <a:event name="enterdown" handler="inv_5010_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="agent_name" bindTarget="inv_5010_asn_query_ds" prompt="采购员">
+                            <a:events>
+                                <a:event name="enterdown" handler="inv_5010_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="ship_to_organization_name" bindTarget="inv_5010_asn_query_ds" prompt="收货组织">
+                            <a:events>
+                                <a:event name="enterdown" handler="inv_5010_query"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:screenTopToolbar>
+                <a:toolbarButton click="inv_5010_inv_asn_header_go_create" text="生成送货单概览" width="100"/>
+                <a:gridButton bind="inv_5010_asn_codes_grid" className="item-rbtn-blue button-excel" type="excel" width="100"/>
+                <a:gridButton bind="inv_5010_asn_codes_grid" className="item-rbtn-blue button-clear" type="clear" width="100"/>
+                <a:toolbarButton click="inv_5010_inv_asn_query_reset" style="margin-left:10px;" text="重置" width="100"/>
+            </a:screenTopToolbar>
+            <a:grid id="inv_5010_asn_codes_grid" bindTarget="inv_5010_asn_result_ds" height="350" marginHeight="130" marginWidth="40" navBar="true" width="1209">
+                <a:columns>
+                    <!-- <a:column name="pur_line_location_id"  /> -->
+                    <a:column name="item_name" align="left" lock="true"/>
+                    <a:column name="org_name" align="left" lock="true"/>
+                    <a:column name="segment1" lock="true" sortable="true" width="50"/>
+                    <a:column name="revision_num" align="left" width="50"/>
+                    <a:column name="release_num" align="left" width="50"/>
+                    <a:column name="line_num" align="left" width="35"/>
+                    <a:column name="shipment_num" align="left" width="50"/>
+                    <a:column name="unit_meas_lookup_code" align="left"/>
+                    <a:column name="quantity" align="right"/>
+                    <a:column name="need_by_date" align="left" renderer="Aurora.formatDate"/>
+                    <a:column name="promised_date" align="left" renderer="Aurora.formatDate"/>
+                    <a:column name="hid_quantity" align="right"/>
+                    <a:column name="ship_quantity" align="right" editor="inv_5010_asn_query_nf"/>
+                    <a:column name="quantity_received" align="right"/>
+                    <a:column name="asn_quantity" align="right"/>
+                    <a:column name="vendor_site_code" align="left"/>
+                    <a:column name="agent_name" align="left"/>
+                    <a:column name="ship_to_organization_name" align="left"/>
+                    <a:column name="secondary_quantity" align="left"/>
+                    <a:column name="secondary_unit_of_measure" align="left"/>
+                    <a:column name="relate_pur_locate" align="center" prompt="关联送货单" renderer="inv_5010_relate_pur_locate_render"/>
+                    <a:column name="data_source" align="left"/>
+                </a:columns>
+                <a:events>
+                    <a:event name="render" handler="inv_5010_asn_codes_grid_render"/>
+                </a:events>
+                <a:editors>
+                    <a:numberField id="inv_5010_asn_query_nf" allowNegative="false"/>
+                </a:editors>
+            </a:grid>
+            <script><![CDATA[
+        	// Aurora.onReady(function(){
+        	    // Aurora.request({
+        	       // url:'',
+        	       // para:'',
+        	       // success:function(res){
+        	           
+        	       // },
+        	       // scope:this 
+        	    // });
+        	// });
+        ]]></script>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

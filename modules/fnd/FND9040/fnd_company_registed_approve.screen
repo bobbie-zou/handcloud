@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-2 下午11:10:48  
+    $Revision: 1.0  
+    $Purpose: 注册核心企业审批
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="fnd9040_companyRegistedBatchApprove_link" url="${/request/@context_path}/modules/fnd/FND9040/fnd_company_registed_batch_approve.svc"/>
+        <a:link id="fnd9040_companyRegistedApproveDetail_link" url="${/request/@context_path}/modules/fnd/FND9040/fnd_company_registed_approve_detail.screen"/>
+        <div/>
+        <script><![CDATA[
+            //查询
+            
+            
+            function fnd9040_queryService() {
+                $('fnd9040_companyRegistedApprove_resultDs').query();
+            }
+            
+            //明细
+            
+            
+            function fnd9040_companyRegistedDetailFun(value, record, name) {
+                var company_registed_id = record.get('company_registed_id');
+                return '<a href="javascript:fnd9040_companyRegistedDetail_window(' + company_registed_id + ')">' + value + '</a>';
+            }
+            
+            function fnd9040_companyRegistedDetail_window(id) {
+                new Aurora.Window({
+                    id: 'fnd9040_companyRegistedApproveDetail_window',
+                    title: '${l:FND_COMPANY_REGISTED.DETAIL_TITLE}',
+                    url: $('fnd9040_companyRegistedApproveDetail_link').getUrl() + '?company_registed_id=' + id,
+                    width: 880,
+                    height: 550
+                }).on('beforeclose', fnd9040_queryService);
+            }
+            //批量审批
+            
+            
+            function fnd9040_batchConfirmFun() {
+                var records = $('fnd9040_companyRegistedApprove_resultDs').getSelected();
+                if (records.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:AT_LEAST_CHOICE_ONE}');
+                } else {
+                    Aurora.showConfirm('${l:PROMPT}', '${l:PUR_REGISTER_VENDOR_REJECT_DETAIL.SHOWCONFIRM}', function() {
+                        fnd9040_batchConfirmLogicFun();
+                    }, null, 300, 100);
+                }
+            }
+            
+            function fnd9040_batchConfirmLogicFun(){
+                var list_ds = $('fnd9040_companyRegistedApprove_resultDs');
+                var datas = [];
+                var records = list_ds.getSelected();
+                for (var i = 0;i < records.length;i++) {
+                    datas.push(records[i].data);
+                }
+                $('fnd9040_batchConfirmBtu').disable();
+                Aurora.request({
+                    url: $('fnd9040_companyRegistedBatchApprove_link').getUrl(),
+                    para: datas,
+                    success: function(result) {
+                        $('fnd9040_batchConfirmBtu').enable();
+                        fnd9040_queryService();
+                    },
+                    failure: function() {
+                        $('fnd9040_batchConfirmBtu').enable();
+                    },
+                    error: function() {
+                        $('fnd9040_batchConfirmBtu').enable();
+                    },
+                    scope: this
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd9040_company_enterprise_scale_ds" lookupCode="FND_COMPANIES.ENTERPRISE_SCALE"/>
+            <a:dataSet id="fnd9040_companyRegistedApprove_queryDs" model="fnd.FND9040.fnd_company_registed_approve">
+                <a:fields>
+                    <a:field name="enterprise_scale_desc" displayField="code_value_name" options="fnd9040_company_enterprise_scale_ds" prompt="FND_COMPANY_REGISTED.ENTERPRISE_SCALE_CODE" returnField="enterprise_scale_code" valueField="code_value"/>
+                    <a:field name="business_group_name" autoComplete="true" autoCompleteField="business_group_name" lovHeight="490" lovService="fnd.FND9100.fnd_business_groups_lov" lovWidth="490" prompt="FND_BUSINESS_GROUPS.TITLE" title="FND_BUSINESS_GROUPS.QUERY_TITLE">
+                        <a:mapping>
+                            <a:map from="business_group_code" to="business_group"/>
+                            <a:map from="business_group_name" to="business_group_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd9040_companyRegistedApprove_resultDs" autoCount="true" autoPageSize="true" autoQuery="true" model="fnd.FND9040.fnd_company_registed_approve" queryDataSet="fnd9040_companyRegistedApprove_queryDs" selectable="true">
+                <a:fields>
+                    <a:field name="email" prompt="FND_COMPANY_REGISTED.EMAIL" readOnly="true"/>
+                    <a:field name="full_name" prompt="FND_COMPANY_REGISTED.FULL_NAME" readOnly="true"/>
+                    <a:field name="short_name" prompt="FND_COMPANY_REGISTED.SHORT_NAME" readOnly="true"/>
+                    <a:field name="business_license_number" prompt="FND_COMPANY_REGISTED.BUSINESS_LICENSE_NUMBER" readOnly="true"/>
+                    <a:field name="registered_country_code"/>
+                    <a:field name="registered_country_name" prompt="FND_COMPANY_REGISTED.REGISTERED_COUNTRY_CODE" readOnly="true"/>
+                    <a:field name="registered_province_id"/>
+                    <a:field name="registered_province_desc" prompt="FND_COMPANY_REGISTED.REGISTERED_PROVINCE_ID" readOnly="true"/>
+                    <a:field name="registered_city_id"/>
+                    <a:field name="registered_city_desc" prompt="FND_COMPANY_REGISTED.REGISTERED_CITY_ID" readOnly="true"/>
+                    <a:field name="business_license_end_date" prompt="FND_COMPANY_REGISTED.BUSINESS_LICENSE_END_DATE" readOnly="true"/>
+                    <a:field name="business_license_forever" checkedValue="Y" defaultValue="N" prompt="FND_COMPANY_REGISTED.BUSINESS_LICENSE_FOREVER" readOnly="true" uncheckedValue="N"/>
+                    <a:field name="address" prompt="FND_COMPANY_REGISTED.ADDRESS" readOnly="true"/>
+                    <a:field name="telephone" prompt="FND_COMPANY_REGISTED.TELEPHONE" readOnly="true"/>
+                    <a:field name="national_organization_code" prompt="FND_COMPANY_REGISTED.NATIONAL_ORGANIZATION_CODE" readOnly="true"/>
+                    <a:field name="business_scope" prompt="FND_COMPANY_REGISTED.BUSINESS_SCOPE" readOnly="true"/>
+                    <a:field name="registered_capital" prompt="FND_COMPANY_REGISTED.REGISTERED_CAPITAL" readOnly="true"/>
+                    <a:field name="fax_no" prompt="FND_COMPANY_REGISTED.FAX_NO" readOnly="true"/>
+                    <a:field name="legal_rep_of_ownership_desc" prompt="FND_COMPANY_REGISTED.LEGAL_REP_OF_OWNERSHIP" readOnly="true"/>
+                    <a:field name="legal_rep_name" prompt="FND_COMPANY_REGISTED.LEGAL_REP_NAME" readOnly="true"/>
+                    <a:field name="legal_rep_identity_num" prompt="FND_COMPANY_REGISTED.IDENTITY_NUM" readOnly="true"/>
+                    <a:field name="legal_rep_phone" prompt="FND_COMPANY_REGISTED.PHONE" readOnly="true"/>
+                    <a:field name="legal_rep_identity_type_desc" prompt="FND_COMPANY_REGISTED.IDENTITY_CARD_TYPE" readOnly="true"/>
+                    <a:field name="agent_name" prompt="FND_COMPANY_REGISTED.AGENT_NAME" readOnly="true"/>
+                    <a:field name="agent_identity_num" prompt="FND_COMPANY_REGISTED.IDENTITY_NUM" readOnly="true"/>
+                    <a:field name="agent_phone" prompt="FND_COMPANY_REGISTED.PHONE" readOnly="true"/>
+                    <a:field name="agent_identity_type_desc" prompt="FND_COMPANY_REGISTED.IDENTITY_CARD_TYPE" readOnly="true"/>
+                    <a:field name="enterprise_scale_desc" prompt="FND_COMPANY_REGISTED.ENTERPRISE_SCALE_CODE" readOnly="true"/>
+                    <a:field name="business_group_name" prompt="FND_BUSINESS_GROUPS.TITLE" readOnly="true"/>
+                    <a:field name="submit_date_desc" prompt="FND_COMPANY_REGISTED.SUBMIT_DATE"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton id="fnd9040_batchConfirmBtu" click="fnd9040_batchConfirmFun" text="CONFIRM" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd9040_companyRegistedApprove_queryDs" resultTarget="fnd9040_companyRegistedApprove_resultDs" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="email" bindTarget="fnd9040_companyRegistedApprove_queryDs" prompt="FND_COMPANY_REGISTED.EMAIL">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9040_queryService"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="full_name" bindTarget="fnd9040_companyRegistedApprove_queryDs" prompt="FND_COMPANY_REGISTED.FULL_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9040_queryService"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="enterprise_scale_desc" bindTarget="fnd9040_companyRegistedApprove_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9040_queryService"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:lov name="business_group_name" bindTarget="fnd9040_companyRegistedApprove_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9040_queryService"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="business_license_number" bindTarget="fnd9040_companyRegistedApprove_queryDs" prompt="FND_COMPANY_REGISTED.BUSINESS_LICENSE_NUMBER">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9040_queryService"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="legal_rep_name" bindTarget="fnd9040_companyRegistedApprove_queryDs" prompt="FND_COMPANY_REGISTED.LEGAL_REP_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9040_queryService"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="agent_name" bindTarget="fnd9040_companyRegistedApprove_queryDs" prompt="FND_COMPANY_REGISTED.AGENT_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9040_queryService"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                    <a:hBox labelWidth="100">
+                        <a:dateTimePicker name="submit_date_from" bindTarget="fnd9040_companyRegistedApprove_queryDs" prompt="FND_COMPANY_REGISTED.SUBMIT_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9040_queryService"/>
+                            </a:events>
+                        </a:dateTimePicker>
+                        <a:dateTimePicker name="submit_date_to" bindTarget="fnd9040_companyRegistedApprove_queryDs" prompt="FND_COMPANY_REGISTED.SUBMIT_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9040_queryService"/>
+                            </a:events>
+                        </a:dateTimePicker>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="fnd9040_companyRegistedApprove_result_grid" bindTarget="fnd9040_companyRegistedApprove_resultDs" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="email" renderer="fnd9040_companyRegistedDetailFun" sortable="true" width="100"/>
+                    <a:column name="full_name" sortable="true" width="100"/>
+                    <a:column name="short_name" sortable="true" width="100"/>
+                    <a:column name="enterprise_scale_desc" sortable="true" width="100"/>
+                    <a:column name="business_group_name" sortable="true" width="100"/>
+                    <a:column name="business_license_number" sortable="true" width="100"/>
+                    <a:column name="business_license_end_date" sortable="true" width="80"/>
+                    <a:column name="business_license_forever" sortable="true" width="60"/>
+                    <a:column name="legal_rep_name" sortable="true" width="100"/>
+                    <a:column name="agent_name" sortable="true" width="100"/>
+                    <a:column name="submit_date_desc" renderer="Aurora.formatDate" sortable="true" width="100"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

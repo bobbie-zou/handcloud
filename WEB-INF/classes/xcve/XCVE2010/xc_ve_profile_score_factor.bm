@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lichenguang  
+    $Date: 2011-11-10 上午08:04:35  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:e="aurora.service.exception" xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="XC_VE_PROFILE_SCORE_FACTOR" defaultOrderBy="(select u.user_name from sys_user u where u.user_id=t1.vendor_id),(select a.mtlgrp from xc_mmrmtlgroup_mv a where a.mmrmtlgroupid=t1.item_group_id and a.client=&apos;800&apos;)">
+    <bm:fields>
+        <bm:field name="factor_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="FACTOR_ID" prompt="系数ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID" prompt="公司ID"/>
+        <bm:field name="vendor_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_ID" prompt="供应商ID"/>
+        <bm:field name="vendor_code" expression="(select u.user_name from sys_user u where u.user_id=t1.vendor_id)" forInsert="false" forUpdate="false" prompt="供应商"/>
+        <bm:field name="vendor_erp_code" expression="(select r.vender_erp_code from hsp_sys_vender_reg r where r.user_id=t1.vendor_id)" forInsert="false" forUpdate="false" prompt="ERP编码"/>
+        <bm:field name="vendor_name" expression="(select r.company_full_name from hsp_sys_vender_reg r where r.user_id=t1.vendor_id)" forInsert="false" forUpdate="false" prompt="供应商描述"/>
+        <bm:field name="item_group_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ITEM_GROUP_ID" prompt="物料组ID"/>
+        <bm:field name="item_group_code" expression="(select a.mtlgrp from xc_mmrmtlgroup_mv a where a.mmrmtlgroupid=t1.item_group_id and a.client=&apos;800&apos;)" forInsert="false" forUpdate="false" prompt="物料组编码"/>
+        <bm:field name="item_group_desc" expression="(select b.mtlgrptext from xc_mmrmtlgrouptrl_mv b where b.mmrmtlgroupid=t1.item_group_id and b.language=&apos;zh_CN&apos;)" forInsert="false" forUpdate="false" prompt="物料组描述"/>
+        <bm:field name="factor_q1" databaseType="NUMBER" datatype="java.lang.Double" physicalName="FACTOR_Q1" prompt="Q1_物料组重要度"/>
+        <bm:field name="factor_q2" databaseType="NUMBER" datatype="java.lang.Double" physicalName="FACTOR_Q2" prompt="Q1_物料组承制难度"/>
+    </bm:fields>
+    <bm:features>
+        <f:standard-who/>
+        <f:multi-language-storage/>
+        <o:sequence-pk/>
+    </bm:features>
+    <bm:primary-key>
+        <bm:pk-field name="factor_id"/>
+    </bm:primary-key>
+    <bm:data-filters>
+        <bm:data-filter name="company_id" enforceOperations="query" expression="t1.company_id=${@company_id}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field field="factor_id" queryOperator="="/>
+        <bm:query-field field="vendor_id" queryOperator="="/>
+        <bm:query-field field="item_group_id" queryOperator="="/>
+        <bm:query-field name="vendor_erp_code" queryExpression="exists (select 1 from hsp_sys_vender_reg r where r.user_id=t1.vendor_id and r.vender_erp_code like &apos;%&apos;||${@vendor_erp_code}||&apos;%&apos;)"/>
+        <bm:query-field name="vendor_name" queryExpression="exists (select 1 from hsp_sys_vender_reg r where r.user_id=t1.vendor_id and r.company_full_name like &apos;%&apos;||${@vendor_name}||&apos;%&apos;)"/>
+        <bm:query-field name="item_group_desc" queryExpression="exists (select 1 from xc_mmrmtlgrouptrl_mv b where b.mmrmtlgroupid=t1.item_group_id and b.language=&apos;zh_CN&apos; and b.mtlgrptext like &apos;%&apos;||${@item_group_desc}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <e:exception-descriptor-config>
+        <e:exception-descriptor exception="java.sql.SQLException" handleClass="aurora.database.SQLExceptionDescriptor">
+            <e:error-message code="1" message="定义重复，请修改！"/>
+        </e:exception-descriptor>
+    </e:exception-descriptor-config>
+    <bm:operations>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+    			begin
+				  xc_ve_profile_pkg.xc_ve_sync_q12_vendor(${/session/@user_id},
+				                                          ${/session/@company_id});
+				end;
+    		]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

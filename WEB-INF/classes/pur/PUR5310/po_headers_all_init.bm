@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2014-3-4 下午3:51:34  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select nvl(${/parameter/@company_id},${/session/@default_company_id}) company_id,
+       (select fc.company_short_name
+          from fnd_companies_vl fc
+         where fc.COMPANY_ID = nvl(${/parameter/@company_id},${/session/@default_company_id})) company_desc,
+       (select b.functional_currency_code
+          from fnd_companies_vl fc, gld_set_of_books  b
+         where fc.COMPANY_ID = nvl(${/parameter/@company_id},${/session/@default_company_id})
+           and fc.set_of_books_id = b.set_of_books_id) functional_currency_code,
+       'NEW' status,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = 'NEW'
+           and sc.code = 'SRM_STATUS') status_desc,
+       pur_po_pkg.get_default_revision_num revision_num,
+       nvl(${/parameter/@currency_code},'CNY') currency_code,
+       (select gc.currency_name
+          from gld_currency_vl gc
+         where gc.currency_code = nvl(${/parameter/@currency_code},'CNY')) currency_desc,
+       1 revision_num,
+       sysdate creation_date,
+       to_char(sysdate, 'yyyy-mm-dd') creation_date_desc,
+       ${/session/@user_id} created_by,
+       (select u.description from sys_user u where u.user_id = ${/session/@user_id}) created_by_desc
+  from dual]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter inputPath="/parameter/@company_id"/>
+                <bm:parameter inputPath="/session/@default_company_id"/>
+                <bm:parameter inputPath="/parameter/@currency_code"/>
+                <bm:parameter inputPath="/session/@user_id"/>
+            </bm:parameters>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

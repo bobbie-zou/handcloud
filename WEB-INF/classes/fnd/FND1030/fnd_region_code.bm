@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="region_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="parent_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="level_num" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="country_code" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_COUNTRY_CODE.COUNTRY_CODE"/>
+        <bm:field name="region_code" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_REGION_CODE.REGION_CODE"/>
+        <bm:field name="region_name" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_REGION_CODE.DESCRIPTION"/>
+        <bm:field name="enabled_flag" prompt="PROMPT.ENABLED_FLAG"/>
+        <bm:field name="country_name"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="region_code" queryExpression="t1.region_code like &apos;%&apos;||${@region_code}||&apos;%&apos;"/>
+        <bm:query-field field="region_name" queryExpression="exists (select 1 from fnd_descriptions fd where t1.description_id=fd.description_id and fd.description_text like &apos;%&apos;||${@region_name}||&apos;%&apos; and fd.language = ${/session/@lang})"/>
+        <bm:query-field name="country_name" queryExpression="exists (select 1 from fnd_descriptions fd where c.description_id=fd.description_id and fd.description_text like &apos;%&apos;||${@country_name}||&apos;%&apos; and fd.language = ${/session/@lang})"/>
+        <bm:query-field name="region_code_name_or_country_name" queryExpression="(t1.region_code like &apos;%&apos;||trim(upper(${@region_code_name_or_country_name}))||&apos;%&apos; or (select fd.description_text from fnd_descriptions fd where fd.description_id=t1.description_id and fd.language=${/session/@lang}) like &apos;%&apos;||${@region_code_name_or_country_name}||&apos;%&apos; or (select fd.description_text from fnd_descriptions fd where c.description_id=fd.description_id and fd.language = ${/session/@lang}) like &apos;%&apos;||${@region_code_name_or_country_name}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        frc.region_id,
+                        frc.region_code,
+                        frc.description AS region_name,
+                        frc.country_code,
+                        frc.country_desc AS country_name,
+                        frc.parent_id,
+                        frc.level_num,
+                        frc.enabled_flag
+                    FROM
+                        fnd_region_code_vl frc
+                    ) t1 #WHERE_CLAUSE#
+                ORDER BY
+                    t1.region_id
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+            BEGIN
+				fnd_region_pkg.insert_region(p_region_code  => ${@region_code},
+											 p_parent_id	=> ${@parent_id},
+											 p_level_num	=> ${@level_num},
+				                             p_description  => ${@region_name},
+				                             p_country_code => ${@country_code},
+				                             p_created_by   => ${/session/@user_id},
+				                             p_enabled_flag => ${@enabled_flag},
+				                             x_region_id    => ${@region_id});
+				END;
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            BEGIN
+				fnd_region_pkg.update_region(p_region_id  => ${@region_id},
+                               				 p_description  => ${@region_name},
+                               				 p_created_by   => ${/session/@user_id},
+                               				 p_enabled_flag => ${@enabled_flag});
+				END;
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

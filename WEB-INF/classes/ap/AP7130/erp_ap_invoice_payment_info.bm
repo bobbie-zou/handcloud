@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui 6743$
+    $Date: 2014/09/29 10:46:59 $
+    $Revision: 1.0 $
+    $Purpose: ERP应付发票明细查询付款信息-采购方
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        eaih.invoice_id,
+                        (SELECT
+                            SUM(nvl(ip.amount,0))
+                        FROM
+                            erp_ap_invoice_headers ih,
+                            erp_ap_invoice_payments ip
+                        WHERE
+                            ih.invoice_id = ip.invoice_id(+) AND
+                            ih.invoice_id = eaih.invoice_id
+                        GROUP BY
+                            ih.invoice_id
+                        ) amount_paid,
+                        nvl(eaip.discount_taken,0) discount_taken,
+                        (SELECT
+                            DECODE(nvl(ih.invoice_amount,0) -
+                            (SELECT
+                                SUM(nvl(ip1.amount,0))
+                            FROM
+                                erp_ap_invoice_headers ih1,
+                                erp_ap_invoice_payments ip1
+                            WHERE
+                                ih1.invoice_id = ip1.invoice_id AND
+                                ih1.invoice_id = ih.invoice_id
+                            GROUP BY
+                                ih1.invoice_id
+                            ), 0, 'Y', nvl(ih.invoice_amount,0), 'N', 'P')
+                        FROM
+                            erp_ap_invoice_headers ih
+                        WHERE
+                            eaih.invoice_id = ih.invoice_id
+                        ) AS payment_status,
+                        TO_CHAR(
+                        (SELECT
+                            MAX(pc.check_date)
+                        FROM
+                            erp_ap_invoice_headers ih,
+                            erp_ap_invoice_payments ip,
+                            erp_ap_payment_checks pc
+                        WHERE
+                            ih.invoice_id = ip.invoice_id AND
+                            ip.check_id   = pc.check_id AND
+                            ih.invoice_id = eaih.invoice_id
+                        GROUP BY
+                            ih.invoice_id
+                        ),'yyyy-mm-dd') check_date,
+                        eaih.terms_name
+                    FROM
+                        erp_ap_invoice_headers eaih,
+                        erp_ap_invoice_payments eaip,
+                        erp_ap_payment_checks eapc
+                    WHERE
+                        eaih.invoice_id=eaip.invoice_id(+) AND
+                        eaip.check_id  =eapc.check_id(+)
+                    ) t1 #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters/>
+    <bm:query-fields>
+        <bm:query-field name="invoice_id" queryExpression="t1.invoice_id=${@invoice_id}"/>
+    </bm:query-fields>
+</bm:model>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-4 下午4:22:48  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT 'VENDOR' partner_type,
+               t.vendor_id partner_id,
+               t.vendor_code partner_code,
+               t.full_name partner_name,
+               t.business_license_number,
+               t.national_organization_code,
+               t.official_telephone,
+               t.fax_no,
+               t.registered_country_code,
+               (SELECT fc.description FROM fnd_country_code_vl fc WHERE fc.country_code = t.registered_country_code) registered_country_name,
+               t.registered_province_id,
+               (SELECT f.description FROM fnd_region_code_vl f WHERE f.region_id = t.registered_province_id) registered_province_desc,
+               t.registered_city_id,
+               (SELECT f.description FROM fnd_region_code_vl f WHERE f.region_id = t.registered_city_id) registered_city_desc,
+               sys_cooperative_partners_pkg.check_already_coop_pratner(p_object_id    => ${/session/@vendor_id},
+                                                                       p_object_code  => ${/session/@client},
+                                                                       p_partner_type => 'VENDOR',
+                                                                       p_partner_id   => t.vendor_id,
+                                                                       p_partner_code => NULL,
+                                                                       p_user_id      => ${/session/@user_id}) already_flag
+        
+          FROM pur_vendors_vl t
+         WHERE sys_cooperative_partners_pkg.get_object_type(p_user_id => ${/session/@user_id}) = 'CLIENT'
+               AND t.enabled_flag = 'Y'
+        UNION ALL
+        SELECT 'CLIENT',
+               NULL,
+               c.client,
+               nvl(t.enterprise_name,
+                   c.client_full_name),
+               t.business_license_number,
+               t.national_organization_code,
+               t.telephone,
+               t.fax_no,
+               t.registered_country_code,
+               (SELECT fc.description FROM fnd_country_code_vl fc WHERE fc.country_code = t.registered_country_code) registered_country_name,
+               t.registered_province_id,
+               (SELECT f.description FROM fnd_region_code_vl f WHERE f.region_id = t.registered_province_id) registered_province_desc,
+               t.registered_city_id,
+               (SELECT f.description FROM fnd_region_code_vl f WHERE f.region_id = t.registered_city_id) registered_city_desc,
+               sys_cooperative_partners_pkg.check_already_coop_pratner(p_object_id    => ${/session/@vendor_id},
+                                                                       p_object_code  => ${/session/@client},
+                                                                       p_partner_type => 'CLIENT',
+                                                                       p_partner_id   => NULL,
+                                                                       p_partner_code => c.client,
+                                                                       p_user_id      => ${/session/@user_id}) already_flag
+          FROM fnd_clients_vl   c,
+               fnd_client_infos t
+         WHERE sys_cooperative_partners_pkg.get_object_type(p_user_id => ${/session/@user_id}) = 'VENDOR'
+               AND c.information_id = t.information_id(+)
+               AND c.enabled_flag = 'Y')
+   #WHERE_CLAUSE# #ORDER_BY_CLAUSE#]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+  sys_cooperative_partners_pkg.create_coop_pratner_req(x_requisition_id => ${@requisition_id},
+                                                       p_object_id      => ${/session/@vendor_id},
+                                                       p_object_code    => ${/session/@client},
+                                                       p_partner_type   => ${@partner_type},
+                                                       p_partner_id     => ${@partner_id},
+                                                       p_partner_code   => ${@partner_code},
+                                                       p_comments       => ${@comments},
+                                                       p_user_id        => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="partner_type" databaseType="CHAR" datatype="java.lang.String" physicalName="PARTNER_TYPE"/>
+        <bm:field name="partner_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PARTNER_ID"/>
+        <bm:field name="partner_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARTNER_CODE"/>
+        <bm:field name="partner_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARTNER_NAME"/>
+        <bm:field name="business_license_number" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BUSINESS_LICENSE_NUMBER"/>
+        <bm:field name="national_organization_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="NATIONAL_ORGANIZATION_CODE"/>
+        <bm:field name="official_telephone" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="OFFICIAL_TELEPHONE"/>
+        <bm:field name="fax_no" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FAX_NO"/>
+        <bm:field name="registered_country_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="REGISTERED_COUNTRY_CODE"/>
+        <bm:field name="registered_country_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="REGISTERED_COUNTRY_NAME"/>
+        <bm:field name="registered_province_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="REGISTERED_PROVINCE_ID"/>
+        <bm:field name="registered_province_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="REGISTERED_PROVINCE_DESC"/>
+        <bm:field name="registered_city_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="REGISTERED_CITY_ID"/>
+        <bm:field name="registered_city_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="REGISTERED_CITY_DESC"/>
+        <bm:field name="already_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ALREADY_FLAG"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="partner_code" queryExpression="partner_code like &apos;%&apos;||trim(${@partner_code})||&apos;%&apos;"/>
+        <bm:query-field name="partner_name" queryExpression="partner_name like &apos;%&apos;||trim(${@partner_name})||&apos;%&apos;"/>
+        <bm:query-field name="business_license_number" queryExpression="business_license_number like &apos;%&apos;||trim(${@business_license_number})||&apos;%&apos;"/>
+        <bm:query-field name="national_organization_code" queryExpression="national_organization_code like &apos;%&apos;||trim(${@national_organization_code})||&apos;%&apos;"/>
+        <bm:query-field name="registered_country_code" queryExpression="registered_country_code = ${@registered_country_code}"/>
+        <bm:query-field field="registered_province_id" queryOperator="="/>
+        <bm:query-field field="registered_city_id" queryOperator="="/>
+        <bm:query-field field="already_flag" queryOperator="="/>
+    </bm:query-fields>
+</bm:model>

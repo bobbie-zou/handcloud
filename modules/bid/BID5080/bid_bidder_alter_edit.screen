@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-27 上午10:25:29  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="bid5080_bidder_alter_edit_save_link" url="${/request/@context_path}/modules/bid/BID5080/bid_bidder_alter_edit_save.svc"/>
+        <a:link id="bid5080_bidder_alter_edit_submit_link" url="${/request/@context_path}/modules/bid/BID5080/bid_bidder_alter_edit_submit.svc"/>
+        <a:link id="bid5080_bidder_alter_edit_cancel_link" model="bid.BID5080.bid_bidder_alter_cancel" modelaction="execute"/>
+        <script><![CDATA[
+            function bid5080BidderAlterLineEditOnAdd(ds, rec, index) {
+                if (!Aurora.isEmpty(rec.get('alter_mode'))) {
+                    if (rec.get('alter_mode') == 'NEW') {
+                        rec.getMeta().getField('replace_bidder_code').setRequired(true);
+                    } else if (rec.get('alter_mode') == 'REPLACE') {
+                        rec.getMeta().getField('replace_bidder_code').setRequired(true);
+                    } else {
+                        rec.getMeta().getField('replace_bidder_code').setRequired(false);
+                        rec.set('replace_bidder_id', null);
+                        rec.set('replace_bidder_code', null);
+                        rec.set('replace_bidder_desc', null);
+                    }
+                }
+            }
+            
+            function bid5080BidderAlterLineEditOnUpdate(ds, rec, name, value, oldvalue) {
+                if (name == 'alter_mode') {
+                    if (value == 'NEW') {
+                        rec.getMeta().getField('replace_bidder_code').setRequired(true);
+                    } else if (value == 'REPLACE') {
+                        rec.getMeta().getField('replace_bidder_code').setRequired(true);
+                    } else {
+                        rec.getMeta().getField('replace_bidder_code').setRequired(false);
+                        rec.set('replace_bidder_id', null);
+                        rec.set('replace_bidder_code', null);
+                        rec.set('replace_bidder_desc', null);
+                    }
+                }
+            }
+            
+            function bid5080EditSave() {
+                var header_ds = $('bid5080_bidder_alter_header_edit_ds');
+                var line_ds = $('bid5080_bidder_alter_line_edit_ds');
+            
+                if (!header_ds.validate()) {
+                    return;
+                }
+                if (!line_ds.validate()) {
+                    return;
+                }
+            
+                Aurora.Masker.mask($('bid5080_bidder_alter_edit_window').wrap, '${l:LOADING}');
+            
+                var header_rec = header_ds.getCurrentRecord();
+                var header_data = header_rec.data;
+                header_data['lines'] = line_ds.getJsonData();
+            
+                Aurora.request({
+                    url: $('bid5080_bidder_alter_edit_save_link').getUrl(),
+                    para: header_data,
+                    success: function(res) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SAVED}', function() {
+                            header_ds.query();
+                            line_ds.query();
+                        });
+                    },
+                    failure: function() {
+                        return;
+                    },
+                    error: function() {
+                        return;
+                    }
+                });
+            
+                Aurora.Masker.unmask($('bid5080_bidder_alter_edit_window').wrap);
+            }
+            
+            function bid5080EditSubmit() {
+                Aurora.showConfirm('${l:PROMPT}', '${l:PROMPT.CONFIRM_SUBMIT}？', function() {
+                    var header_ds = $('bid5080_bidder_alter_header_edit_ds');
+                    var line_ds = $('bid5080_bidder_alter_line_edit_ds');
+            
+                    if (!header_ds.validate()) {
+                        return;
+                    }
+                    if (!line_ds.validate()) {
+                        return;
+                    }
+            
+                    Aurora.Masker.mask($('bid5080_bidder_alter_edit_window').wrap, '${l:LOADING}');
+            
+                    var header_rec = header_ds.getCurrentRecord();
+                    var header_data = header_rec.data;
+                    header_data['lines'] = line_ds.getJsonData();
+            
+                    Aurora.request({
+                        url: $('bid5080_bidder_alter_edit_submit_link').getUrl(),
+                        para: header_data,
+                        success: function(res) {
+                            Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SUBMITED}', function() {
+                                $('bid5080_bidder_alter_edit_window').close();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+            
+                    Aurora.Masker.unmask($('bid5080_bidder_alter_edit_window').wrap);
+                });
+            }
+            
+            function bid5080EditCancel() {
+                Aurora.showConfirm('${l:PROMPT}', '${l:PROMPT.CONFIRM_CANCEL}？', function() {
+                    Aurora.Masker.mask($('bid5080_bidder_alter_edit_window').wrap, '${l:LOADING}');
+            
+                    var header_ds = $('bid5080_bidder_alter_header_edit_ds');
+                    var header_rec = header_ds.getCurrentRecord();
+            
+                    Aurora.request({
+                        url: $('bid5080_bidder_alter_edit_cancel_link').getUrl(),
+                        para: header_rec.data,
+                        success: function(res) {
+                            Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.CANCELED}!', function() {
+                                $('bid5080_bidder_alter_edit_window').close();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+            
+                    Aurora.Masker.unmask($('bid5080_bidder_alter_edit_window').wrap);
+                });
+            }
+            
+            function bid5080EditReturn() {
+                $('bid5080_bidder_alter_edit_window').close();
+            }
+            
+            function bid5080BidderAlterLineEditEditor(rec, name) {
+                if (name == 'alter_mode_desc') {
+                    if ('NEW' == rec.get('alter_mode')) {
+                        return '';
+                    } else {
+                        return 'bid5080_bidder_alter_line_edit_cmb';
+                    }
+                } else if (name == 'replace_bidder_code') {
+                    if ('REPLACE' == rec.get('alter_mode') || 'NEW' == rec.get('alter_mode')) {
+                        return 'bid5080_bidder_alter_line_edit_lov';
+                    } else {
+                        return '';
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5080_edit_bidder_alter_mode_ds">
+                <a:datas>
+                    <a:record name="保留" value="RETAINE"/>
+                    <a:record name="替换为" value="REPLACE"/>
+                    <a:record name="移除" value="REMOVE"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="bid5080_bidder_alter_header_edit_ds" autoQuery="true" model="bid.BID5080.bid_bidder_alter_header_edit" queryUrl="${/request/@context_path}/autocrud/bid.BID5080.bid_bidder_alter_header_edit/query?alter_header_id=${/parameter/@alter_header_id}">
+                <a:fields>
+                    <a:field name="applicant_desc" lovGridHeight="320" lovHeight="500" lovService="public.exp_employees_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_HEADERS.APPLICANT">
+                        <a:mapping>
+                            <a:map from="employee_id" to="applicant_id"/>
+                            <a:map from="name" to="applicant_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="application_date" required="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="bid5080_bidder_alter_line_edit_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="bid.BID5080.bid_bidder_alter_line_edit" queryUrl="${/request/@context_path}/autocrud/bid.BID5080.bid_bidder_alter_line_edit/query?alter_header_id=${/parameter/@alter_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="alter_header_id" defaultValue="${/parameter/@alter_header_id}"/>
+                    <a:field name="alter_mode" defaultValue="NEW"/>
+                    <a:field name="alter_mode_desc" defaultValue="新增" displayField="name" options="bid5080_edit_bidder_alter_mode_ds" required="true" returnField="alter_mode" valueField="value"/>
+                    <a:field name="replace_bidder_code" lovGridHeight="320" lovHeight="500" lovService="bid.public.bid_bidders_lov" lovWidth="500" title="BID_ENTRUSTMENT_HEADERS.BIDDER">
+                        <a:mapping>
+                            <a:map from="bidder_id" to="replace_bidder_id"/>
+                            <a:map from="bidder_code" to="replace_bidder_code"/>
+                            <a:map from="bidder_desc" to="replace_bidder_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="bid5080BidderAlterLineEditOnAdd"/>
+                    <a:event name="update" handler="bid5080BidderAlterLineEditOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="bid5080_bidder_alter_line_edit_grid" type="add" width="100"/>
+                <a:gridButton bind="bid5080_bidder_alter_line_edit_grid" type="delete" width="100"/>
+                <a:toolbarButton click="bid5080EditSave" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="bid5080EditSubmit" text="PROMPT.SUBMIT" width="100"/>
+                <a:toolbarButton click="bid5080EditCancel" text="PROMPT.CANCEL" width="100"/>
+                <a:toolbarButton click="bid5080EditReturn" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100">
+                <a:vBox labelWidth="120">
+                    <a:label name="alter_header_number" bindTarget="bid5080_bidder_alter_header_edit_ds" prompt="BID_BIDDER_ALTER_HEADERS.ALTER_HEADER_NUMBER"/>
+                    <a:label name="title" bindTarget="bid5080_bidder_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TITLE"/>
+                </a:vBox>
+                <a:vBox labelWidth="120">
+                    <a:label name="entrustment_header_number" bindTarget="bid5080_bidder_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_HEADER_NUMBER"/>
+                    <a:lov name="applicant_desc" bindTarget="bid5080_bidder_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICANT"/>
+                </a:vBox>
+                <a:vBox labelWidth="120">
+                    <a:label name="round" bindTarget="bid5080_bidder_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.ROUND"/>
+                    <a:datePicker name="application_date" bindTarget="bid5080_bidder_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICATION_DATE" renderer="Aurora.formatDate"/>
+                </a:vBox>
+                <a:vBox labelWidth="120">
+                    <a:label name="version" bindTarget="bid5080_bidder_alter_header_edit_ds" prompt="BID_ENTRUSTMENT_HEADERS.VERSION"/>
+                </a:vBox>
+            </a:hBox>
+            <a:hBox labelWidth="120">
+                <a:textArea name="comments" bindTarget="bid5080_bidder_alter_header_edit_ds" height="60" marginWidth="360" prompt="BID_BIDDER_ALTER_LINES.COMMENTS"/>
+            </a:hBox>
+            <a:grid id="bid5080_bidder_alter_line_edit_grid" bindTarget="bid5080_bidder_alter_line_edit_ds" height="350" marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="original_bidder_code" align="left" prompt="BID_VENDOR_ALTERATION.ORIGINAL_VENDOR_CODE" width="80"/>
+                    <a:column name="original_bidder_desc" align="left" prompt="BID_VENDOR_ALTERATION.ORIGINAL_VENDOR_NAME" width="80"/>
+                    <a:column name="alter_mode_desc" align="left" editorFunction="bid5080BidderAlterLineEditEditor" prompt="BID_BIDDER_ALTER_LINES.ALTER_MODE" width="60"/>
+                    <a:column name="replace_bidder_code" align="left" editorFunction="bid5080BidderAlterLineEditEditor" prompt="BID_VENDOR_ALTERATION.NEW_VENDOR_CODE" width="80"/>
+                    <a:column name="replace_bidder_desc" align="left" prompt="BID_VENDOR_ALTERATION.NEW_VENDOR_NAME" width="80"/>
+                    <a:column name="comments" align="left" editor="bid5080_bidder_alter_line_edit_tf" prompt="BID_BIDDER_ALTER_LINES.COMMENTS" width="200"/>
+                </a:columns>
+                <a:editors>
+                    <a:comboBox id="bid5080_bidder_alter_line_edit_cmb"/>
+                    <a:lov id="bid5080_bidder_alter_line_edit_lov"/>
+                    <a:textField id="bid5080_bidder_alter_line_edit_tf"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

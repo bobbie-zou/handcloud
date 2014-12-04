@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            select *
+			  from (select distinct s.employee_id,
+			                        emp.employee_code || ' - ' ||emp.name  code_name,
+			                        emp.employee_code,
+			                        emp.employee_code employee_code1,
+			                        emp.name,
+			                        emp.bank_of_deposit bank_branch_code,
+			                        emp.bank_account bank_account_code
+			          from exp_employee_assigns s, exp_employees emp
+			         where s.employee_id = emp.employee_id
+			           and s.enabled_flag = 'Y'
+			           and s.company_id =
+			               nvl(${/parameter/@company_id},
+			                   ${/session/@company_id})
+			           and (${/parameter/@auth_type} is null or
+			               exp_document_authorities_pkg.exist_exp_doc_authorities(${/parameter/@doc_type},
+			                                                                       (select employee_id
+			                                                                          from sys_user
+			                                                                         where user_id = ${/session/@user_id}),
+			                                                                       s.employee_id,
+			                                                                       ${/parameter/@auth_type},
+			                                                                       ${/session/@user_id}) = 'Y')) v #WHERE_CLAUSE#
+			 	order by v.employee_code1
+		]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="employee_id"/>
+        <bm:field name="employee_code" displayWidth="220" forDisplay="true" forQuery="true" prompt="EXP_EMPLOYEES.EMPLOYEE_CODE"/>
+        <bm:field name="employee_code1"/>
+        <bm:field name="name" displayWidth="220" forDisplay="true" forQuery="true" prompt="EXP_EMPLOYEES.NAME"/>
+        <bm:field name="bank_branch_code" prompt="EXP_EMPLOYEES.BANK_OF_DEPOSIT"/>
+        <bm:field name="bank_account_code" prompt="EXP_EMPLOYEES.BANK_ACCOUNT"/>
+        <bm:field name="code_name"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="employee_code" queryExpression=" employee_code like &apos;%&apos;||${@employee_code}||&apos;%&apos;"/>
+        <bm:query-field field="name" queryExpression=" name like &apos;%&apos;||${@name}||&apos;%&apos;"/>
+        <bm:query-field name="code_name" queryExpression=" code_name like &apos;%&apos;||${@code_name}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

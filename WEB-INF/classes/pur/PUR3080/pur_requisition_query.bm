@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-1-18 下午01:08:39  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="h.company_id asc,h.pur_requisition_num asc,l.line_number asc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    d.pur_requisition_dists_id,
+                    d.pur_requisition_header_id,
+                    d.pur_requisition_line_id,
+                    h.pur_requisition_num,
+                    l.line_number,
+                    l.pur_ln_type,
+                    (SELECT
+                        scv.code_value_name
+                    FROM
+                        sys_code_values_v scv
+                    WHERE
+                        scv.code       = 'PUR_REQ_LINE_PURCHASE_TYPE' AND
+                        scv.code_value = l.pur_ln_type
+                    ) AS pur_ln_type_desc,
+                    h.company_id,
+                    h.pur_requisition_type_id,
+                    (SELECT
+                        r.DESCRIPTION
+                    FROM
+                        pur_requisition_types_vl r
+                    WHERE
+                        r.ENABLED_FLAG       = 'Y' AND
+                        r.COMPANY_ID         =h.company_id AND
+                        r.REQUISITION_TYPE_ID=h.pur_requisition_type_id
+                    ) AS pur_requisition_type_desc,
+                    c.COMPANY_FULL_NAME,
+                    l.suggested_vendor_id,
+                    v.VENDOR_CODE,
+                    v.full_name vendor_full_name,
+                    l.item_id,
+                    l.item_code,
+                    l.item_desc,
+                    l.item_category_id,
+                    l.item_category_code,
+                    l.item_category_desc,
+                    l.primary_quantity,
+                    l.primary_uom,
+                    l.need_by_date,
+                    to_char(l.need_by_date,'yyyy-mm-dd') as need_by_date_desc,
+                    l.inv_org_id,
+                    l.inv_org_code,
+                    l.inv_org_desc,
+                    l.entered_price as price,
+                    l.currency_code,
+                    l.quotation_tax_flag,
+                    decode(l.quotation_tax_flag,'Y','是','否') as quotation_tax_flag_desc,
+                    l.tax_rate,
+                    l.net_amount,
+                    l.tax_amount,
+                    l.net_amount + l.tax_amount AS sum_amount,
+                    l.functional_amount,
+                    l.exchange_rate,
+                    h.created_by,
+                    (select description from sys_user where user_id=h.created_by) as create_user,
+                    h.creation_date,
+                    to_char(h.creation_date,'yyyy-mm-dd') as creation_date_desc,
+                    l.note,
+                    h.source_type
+                FROM
+                    pur_requisition_hds h,
+                    pur_requisition_lns l,
+                    pur_requisition_dists d,
+                    fnd_companies_vl c,
+                    pur_vendors_v v #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    pur_req_pur_pkg.delete_pur_temp(p_session_id => ${/session/@session_id},
+                                                    p_user_id => ${/session/@user_id});
+               END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                  pur_req_pur_pkg.insert_req_temp(p_session_id => ${/session/@session_id},
+				                                  p_req_dist_id => ${@pur_requisition_dists_id},
+				                                  p_user_id => ${/session/@user_id});
+               END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    pur_req_pur_pkg.insert_pur_temp(p_session_id => ${/session/@session_id}, p_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="h.pur_requisition_header_id = l.pur_requisition_header_id"/>
+        <bm:data-filter expression="l.pur_requisition_line_id   = d.pur_requisition_line_id"/>
+        <bm:data-filter expression="h.company_id                = c.COMPANY_ID"/>
+        <bm:data-filter expression="l.suggested_vendor_id       = v.VENDOR_ID"/>
+        <bm:data-filter expression="d.po_created_flag       = &apos;N&apos;"/>
+        <bm:data-filter expression="d.demand_pool_finished_flag = &apos;Y&apos;"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="pur_requisition_num_from" queryExpression="h.pur_requisition_num &gt;= ${@pur_requisition_num_from}"/>
+        <bm:query-field name="pur_requisition_num_to" queryExpression="h.pur_requisition_num &lt;= ${@pur_requisition_num_to}"/>
+        <bm:query-field name="company_id" queryExpression="h.company_id = ${@company_id}"/>
+        <bm:query-field name="pur_requisition_type_id" queryExpression="h.pur_requisition_type_id = ${@pur_requisition_type_id}"/>
+        <bm:query-field name="vendor_id" queryExpression="l.suggested_vendor_id = ${@vendor_id}"/>
+        <bm:query-field name="inv_org_id" queryExpression="l.inv_org_id = ${@inv_org_id}"/>
+        <bm:query-field name="pur_ln_type" queryExpression="l.pur_ln_type = ${@pur_ln_type}"/>
+        <bm:query-field name="created_user_id" queryExpression="h.created_by = ${@created_user_id}"/>
+        <bm:query-field name="creation_date_from" queryExpression="h.creation_date &gt;= to_date(${@creation_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="creation_date_to" queryExpression="h.creation_date &lt; to_date(${@creation_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+        <bm:query-field name="need_by_date_from" queryExpression="l.need_by_date &gt;= to_date(${@need_by_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="need_by_date_to" queryExpression="l.need_by_date &lt; to_date(${@need_by_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+        <bm:query-field name="item_id" queryExpression="l.item_id = ${@item_id}"/>
+        <bm:query-field name="item_category_id" queryExpression="l.item_category_id = ${@item_category_id}"/>
+    </bm:query-fields>
+</bm:model>

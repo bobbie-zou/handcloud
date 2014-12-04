@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2014年1月17日 下午2:55:17  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="acp7070_consign_web_invoice_detail_link" url="${/request/@context_path}/modules/acp/ACP7070/acp_consign_web_invoice_detail.screen"/>
+        <a:link id="acp7070_operation_record_link" url="${/request/@context_path}/modules/acp/PUBLIC/acp_operation_record.screen"/>
+        <script><![CDATA[
+            function acp7070Query() {
+                $('acp7070_consign_web_invoice_result_ds').query();
+            }
+            
+            function acp7070ConsignWebInvoiceResultRender(value, rec, name) {
+                var invoice_header_id = rec.get('invoice_header_id');
+                if (name == 'invoice_num') {
+                    return '<a href="javascript:acp7070ConsignWebInvoiceDetail(' + invoice_header_id + ')">' + value + '</a>';
+                } else if (name == 'operation_record') {
+                    return '<a href="javascript:acp7070OperationRecord(' + invoice_header_id + ')">${l:ACP_BILL.OPERATION_RECORD}</a>';
+                }
+            }
+            
+            function acp7070ConsignWebInvoiceDetail(invoice_header_id) {
+                new Aurora.Window({
+                    id: 'acp7070_consign_web_invoice_detail_window',
+                    title: '${l:MODULES/ACP/ACP7080/ACP_CONSIGN_WEB_INVOICE_DETAIL.SCREEN.TITLE}',
+                    url: $('acp7070_consign_web_invoice_detail_link').getUrl() + '?invoice_header_id=' + invoice_header_id,
+                    fullScreen: true
+                }).on('beforeclose', function() {
+                    acp7070Query();
+                });
+            }
+            
+            function acp7070OperationRecord(invoice_header_id) {
+                new Aurora.Window({
+                    id: 'acp7070_operation_record_window',
+                    title: '${l:ACP_BILL.OPERATION_RECORD}',
+                    url: $('acp7070_operation_record_link').getUrl() + '?operation_table=ACP_CSGN_WEB_INVOICE_HDS&operation_table_id=' + invoice_header_id,
+                    height: 450,
+                    width: 600
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp7070_consign_web_invoice_query_ds">
+                <a:fields>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="company_full_name" lovGridHeight="320" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" title="ACP_CSGN_WEB_INVOICE_HDS.COMPANY_ID">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="acp7070_consign_web_invoice_result_ds" autoCount="true" autoPageSize="true" model="acp.ACP7070.acp_consign_web_invoice_query" queryDataSet="acp7070_consign_web_invoice_query_ds" selectable="true"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="acp7070_consign_web_invoice_result_grid" type="excel" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="acp7070_consign_web_invoice_query_ds" resultTarget="acp7070_consign_web_invoice_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="bill_number_from" bindTarget="acp7070_consign_web_invoice_query_ds" prompt="ACP5160.WEB_BILL_NUMBER_FROM">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp7070Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="bill_number_to" bindTarget="acp7070_consign_web_invoice_query_ds" prompt="ACP5160.WEB_BILL_NUMBER_TO">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp7070Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:lov name="company_desc" bindTarget="acp7070_consign_web_invoice_query_ds" prompt="ACP_CSGN_WEB_INVOICE_HDS.COMPANY_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp7070Query"/>
+                        </a:events>
+                    </a:lov>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:vBox labelWidth="100">
+                            <a:textField name="po_num_from" bindTarget="acp7070_consign_web_invoice_query_ds" prompt="ACP5160.PO_NUMBER_FROM">
+                                <a:events>
+                                    <a:event name="enterdown" handler="acp7070Query"/>
+                                </a:events>
+                            </a:textField>
+                        </a:vBox>
+                        <a:vBox labelWidth="100">
+                            <a:textField name="po_num_to" bindTarget="acp7070_consign_web_invoice_query_ds" prompt="ACP5160.PO_NUMBER_TO">
+                                <a:events>
+                                    <a:event name="enterdown" handler="acp7070Query"/>
+                                </a:events>
+                            </a:textField>
+                        </a:vBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="acp7070_consign_web_invoice_result_grid" bindTarget="acp7070_consign_web_invoice_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="invoice_num" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.INVOICE_NUM" renderer="acp7070ConsignWebInvoiceResultRender" sortable="true" width="80"/>
+                    <a:column name="company_code" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.COMPANY_CODE" sortable="true" width="60"/>
+                    <a:column name="company_desc" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.COMPANY_DESC" sortable="true" width="100"/>
+                    <a:column name="vendor_site_desc" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.VENDOR_SITE_ID" sortable="true" width="60"/>
+                    <a:column name="currency_code" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.CURRENCY_CODE" sortable="true" width="60"/>
+                    <a:column name="invoice_amount_system" align="right" prompt="ACP_CSGN_WEB_INVOICE_HDS.INVOICE_AMOUNT_SYSTEM" sortable="true" width="80"/>
+                    <a:column name="invoice_tax_amount_system" align="right" prompt="ACP_CSGN_WEB_INVOICE_HDS.INVOICE_TAX_AMOUNT_SYSTEM" sortable="true" width="80"/>
+                    <a:column name="invoice_amount" align="right" prompt="ACP_CSGN_WEB_INVOICE_HDS.INVOICE_AMOUNT" sortable="true" width="80"/>
+                    <a:column name="invoice_tax_amount" align="right" prompt="ACP_CSGN_WEB_INVOICE_HDS.INVOICE_TAX_AMOUNT" sortable="true" width="80"/>
+                    <a:column name="tax_invoice_num" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.TAX_INVOICE_NUM" sortable="true" width="60"/>
+                    <a:column name="status_desc" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.STATUS" sortable="true" width="60"/>
+                    <a:column name="creation_date" align="center" prompt="ACP_CSGN_WEB_INVOICE_HDS.CREATION_DATE" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                    <a:column name="approved_date" align="center" prompt="ACP_CSGN_WEB_INVOICE_HDS.APPROVED_DATE" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                    <a:column name="operation_record" align="center" prompt="ACP_BILL.OPERATION_RECORD" renderer="acp7070ConsignWebInvoiceResultRender" sortable="true" width="60"/>
+                    <a:column name="data_source" align="left" prompt="ACP_CSGN_WEB_INVOICE_HDS.DATA_SOURCE" sortable="true" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

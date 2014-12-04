@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-4 下午2:16:26  
+    $Revision: 1.0  
+    $Purpose: 用户确认合作邀约申请(同意/拒绝)
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT p.requisition_id,
+       p.comments,
+       sys_cooperative_partners_pkg.get_partner_name(p_parnter_type => p.object_type,
+                                                     p_partner_id   => p.object_id,
+                                                     p_partner_code => p.object_code)||'向您发出了合作邀约申请' requisition_name,
+     to_char(p.creation_date,'YYYY-MM-DD HH24:MI:SS')  requisition_date                                                    
+  FROM sys_coop_pratner_req p
+ WHERE p.partner_type = sys_cooperative_partners_pkg.get_object_type(${/session/@user_id})
+           AND decode(p.partner_type,
+                      'VENDOR',
+                      to_char(p.partner_id),
+                      p.partner_code) = decode(p.partner_type,
+                                                   'VENDOR',
+                                                   to_char(${/session/@vendor_id}),
+                                                   ${/session/@client}) AND p.requisition_id = ${@requisition_id}
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[BEGIN
+  sys_cooperative_partners_pkg.agree_coop_partners_req(p_requisition_id => ${@requisition_id},
+                                                       p_user_id        => ${/session/@user_id});
+END;
+]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="requisition_id"/>
+                <bm:parameter inputPath="/session/@user_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[BEGIN
+  sys_cooperative_partners_pkg.reject_coop_partners_req(p_requisition_id => ${@requisition_id},
+                                                       p_user_id        => ${/session/@user_id});
+END;
+]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="requisition_id"/>
+                <bm:parameter inputPath="/session/@user_id"/>
+            </bm:parameters>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-7-10 下午8:46:33  
+    $Revision: 1.0  
+    $Purpose: 站内信，添加好友，用户选择LOV
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:fields>
+        <bm:field name="user_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="USER_ID"/>
+        <bm:field name="user_code" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="150" forDisplay="true" forQuery="true" physicalName="USER_CODE" prompt="用户代码"/>
+        <bm:field name="user_desc" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="200" forDisplay="true" forQuery="true" physicalName="USER_DESC" prompt="用户描述"/>
+    </bm:fields>
+    <bm:data-filters>
+        <bm:data-filter expression="user_id != ${/session/@user_id}"/>
+    </bm:data-filters>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    user_id,
+                    user_name user_code,
+                    description user_desc
+                FROM
+                    (SELECT
+                        su.user_id,
+                        su.user_name,
+                        su.description
+                    FROM
+                        sys_user su
+                    WHERE
+                        su.user_id NOT IN
+                        (SELECT
+                            t.user_id
+                        FROM
+                            sys_user t
+                        WHERE
+                            (
+                                t.user_name     = 'ADMIN' OR
+                                t.bg_admin_flag = 'Y'
+                            )
+                        )
+                    )
+                    /* SELECT
+                    user_id,
+                    user_name user_code,
+                    description user_desc
+                    FROM
+                    sys_user  */
+                    #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="user_code" queryExpression="user_name like &apos;%&apos;||${@user_code}||&apos;%&apos;"/>
+        <bm:query-field name="user_desc" queryExpression="description like &apos;%&apos;||${@user_desc}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="fnd2220_fnd_dimension_value_hierarchy_link" url="${/request/@context_path}/modules/fnd/FND2220/fnd_dimension_value_hierarchy.screen"/>
+        <a:link id="fnd2220_fnd_dimension_value_assign_link" url="${/request/@context_path}/modules/fnd/FND2220/fnd_dimension_value_assign.screen"/>
+        <a:link id="fnd2220_fnd_dimension_values_company_assigned_batch_link" url="${/request/@context_path}/modules/fnd/FND2220/fnd_dimension_values_company_assigned_batch.screen"/>
+        <a:link id="fnd2220_fnd_dimension_values_assigned_batch_tmp_link" url="${/request/@context_path}/modules/fnd/FND2220/fnd_dimension_values_assigned_batch_tmp.svc"/>
+        <script><![CDATA[
+
+            function fnd2220_queryFndDimensionValues() {
+                var record = $('fnd2220_fnd_dimension_values_query_ds').getAt(0);
+                var summary_yflag = record.get('summary_yflag');
+                var summary_nflag = record.get('summary_nflag');
+            
+                if (summary_yflag == 'Y' && summary_nflag == 'Y') {
+                    record.set('summary_flag', null);
+                } else if (summary_yflag == 'Y') {
+                    record.set('summary_flag', 'Y');
+                } else if (summary_nflag == 'Y') {
+                    record.set('summary_flag', 'N');
+                } else {
+                    record.set('summary_flag', 'null');
+                }
+                $('fnd2220_fnd_dimension_values_result_ds').query();
+            }
+            
+            function fnd2220_resetFndDimensionValues() {
+                $('fnd2220_fnd_dimension_values_query_ds').reset();
+                $('fnd2220_dimension_description').setValue('', false);
+            }
+            
+            function fnd2220_batchDistributionCompany() {
+                var selectedRecords = $('fnd2220_fnd_dimension_values_result_ds').getJsonData(true);
+                if (selectedRecords.length < 1) {
+                    Aurora.showMessage('${l:PROMPT_MESSAGE}', '${l:PROMPT.PLEASE_SELECT}', null, 250, 100);
+                    return false;
+                }
+                var param = {};
+                param['lines'] = selectedRecords;
+                Aurora.request({
+                    url: /*fnd_dimension_values_assigned_batch_tmp.svc*/
+                    $('fnd2220_fnd_dimension_values_assigned_batch_tmp_link').getUrl(),
+                    para: param,
+                    success: batchAssignWindow,
+                    scope: this
+                });
+            
+            }
+            
+            function fnd2220_batchAssignWindow() {
+                new Aurora.Window({
+                    id: 'fnd2220_fnd_dimension_values_company_assigned_batch_window',
+                    url: /*fnd_dimension_values_company_assigned_batch.screen*/
+                    $('fnd2220_fnd_dimension_values_company_assigned_batch_link').getUrl(),
+                    title: '${l:FND_COMPANIES.BATCH_DISTRIBUTION_COMPANY}',
+                    height: 500,
+                    width: 530
+                });
+            }
+            
+            function fnd2220_distributionDetailsRenderer(value, record, name) {
+                if (!record.isNew) {
+                    var dimensionValueId = record.get('dimension_value_id');
+                    return '<a href="javascript:fnd2220_distributionDetailsRendererWindow(' + dimensionValueId + ')">${l:FND_DIMENSION_VALUES.DISTRIBUTION_DETAILS}</a>';
+                }
+            }
+            
+            function fnd2220_distributionDetailsRendererWindow(dimensionValueId) {
+                new Aurora.Window({
+                    id: 'fnd2220_fnd_dimension_values_distribute_window',
+                    url: /*fnd_dimension_value_assign.screen*/
+                    $('fnd2220_fnd_dimension_value_assign_link').getUrl() + '?dimension_value_id=' + dimensionValueId,
+                    title: '${l:FND_DIMENSION_VALUES.DISTRIBUTION_DETAILS}',
+                    height: 440,
+                    width: 530
+                });
+            }
+            
+            function fnd2220_difValueRenderer(value, record, name) {
+                var summaryFlag = record.get('summary_flag');
+                if (!record.isNew && summaryFlag == 'Y') {
+                    var parentDimValueId = record.get('dimension_value_id');
+                    return '<a href="javascript:fnd2220_difValueRendererWindow(' + parentDimValueId + ')">${l:FND_DIMENSION_VALUES.DIF_VALUE}</a>';
+                }
+            }
+            
+            function fnd2220_difValueRendererWindow(parentDimValueId) {
+                new Aurora.Window({
+                    id: 'fnd2220_fnd_dimension_values_dif_value_window',
+                    url: /*fnd_dimension_value_hierarchy.screen*/
+                    $('fnd2220_fnd_dimension_value_hierarchy_link').getUrl() + '?dimension_value_id=' + parentDimValueId,
+                    title: '${l:FND_DIMENSION_VALUES.DIF_VALUE}',
+                    height: 440,
+                    width: 530
+                });
+            }
+            
+            function fnd2220_setinitdata(ds, record, index) {
+                var v_dimension_id = $('fnd2220_fnd_dimension_values_query_ds').getAt(0).get('dimension_id');
+                var v_dimension_code = $('fnd2220_fnd_dimension_values_query_ds').getAt(0).get('dimension_code');
+                if ((v_dimension_id != null) && (v_dimension_code != null)) {
+                    record.set('dimension_id', v_dimension_id);
+                    record.set('dimension_code', v_dimension_code);
+                } else {
+                    return null;
+                }
+            }
+            
+            function fnd2220_dimensionValueCodeEdit(record, name) {
+                if (!record.isNew) {
+                    return '';
+                }
+                return 'fnd2220_dimension_value_code_tf';
+            }
+            
+            function fnd2220_doSummary(record, name) {
+                if (!record.isNew) {
+                    return '';
+                }
+                return 'fnd2220_summary_flag_cb';
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2220_fnd_dimensions" loadData="true" model="fnd.FND2220.fnd_dimensions_system"/>
+            <a:dataSet id="fnd2220_fnd_dimension_values_query_ds" model="fnd.FND2220.fnd_dimension_values_sys">
+                <a:fields>
+                    <a:field name="dimension_id"/>
+                    <a:field name="dimension_code_display" displayField="dimension_code_display" options="fnd2220_fnd_dimensions" required="true">
+                        <a:mapping>
+                            <a:map from="dimension_id" to="dimension_id"/>
+                            <a:map from="dimension_code" to="dimension_code"/>
+                            <a:map from="description" to="dimension_description"/>
+                            <a:map from="dimension_code_display" to="dimension_code_display"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="dimension_description" readOnly="true"/>
+                    <a:field name="dimension_value_code"/>
+                    <a:field name="dimension_value_description"/>
+                    <a:field name="summary_yflag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="summary_nflag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd2220_fnd_dimension_values_result_ds" model="fnd.FND2220.fnd_dimension_values_sys" queryDataSet="fnd2220_fnd_dimension_values_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="dimension_id"/>
+                    <a:field name="dimension_value_id"/>
+                    <a:field name="dimension_value_code" required="true"/>
+                    <a:field name="dimension_value_description" required="true"/>
+                    <a:field name="summary_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="fnd2220_setinitdata"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="fnd2220_grid" type="add" width="100"/>
+            <a:gridButton bind="fnd2220_grid" type="clear" width="100"/>
+            <a:gridButton bind="fnd2220_grid" type="save" width="100"/>
+            <a:toolbarButton click="fnd2220_queryFndDimensionValues" text="HAP_QUERY" width="100"/>
+            <a:toolbarButton click="fnd2220_resetFndDimensionValues" text="HAP_RESET" width="100"/>
+            <a:toolbarButton click="fnd2220_batchDistributionCompany" text="FND_COMPANIES.BATCH_DISTRIBUTION_COMPANY" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="fnd2220_fnd_dimension_values_query_ds" resultTarget="fnd2220_fnd_dimension_values_result_ds" style="width:100%">
+            <a:formToolBar>
+                <a:hBox labelWidth="100">
+                    <a:comboBox name="dimension_code_display" bindTarget="fnd2220_fnd_dimension_values_query_ds" prompt="BID_EXPERT_ALTERATION.APPLY_NUM">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd2220_queryFndDimensionValues"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:textField name="dimension_description" id="fnd2220_dimension_description" bindTarget="fnd2220_fnd_dimension_values_query_ds" prompt="FND_DIMENSIONS.DESCRIPTION"/>
+                </a:hBox>
+                <a:checkBox name="summary_yflag" bindTarget="fnd2220_fnd_dimension_values_query_ds" prompt="FND_DIMENSION_VALUES.SUMMARY_FLAG"/>
+                <a:checkBox name="summary_nflag" bindTarget="fnd2220_fnd_dimension_values_query_ds" prompt="FND_DIMENSION_VALUES.SUMMARY_NFLAG"/>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox labelWidth="100">
+                    <a:textField name="dimension_value_code" bindTarget="fnd2220_fnd_dimension_values_query_ds" prompt="BID_EXPERT_ALTERATION.APPLICANT">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd2220_queryFndDimensionValues"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="dimension_value_description" bindTarget="fnd2220_fnd_dimension_values_query_ds" prompt="FND_DIMENSION_VALUES.DESCRIPTION">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd2220_queryFndDimensionValues"/>
+                        </a:events>
+                    </a:textField>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="fnd2220_grid" bindTarget="fnd2220_fnd_dimension_values_result_ds" marginHeight="160" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="dimension_value_code" align="center" editorFunction="fnd2220_dimensionValueCodeEdit" prompt="FND_DIMENSION_VALUES.DIMENSION_VALUE_CODE" sortable="true" width="130"/>
+                <a:column name="dimension_value_description" align="left" editor="fnd2220_description_tf" prompt="FND_DIMENSION_VALUES.DESCRIPTION" sortable="true" width="140"/>
+                <a:column name="summary_flag" editorFunction="fnd2220_doSummary" prompt="FND_DIMENSION_VALUES.SUMMARY_FLAG" sortable="true" width="120"/>
+                <a:column name="enabled_flag" editor="fnd2220_enabled_flag_cb" prompt="FND_DIMENSION_VALUES.ENABLED_FLAG" sortable="true" width="120"/>
+                <a:column name="distribution_details" align="center" prompt="FND_DIMENSION_VALUES.DISTRIBUTION_DETAILS" renderer="fnd2220_distributionDetailsRenderer" sortable="true" width="120"/>
+                <a:column name="dif_value" align="center" prompt="FND_DIMENSION_VALUES.DIF_VALUE" renderer="fnd2220_difValueRenderer" sortable="true" width="120"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="fnd2220_dimension_value_code_tf" typeCase="upper"/>
+                <a:textField id="fnd2220_description_tf"/>
+                <a:checkBox id="fnd2220_summary_flag_cb"/>
+                <a:checkBox id="fnd2220_enabled_flag_cb"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

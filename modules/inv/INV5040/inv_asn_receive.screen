@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: likun  
+    $Date: 2013-1-17 下午07:05:19  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="inv5040_asn_receive_submit_link" url="${/request/@context_path}/modules/inv/INV5040/inv_asn_receive.svc"/>
+        <script><![CDATA[
+
+            function inv5040_inv_asn_header_go_submit() {
+            
+                var list_ds = $('inv5040_asn_selected_list_ds');
+            
+            
+                var records = list_ds.getAll();
+                if (records.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:INV_ASN_HEADERS.UNSELECT_ERROR}!');
+                    return;
+                }
+            
+                Aurora.Masker.mask($('inv5040_asn_receive_window').wrap, '${l:INV5040.SUBMTING}');
+            
+                var headers_ds = $('inv5040_asn_reveive_header_ds');
+                var header_record = headers_ds.getCurrentRecord();
+            
+                var datas = [];
+                datas = {
+                    asn_header_id: header_record.get('asn_header_id')
+                };
+                var lines = [];
+                for (var i = 0;i < records.length;i++) {
+                    lines.push(records[i].data);
+                }
+                datas['lines'] = lines;
+            
+                Aurora.request({
+                    url: $('inv5040_asn_receive_submit_link').getUrl(),
+                    para: datas,
+                    success: function(res) {
+                        Aurora.Masker.unmask($('inv5040_asn_receive_window').wrap);
+                        inv5040_inv_asn_receive_back();
+                    },
+                    failure: function(res) {
+                        Aurora.Masker.unmask($('inv5040_asn_receive_window').wrap);
+                    },
+                    error: function(res) {
+                        Aurora.Masker.unmask($('inv5040_asn_receive_window').wrap);
+                    },
+                    scope: this
+                });
+            }
+            
+            function inv5040_inv_asn_receive_back() {
+                $('inv5040_asn_receive_window').close();
+            }
+            
+            // 勾选时所做的操作
+            
+            function inv5040_asn_result_select(ds, record) {
+                var list_ds = $('inv5040_asn_selected_list_ds');
+                var asn_line_id = record.get('asn_line_id');
+                var quantity = record.get('quantity');
+                var result_record = list_ds.find('asn_line_id', asn_line_id);
+                if (Aurora.isEmpty(result_record)) {
+                    $('inv5040_asn_selected_list_ds').create();
+                    var list_record = $('inv5040_asn_selected_list_ds').getCurrentRecord();
+                    list_record.set('asn_line_id', asn_line_id);
+                    list_record.set('quantity', quantity);
+                }
+            }
+            
+            //数据更新时候的操作
+            
+            function inv5040_asn_result_update(ds, record, name, value, oldvalue) {
+                if (name == 'quantity') {
+                    var list_ds = $('inv5040_asn_selected_list_ds');
+                    var asn_line_id = record.get('asn_line_id');
+                    var quantity = value;
+                    var pur_line_location_id = record.get('pur_line_location_id');
+                    list_record = list_ds.find('asn_line_id', asn_line_id);
+                    if (!Aurora.isEmpty(list_record)) {
+                        list_record.set('asn_line_id', asn_line_id);
+                        list_record.set('quantity', quantity);
+                        list_record.set('pur_line_location_id', pur_line_location_id);
+                    }
+                }
+            }
+            
+            // 勾选去掉时所做的操作
+            
+            function inv5040_asn_result_unselect(ds, record) {
+                var list_ds = $('inv5040_asn_selected_list_ds');
+                var asn_line_id = record.get('asn_line_id');
+                var result_record = list_ds.find('asn_line_id', asn_line_id);
+                if (!Aurora.isEmpty(result_record)) {
+                    list_ds.remove(result_record);
+                }
+            }
+            
+            // 页面执行重新查询时所做的操作
+            
+            function inv5040_asn_create_grid_render(grid) {
+                var ds = $('inv5040_asn_reveive_line_ds');
+                var list_ds = $('inv5040_asn_selected_list_ds');
+                var records = list_ds.getAll();
+            
+                for (var i = 0;i < records.length;i++) {
+            
+                    var asn_line_id = records[i].get('asn_line_id');
+                    var result_record = ds.find('asn_line_id', asn_line_id);
+                    if (!Aurora.isEmpty(result_record)) {
+                        var quantity = records[i].get('quantity');
+                        ds.select(result_record);
+                        result_record.set('quantity', quantity);
+                    }
+                }
+            }
+            
+            
+            //判断本次发运数量
+            
+            function inv5040_quantityValidator(record, name, value) {
+                if (name == 'quantity') {
+                    var hid_quantity = record.get('hid_quantity');
+                    if (value > hid_quantity || value <= 0 || Aurora.isEmpty(value)) {
+                        record.set('quantity', hid_quantity);
+                        Aurora.showMessage('${l:PROMPT}', '${l:INV5040.RECEIVE_QUANTITY_ERROR}');
+                        return;
+                    } else {
+                        var list_ds = $('inv5040_asn_selected_list_ds');
+                        var records = list_ds.getAll();
+                        var asn_line_id = record.get('asn_line_id');
+                        for (var i = 0;i < records.length;i++) {
+            
+                            if (records[i].get('asn_line_id') == asn_line_id) {
+                                result_record.set('quantity', value);
+                            }
+                        }
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv5040_asn_selected_list_ds">
+                <a:fields>
+                    <a:field name="asn_line_id"/>
+                    <a:field name="quantity"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv5040_asn_reveive_header_ds" model="inv.INV5040.inv_asn_headers" selectable="true">
+                <a:fields>
+                    <a:field name="asn_header_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv5040_asn_reveive_line_ds" fetchAll="true" model="inv.INV5040.inv_asn_lines" modifiedCheck="false" pageSize="4" selectable="true">
+                <a:fields>
+                    <a:field name="asn_line_id"/>
+                    <a:field name="hid_quantity"/>
+                    <a:field name="quantity" validator="inv5040_quantityValidator"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="select" handler="inv5040_asn_result_select"/>
+                    <a:event name="unselect" handler="inv5040_asn_result_unselect"/>
+                    <a:event name="update" handler="inv5040_asn_result_update"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="inv5040_inv_asn_header_go_submit" text="PROMPT.SUBMIT" width="100"/>
+            <a:toolbarButton click="inv5040_inv_asn_receive_back" text="PROMPT.RETURN" width="100"/>
+        </a:screenTopToolbar>
+        <a:hBox labelWidth="100">
+            <a:label name="asn_number" bindTarget="inv5040_asn_reveive_header_ds" prompt="INV_ASN_HEADERS.ASN_NUMBER"/>
+            <a:label name="asn_barcode" bindTarget="inv5040_asn_reveive_header_ds" prompt="INV_ASN_HEADERS.ASN_BARCODE"/>
+            <a:label name="vendor_name" bindTarget="inv5040_asn_reveive_header_ds" prompt="INV_ASN_HEADERS.VENDOR_ID"/>
+            <a:label name="company_name" bindTarget="inv5040_asn_reveive_header_ds" prompt="INV_ASN_HEADERS.COMPANY_ID"/>
+        </a:hBox>
+        <a:hBox labelWidth="100">
+            <a:label name="ship_to_organization_name" bindTarget="inv5040_asn_reveive_header_ds" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID"/>
+            <a:label name="location_name" bindTarget="inv5040_asn_reveive_header_ds" prompt="INV_ASN_HEADERS.LOCATION_ID"/>
+            <a:label name="ship_date" bindTarget="inv5040_asn_reveive_header_ds" prompt="INV_ASN_HEADERS.SHIP_DATE"/>
+            <a:label name="expected_date" bindTarget="inv5040_asn_reveive_header_ds" prompt="INV_ASN_HEADERS.EXPECTED_DATE_TO"/>
+        </a:hBox>
+        <a:hBox labelWidth="100">
+            <a:label name="vendor_site_name" bindTarget="inv5040_asn_reveive_header_ds" prompt="INV_ASN_HEADERS.VENDOR_SITE_ID"/>
+            <a:label name="data_source" bindTarget="inv5040_asn_reveive_header_ds" prompt="EBS_DATA_RESOURCE"/>
+            <a:label name="header_desc" bindTarget="inv5040_asn_reveive_header_ds" prompt="INV_ASN_HEADERS.HEADER_DESC" width="400"/>
+        </a:hBox>
+        <a:grid id="inv5040_asn_create_grid" bindTarget="inv5040_asn_reveive_line_ds" marginHeight="150" marginWidth="50" navBar="true">
+            <a:columns>
+                <a:column name="asn_line_num" align="center" prompt="INV_ASN_LINES.ASN_LINE_NUM" width="60"/>
+                <a:column name="item_name" align="left" prompt="INV_ASN_LINES.ITEM_NAME" width="150"/>
+                <a:column name="segment1" align="center" prompt="INV_ASN_LINES.SEGMENT1" width="60"/>
+                <a:column name="line_num" align="center" prompt="INV_ASN_LINES.LINE_NUM" width="45"/>
+                <a:column name="shipment_num" align="center" prompt="INV_ASN_LINES.SHIPMENT_NUM" width="45"/>
+                <a:column name="unit_price" align="right" prompt="INV_ASN_LINES.UNIT_PRICE" width="60"/>
+                <a:column name="unit_meas_lookup_code" align="center" prompt="INV_ASN_LINES.UNIT_MEAS_LOOKUP_CODE" width="60"/>
+                <a:column name="ship_quantity" align="right" prompt="INV_ASN_LINES.SHIP_QUANTITY" renderer="Aurora.formatNumber" width="60"/>
+                <a:column name="receive_quantity" align="right" prompt="INV_ASN_HEADERS.RECEIVE_QUANTITY" renderer="Aurora.formatNumber" width="60"/>
+                <a:column name="hid_quantity" align="right" prompt="INV5040.CAN_RECEIVE_QUANTITY" renderer="Aurora.formatNumber" width="60"/>
+                <a:column name="quantity" align="right" editor="inv5040_nf" prompt="INV5040.RECEIVE_QUANTITY" renderer="Aurora.formatNumber" width="60"/>
+            </a:columns>
+            <a:editors>
+                <a:numberField id="inv5040_nf" allowDecimals="true" allowNegative="false" decimalPrecision="4"/>
+            </a:editors>
+            <a:events>
+                <a:event name="render" handler="inv5040_asn_create_grid_render"/>
+            </a:events>
+        </a:grid>
+        <script><![CDATA[    
+        	var header_ds=$('inv5040_asn_reveive_header_ds');
+        	var line_ds=$('inv5040_asn_reveive_line_ds');
+        	if(!Aurora.isEmpty('${/parameter/@asn_number}') && '${/parameter/@asn_number}'!='undefined'){
+        	    header_ds.setQueryParameter('asn_number','${/parameter/@asn_number}');
+        	    line_ds.setQueryParameter('asn_number','${/parameter/@asn_number}');
+        	}
+        	if(!Aurora.isEmpty('${/parameter/@asn_barcode}') && '${/parameter/@asn_barcode}'!='undefined'){
+        	    header_ds.setQueryParameter('asn_barcode','${/parameter/@asn_barcode}');
+        	    line_ds.setQueryParameter('asn_barcode','${/parameter/@asn_barcode}');
+        	}
+        	if(!Aurora.isEmpty('${/parameter/@segment1}') && '${/parameter/@segment1}'!='undefined'){
+        	    header_ds.setQueryParameter('segment1','${/parameter/@segment1}');
+        	    line_ds.setQueryParameter('segment1','${/parameter/@segment1}');
+        	}
+        	
+        	
+        	header_ds.query();
+        	line_ds.query();
+    	]]></script>
+    </a:view>
+</a:screen>

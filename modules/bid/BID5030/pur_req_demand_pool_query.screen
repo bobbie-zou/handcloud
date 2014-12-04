@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Joson Wong  
+    $Date: 2014-2-20 下午2:05:49  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="bid5030_entrustment_create_temp_link" url="${/request/@context_path}/modules/bid/BID5030/bid_entrustment_create_temp.svc"/>
+        <a:link id="bid5030_entrustment_create_link" url="${/request/@context_path}/modules/bid/BID5030/bid_entrustment_create.screen"/>
+        <script><![CDATA[
+            function bid5030Query() {
+                $('bid5030_pur_req_demand_pool_selected_ds').removeAll();
+                $("bid5030_pur_req_demand_pool_result_ds").query();
+            }
+            
+            function bid5030PurReqDemandPoolResultOnSelect(dataSet, record) {
+                var selected_ds = $('bid5030_pur_req_demand_pool_selected_ds');
+                if (Aurora.isEmpty(selected_ds.find("req_distribution_id", record.get("req_distribution_id")))) {
+                    selected_ds.add(record);
+                }
+            }
+            
+            function bid5030PurReqDemandPoolResultOnUnselect(dataSet, record) {
+                var selected_ds = $('bid5030_pur_req_demand_pool_selected_ds');
+                selected_ds.remove(record);
+            }
+            
+            function bid5030PurReqDemandPoolQueryOnUpdate(ds, record, name, value, oldvalue) {
+                if (name == 'company_id') {
+                    record.set('item_category_id', '');
+                    record.set('item_category_name', '');
+                    record.getField('item_category_name').setLovPara('company_id', value);
+                }
+            }
+            
+            function bid5030Create() {
+                var selected_ds = $('bid5030_pur_req_demand_pool_selected_ds');
+            
+                var records = selected_ds.getAll();
+                if (records.length < 1) {
+                    Aurora.showMessage('提示', '请选择行!');
+                    return;
+                }
+            
+                var datas = [];
+                for (var i = 0;i < records.length;i++) {
+                    datas.push(records[i].data);
+                }
+            
+                Aurora.Masker.mask(Ext.getBody(), '正在加载');
+            
+                Aurora.request({
+                    url: $('bid5030_entrustment_create_temp_link').getUrl(),
+                    para: datas,
+                    success: function(res) {
+                        var entrustment_header_id = res.result.entrustment_header_id;
+                        
+                        new Aurora.Window({
+                            id: 'bid5030_entrustment_create_window',
+                            title: '招标申请创建',
+                            url: $('bid5030_entrustment_create_link').getUrl() + '?entrustment_header_id=' + entrustment_header_id,
+                            fullScreen: true
+                        }).on('beforeclose', function() {
+                            bid5030Query();
+                        });
+                    },
+                    failure: function() {
+                        return;
+                    },
+                    error: function() {
+                        return;
+                    }
+                });
+            
+                Aurora.Masker.unmask(Ext.getBody());
+            }
+            
+            function bid5030PurReqDemandPoolResultOnRender() {
+                var dataSet = $("bid5030_pur_req_demand_pool_result_ds");
+                var selected_ds = $('bid5030_pur_req_demand_pool_selected_ds');
+                var records = dataSet.getAll();
+            
+                for (var i = 0;i < records.length;i++) {
+                    var create_lines_ds_record = selected_ds.find("req_distribution_id", records[i].get("req_distribution_id"));
+                    if (!Ext.isEmpty(create_lines_ds_record)) {
+                        dataSet.select(records[i]);
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5030_pur_req_demand_pool_selected_ds"/>
+            <a:dataSet id="bid5030_pur_req_pro_mode_ds" lookupCode="PUR_REQ_PROCUREMENT_MODE"/>
+            <a:dataSet id="bid5030_pur_req_type_ds" autoQuery="true" loadData="true" model="pur.public.pur_req_type"/>
+            <a:dataSet id="bid5030_pur_req_data_source_ds" lookupCode="DATA_SOURCE"/>
+            <a:dataSet id="bid5030_pur_req_demand_pool_query_ds">
+                <a:fields>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="code_name" defaultValue="${/session/@default_company_desc}" lovGridHeight="350" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" required="true" title="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_code" to="company_code"/>
+                            <a:map from="company_short_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_id" defaultValue="${/session/@default_company_id}"/>
+                    <a:field name="pur_organization_name" autoComplete="true" autoCompleteField="pur_organization_code_name" lovGridHeight="350" lovHeight="500" lovService="public.pur_organization_lov" lovWidth="500" title="采购组织">
+                        <a:mapping>
+                            <a:map from="pur_organization_id" to="pur_organization_id"/>
+                            <a:map from="pur_organization_name" to="pur_organization_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pur_req_created_by_name" autoComplete="true" autoCompleteField="user_desc" lovGridHeight="350" lovHeight="500" lovService="public.sys_user_lov" lovWidth="500" title="创建人">
+                        <a:mapping>
+                            <a:map from="user_id" to="created_by"/>
+                            <a:map from="user_desc" to="pur_req_created_by_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_code" autoComplete="true" autoCompleteField="code_name" lovGridHeight="350" lovHeight="500" lovService="public.inv_system_items_lov" lovWidth="500" title="物料">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_desc" to="item_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_category_name" autoComplete="true" autoCompleteField="item_catagory_code" lovGridHeight="350" lovHeight="500" lovService="pur.PUR2200.pur_purchase_category_lov" lovWidth="500" title="物料分类">
+                        <a:mapping>
+                            <a:map from="purchase_category_id" to="item_category_id"/>
+                            <a:map from="purchase_category_code" to="item_category_code"/>
+                            <a:map from="purchase_category_name" to="item_category_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="req_type_name" displayField="description" options="bid5030_pur_req_type_ds" returnField="req_type_id" valueField="requisition_type_id"/>
+                    <a:field name="data_source_desc" displayField="code_value_name" options="bid5030_pur_req_data_source_ds" returnField="data_source" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="bid5030PurReqDemandPoolQueryOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5030_pur_req_demand_pool_result_ds" autoCount="true" autoPageSize="true" model="bid.BID5030.pur_req_demand_pool_query" queryDataSet="bid5030_pur_req_demand_pool_query_ds" selectable="true">
+                <a:events>
+                    <a:event name="select" handler="bid5030PurReqDemandPoolResultOnSelect"/>
+                    <a:event name="unselect" handler="bid5030PurReqDemandPoolResultOnUnselect"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid5030Create" text="创建" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="bid5030_pur_req_demand_pool_query_ds" resultTarget="bid5030_pur_req_demand_pool_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField name="req_number" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="申请单号">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5030Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:lov name="company_name" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="公司">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5030Query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="pur_organization_name" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="采购组织">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5030Query"/>
+                        </a:events>
+                    </a:lov>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:lov name="item_category_name" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="采购品类">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5030Query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="item_code" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="物料编码">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5030Query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:label name="item_name" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="物料描述"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="100">
+                        <a:comboBox name="req_type_name" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="单据类型">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5030Query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:lov name="pur_req_created_by_name" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="创建人">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5030Query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:datePicker name="need_by_date_from" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="需求日期从">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5030Query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="need_by_date_to" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="需求日期至">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5030Query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                    <a:hBox labelWidth="100">
+                        <a:datePicker name="creation_date_from" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="创建日期从">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5030Query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="creation_date_to" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="创建日期至">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5030Query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:comboBox name="data_source_desc" bindTarget="bid5030_pur_req_demand_pool_query_ds" prompt="来源">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5030Query"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="bid5030_pur_req_demand_pool_result_grid" bindTarget="bid5030_pur_req_demand_pool_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="req_type_name" align="left" lock="true" prompt="单据类型" width="50"/>
+                    <a:column name="req_number" align="left" lock="true" prompt="单据编号" width="50"/>
+                    <a:column name="req_line_num" align="left" lock="true" prompt="行号" width="50"/>
+                    <a:column name="req_dist_num" align="left" lock="true" prompt="分配行号" width="50"/>
+                    <a:column name="item_code" align="left" prompt="物料编码" width="50"/>
+                    <a:column name="item_desc" align="left" prompt="物料描述" width="50"/>
+                    <a:column name="quantity" align="left" prompt="数量" width="50"/>
+                    <a:column name="unit_meas_lookup_code" align="left" prompt="单位" width="50"/>
+                    <a:column name="need_by_date" align="left" prompt="需求日期" renderer="Aurora.formatDate" width="50"/>
+                    <a:column name="unit_price" align="left" prompt="单价" width="50"/>
+                    <a:column name="currency_name" align="left" prompt="币种" width="50"/>
+                    <a:column name="exchange_rate" align="left" prompt="汇率" width="50"/>
+                    <a:column name="tax_flag" align="left" prompt="含税标识" width="50"/>
+                    <a:column name="tax_name" align="left" prompt="税码" width="50"/>
+                    <a:column name="tax_type_rate" align="left" prompt="税率(%)" width="50"/>
+                    <a:column name="company_name" align="left" prompt="公司" width="50"/>
+                    <a:column name="inv_organization_desc" align="left" prompt="库存组织" width="50"/>
+                    <a:column name="created_by_name" align="left" prompt="创建人" width="50"/>
+                    <a:column name="creation_date" align="left" prompt="创建日期" renderer="Aurora.formatDate" width="50"/>
+                    <a:column name="data_source" align="left" prompt="来源" width="50"/>
+                </a:columns>
+                <a:events>
+                    <a:event name="render" handler="bid5030PurReqDemandPoolResultOnRender"/>
+                </a:events>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

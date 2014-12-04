@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013年12月31日 下午4:19:24  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="alter_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ALTER_HEADER_ID"/>
+        <bm:field name="alter_header_number" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ALTER_HEADER_NUMBER"/>
+        <bm:field name="entrustment_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ENTRUSTMENT_HEADER_ID"/>
+        <bm:field name="entrustment_header_number" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENTRUSTMENT_HEADER_NUMBER"/>
+        <bm:field name="title" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="TITLE"/>
+        <bm:field name="round" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ROUND"/>
+        <bm:field name="version" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VERSION"/>
+        <bm:field name="status" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="STATUS"/>
+        <bm:field name="status_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="applicant_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="APPLICANT_ID"/>
+        <bm:field name="applicant_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="APPLICANT_NAME"/>
+        <bm:field name="application_date" databaseType="DATE" datatype="java.util.Date" physicalName="APPLICATION_DATE"/>
+        <bm:field name="comments" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMMENTS"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        h.alter_header_id,
+                        h.alter_header_number,
+                        h.entrustment_header_id,
+                        eh.entrustment_header_number,
+                        eh.title,
+                        h.round,
+                        h.version,
+                        h.status,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_v scv
+                        WHERE
+                            scv.code                    = 'BID_BIDDER_ALTER_STATUS' AND
+                            scv.code_enabled_flag       = 'Y' AND
+                            scv.code_value_enabled_flag = 'Y' AND
+                            scv.code_value              = h.status
+                        ) AS status_desc,
+                        h.applicant_id,
+                        ee.name AS applicant_name,
+                        h.application_date,
+                        h.comments
+                    FROM
+                        bid_bidder_alter_headers h,
+                        bid_entrustment_headers eh,
+                        exp_employees ee
+                    WHERE
+                        h.status               IN ('NEW','REJECTED') AND
+                        h.entrustment_header_id = eh.entrustment_header_id AND
+                        h.applicant_id          = ee.employee_id(+)
+                    ) #WHERE_CLAUSE#
+                ORDER BY
+                    alter_header_number DESC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field field="alter_header_number" queryExpression="alter_header_number like &apos;%&apos;||${@alter_header_number}||&apos;%&apos;"/>
+        <bm:query-field field="entrustment_header_number" queryExpression="entrustment_header_number like &apos;%&apos;||${@entrustment_header_number}||&apos;%&apos;"/>
+        <bm:query-field field="alter_header_id" queryOperator="="/>
+        <bm:query-field field="entrustment_header_id" queryOperator="="/>
+    </bm:query-fields>
+</bm:model>

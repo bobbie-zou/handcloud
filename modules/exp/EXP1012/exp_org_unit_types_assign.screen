@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zhangjiasheng5122 $
+    $Date: 2013/10/17 06:16:28 $
+    $Revision: 1.2 $
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="EXP1012_org_sob_payment_assign_com_link" url="${/request/@context_path}/modules/exp/EXP1012/exp_org_payment_assign_com.screen"/>
+        <a:link id="EXP1012_dept_batch_stype_assign_com_link" url="${/request/@context_path}/modules/exp/EXP1012/exp_dept_stype_assign_com_batch_all.screen"/>
+        <script><![CDATA[
+        
+            function exp1012queryOrgUnitTypes(){
+                $('exp_org_unit_types_result_ds').query();
+            }
+            function resetOrgUnitTypes(){
+            	$('exp_org_unit_types_query_ds').reset();
+            }
+            function typeIdEdit(record,name){
+                if(record.isNew){
+                    return 'org_unit_type_code_grid_tf';
+                }
+                return '';
+            }
+            
+          // assignCompany    
+          function assignCompany(value, record, name) {
+                if (record.isNew) {
+                    return '';
+                }
+            	return '<a href="javascript:csh_openAssignCM(\'' + record.get('unit_type_code') + '\',\'' + record.get('unit_type_id') + '\',\'' + record.get('description') + '\',\'' + record.get('enabled_flag')  + '\')">${l:FND_SYSTEM_VENDERS.COMPANY_ASSIGN}</>';
+            	
+                
+            }
+           function csh_openAssignCM(unit_type_code, unit_type_id, description,enabled_flag) {
+                new Aurora.Window({
+                    id: 'exp_org_payment_assign_com',
+                    url: /*exp_org_payment_assign_com.screen*/$('EXP1012_org_sob_payment_assign_com_link').getUrl()+'?unit_type_code=' + unit_type_code+'&set_of_books_id=' + '${/parameter/@set_of_books_id}' +'&unit_type_id='+ unit_type_id + '&description=' + encodeURIComponent(description) + '&enabled_flag=' +enabled_flag,
+                    title: '${l:FND_SYSTEM_VENDERS.COMPANY_ASSIGN}',
+                    height: 480,
+                    width: 500
+                });
+            }
+          
+          //批量分配公司 
+            function EXP1012_batchAssignCompany() {
+                var typeDs = $('exp_org_unit_types_result_ds');
+                var typeRecordsData = typeDs.getJsonData(true);
+                if (typeRecordsData.length == 0) {
+                    Aurora.showInfoMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}', null, 250, 100);
+                    return;
+                }
+                new Aurora.Window({
+                    id: 'EXP1012_csh_sob_payment_company_batch_id',
+                   url: /*exp_dept_stype_assign_com_batch_all.screen*/
+                    $('EXP1012_dept_batch_stype_assign_com_link').getUrl()+'?set_of_books_id=' + '${/parameter/@set_of_books_id}',
+                    title: '${l:PROMPT.BATCH_ADD}',
+                    height: 520,
+                    width: 540
+                });
+            }
+            
+          
+          
+          function resLoadComplete(){
+                    $('exp_org_unit_types_result_ds').query();	
+                    // $('res_grid').onLoad(); 
+             }
+
+
+        
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="exp_org_unit_types_query_ds" model="exp.EXP1012.exp_org_unit_types_assign"/>
+            <a:dataSet id="exp_org_unit_types_result_ds" autoQuery="true" fetchAll="false" model="exp.EXP1012.exp_org_unit_types_assign" pageSize="11" queryDataSet="exp_org_unit_types_query_ds" queryUrl="${/request/@context_path}/autocrud/exp.EXP1012.exp_org_unit_types_assign/query?ORDER_FIELD=unit_type_code&amp;set_of_books_id=${/parameter/@set_of_books_id}" selectable="true" submitUrl="${/request/@context_path}/autocrud/db.exp_org_unit_types_assign_pkg.insert_exp_org_unit_types/batch_update">
+                <a:fields>
+                    <a:field name="unit_type_code" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" unCheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="resLoadComplete"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" labelWidth="100" title="EXP_ORG_UNIT_TYPES.QUERY" width="600">
+                <a:textField name="unit_type_code" bindTarget="exp_org_unit_types_query_ds" typeCase="upper" width="150">
+                    <a:events>
+                        <a:event name="enterdown" handler="exp1012queryOrgUnitTypes"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="description" bindTarget="exp_org_unit_types_query_ds" width="150">
+                    <a:events>
+                        <a:event name="enterdown" handler="exp1012queryOrgUnitTypes"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:hBox>
+                <a:button click="exp1012queryOrgUnitTypes" text="HAP_QUERY"/>
+                <a:button click="resetOrgUnitTypes" text="HAP_RESET"/>
+            </a:hBox>
+            <a:hBox>
+                <!--批量分配公司-->
+                <a:button click="EXP1012_batchAssignCompany" text="PROMPT.BATCH_DISP_COMPANY"/>
+            </a:hBox>
+            <a:grid id="res_grid" bindTarget="exp_org_unit_types_result_ds" height="350" navBar="true" width="840">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="clear"/>
+                    <a:button type="save"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="unit_type_code" align="center" editorFunction="typeIdEdit" sortable="true" width="250"/>
+                    <a:column name="description" editor="description_grid_tf" width="350"/>
+                    <a:column name="enabled_flag" editor="fnd_calendar_grid_dp" sortable="true" width="100"/>
+                    <!--分配公司-->
+                    <a:column name="asignCm" align="center" prompt="FND_SYSTEM_VENDERS.COMPANY_ASSIGN" renderer="assignCompany" width="114"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="org_unit_type_code_grid_tf" typeCase="upper"/>
+                    <a:textField id="description_grid_tf"/>
+                    <a:checkBox id="fnd_calendar_grid_dp"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

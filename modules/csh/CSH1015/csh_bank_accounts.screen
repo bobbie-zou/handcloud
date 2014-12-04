@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	$author:huangshengbo
+	$date:2011/07/08
+	$purpose:银行定义-分行账户Bank Definition-Branch Account 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="csh.CSH1015.csh_get_csh_bank" rootPath="csh1015_csh_bank"/>
+        <a:model-query fetchAll="true" model="csh.CSH1015.csh_bank_account_type" rootPath="csh1015_bank_account_type"/>
+        <a:model-query fetchAll="true" model="gld.gld_currency_vl" rootPath="csh1015_currency_code"/>
+        <a:model-query defaultWhereClause="company_id=${/session/@company_id} and (start_date_active &lt;= sysdate or start_date_active is null)and (end_date_active &gt;= sysdate or end_date_active is null) and summary_flag = &apos;N&apos;" fetchAll="true" model="fnd.fnd_responsibility_centers_vl" rootPath="csh1015_responsibility_centers"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function csh1015_backFunction() {
+                window.close();
+            }
+            
+            function csh1015_loadFunction(ds) {
+                var records = $('csh1015_csh_bank_accounts_line_ds').getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    if (record.get('bank_account_type') == 'COMPANY_BANK_ACCOUNT') {
+                        record.getMeta().getField('responsibility_center_id_display').setRequired(true);
+                        record.getMeta().getField('cash_account_code').setRequired(true);
+                    } else {
+                        record.getMeta().getField('responsibility_center_id_display').setRequired(false);
+                        record.getMeta().getField('cash_account_code').setRequired(false);
+                    }
+                    if (record.get('bank_account_type') == 'CUSTOMER_BANK_ACCOUNT') {
+                        record.getMeta().getField('customer_code').setRequired(true);
+                    } else {
+                        record.getMeta().getField('customer_code').setRequired(false);
+                    }
+                    if (record.get('bank_account_type') == 'VENDER_BANK_ACCOUNT') {
+                        record.getMeta().getField('vender_code').setRequired(true);
+                    } else {
+                        record.getMeta().getField('vender_code').setRequired(false);
+                    }
+                }
+            }
+            
+            function csh1015_updateFunction(ds, record, name, value, old) {
+                if (name == 'bank_account_type') {
+                    if (record.get('bank_account_type') == 'COMPANY_BANK_ACCOUNT') {
+                        record.getMeta().getField('responsibility_center_id_display').setRequired(true);
+                        record.getMeta().getField('cash_account_code').setRequired(true);
+                    } else {
+                        record.getMeta().getField('responsibility_center_id_display').setRequired(false);
+                        record.getMeta().getField('cash_account_code').setRequired(false);
+                    }
+                    if (record.get('bank_account_type') == 'CUSTOMER_BANK_ACCOUNT') {
+                        record.getMeta().getField('customer_code').setRequired(true);
+                    } else {
+                        record.getMeta().getField('customer_code').setRequired(false);
+                    }
+                    if (record.get('bank_account_type') == 'VENDER_BANK_ACCOUNT') {
+                        record.getMeta().getField('vender_code').setRequired(true);
+                    } else {
+                        record.getMeta().getField('vender_code').setRequired(false);
+                    }
+                }
+            }
+            
+            function csh1015_editFunction(record, name) {
+                if (record.isNew) {
+                    if (name == 'bank_account_type_display' || name == 'currency_code_display') {
+                        return 'csh1015_editor_cb';
+                    }
+                    if (name == 'bank_account_code') {
+                        return 'csh1015_editor_tf_upper';
+                    }
+                    if (name == 'responsibility_center_id_display') {
+                        if (record.get("bank_account_type") == 'COMPANY_BANK_ACCOUNT') {
+                            return 'csh1015_editor_cb';
+                        } else {
+                            record.set("cash_account_id", '');
+                            record.set("cash_account_code", '');
+                            return '';
+                        }
+                    }
+                    if (name == 'cash_account_code') {
+                        if (record.get("bank_account_type") == 'COMPANY_BANK_ACCOUNT') {
+                            return 'csh1015_editor_lov';
+                        } else {
+                            record.set("cash_account_id", '');
+                            record.set("cash_account_code", '');
+                            return '';
+                        }
+                    }
+                    if (name == 'customer_code') {
+                        if (record.get("bank_account_type") == 'CUSTOMER_BANK_ACCOUNT') {
+                            return 'csh1015_editor_lov';
+                        } else {
+                            record.set("customer_id", '');
+                            record.set("customer_code", '');
+                            record.set("customer_name", '');
+                            return '';
+                        }
+                    }
+                    if (name == 'vender_code') {
+                        if (record.get("bank_account_type") == 'VENDER_BANK_ACCOUNT') {
+                            return 'csh1015_editor_lov';
+                        } else {
+                            record.set("vender_id", '');
+                            record.set("vender_code", '');
+                            record.set("vender_name", '');
+                            return '';
+                        }
+                    }
+                }
+                if (name == 'responsibility_center_id_display') {
+                    if (record.get("bank_account_type") == 'COMPANY_BANK_ACCOUNT') {
+                        return 'csh1015_editor_cb';
+                    }
+                }
+                if (name == 'cash_account_code') {
+                    if (record.get("bank_account_type") == 'COMPANY_BANK_ACCOUNT') {
+                        return 'csh1015_editor_lov';
+                    }
+                }
+                return '';
+            }
+            
+            function csh1015_addFunction(ds, record, index) {
+                record.set('bank_branch_id', ${/parameter/@bank_branch_id});
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="csh1015_bank_account_type_ds">
+                <a:datas dataSource="/model/csh1015_bank_account_type"/>
+            </a:dataSet>
+            <a:dataSet id="csh1015_currency_code_ds">
+                <a:datas dataSource="/model/csh1015_currency_code"/>
+            </a:dataSet>
+            <a:dataSet id="csh1015_responsibility_centers_ds">
+                <a:datas dataSource="/model/csh1015_responsibility_centers"/>
+            </a:dataSet>
+            <a:dataSet id="csh1015_csh_bank_accounts_header_ds">
+                <a:datas dataSource="/model/csh1015_csh_bank"/>
+                <a:fields>
+                    <a:field name="bank_name" readOnly="true"/>
+                    <a:field name="branch_name" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh1015_csh_bank_accounts_line_ds" autoQuery="true" model="csh.CSH1015.csh_bank_accounts" queryUrl="${/request/@context_path}/autocrud/csh.CSH1015.csh_bank_accounts/query?bank_branch_id=${/parameter/@bank_branch_id}" selectable="true">
+                <a:fields>
+                    <a:field name="bank_account_type_display" displayField="code_value_name" options="csh1015_bank_account_type_ds" required="true" returnField="bank_account_type" valueField="code_value"/>
+                    <a:field name="bank_account_code" required="true"/>
+                    <a:field name="bank_account_name" required="true"/>
+                    <a:field name="bank_account_num" required="true"/>
+                    <a:field name="currency_code_display" displayField="currency_code" options="csh1015_currency_code_ds" required="true" returnField="currency_code" valueField="currency_code"/>
+                    <a:field name="responsibility_center_id_display" displayField="responsibility_center_name" options="csh1015_responsibility_centers_ds" returnField="responsibility_center_id" valueField="responsibility_center_id"/>
+                    <a:field name="cash_account_code" lovGridHeight="320" lovHeight="440" lovService="gld.CSH1015.gld_accounts_lov_query" lovWidth="500" title="CSH_BANK_ACCOUNTS.CASH_ACCOUNT_ID">
+                        <a:mapping>
+                            <a:map from="description" to="employee_name"/>
+                            <a:map from="account_id" to="cash_account_id"/>
+                            <a:map from="account_code" to="cash_account_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="customer_code" lovGridHeight="320" lovHeight="440" lovService="csh.CSH1015.csh_partner_lov_query?partner_category=CUSTOMER" lovWidth="500" title="ORD_SYSTEM_CUSTOMERS.CUSTOMER_CODE">
+                        <a:mapping>
+                            <a:map from="partner_description" to="customer_name"/>
+                            <a:map from="partner_code" to="customer_code"/>
+                            <a:map from="partner_id" to="customer_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vender_code" lovGridHeight="320" lovHeight="440" lovService="csh.CSH1015.csh_partner_lov_query?partner_category=VENDER" lovWidth="500" title="PUR_SYSTEM_VENDERS.VENDER_CODE">
+                        <a:mapping>
+                            <a:map from="partner_description" to="vender_name"/>
+                            <a:map from="partner_code" to="vender_code"/>
+                            <a:map from="partner_id" to="vender_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="csh1015_loadFunction"/>
+                    <a:event name="update" handler="csh1015_updateFunction"/>
+                    <a:event name="add" handler="csh1015_addFunction"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" labelWidth="120" title="CSH_BANKS.BANK_NAME_ID" width="600">
+                <a:textField name="bank_name" bindTarget="csh1015_csh_bank_accounts_header_ds" prompt="CSH_BANKS.BANK_NAME"/>
+                <a:textField name="branch_name" bindTarget="csh1015_csh_bank_accounts_header_ds" prompt="CSH_BANK_BRANCHES.BRANCH_NAME"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="csh1015_backFunction" text="HAP_BACK"/>
+            </a:hBox>
+            <a:grid bindTarget="csh1015_csh_bank_accounts_line_ds" height="350" navBar="true" width="800">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="clear"/>
+                    <a:button type="save"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="bank_account_type_display" align="center" editorFunction="csh1015_editFunction" prompt="CSH_BANK_ACCOUNTS.ACCOUNT_TYPE" width="150"/>
+                    <a:column name="bank_account_code" align="center" editorFunction="csh1015_editFunction" prompt="CSH_BANKS.BANK_CODE" width="150"/>
+                    <a:column name="bank_account_name" align="center" editor="csh1015_editor_tf" prompt="CSH_BANKS.BANK_NAME"/>
+                    <a:column name="bank_account_num" align="center" editor="csh1015_editor_tf" prompt="CSH_BANK_ACCOUNTS.BANK_ACCOUNT_NUM" width="120"/>
+                    <a:column name="currency_code_display" align="center" editorFunction="csh1015_editFunction" prompt="CSH_BANK_ACCOUNTS.CURRENCY_CODE"/>
+                    <a:column name="responsibility_center_id_display" align="center" editorFunction="csh1015_editFunction" prompt="CSH_BANK_ACCOUNTS.RESPONSIBILITY_CENTER_ID" width="140"/>
+                    <a:column name="cash_account_code" align="center" editorFunction="csh1015_editFunction" prompt="CSH_BANK_ACCOUNTS.CASH_ACCOUNT_ID"/>
+                    <a:column name="customer_code" align="center" editorFunction="csh1015_editFunction" prompt="ORD_SYSTEM_CUSTOMERS.CUSTOMER_CODE"/>
+                    <a:column name="customer_name" align="center" prompt="ORD_SYSTEM_CUSTOMERS.DESCRIPTION"/>
+                    <a:column name="vender_code" align="center" editorFunction="csh1015_editFunction" prompt="PUR_SYSTEM_VENDERS.VENDER_CODE"/>
+                    <a:column name="vender_name" align="center" prompt="PUR_SYSTEM_VENDERS.DESCRIPTION" width="120"/>
+                    <a:column name="enabled_flag" align="center" editor="csh1015_editor_ck" prompt="CSH_BANK_ACCOUNTS.ENABLED_FLAG"/>
+                </a:columns>
+                <a:editors>
+                    <a:comboBox id="csh1015_editor_cb"/>
+                    <a:datePicker id="csh1015_editor_dpk"/>
+                    <a:textField id="csh1015_editor_tf"/>
+                    <a:checkBox id="csh1015_editor_ck"/>
+                    <a:textField id="csh1015_editor_tf_upper"/>
+                    <a:lov id="csh1015_editor_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

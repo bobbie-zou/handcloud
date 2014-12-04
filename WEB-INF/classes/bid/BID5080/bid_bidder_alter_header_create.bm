@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2014年1月2日 上午10:06:40  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="alter_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="alter_header_number" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="entrustment_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="entrustment_header_number" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="round" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="version" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="title" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="applicant_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="applicant_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="application_date" databaseType="DATE" datatype="java.util.Date"/>
+        <bm:field name="comments" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    NULL AS alter_header_id,
+                    NULL AS alter_header_number,
+                    (SELECT
+                        su.employee_id
+                    FROM
+                        sys_user su
+                    WHERE
+                        su.user_id = ${/session/@user_id}
+                    ) AS applicant_id,
+                    (SELECT
+                        ee.name
+                    FROM
+                        sys_user su,
+                        exp_employees ee
+                    WHERE
+                        su.user_id     = ${/session/@user_id} AND
+                        ee.employee_id = su.employee_id
+                    ) AS applicant_desc,
+                    SYSDATE AS application_date,
+                    eh.entrustment_header_id,
+                    eh.entrustment_header_number,
+                    eh.round,
+                    eh.version,
+                    eh.title,
+                    NULL AS comments
+                FROM
+                    bid_entrustment_headers eh
+                WHERE
+                    eh.entrustment_header_id = ${@entrustment_header_id} AND
+                    eh.round                 = ${@round} AND
+                    eh.version               = ${@version}
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="alter_header_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@alter_header_id"/>
+                <bm:parameter name="alter_header_number" dataType="java.lang.String" input="false" output="true" outputPath="/parameter/@alter_header_number"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+        	BEGIN
+			  -- Call the procedure
+			  bid_bidder_alter_pkg.create_alter_header(o_alter_header_id       => ${@alter_header_id},
+			                                           o_alter_header_number   => ${@alter_header_number},
+			                                           p_entrustment_header_id => ${@entrustment_header_id},
+			                                           p_round                 => ${@round},
+			                                           p_version               => ${@version},
+			                                           p_applicant_id          => ${@applicant_id},
+			                                           p_application_date      => to_date(${@application_date},'YYYY-MM-DD'),
+			                                           p_comments              => ${@comments},
+			                                           p_user_id               => ${/session/@user_id});
+			END;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        	BEGIN
+			  -- Call the procedure
+			  bid_bidder_alter_pkg.modify_alter_header(p_alter_header_id  => ${@alter_header_id},
+			                                           p_applicant_id     => ${@applicant_id},
+			                                           p_application_date => to_date(${@application_date},'YYYY-MM-DD'),
+			                                           p_comments         => ${@comments},
+			                                           p_user_id          => ${/session/@user_id});
+			END;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+        	BEGIN
+			  -- Call the procedure
+			  bid_bidder_alter_pkg.delete_alter_header(p_alter_header_id => ${@alter_header_id},
+			                                           p_user_id         => ${/session/@user_id});
+			END;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

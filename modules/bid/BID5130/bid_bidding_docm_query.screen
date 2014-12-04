@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-11 下午1:27:02  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="bid5130_bidding_docm_edit_link" url="${/request/@context_path}/modules/bid/BID5130/bid_bidding_docm_edit.screen"/>
+        <a:link id="bid5130_bidding_docm_detail_link" url="${/request/@context_path}/modules/bid/BID5130/bid_bidding_docm_detail.screen"/>
+        <a:link id="bid5130_entrustment_detail_link" url="${/request/@context_path}/modules/bid/BID7070/bid_entrustment_detail.screen"/>
+        <a:link id="bid5130_operation_record_link" url="${/request/@context_path}/modules/bid/public/bid_operation_record.screen"/>
+        <a:link id="bid5130_entrustment_detail_internal_link" url="${/request/@context_path}/modules/bid/BID7030/bid_entrustment_detail.screen"/>
+        <script><![CDATA[
+            function bid5130Query() {
+                $('bid5130_bidding_docm_result_ds').query();
+            }
+            
+            function bid5130BiddingDocmResultRender(value, record, name) {
+                var entrustment_header_id = record.get('entrustment_header_id');
+                var bid_header_id = record.get('bid_header_id');
+                if (name == 'bid_header_number') {
+                    var status = record.get('status');
+                    if (status == 'NEW' || status == 'TAKEN_BACK') {
+                        return '<a href="javascript:bid5130BiddingDocmEdit(' + bid_header_id + ')">' + value + '</a>';
+                    } else if (status == 'SUBMITTED') {
+                        return '<a href="javascript:bid5130BiddingDocmDetail(' + bid_header_id + ')">' + value + '</a>';
+                    }
+                } else if (name == 'entrustment_header_number') {
+                    var all_type = record.get('all_type');
+                    var history_header_id = record.get('history_header_id');
+                    return '<a href="javascript:bid5130EntrustmentDetail(' + '\'' + all_type + '\'' + ',' + history_header_id + ',' + entrustment_header_id + ')">' + value + '</a>';
+                } else if (name == 'operation_record') {
+                    return '<a href="javascript:bid5130OperationRecord(' + bid_header_id + ')">${l:PROMPT.OPERATION_RECORD}</a>';
+                }
+            }
+            
+            function bid5130BiddingDocmEdit(bid_header_id) {
+                new Aurora.Window({
+                    id: 'bid5130_bidding_docm_edit_window',
+                    title: '${l:BID_ENTRUSTMENT_HEADERS.BID_MAINTAIN}',
+                    url: $('bid5130_bidding_docm_edit_link').getUrl() + '?bid_header_id=' + bid_header_id,
+                    fullScreen: true
+                }).on('beforeclose', function() {
+                    bid5130Query();
+                });
+            }
+            
+            function bid5130BiddingDocmDetail(bid_header_id) {
+                new Aurora.Window({
+                    id: 'bid5130_bidding_docm_detail_window',
+                    title: '${l:BID_ENTRUSTMENT_HEADERS.BID_DETAIL}',
+                    url: $('bid5130_bidding_docm_detail_link').getUrl() + '?bid_header_id=' + bid_header_id,
+                    fullScreen: true
+                }).on('beforeclose', function() {
+                    bid5130Query();
+                });
+            }
+            
+            function bid5130EntrustmentDetail(all_type, history_header_id, entrustment_header_id) {
+                var user_type = '${/session/@user_type}';
+            
+                if (user_type == 'EXTERNAL') {
+                    new Aurora.Window({
+                        id: 'bid5130_entrustment_detail_window',
+                        title: '${l:BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_APPLICATION_DETAIL}',
+                        url: $('bid5130_entrustment_detail_link').getUrl() + '?all_type=' + all_type + '&history_header_id=' + history_header_id + '&entrustment_header_id=' + entrustment_header_id,
+                        fullScreen: true
+                    });
+                } else if (user_type == 'INTERNAL') {
+                    new Aurora.Window({
+                        id: 'bid5130_entrustment_detail_window',
+                        title: '${l:BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_APPLICATION_DETAIL}',
+                        url: $('bid5130_entrustment_detail_internal_link').getUrl() + '?all_type=' + all_type + '&history_header_id=' + history_header_id + '&entrustment_header_id=' + entrustment_header_id,
+                        fullScreen: true
+                    });
+                }
+            }
+            
+            function bid5130OperationRecord(bid_header_id) {
+                new Aurora.Window({
+                    id: 'bid5130_operation_record_window',
+                    title: '${l:PROMPT.OPERATION_RECORD}',
+                    url: $('bid5130_operation_record_link').getUrl() + '?operation_table=BID_BIDDING_DOCM_HEADERS' + '&operation_table_id=' + bid_header_id,
+                    height: 450,
+                    width: 600
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5130_bidding_docm_query_ds"/>
+            <a:dataSet id="bid5130_bidding_docm_result_ds" autoCount="true" autoPageSize="true" model="bid.BID5130.bid_bidding_docm_query" queryDataSet="bid5130_bidding_docm_query_ds"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="bid5130_bidding_docm_query_ds" resultTarget="bid5130_bidding_docm_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="bid_header_number" bindTarget="bid5130_bidding_docm_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.BID_NUMBER">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5130Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="entrustment_header_number" bindTarget="bid5130_bidding_docm_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_HEADER_NUMBER">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5130Query"/>
+                        </a:events>
+                    </a:textField>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:datePicker name="application_date_from" bindTarget="bid5130_bidding_docm_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICATION_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5130Query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="application_date_to" bindTarget="bid5130_bidding_docm_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICATION_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5130Query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="bid_closing_date_from" bindTarget="bid5130_bidding_docm_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.BID_CLOSING_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5130Query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="bid_closing_date_to" bindTarget="bid5130_bidding_docm_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.BID_CLOSING_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="bid5130Query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="bid5130_bidding_docm_result_grid" autoAppend="false" bindTarget="bid5130_bidding_docm_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="bid_header_number" align="center" lock="true" prompt="BID_ENTRUSTMENT_HEADERS.BID_NUMBER" renderer="bid5130BiddingDocmResultRender" sortable="true" width="70"/>
+                    <a:column name="bidder_desc" align="left" lock="true" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER" width="100"/>
+                    <a:column name="entrustment_header_number" align="center" lock="true" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_HEADER_NUMBER" renderer="bid5130BiddingDocmResultRender" sortable="true" width="70"/>
+                    <a:column name="title" align="left" lock="true" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TITLE" width="100"/>
+                    <a:column name="round" align="left" prompt="BID_ENTRUSTMENT_HEADERS.ROUND" width="30"/>
+                    <a:column name="version" align="left" prompt="BID_ENTRUSTMENT_HEADERS.VERSION" width="30"/>
+                    <a:column name="application_date" align="center" prompt="BID_ENTRUSTMENT_HEADERS.APPLICATION_DATE" renderer="Aurora.formatDate" width="60"/>
+                    <a:column name="bid_closing_date" align="center" prompt="BID_ENTRUSTMENT_HEADERS.BID_CLOSING_DATE" renderer="Aurora.formatDate" width="60"/>
+                    <a:column name="company_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_COMPANY_DESC" width="80"/>
+                    <a:column name="bidding_method_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.BIDDING_METHOD" width="60"/>
+                    <a:column name="status_desc" align="left" prompt="STATUS" width="40"/>
+                    <a:column name="operation_record" align="center" prompt="PROMPT.OPERATION_RECORD" renderer="bid5130BiddingDocmResultRender" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

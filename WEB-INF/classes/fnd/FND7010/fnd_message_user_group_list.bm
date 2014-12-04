@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-6-5 下午6:31:46  
+    $Revision: 1.0  
+    $Purpose: 站内信，快捷组列表
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:fields>
+        <bm:field name="type" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="parent_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="message_to" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="sequence" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="expanded" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="father_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.type,
+                    v.name,
+                    v.id,
+                    v.parent_id,
+                    v.message_to,
+                    v.sequence,
+                    v.expanded,
+                    v.father_flag
+                FROM
+                    (SELECT
+                        'GROUP' AS TYPE,
+                        gh.group_name AS NAME,
+                        gh.hds_id AS id,
+                        NULL AS parent_id,
+                        NULL AS message_to,
+                        NULL AS sequence,
+                        'N' AS expanded,
+                        'Y' AS father_flag
+                    FROM
+                        fnd_message_user_group_hds gh
+                    WHERE
+                        gh.user_id     = ${/session/@user_id} AND
+                        gh.enable_flag = 'Y'
+                    UNION ALL
+                    SELECT
+                        'USER' AS TYPE,
+                        su.description AS NAME,
+                        rownum AS id,
+                        gl.hds_id AS parent_id,
+                        gl.message_to AS message_to,
+                        NULL AS sequence,
+                        'N' AS expanded,
+                        'N' AS father_flag
+                    FROM
+                        fnd_message_user_group_lns gl,
+                        sys_user su
+                    WHERE
+                        gl.message_to  = su.user_id AND
+                        gl.enable_flag = 'Y' AND
+                        EXISTS
+                        (SELECT
+                            1
+                        FROM
+                            fnd_message_user_group_hds gh
+                        WHERE
+                            gh.hds_id      = gl.hds_id AND
+                            gh.user_id     = ${/session/@user_id} AND
+                            gh.enable_flag = 'Y'
+                        )
+                    ) v
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

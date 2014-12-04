@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-7-30 下午3:25:10  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc">
+    <a:init-procedure>
+        <p:set field="/model/demo1040_standard_print_header" setToNull="true"/>
+        <p:set field="/model/demo1040_standard_print_line" setToNull="true"/>
+        <a:model-query defaultWhereClause="print_header_id=${/parameter/@print_header_id} and standard_header_id=${/parameter/@standard_header_id}" fetchAll="true" model="demo.DEMO1040.demo_standard_print_header" rootPath="demo1040_standard_print_header"/>
+        <a:model-query defaultWhereClause="print_header_id=${/parameter/@print_header_id} and standard_header_id=${/parameter/@standard_header_id}" fetchAll="true" model="demo.DEMO1040.demo_standard_print_line" rootPath="demo1040_standard_print_line"/>
+    </a:init-procedure>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+            var record_num = 0;
+            var record_per_page = 5; /*var pages = '${/model/hsp_inv_group_head/record/@pages}';*/
+            var pages = '${/model/hsp_inv_group_head/record/@pages}';
+            //var total_records = '${/model/hsp_inv_group_head/record/@line_count}';
+            var need_new_page = false;
+            var need_new_report = false;
+            var cur_page = 1;
+            var new_page = 0;
+            
+            var asn_flow_num = '${/model/hsp_inv_group_head/record/@asn_flow_num}';
+            
+            function printPageBreak() {
+                if (!(cur_row == max_row && cur_page == pages)) {
+                    document.write('<div style="page-break-after: always;"></div>');
+                }
+            }
+            //alert(cur_row);
+            //alert(max_row);
+            
+            function demo1040PrintReportHeader() {
+                var html = '<table width="100%" border="0" cellspacing="0" cellpadding="0">' + 
+                			 '<tr>' + 
+                			   '<td width="25%">&nbsp;</td>' + 
+                			   '<td width="50%"><div align="center" class="STYLE1">报表头</div></td>' + 
+                			   '<td width="25%">&nbsp;</td>' + 
+                			 '</tr>' + 
+                		   '</table>' + 
+                		   '<br/>';
+                document.write(html);
+            
+            }
+            
+            function demo1040PrintTableHeader() {
+                var html = '<table style="border-collapse: collapse;" width="100%" border="1" cellpadding="0" cellspacing="0" bordercolor="#000000">' + 
+                		     '<tr>' + 
+                		       '<td class="STYLE2"><div align="center">行号</div></td>' + 
+                		     '</tr>';
+                document.write(html);
+            }
+            
+            function printTableFooter() {
+                var company = '';
+                if ('${/session/@erp_code}' == 'gr') {
+                    company = '冠荣';
+                } else if ('${/session/@erp_code}' == 'gl') {
+                    company = '冠立';
+                }
+                var html = '<table width="100%" border="0" cellspacing="0" cellpadding="0">' + '<tr>' + '<td width="25%" class="STYLE2">送货单位制单人：</td>' + '<td width="25%" class="STYLE2">送货单位经办人：</td>' + '<td width="25%" class="STYLE2">车牌号码：</td>' + '<td width="25%" class="STYLE2">其它备注：</td>' + '</tr>' + '<tr>' + '<td colspan="4">' + '<table width="100%" border="0" cellspacing="0" cellpadding="0">' + '<tr>' + '<td width="6%"><span class="STYLE20">说明：</span></td>' + '<td width="94%" class="STYLE20"><span class="STYLE17">（1）本单复印无效</span></td>' + '</tr>' + '<tr>' + '<td width="6%"><span class="STYLE18"></span></td>' + '<td width="94%" class="STYLE20"><span class="STYLE17">（2）A部分由送货单位填写，B部分由' + company + '仓管员填写，C部分由' + company + '检验员填写</span></td>' + '</tr>' + '<tr>' + '<td width="6%"><span class="STYLE18"></span></td>' + '<td width="94%" class="STYLE20"><span class="STYLE17">（3）本单流程：送货单位→' + company + '仓库→' + company + '检验→' + company + '仓库→送货单位</span></td>' + '</tr>' + '</table>' + '<table width="100%" border="0" cellspacing="0" cellpadding="0">' + '<tr>' + '<td width="6%" class="STYLE20">备注：</td>' + '<td width="94%" class="STYLE20">一式四联。第一联；送货单位业务（白色纸），第二联：附发票（红色纸），第三联：送货单位财务（黄色纸），第四联：' + company + '仓库（蓝色纸）</td>' + '</tr>' + '</table></td>' + '</tr>' + '<tr>' + '<td colspan="2" class="STYLE2">表单编号：${/model/hsp_inv_group_head/record/@form_num}</td>' + '<td colspan="2" class="STYLE2"><div align="right">保存期：3年</div></td>' + '</tr>' + '</table>';
+                document.write(html);
+            }
+            
+            function printTableFooter1() {
+                var html = '<tr>' + '<td colspan="9" class="STYLE2"><div align="center">A</div></td>' + '<td colspan="2" class="STYLE2"><div align="center">B</div></td>' + '<td colspan="2" class="STYLE2"><div align="center">C</div></td>' + '</tr>';
+                document.write(html);
+            
+                document.write("</table>");
+            
+            }
+            
+            function newRecord() {
+            
+                if (record_num == record_per_page) {
+                    need_new_page = true;
+                    record_num = 0;
+                }
+            
+                if (need_new_page) {
+                    printTableFooter1();
+            
+                    printTableFooter();
+                    printPageBreak();
+            
+                    var dsdssds = 'num_${/parameter/@dev_header_id}_${/parameter/@po_header_id}_${/parameter/@check_type}_${/parameter/@consigned_flag}_${/parameter/@vendor_id}_ds';
+                    var ds = $(dsdssds);
+            
+                    var rec = ds.getAll();
+                    asn_flow_num = rec[cur_page - 1].get('asn_flow_num');
+                    cur_page = cur_page + 1;
+            
+                    demo1040PrintReportHeader();
+                    demo1040PrintTableHeader();
+                    need_new_page = false;
+                }
+                new_page = new_page + 1;
+                record_num++;
+            }
+        ]]></script>
+        <a:dataSets/>
+        <a:defaultScreen>
+            <script><![CDATA[
+            	demo1040PrintReportHeader();
+            	demo1040PrintTableHeader();
+        	]]></script>
+            <a:repeater datamodel="/model/demo1040_standard_print_line">
+                <script><![CDATA[
+                    newRecord();
+                ]]></script>
+                <tr height="20">
+                    <td align="center" class="STYLE3"><![CDATA[${@line_num}]]></td>
+                </tr>
+            </a:repeater>
+            <script><![CDATA[
+                printTableFooter1();
+                printTableFooter();
+                printPageBreak();
+            ]]></script>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

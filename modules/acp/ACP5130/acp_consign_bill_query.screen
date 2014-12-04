@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-11 下午1:19:01  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="acp5130_consign_bill_edit_link" url="${/request/@context_path}/modules/acp/ACP5130/acp_consign_bill_edit.screen"/>
+        <a:link id="acp5130_operation_record_link" url="${/request/@context_path}/modules/acp/PUBLIC/acp_operation_record.screen"/>
+        <a:link id="acp5130_consign_bill_confirm_link" url="${/request/@context_path}/modules/acp/ACP5130/acp_consign_bill_confirm.svc"/>
+        <a:link id="acp5130_consign_bill_return_link" url="${/request/@context_path}/modules/acp/ACP5130/acp_consign_bill_return.svc"/>
+        <script><![CDATA[
+            function acp5130Query() {
+                $('acp5130_consign_bill_result_ds').query();
+            }
+            
+            function acp5130ConsignBillConfirm() {
+                var result_ds = $('acp5130_consign_bill_result_ds');
+                var selected_recs = result_ds.getSelected();
+            
+                if (selected_recs.length > 0) {
+                    Aurora.showConfirm('${l:PROMPT}', '${l:ACP5130.CSGN_BILL_CONFIRM}', function() {
+                        Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+            
+                        Aurora.request({
+                            url: $('acp5130_consign_bill_confirm_link').getUrl(),
+                            para: selected_recs.data,
+                            success: function() {
+                                Aurora.showMessage('${l:PROMPT}', '${l:ACP5130.CSGN_BILL_CONFIRM_SUCCESSFULLY}', function() {
+                                    acp5130Query();
+                                });
+                            },
+                            failure: function() {
+                                return;
+                            },
+                            error: function() {
+                                return;
+                            }
+                        });
+            
+                        Aurora.Masker.unmask(Ext.getBody());
+                    });
+                }
+            }
+            
+            function acp5130ConsignBillReturn() {
+                var result_ds = $('acp5130_consign_bill_result_ds');
+                var selected_recs = result_ds.getSelected();
+            
+                if (selected_recs.length > 0) {
+                    Aurora.showConfirm('${l:PROMPT}', '${l:ACP5130.CSGN_BILL_RETURN_CONFIRM}', function() {
+                        Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+            
+                        Aurora.request({
+                            url: $('acp5130_consign_bill_return_link').getUrl(),
+                            para: selected_recs.data,
+                            success: function() {
+                                Aurora.showMessage('${l:PROMPT}', '${l:ACP5130.CSGN_BILL_RETURN_SUCCESSFULLY}', function() {
+                                    acp5130Query();
+                                });
+                            },
+                            failure: function() {
+                                return;
+                            },
+                            error: function() {
+                                return;
+                            }
+                        });
+            
+                        Aurora.Masker.unmask(Ext.getBody());
+                    });
+                }
+            }
+            
+            function acp5130ConsignBillResultRender(value, rec, name) {
+                var bill_header_id = rec.get('bill_header_id');
+                if (name == 'bill_number') {
+                    return '<a href="javascript:acp5130ConsignBillDetail(' + bill_header_id + ')">' + value + '</a>';
+                } else if (name == 'operation_record') {
+                    return '<a href="javascript:acp5130OperationRecord(' + bill_header_id + ')">${l:ACP_BILL.OPERATION_RECORD}</a>';
+                }
+            }
+            
+            function acp5130ConsignBillDetail(bill_header_id) {
+                new Aurora.Window({
+                    id: 'acp5130_consign_bill_edit_window',
+                    title: '${l:MODULES/ACP/ACP5130/ACP_CONSIGN_BILL_EDIT.SCREEN.TITLE}',
+                    url: $('acp5130_consign_bill_edit_link').getUrl() + '?bill_header_id=' + bill_header_id,
+                    fullScreen: true
+                }).on('beforeclose', function() {
+                    acp5130Query();
+                });
+            }
+            
+            function acp5130OperationRecord(bill_header_id) {
+                new Aurora.Window({
+                    id: 'acp5130_operation_record_window',
+                    title: '${l:ACP_BILL.OPERATION_RECORD}',
+                    url: $('acp5130_operation_record_link').getUrl() + '?operation_table=ACP_CSGN_BILL_HEADERS&operation_table_id=' + bill_header_id,
+                    height: 450,
+                    width: 600
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp5130_consign_bill_query_ds">
+                <a:fields>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="company_full_name" lovGridHeight="320" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" title="ACP_CSGN_BILL_HEADERS.COMPANY_ID">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="acp5130_consign_bill_result_ds" autoCount="true" autoPageSize="true" model="acp.ACP5130.acp_consign_bill_query" queryDataSet="acp5130_consign_bill_query_ds" selectable="true"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="acp5130ConsignBillConfirm" text="CONFIRM" width="100"/>
+                <a:toolbarButton click="acp5130ConsignBillReturn" text="ACP5130.CSGN_BILL_RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="acp5130_consign_bill_query_ds" resultTarget="acp5130_consign_bill_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="bill_number" bindTarget="acp5130_consign_bill_query_ds" prompt="ACP_CSGN_BILL_HEADERS.BILL_NUMBER">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5130Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:lov name="company_desc" bindTarget="acp5130_consign_bill_query_ds" prompt="ACP_CSGN_BILL_HEADERS.COMPANY_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5130Query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="vendor_site_desc" bindTarget="acp5130_consign_bill_query_ds" prompt="ACP_CSGN_BILL_HEADERS.VENDOR_SITE_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5130Query"/>
+                        </a:events>
+                    </a:lov>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:vBox labelWidth="100"/>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="acp5130_consign_bill_result_grid" bindTarget="acp5130_consign_bill_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="bill_number" align="left" prompt="ACP_CSGN_BILL_HEADERS.BILL_NUMBER" renderer="acp5130ConsignBillResultRender" sortable="true" width="60"/>
+                    <a:column name="company_code" align="left" prompt="ACP_CSGN_BILL_HEADERS.COMPANY_CODE" sortable="true" width="60"/>
+                    <a:column name="company_desc" align="left" prompt="ACP_CSGN_BILL_HEADERS.COMPANY_DESC" sortable="true" width="100"/>
+                    <a:column name="vendor_site_desc" align="left" prompt="ACP_CSGN_BILL_HEADERS.VENDOR_SITE_ID" sortable="true" width="60"/>
+                    <a:column name="currency_code" align="left" prompt="ACP_CSGN_BILL_HEADERS.CURRENCY_CODE" sortable="true" width="60"/>
+                    <a:column name="amount" align="right" prompt="ACP_CSGN_BILL_HEADERS.AMOUNT" sortable="true" width="80"/>
+                    <a:column name="create_user_name" align="left" prompt="ACP_CSGN_BILL_HEADERS.CREATED_BY" sortable="true" width="60"/>
+                    <a:column name="creation_date" align="center" prompt="ACP_CSGN_BILL_HEADERS.CREATION_DATE" sortable="true" width="60"/>
+                    <a:column name="released_date" align="center" prompt="ACP_CSGN_BILL_HEADERS.RELEASED_DATE" sortable="true" width="60"/>
+                    <a:column name="confirmed_date" align="center" prompt="ACP_CSGN_BILL_HEADERS.CONFIRMED_DATE" sortable="true" width="60"/>
+                    <a:column name="operation_record" align="center" prompt="ACP_BILL.OPERATION_RECORD" sortable="true" width="60"/>
+                    <a:column name="data_source" align="left" prompt="ACP_CSGN_BILL_HEADERS.DATA_SOURCE" sortable="true" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

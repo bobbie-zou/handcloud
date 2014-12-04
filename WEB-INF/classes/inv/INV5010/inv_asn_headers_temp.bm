@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-10 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 送货单创建，送货单临时头数据查询BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="asn_number desc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.asn_header_id,
+                    v.asn_number,
+                    v.vendor_site_name,
+                    vendor_name,
+                    v.company_name,
+                    v.ship_to_organization_name,
+                    v.location_name,
+                    v.ship_date,
+                    v.expected_date,
+                    v.header_desc,
+                    v.session_id
+                FROM
+                    (SELECT
+                        t.asn_header_id,
+                        t.asn_number,
+                        (SELECT
+                            vsv.site_name
+                        FROM
+                            pur_vendor_sites_vl vsv
+                        WHERE
+                            vsv.vendor_site_id = t.vendor_site_id
+                        ) AS vendor_site_name,
+                        (select pvv.full_name
+						          from pur_vendors_v pvv
+						 where pvv.vendor_id = t.vendor_id)as vendor_name,
+                        (SELECT
+                            fcv.company_full_name
+                        FROM
+                            fnd_companies_vl fcv
+                        WHERE
+                            fcv.company_id = t.company_id
+                        ) AS company_name,
+                        (SELECT
+                            iov.description
+                        FROM
+                            inv_organizations_vl iov
+                        WHERE
+                            iov.inv_organization_id = t.ship_to_organization_id
+                        ) AS ship_to_organization_name,
+                        (SELECT
+                            fl.address_line_1
+                        FROM
+                            fnd_locations fl
+                        WHERE
+                            fl.location_id = t.location_id
+                        ) AS location_name,
+                        NVL(TO_CHAR(t.ship_date,'yyyy-mm-dd'), TO_CHAR(SYSDATE,'yyyy-mm-dd')) AS ship_date,
+                        NVL(TO_CHAR(t.expected_date,'yyyy-mm-dd'), TO_CHAR(SYSDATE,'yyyy-mm-dd')) AS expected_date,
+                        t.comments as header_desc,
+                        t.session_id
+                    FROM
+                        inv_asn_headers_temp t
+                    WHERE
+                        t.session_id           = ${/session/@session_id} AND
+                        t.owner_business_group = ${/session/@business_group}
+                    ) v #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                  inv_asn_pkg.save_inv_asn_headers(p_asn_header_id	=> ${@asn_header_id},
+				                                   p_expected_date 	=> to_date(${@expected_date},'yyyy-mm-dd'),
+				                                   p_ship_date 		=> to_date(${@ship_date},'yyyy-mm-dd'),
+				                                   p_comments 		=> ${@header_desc},
+				                                   p_session_id 	=> ${/session/@session_id},
+				                                   p_user_id 		=> ${/session/@user_id});
+               END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                      inv_asn_pkg.del_asn_temp_by_id(p_asn_header_id => ${@asn_header_id},
+					                                 p_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:parameters>
+                <bm:parameter name="last_flag" dataType="java.lang.String" input="false" output="true" outputPath="@last_flag"/>
+            </bm:parameters>
+            <bm:query-sql><![CDATA[
+                BEGIN
+                       inv_asn_pkg.get_asn_temp_flag(p_user_id => ${/session/@user_id},
+					                                 p_session_id => ${/session/@session_id},
+					                                 x_flag => ${@last_flag});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="asn_header_id" queryExpression="asn_header_id=${@asn_header_id}"/>
+    </bm:query-fields>
+</bm:model>

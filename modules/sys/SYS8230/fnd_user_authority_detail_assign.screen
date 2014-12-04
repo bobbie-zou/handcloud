@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-4-21 下午6:56:58  
+    $Revision: 1.0  
+    $Purpose: CLIENT级用户权配置，明细分配
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query model="sys.SYS8230.fnd_user_authority_get_user_flex_infomation" rootPath="user_flex_info"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd2830_fnd_user_authority_flex_code_list_update_link" model="sys.SYS8230.fnd_user_authority_flex_code_list" modelaction="batch_update"/>
+        <a:link id="fnd2830_fnd_user_authority_flex_code_list_execute_link" model="sys.SYS8230.fnd_user_authority_flex_code_list" modelaction="execute"/>
+        <script><![CDATA[
+            function fnd2830_closeUserAuthorityFlexValues() {
+                $('fnd2830_fnd_user_authority_detail_assign_link_window').close();
+            }
+            
+            function fnd2830_saveUserAuthorityFlexValues() {
+                var records = $('fnd2830_fnd_user_authority_flex_values_ds').getAll();
+                var data = [];
+                var save_flag = false;
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].dirty) {
+                        if (records[i].get('enabled_flag') == 'Y' && Aurora.isEmpty(records[i].get('start_date'))) {
+                            Aurora.showErrorMessage('${l:PROMPT}', '${l:FND_USER_AUTHORITY_HDS.START_DATE_NOT_NULL}');
+                            return false;
+                        }
+                        records[i].set('_status', 'update');
+                        records[i].set('authority_hds_id', '${/parameter/@authority_hds_id}');
+                        records[i].set('assign_type', '${/parameter/@dimension_line_code}'); //分配类型
+                        data.push(records[i].data);
+                        save_flag = true;
+                    }
+                }
+                if (save_flag) {
+                    //锁屏
+                    Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+                    $('fnd2830_saveUserAuthorityFlexValues_btn').disable();
+                    Aurora.request({
+                        url: $('fnd2830_fnd_user_authority_flex_code_list_update_link').getUrl(),
+                        para: data,
+                        success: function() {
+                            //解锁
+                            Aurora.Masker.unmask(Ext.getBody());
+                            Aurora.showMessage('${l:PROMPT}', '${l:SUCCESSFUL_OPERATION}', function() {
+                                $('fnd2830_fnd_user_authority_flex_values_ds').query();
+                                $('fnd2830_saveUserAuthorityFlexValues_btn').enable();
+                            });
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            $('fnd2830_saveUserAuthorityFlexValues_btn').enable();
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            $('fnd2830_saveUserAuthorityFlexValues_btn').enable();
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function fnd2830_fndUserAuthorityFlexValuesDsUpdate(ds, record, name, value, oldvalue) {
+                var records = ds.getAll();
+                if (name == 'default_flag') {
+                    if (value && value == 'Y') {
+                        if(Aurora.isEmpty(record.get('enabled_flag'))){
+                            record.set('enabled_flag','Y');
+                        }
+                        for (var i = 0;i < records.length;i++) {
+                            if (ds.indexOf(record) != ds.indexOf(records[i])) {
+                                ds.indexOf(record);
+                                records[i].set('default_flag', 'N');
+                            }
+                        }
+                    }
+                }
+            
+                if (name == 'end_date') {
+                    var now = new Date();
+                    var date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    if (value && value < date) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:FND_USER_AUTHORITY_HDS.END_DATE_BEFORE_SYSDATE}');
+                    }
+                }
+            
+                if (name == 'enabled_flag') {
+                    if (value && value == 'N') {
+                        if (record.get('default_flag') == 'Y') {
+                            record.set('default_flag', 'N');
+                        }
+                    }
+                }
+            }
+            
+            function fnd2830_fndUserAuthorityFlexValuesDsGridEditorFunction(record, name) {
+                var now = new Date();
+                var date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                if (name == 'start_date') {
+                    if (record.get('enabled_flag') == 'Y') {
+                        if (Aurora.isEmpty(record.get('start_date'))) {
+                            record.set('start_date', date);
+                        }
+                        return 'fnd2830_fnd_user_authority_flex_values_ds_grid_dp';
+                    } else if (record.get('enabled_flag') == 'N') {
+                        record.set('start_date', null);
+                        return '';
+                    }
+                }
+            
+                if (name == 'end_date') {
+                    if (record.get('enabled_flag') == 'Y') {
+                        return 'fnd2830_fnd_user_authority_flex_values_ds_grid_dp';
+                    } else if (record.get('enabled_flag') == 'N') {
+                        record.set('end_date', null);
+                        return '';
+                    }
+                }
+            }
+            
+            function fnd2830_saveAllPageUserAuthorityFlexValues() {
+                var flex_value_desc = $('fnd2830_fnd_user_authority_flex_query_form_query').getValue();
+                var data = {
+                    flex_value_set_id: '${/parameter/@flex_value_set_id}',
+                    dimension_line_code: '${/parameter/@dimension_line_code}',
+                    authority_hds_id: '${/parameter/@authority_hds_id}',
+                    flex_value_desc: flex_value_desc
+                };
+            
+                Aurora.showConfirm('${l:PROMPT}', '${l:FND_USER_AUTHORITY_HDS.SURE_ENABLE_ALL_QUERY_DATA}', function() {
+                    //锁屏
+                    Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+                    $('fnd2830_saveAllPageUserAuthorityFlexValues_btn').disable();
+                    Aurora.request({
+                        url: $('fnd2830_fnd_user_authority_flex_code_list_execute_link').getUrl(),
+                        para: data,
+                        success: function() {
+                            //解锁
+                            Aurora.Masker.unmask(Ext.getBody());
+                            Aurora.showMessage('${l:PROMPT}', '${l:SUCCESSFUL_OPERATION}', function() {
+                                $('fnd2830_fnd_user_authority_flex_values_ds').query();
+                                $('fnd2830_saveAllPageUserAuthorityFlexValues_btn').enable();
+                            });
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            $('fnd2830_saveAllPageUserAuthorityFlexValues_btn').enable();
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            $('fnd2830_saveAllPageUserAuthorityFlexValues_btn').enable();
+                        },
+                        scope: this
+                    });
+                });
+            
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2830_fnd_user_authority_user_flex_info_ds">
+                <a:datas dataSource="/model/user_flex_info"/>
+                <a:fields>
+                    <a:field name="user_name" readOnly="true"/>
+                    <a:field name="user_description" readOnly="true"/>
+                    <a:field name="dimension_line_code" readOnly="true"/>
+                    <a:field name="dimension_line_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd2830_fnd_user_authority_flex_query_ds" autoCreate="true"/>
+            <a:dataSet id="fnd2830_fnd_user_authority_flex_values_ds" autoCount="true" autoPageSize="true" autoQuery="true" queryDataSet="fnd2830_fnd_user_authority_flex_query_ds" queryUrl="${/request/@context_path}/autocrud/sys.SYS8230.fnd_user_authority_flex_values/query?flex_value_set_id=${/parameter/@flex_value_set_id}&amp;dimension_line_code=${/parameter/@dimension_line_code}&amp;authority_hds_id=${/parameter/@authority_hds_id}" selectable="false">
+                <a:fields>
+                    <a:field name="default_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd2830_fndUserAuthorityFlexValuesDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton id="fnd2830_saveUserAuthorityFlexValues_btn" click="fnd2830_saveUserAuthorityFlexValues" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton id="fnd2830_closeUserAuthorityFlexValues_btn" click="fnd2830_closeUserAuthorityFlexValues" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+                <a:toolbarButton id="fnd2830_saveAllPageUserAuthorityFlexValues_btn" click="fnd2830_saveAllPageUserAuthorityFlexValues" style="margin-left:20px;" text="FND_USER_AUTHORITY_HDS.ALL_QUERY_DATA_ENABLE" width="100"/>
+            </a:screenTopToolbar>
+            <a:fieldSet title="FND_USER_AUTHORITY_HDS.USER_AUTHORITY_TYPE" width="550">
+                <a:hBox labelWidth="100">
+                    <a:textField name="user_name" bindTarget="fnd2830_fnd_user_authority_user_flex_info_ds" prompt="FND.SYS_MESSAGE_USER_NAME"/>
+                    <a:textField name="user_description" bindTarget="fnd2830_fnd_user_authority_user_flex_info_ds" prompt="FND.SYS_MESSAGE_USER_DESCRIPTION"/>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:textField name="dimension_line_code" bindTarget="fnd2830_fnd_user_authority_user_flex_info_ds" prompt="FND_USER_AUTHORITY_HDS.DIMENSION_LINE_CODE"/>
+                    <a:textField name="dimension_line_desc" bindTarget="fnd2830_fnd_user_authority_user_flex_info_ds" prompt="FND_USER_AUTHORITY_HDS.DIMENSION_LINE_DESC"/>
+                </a:hBox>
+            </a:fieldSet>
+            <a:queryForm id="fnd2830_fnd_user_authority_flex_query_form" bindTarget="fnd2830_fnd_user_authority_flex_query_ds" defaultQueryField="flex_value_desc" defaultQueryHint="FND_USER_AUTHORITY_HDS.ATTRIBUTE_CODE_NAME" resultTarget="fnd2830_fnd_user_authority_flex_values_ds" style="margin-top:10px;width:100%;border:none"/>
+            <a:grid id="fnd2830_fnd_user_authority_flex_values_ds_grid" bindTarget="fnd2830_fnd_user_authority_flex_values_ds" marginHeight="230" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="flex_value" prompt="FND_USER_AUTHORITY_HDS.ATTRIBUTE_CODE" width="250"/>
+                    <a:column name="flex_desc" prompt="FND_USER_AUTHORITY_HDS.ATTRIBUTE_NAME" width="250"/>
+                    <a:column name="default_flag" align="center" editor="fnd2830_fnd_user_authority_flex_values_ds_grid_cb" prompt="FND_CONFIG_AUTHORITY_LNS.DEFAULT_FLAG" sortable="true" width="40"/>
+                    <a:column name="enabled_flag" align="center" editor="fnd2830_fnd_user_authority_flex_values_ds_grid_cb" prompt="FND_USER_AUTHORITY_HDS.ENABLED_FLAG" sortable="true" width="40"/>
+                    <a:column name="start_date" align="center" editorFunction="fnd2830_fndUserAuthorityFlexValuesDsGridEditorFunction" prompt="SYS_USER.START_DATE" renderer="Aurora.formatDate" sortable="true" width="100"/>
+                    <a:column name="end_date" align="center" editorFunction="fnd2830_fndUserAuthorityFlexValuesDsGridEditorFunction" prompt="SYS_USER.END_DATE" renderer="Aurora.formatDate" sortable="true" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="fnd2830_fnd_user_authority_flex_values_ds_grid_cb"/>
+                    <a:datePicker id="fnd2830_fnd_user_authority_flex_values_ds_grid_dp"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-25 下午7:34:51  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <s:server-script import="fnd_flex_dynamic_tools.js"/>
+        <s:server-script import="fnd_flex_dynamic_page_main.js"/>
+        <s:server-script import="fnd_flex_dynamic_grid_expanded.js"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="pur71401_rfx_feedback_records_detail_link" url="${/request/@context_path}/modules/pur/PUR5220/pur_rfx_feedback_records.screen"/>
+        <script><![CDATA[
+        	function pur71401_rfx_feedback_records_detail(feedback_line_id) {
+	            new Aurora.Window({
+	                url: $('pur71401_rfx_feedback_records_detail_link').getUrl() + '?feedback_line_id=' + feedback_line_id,
+	                title: '报价历史',
+	                id: 'pur52203_rfx_feedback_records_window',
+	                fullScreen: true
+	            });
+	        }
+	
+	        function pur71401_rfx_feedback_records_render(value, rec, name) {
+	            var feedback_line_id = rec.get('feedback_line_id');
+	            return '<a href="javascript:pur71401_rfx_feedback_records_detail(' + feedback_line_id + ')">报价历史</a>';
+	            
+	        }
+        
+        	function pur71401_rfx_headers_ds_update(ds, record, name, value, oldvalue){
+	       		
+			}
+        	function pur71401_rfx_header_check(record){
+        	    var open_rule = record.get('open_rule');
+        	    var ranking_rule = record.get('ranking_rule');
+        	    if((open_rule == 'OPEN_IDENTITY_HIDDEN_QUOTN'||open_rule == 'OPEN_IDENTITY_OPEN_QUOTN')&&ranking_rule == 'ANONYMOUS_AUCTION'){
+        	        alert('当公开规则为“公开身份公开报价”或“公开身份隐藏报价”时，不可选择“匿名投标人”!');
+        	        return false;
+        	    }
+        	    return true;
+        	}
+        	
+        	function pur71401_reback() {
+				$('pur71401_rfx_details_window').close();     
+	        }
+	        
+        	function pur71401_mask(){
+        	 	Aurora.Masker.mask($('pur71401_rfx_details_window').wrap, '正在加载');   
+        	}
+        	
+        	function pur71401_unmask(){
+        	 	Aurora.Masker.unmask($('pur71401_rfx_details_window').wrap); 
+        	}
+        	
+        	//附件下载
+        	function pur71401_upload_renderer(value, record, name) {
+                var atm_line_id = record.get('atm_line_id');
+                if (!record.isNew && atm_line_id) {
+                    return '<a href="javascript:pur71401_upload_file(' + atm_line_id + ')">附件下载</a>';
+                }
+            }
+        	
+        	function pur71401_upload_file(id) {
+                var url = "${/request/@context_path}/modules/public/downloadFile.screen?table_name=FND_ATM_LINES&header_id=" + id;
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                    id: 'pur71401_upload_window',
+                    width: 850,
+                    height: 500
+                }).on('beforeclose', function() {
+                    $('pur71401_rfx_ln_attachments').query();
+                });
+            
+            }
+            
+            function formatNumber2(value, decimalprecision) {
+                if (Ext.isEmpty(value)) return '';
+            
+                value = String(value).replace(/,/g, '');
+                if (isNaN(value)) return '';
+                if (decimalprecision || decimalprecision === 0)
+            
+            
+                var point_value = value.split('.');
+                var in_length = (point_value.length == 2) ? '.' + point_value[1] : '';
+            
+            
+                if (in_length.length - 1 < decimalprecision) {
+            
+                    decimalprecision = in_length.length - 1
+                };
+                if (in_length.length == 0) {
+                    decimalprecision = 0;
+                }
+            
+                value = Number(value).toFixed(decimalprecision);
+            
+                var ps = value.split('.');
+                var sub = (ps.length == 2) ? '.' + ps[1] : '';
+            
+            
+                var whole = ps[0];
+                var r = /(\d+)(\d{3})/;
+                while (r.test(whole)) {
+                    whole = whole.replace(r, '$1' + ',' + '$2');
+                }
+            
+                Math.round()
+                v = whole + sub;
+                return v;
+            }
+            
+            function pur71401_formatNumber_render(value,record,name){
+                return formatNumber2(value, 8);
+            }
+
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur71401_rfx_feedback_suggested_operation_ds" lookupCode="PUR_RFX_SUGGESTED_OPERATION"/>
+            <a:dataSet id="pur71401_rfx_headers_ds" autoQuery="true" model="pur.PUR7140.pur_rfx_headers_his_query" queryUrl="${/request/@context_path}/autocrud/pur.PUR7140.pur_rfx_headers_his_query/query?history_header_id=${/parameter/@history_header_id}"/>
+            <a:dataSet id="pur71401_rfx_ln_items_ds" autoPageSize="true" autoQuery="true" fetchAll="true" model="pur.PUR7140.pur_rfx_ln_items_his" queryUrl="${/request/@context_path}/autocrud/pur.PUR7140.pur_rfx_ln_items_his/query?history_header_id=${/parameter/@history_header_id}">
+                <a:fields>
+                    <a:field name="rfx_finished_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur71401_rfx_ln_vendors_ds" autoQuery="true" model="pur.PUR7140.pur_rfx_ln_vendors_his" queryUrl="${/request/@context_path}/autocrud/pur.PUR7140.pur_rfx_ln_vendors_his/query?history_header_id=${/parameter/@history_header_id}"/>
+            <a:dataSet id="pur71401_rfx_check_price_vendors_detail_ds" autoPageSize="true" bindName="check_price_vendors_details" bindTarget="pur71401_rfx_ln_items_ds" model="pur.PUR7140.pur_rfx_feedback_record_details">
+                <a:fields>
+                    <a:field name="suggested_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur71401_rfx_check_price_items_detail_ds" autoPageSize="true" bindName="pur71401_rfx_feedback_bargain_items" bindTarget="pur71401_rfx_ln_vendors_ds" fetchAll="true" model="pur.PUR7140.pur_rfx_feedback_record_details">
+                <a:fields>
+                    <a:field name="suggested_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur71401_rfx_ln_attachments" autoQuery="true" fetchAll="true" model="public.fnd_atm_lines" queryUrl="${/request/@context_path}/autocrud/public.fnd_atm_lines/query?source_table_name=PUR_RFX_HEADERS&amp;source_pk_value=${/parameter/@rfx_header_id}">
+                <a:fields>
+                    <a:field name="atm_line_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur71401_reback" text="返回" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100">
+                <a:label name="rfx_number" bindTarget="pur71401_rfx_headers_ds" prompt="RFx编号" width="200"/>
+                <a:label name="company_desc" bindTarget="pur71401_rfx_headers_ds" prompt="公司" width="200"/>
+                <a:label name="rfx_type_desc" bindTarget="pur71401_rfx_headers_ds" prompt="RFx类型" width="200"/>
+                <a:label name="rfx_category_desc" bindTarget="pur71401_rfx_headers_ds" prompt="RFx类别" width="200"/>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:label name="title" bindTarget="pur71401_rfx_headers_ds" prompt="标题" width="200"/>
+                <a:label name="rfx_method_desc" bindTarget="pur71401_rfx_headers_ds" prompt="RFx方式" width="200"/>
+                <a:label name="auction_direction_desc" bindTarget="pur71401_rfx_headers_ds" prompt="竞价方向" width="200"/>
+                <a:label name="auction_rule_desc" bindTarget="pur71401_rfx_headers_ds" prompt="竞价规则" width="200"/>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:label name="open_rule_desc" bindTarget="pur71401_rfx_headers_ds" prompt="公开规则" width="200"/>
+                <a:label name="ranking_rule_desc" bindTarget="pur71401_rfx_headers_ds" prompt="排名规则" width="200"/>
+                <a:label name="auction_ranking_desc" bindTarget="pur71401_rfx_headers_ds" prompt="竞价排名" width="200"/>
+                <a:label name="payment_method_desc" bindTarget="pur71401_rfx_headers_ds" prompt="付款方式" width="200"/>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:label name="currency_desc" bindTarget="pur71401_rfx_headers_ds" prompt="报价币种" width="200"/>
+                <a:label name="exchange_rate" bindTarget="pur71401_rfx_headers_ds" prompt="汇率" width="200"/>
+                <a:label name="tax_included_flag" bindTarget="pur71401_rfx_headers_ds" prompt="含税" width="200"/>
+                <a:label name="tax_type_desc" bindTarget="pur71401_rfx_headers_ds" prompt="税种" width="200"/>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:label name="round" bindTarget="pur71401_rfx_headers_ds" prompt="轮次" width="200"/>
+                <a:label name="created_by_desc" bindTarget="pur71401_rfx_headers_ds" prompt="创建人" width="200"/>
+                <a:label name="creation_date_desc" bindTarget="pur71401_rfx_headers_ds" prompt="创建日期" width="200"/>
+                <a:label name="issued_date_desc" bindTarget="pur71401_rfx_headers_ds" prompt="发布日期" width="200"/>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:label name="status_desc" bindTarget="pur71401_rfx_headers_ds" prompt="状态" width="200"/>
+                <a:label name="feedback_start_time_desc" bindTarget="pur71401_rfx_headers_ds" prompt="报价开始时间" width="200"/>
+                <a:label name="feedback_end_time_desc" bindTarget="pur71401_rfx_headers_ds" prompt="报价结束时间" width="200"/>
+                <a:label name="template_desc" bindTarget="pur71401_rfx_headers_ds" prompt="模版" width="200"/>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:label name="place_of_delivery" bindTarget="pur71401_rfx_headers_ds" prompt="交货地点" width="200"/>
+            </a:hBox>
+            <a:hBox>
+                <a:textArea name="comments" bindTarget="pur71401_rfx_headers_ds" height="60" marginWidth="360" prompt="备注" readOnly="true"/>
+            </a:hBox>
+            <a:tabPanel height="550" marginWidth="130">
+                <a:tabs>
+                    <a:tab prompt="物料明细">
+                        <a:grid id="pur71401_rfx_ln_items_grid" bindTarget="pur71401_rfx_ln_items_ds" height="250" marginWidth="160" navBar="true" showRowNumber="true">
+                            <a:columns>
+                                <a:column name="inv_organization_desc" align="left" prompt="库存组织" width="100"/>
+                                <a:column name="item_category_desc" align="left" prompt="物料分类" width="100"/>
+                                <a:column name="item_code" align="left" prompt="物料编码" width="80"/>
+                                <a:column name="item_desc" align="left" prompt="物料描述" width="100"/>
+                                <a:column name="item_note" align="left" prompt="物料说明" width="100"/>
+                                <a:column name="quantity" align="right" prompt="数量" width="40"/>
+                                <a:column name="suggested_operation_desc" align="left" prompt="建议操作" width="60"/>
+                                <a:column name="vendor_desc" align="left" prompt="建议供应商" width="100"/>
+                                <a:column name="valid_fb_retail_price" align="right" prompt="零售价" renderer="pur71401_formatNumber_render" width="50"/>
+                                <a:column name="valid_fb_wholesale_price" align="right" prompt="最终报价" renderer="pur71401_formatNumber_render" width="50"/>
+                                <a:column name="rfx_finished_flag" align="left" prompt="RFx完成" width="40"/>
+                                <a:column name="rfx_finished_round" align="left" prompt="RFx完成轮次" width="50"/>
+                                <a:column name="need_by_date" align="left" prompt="需求日期" width="60"/>
+                                <a:column name="promised_date" align="left" prompt="承诺交付日期" width="60"/>
+                                <a:column name="feedback_expiry_date_from" align="left" prompt="报价有效期从" width="60"/>
+                                <a:column name="feedback_expiry_date_to" align="left" prompt="报价有效期至" width="60"/>
+                                <a:column name="uom_desc" align="left" prompt="单位" width="40"/>
+                                <a:column name="item_parameter_config" align="left" prompt="参数配置" width="60"/>
+                                <a:column name="pur_req_num" align="left" prompt="采购申请号" width="60"/>
+                            </a:columns>
+                        </a:grid>
+                        <a:grid id="pur71401_rfx_check_price_vendors_detail_grid" bindTarget="pur71401_rfx_check_price_vendors_detail_ds" height="250" marginWidth="160" navBar="true">
+                            <a:columns>
+                                <a:column name="vendor_code" align="left" prompt="供应商编码" width="80"/>
+                                <a:column name="vendor_desc" align="left" prompt="供应商描述" width="120"/>
+                                <a:column name="promised_date" align="left" prompt="承诺交付期" width="60"/>
+                                <a:column name="feedback_time" align="left" prompt="报价时间" width="100"/>
+                                <a:column name="valid_fb_reason" align="left" prompt="备注" width="100"/>
+                                <a:column name="valid_fb_retail_price" align="right" prompt="零售价" renderer="pur71401_formatNumber_render" width="50"/>
+                                <a:column name="valid_fb_wholesale_price" align="right" prompt="最终报价" renderer="pur71401_formatNumber_render" width="50"/>
+                                <a:column name="suggested_flag" align="center" prompt="已选择" width="80"/>
+                                <a:column name="suggested_note" align="left" prompt="建议理由" width="80"/>
+                                <a:column name="feedback_history" align="left" prompt="报价历史" renderer="pur71401_rfx_feedback_records_render" width="60"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="供应商列表">
+                        <a:grid id="pur71401_vendors_grid" bindTarget="pur71401_rfx_ln_vendors_ds" height="250" marginWidth="160" navBar="true">
+                            <a:columns>
+                                <a:column name="vendor_code" align="left" prompt="供应商编码" width="100"/>
+                                <a:column name="vendor_desc" align="left" prompt="供应商描述" width="150"/>
+                                <a:column name="total_price" align="right" prompt="总单价" renderer="pur71401_formatNumber_render" width="80"/>
+                                <a:column name="total_amount" align="right" prompt="总金额" renderer="Aurora.formatMoney" width="80"/>
+                                <a:column name="contact_person" align="left" prompt="联系人" width="100"/>
+                                <a:column name="contact_mobile" align="left" prompt="联系电话" width="100"/>
+                                <a:column name="e_mail" align="left" prompt="E_MAIL" width="100"/>
+                            </a:columns>
+                        </a:grid>
+                        <a:grid id="pur71401_rfx_feedback_items_bargain_grid" bindTarget="pur71401_rfx_check_price_items_detail_ds" height="250" marginWidth="160" navBar="true">
+                            <a:columns>
+                                <a:column name="item_code" align="left" prompt="物料编码" width="80"/>
+                                <a:column name="item_desc" align="left" prompt="物料描述" width="100"/>
+                                <a:column name="promised_date" align="left" prompt="承诺交付期" width="60"/>
+                                <a:column name="feedback_time" align="left" prompt="报价时间" width="100"/>
+                                <a:column name="valid_fb_reason" align="left" prompt="备注" width="100"/>
+                                <a:column name="valid_fb_retail_price" align="right" prompt="零售价" renderer="pur71401_formatNumber_render" width="50"/>
+                                <a:column name="valid_fb_wholesale_price" align="right" prompt="最终报价" renderer="pur71401_formatNumber_render" width="50"/>
+                                <a:column name="suggested_flag" align="center" prompt="已选择" width="80"/>
+                                <a:column name="suggested_note" align="left" prompt="建议理由" width="80"/>
+                                <a:column name="feedback_history" align="left" prompt="报价历史" renderer="pur71401_rfx_feedback_records_render" width="60"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="附件列表">
+                        <a:grid id="pur71401_atm_grid" bindTarget="pur71401_rfx_ln_attachments" height="350" marginWidth="40" navBar="true">
+                            <a:columns>
+                                <a:column name="line_number" align="center" prompt="序号" width="50"/>
+                                <a:column name="atm_file" align="left" prompt="附件名" width="250"/>
+                                <a:column name="atm_desc" align="center" prompt="附件描述" width="100"/>
+                                <a:column name="upload_user_name" align="center" prompt="上传人" width="100"/>
+                                <a:column name="download_count" align="center" prompt="下载次数" width="100"/>
+                                <a:column align="center" prompt="附件下载" renderer="pur71401_upload_renderer" width="100"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:defaultScreen>
+        <flex-segment dataset="pur71401_rfx_ln_items_ds" grid="pur71401_rfx_ln_items_grid" headerIdPath="/parameter/@history_header_id" headerTableName="PUR_RFX_HEADERS_HIST" pageType="query" templateFieldName="template_id" type="grid_expanded"/>
+        <flex-segment dataset="pur71401_rfx_check_price_vendors_detail_ds" grid="pur71401_rfx_check_price_vendors_detail_grid" headerIdPath="/parameter/@history_header_id" headerTableName="PUR_RFX_HEADERS_HIST" pageType="query" templateFieldName="template_id" type="grid_expanded"/>
+        <flex-segment dataset="pur71401_rfx_check_price_items_detail_ds" grid="pur71401_rfx_feedback_items_bargain_grid" headerIdPath="/parameter/@history_header_id" headerTableName="PUR_RFX_HEADERS_HIST" pageType="query" templateFieldName="template_id" type="grid_expanded"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-8-26 下午1:40:40  
+    $Revision: 1.0  
+    $Purpose: 功能定义，功能分配screen页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="fv.function_id = ${/parameter/@function_id}" fetchAll="true" model="sys.SYS8010.sys_function" rootPath="function_info"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function sys8010_closeAssignPage() {
+                $('sys8010_function_service_assign_window').close();
+            }
+            
+            function sys8010_serviceLovFunction(record) {
+                return record.isNew ? 'sys8010_function_service_grid_lov' : '';
+            }
+            
+            function sys8010_saveAssignPage() {
+                var records = $('sys8010_sys_function_service').getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    if (record.dirty) {
+                        record.set('function_id', '${/parameter/@function_id}');
+                    }
+                }
+                $('sys8010_sys_function_service').submit();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys8010_sys_function" model="sys.SYS8010.sys_function">
+                <a:datas dataSource="/model/function_info"/>
+                <a:fields>
+                    <a:field name="function_code" readOnly="true"/>
+                    <a:field name="function_name" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys8010_sys_function_service" autoQuery="true" fetchAll="true" model="sys.SYS8010.sys_function_service" queryDataSet="sys8010_sys_function" selectable="true">
+                <a:fields>
+                    <a:field name="service_name" lovGridHeight="330" lovHeight="460" lovService="sys.sys_service" lovWidth="450" required="true" requiredMessage="${l:SYS8010.SERVICE_NAME_NOT_NULL}" title="PAGE_SELECT">
+                        <a:mapping>
+                            <a:map from="service_id" to="service_id"/>
+                            <a:map from="service_name" to="service_name"/>
+                            <a:map from="title" to="title"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="sys8010_sys_function_service_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="sys8010_sys_function_service_grid" style="margin-left:20px;" type="delete" width="100"/>
+                <a:toolbarButton click="sys8010_saveAssignPage" style="margin-left:20px;" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="sys8010_closeAssignPage" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox>
+                <a:label name="function_code" bindTarget="sys8010_sys_function" prompt="FND_FUNCTION.FUNCTION_CODE" width="200"/>
+                <a:label name="function_name" bindTarget="sys8010_sys_function" prompt="FND_FUNCTION.FUNCTION_NAME" width="200"/>
+            </a:hBox>
+            <a:grid id="sys8010_sys_function_service_grid" bindTarget="sys8010_sys_function_service" height="350" navBar="false" width="600">
+                <a:columns>
+                    <a:column name="service_name" editorFunction="sys8010_serviceLovFunction" prompt="SYS8010.SERVICE_NAME" width="350"/>
+                    <a:column name="title" prompt="SYS8010.SERVICE_TITLE" width="200"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="sys8010_function_service_grid_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

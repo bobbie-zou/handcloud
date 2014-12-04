@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui 6743$
+    $Date: 2014/09/29 10:46:59 $
+    $Revision: 1.0 $
+    $Purpose: ERP应付发票查询页面-供应方
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.flex_value_set_code = &apos;PAYMENT_STATUS&apos;" model="public.fnd_flex_value_v_lov" rootPath="payment_status"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="ap7120_invoice_detail_link" url="${/request/@context_path}/modules/ap/AP7120/erp_ap_invoice_detail_query.screen"/>
+        <a:link id="ap7120_invoice_pur_detail_link" url="${/request/@context_path}/modules/ap/PUBLIC/pur_purchase_order_query.screen"/>
+        <a:link id="ap7120_invoice_rcv_trx_detail_link" url="${/request/@context_path}/modules/ap/PUBLIC/pur_rcv_trx_purchaser_query.screen"/>
+        <a:link id="ap7120_invoice_payments_detail_link" url="${/request/@context_path}/modules/ap/PUBLIC/erp_ap_invoice_payments_require_query.screen"/>
+        <script><![CDATA[
+            function ap7120_ap_invoice_query() {
+                $('ap7120_invoice_headers_result_ds').query();
+            }
+            
+            function ap7120_invoice_headers_query_ds_onUpdate(ds, record, name, value, oldvalue) {
+                var field;
+                if (name == 'owner_company_id') {
+                    record.set('business_unit_id', null);
+                    record.set('business_unit_name', null);
+                    field = record.getMeta().getField('business_unit_name');
+                    if (!Aurora.isEmpty(value)) {
+                        field.setReadOnly(false);
+                        field.setLovPara('company_id', value);
+                    } else {
+                        field.setLovPara('company_id', null);
+                        record.getMeta().getField('business_unit_name').setReadOnly(true);
+                    }
+                }
+            }
+            
+            function ap7120_invoice_headers_renderer(value, record, name) {
+                if (name == 'invoice_num') {
+                    if (!Aurora.isEmpty(value)) {
+                        var invoice_id = record.get('invoice_id');
+                        return '<a href="javascript:ap7120_invoice_detail(' + invoice_id + ')">' + value + '</>';
+                    } else {
+                        return null;
+                    }
+                } else if (name == 'pur_header_num') {
+                    if (value != 'N') {
+                        invoice_id = record.get('invoice_id');
+                        return '<a href="javascript:ap7120_invoice_pur_detail(' + invoice_id + ')">' + '查看' + '</>';
+                    } else {
+                        return '-';
+                    }
+                } else if (name == 'rcv_trx_number') {
+                    if (value != 'N') {
+                        invoice_id = record.get('invoice_id');
+                        return '<a href="javascript:ap7120_invoice_rcv_trx_detail(' + invoice_id + ')">' + '查看' + '</>';
+                    } else {
+                        return '-';
+                    }
+                } else if (name == 'check_number') {
+                    if (record.get('payment_status') != 'N') {
+                        invoice_id = record.get('invoice_id');
+                        return '<a href="javascript:ap7120_invoice_check_detail(' + invoice_id + ')">' + '查看' + '</>';
+                    } else {
+                        return '-';
+                    }
+                }
+                return null;
+            }
+            
+            function ap7120_invoice_headers_number_renderer(value, record, name) {
+                if (value == 0) {
+                    return Aurora.formatNumber(value, 0);
+                } else {
+                    return Aurora.formatNumber(value, 4);
+                }
+            }
+            
+            function ap7120_invoice_detail(invoice_id) {
+                var url = $('ap7120_invoice_detail_link').getUrl() + '?invoice_id=' + invoice_id;
+                new Aurora.Window({
+                    id: 'ap7120_invoice_detail_window',
+                    url: url,
+                    title: '${l:ERP_AP_INVOICE_HEADERS.LINE_DETAILS}',
+                    fullScreen: true
+                });
+            }
+            
+            function ap7120_invoice_pur_detail(invoice_id) {
+                var url = $('ap7120_invoice_pur_detail_link').getUrl() + '?invoice_id=' + invoice_id;
+                new Aurora.Window({
+                    id: 'ap7120_invoice_pur_detail_window',
+                    url: url,
+                    title: '${l:}',
+                    fullScreen: true
+                });
+            }
+            
+            function ap7120_invoice_rcv_trx_detail(invoice_id) {
+                var url = $('ap7120_invoice_rcv_trx_detail_link').getUrl() + '?invoice_id=' + invoice_id;
+                new Aurora.Window({
+                    id: 'ap7120_invoice_rcv_trx_detail_window',
+                    url: url,
+                    title: '${l:}',
+                    fullScreen: true
+                });
+            }
+            
+            function ap7120_invoice_check_detail(invoice_id) {
+                var url = $('ap7120_invoice_payments_detail_link').getUrl() + '?invoice_id=' + invoice_id;
+                new Aurora.Window({
+                    id: 'ap7120_invoice_check_detail_window',
+                    url: url,
+                    title: '${l:}',
+                    fullScreen: true
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="ap7120_invoice_type_ds" lookupCode="INVOICE_TYPE"/>
+            <a:dataSet id="ap7120_payment_status_list_ds">
+                <a:datas dataSource="/model/payment_status"/>
+            </a:dataSet>
+            <a:dataSet id="ap7120_invoice_headers_query_ds" model="ap.AP7120.erp_ap_invoice_headers_query">
+                <a:fields>
+                    <a:field name="check_id"/>
+                    <a:field name="invoice_type"/>
+                    <a:field name="invoice_type_desc" displayField="code_value_name" options="ap7120_invoice_type_ds" returnField="invoice_type" valueField="code_value"/>
+                    <a:field name="business_unit_id"/>
+                    <a:field name="business_unit_name" autoComplete="true" autoCompleteField="business_unit_name" lovHeight="490" lovService="public.fnd_business_unit_lov" lovWidth="540" title="客户业务实体">
+                        <a:mapping>
+                            <a:map from="business_unit_id" to="business_unit_id"/>
+                            <a:map from="business_unit_name" to="business_unit_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="owner_company_name" autoComplete="true" autoCompleteField="company_full_name" lovHeight="500" lovService="public.fnd_coop_partner_clients_lov" lovWidth="500" title="我的客户">
+                        <a:mapping>
+                            <a:map from="company_id" to="owner_company_id"/>
+                            <a:map from="company_full_name" to="owner_company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_id"/>
+                    <a:field name="vendor_name" autoComplete="true" autoCompleteField="vendor_name" lovHeight="490" lovService="public.pur_vendors_by_business_group_supply_lov" lovWidth="540" title="供应商">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_site_id"/>
+                    <a:field name="site_name" autoComplete="true" autoCompleteField="site_name" lovHeight="490" lovService="public.pur_vendor_site_by_business_group_supply_lov" lovWidth="900" title="供应商地点">
+                        <a:mapping>
+                            <a:map from="vendor_site_id" to="vendor_site_id"/>
+                            <a:map from="site_name" to="site_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="payment_status_desc" displayField="flex_desc" options="ap7120_payment_status_list_ds" returnField="payment_status" valueField="flex_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="ap7120_invoice_headers_query_ds_onUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="ap7120_invoice_headers_result_ds" autoCount="true" autoPageSize="true" fetchAll="false" model="ap.AP7120.erp_ap_invoice_headers_query" queryDataSet="ap7120_invoice_headers_query_ds" selectable="false">
+                <a:fields>
+                    <a:field name="invoice_type"/>
+                    <a:field name="invoice_type_desc" displayField="code_value_name" options="ap7120_invoice_type_ds" returnField="invoice_type" valueField="code_value"/>
+                    <a:field name="payment_status_desc" displayField="flex_desc" options="ap7120_payment_status_list_ds" returnField="payment_status" valueField="flex_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="ap7120_invoice_headers_query_ds" resultTarget="ap7120_invoice_headers_result_ds" style="width:100%;border:none;">
+                <a:formToolBar>
+                    <a:hBox labelWidth="100">
+                        <a:lov name="owner_company_name" bindTarget="ap7120_invoice_headers_query_ds" prompt="客户">
+                            <a:events>
+                                <a:event name="enterdown" handler="ap7120_ap_invoice_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="business_unit_name" bindTarget="ap7120_invoice_headers_query_ds" prompt="客户业务实体">
+                            <a:events>
+                                <a:event name="enterdown" handler="ap7120_ap_invoice_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:textField name="invoice_num" bindTarget="ap7120_invoice_headers_query_ds" prompt="发票编号">
+                            <a:events>
+                                <a:event name="enterdown" handler="ap7120_ap_invoice_query"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:datePicker name="invoice_date_from" bindTarget="ap7120_invoice_headers_query_ds" prompt="创建时间从">
+                            <a:events>
+                                <a:event name="enterdown" handler="ap7120_ap_invoice_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="invoice_date_to" bindTarget="ap7120_invoice_headers_query_ds" prompt="创建时间至">
+                            <a:events>
+                                <a:event name="enterdown" handler="ap7120_ap_invoice_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:comboBox name="invoice_type_desc" bindTarget="ap7120_invoice_headers_query_ds" prompt="发票类型">
+                            <a:events>
+                                <a:event name="enterdown" handler="ap7120_ap_invoice_query"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="pur_header_num" bindTarget="ap7120_invoice_headers_query_ds" prompt="订单编号">
+                            <a:events>
+                                <a:event name="enterdown" handler="ap7120_ap_invoice_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="rcv_trx_number" bindTarget="ap7120_invoice_headers_query_ds" prompt="接收编号">
+                            <a:events>
+                                <a:event name="enterdown" handler="ap7120_ap_invoice_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="check_number" bindTarget="ap7120_invoice_headers_query_ds" prompt="付款编号">
+                            <a:events>
+                                <a:event name="enterdown" handler="ap7120_ap_invoice_query"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                    <a:hBox labelWidth="100">
+                        <a:comboBox name="payment_status_desc" bindTarget="ap7120_invoice_headers_query_ds" prompt="付款状态">
+                            <a:events>
+                                <a:event name="enterdown" handler="ap7120_ap_invoice_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <!-- 
+                        <a:comboBox name="" bindTarget="ap7120_invoice_headers_query_ds" prompt="凭证编号">
+                            <a:events>
+                                <a:event name="enterdown" handler="ap7120_ap_invoice_query"/>
+                            </a:events>
+                        </a:comboBox> -->
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="ap7120_invoice_headers_result_grid" bindTarget="ap7120_invoice_headers_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="invoice_num" align="center" prompt="ERP_AP_INVOICE_HEADERS.INVOICE_NUM" renderer="ap7120_invoice_headers_renderer" width="80"/>
+                    <a:column name="owner_company_name" prompt="客户" width="120"/>
+                    <a:column name="business_unit_name" align="left" prompt="客户业务实体" width="100"/>
+                    <a:column name="invoice_date" prompt="ERP_AP_INVOICE_HEADERS.INVOICE_DATE" width="60"/>
+                    <a:column name="invoice_currency_code" prompt="ERP_AP_INVOICE_HEADERS.INVOICE_CURRENCY_CODE" width="30"/>
+                    <a:column name="invoice_amount" align="right" prompt="ERP_AP_INVOICE_HEADERS.INVOICE_AMOUNT" renderer="ap7120_invoice_headers_number_renderer" width="70"/>
+                    <a:column name="amount_paid" align="right" prompt="已付" renderer="ap7120_invoice_headers_number_renderer" width="70"/>
+                    <a:column name="amount_unpaid" align="right" prompt="未付" renderer="ap7120_invoice_headers_number_renderer" width="70"/>
+                    <a:column name="payment_status_desc" prompt="付款状态" width="45"/>
+                    <a:column name="check_number" align="center" prompt="关联付款单" renderer="ap7120_invoice_headers_renderer" width="60"/>
+                    <a:column name="invoice_type_desc" prompt="ERP_AP_INVOICE_HEADERS.INVOICE_TYPE" width="60"/>
+                    <a:column name="payment_method_code" prompt="ERP_AP_INVOICE_HEADERS.PAYMENT_METHOD_TYPE" width="60"/>
+                    <a:column name="pur_header_num" align="center" prompt="关联订单" renderer="ap7120_invoice_headers_renderer" width="60"/>
+                    <a:column name="rcv_trx_number" align="center" prompt="关联接收事务" renderer="ap7120_invoice_headers_renderer" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

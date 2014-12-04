@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du $ 
+    $Date: 2013-1-30 下午03:14:06 $  
+    $Revision: 1.0 $ 
+    $Purpose: 非寄销开票单创建功能主页面(界面1) $
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="acp.acp_company_list" rootPath="company_name_list"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="acp_5010_bill_detail_link" url="${/request/@context_path}/modules/acp/ACP5010/acp_bill_detail.screen"/>
+        <a:link id="acp_5010_bill_submit_link" url="${/request/@context_path}/modules/acp/ACP5010/acp_bill_create_submit.svc"/>
+        <script><![CDATA[
+
+            function acp5010_bill_query() {
+                $('acp_5010_result_ds').query();
+            }
+            
+            function acp5010_billDetail(value, record, name) {
+                var billSourceId = record.get('bill_source_id');
+                var unitPrice = record.get('unit_price');
+                if (record.get('bill_source_id')) {
+                    return '<a href="javascript:acp5010_openBillDetail(' + billSourceId + ')">' + unitPrice + '</a>';
+                }
+            }
+            
+            function acp5010_openBillDetail(billSourceId) {
+                new Aurora.Window({
+                    id: 'acp5010_bill_detail_window',
+                    url: $('acp_5010_bill_detail_link').getUrl() + '?bill_source_id=' + billSourceId,
+                    title: '${l:ACP_BILL.BILL_CREATE}',
+                    fullScreen: true
+                });
+            }
+            
+            
+            //未选择供应商时,供应商地点为灰色不可选
+            
+            function acp5010_gridupdate(dataSet, record, name, value, oldvalue) {
+                if (name == 'vendor_name') {
+                    var field = record.getField('vendor_site_name');
+                    if (!Aurora.isEmpty(value)) {
+                        field.setReadOnly(false);
+                    } else {
+                        field.setReadOnly(true);
+                    }
+                }
+            }
+            
+            // 创建并提交
+            
+            function acp_5010_release() {
+                var ds = $('acp_5010_result_ds');
+                var records = ds.getSelected();
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:ACP_BILL.PLEASE_SELECT_CREATE_AND_POST}');
+                    return false;
+                } else {
+                    Aurora.showConfirm('${l:HAP_PROMPT}', '${l:ACP_BILL.CONFIRM_CREATE_AND_POST}?', function() {
+            
+                        Aurora.Masker.mask(Ext.getBody());
+                        var datas = [];
+                        datas = {
+                            action_type: 'RELEASED'
+                        };
+            
+                        var lines = [];
+                        for (var i = 0;i < records.length;i++) {
+                            var data = {
+                                'bill_source_id': records[i].get('bill_source_id')
+                            };
+                            lines.push(data);
+            
+                        }
+                        datas['lines'] = lines;
+            
+                        Aurora.request({
+                            url: $('acp_5010_bill_submit_link').getUrl(),
+                            para: datas,
+                            success: function(res) {
+                                acp5010_bill_query();
+                                Aurora.Masker.unmask(Ext.getBody());
+                            },
+                            failure: function(res) {
+                                Aurora.Masker.unmask(Ext.getBody());
+                            },
+                            error: function(res) {
+                                Aurora.Masker.unmask(Ext.getBody());
+                            },
+                            scope: this
+                        });
+            
+                    });
+                }
+            }
+            // 创建
+            
+            function acp_5010_create() {
+                var ds = $('acp_5010_result_ds');
+                var records = ds.getSelected();
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:ACP_BILL.PLEASE_SELECT_CREATE}');
+                    return false;
+                } else {
+            
+                    Aurora.showConfirm('${l:HAP_PROMPT}', '${l:ACP_BILL.CONFIRM_CREATE}?', function() {
+                        Aurora.Masker.mask(Ext.getBody());
+                        var datas = [];
+                        datas = {
+                            action_type: 'NEW'
+                        };
+            
+                        var lines = [];
+                        for (var i = 0;i < records.length;i++) {
+                            var data = {
+                                'bill_source_id': records[i].get('bill_source_id')
+                            };
+                            lines.push(data);
+            
+                        }
+                        datas['lines'] = lines;
+                        Aurora.request({
+                            url: $('acp_5010_bill_submit_link').getUrl(),
+                            para: datas,
+                            success: function(res) {
+                                acp5010_bill_query();
+                                Aurora.Masker.unmask(Ext.getBody());
+                            },
+                            failure: function(res) {
+                                Aurora.Masker.unmask(Ext.getBody());
+                            },
+                            error: function(res) {
+                                Aurora.Masker.unmask(Ext.getBody());
+                            },
+                            scope: this
+                        });
+            
+            
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp_5010_data_source_ds" loadData="true" lookupCode="DATA_SOURCE"/>
+            <a:dataSet id="acp_5010_company_name_list" fetchAll="true" loadData="true" model="public.fnd_assign_company_list"/>
+            <a:dataSet id="acp_5010_vendor_site_name_list" autoQuery="true" model="public.pur_vendor_sites_lov"/>
+            <a:dataSet id="acp_5010_query_ds">
+                <a:fields>
+                    <a:field name="vendor_name" autoComplete="true" autoCompleteField="vendor_name" lovHeight="490" lovService="public.pur_vendors_v_lov" lovWidth="490">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_name" autoComplete="true" autoCompleteField="item_name" lovHeight="490" lovService="public.inv_system_items_lov" lovWidth="490">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_name" to="item_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_name" defaultValue="${/session/@default_company_desc}" displayField="company_desc" options="acp_5010_company_name_list" required="true" returnField="company_name" valueField="company_desc"/>
+                    <a:field name="vendor_site_name" displayField="vendor_site_name" options="acp_5010_vendor_site_name_list" readOnly="true" returnField="vendor_site_name" valueField="vendor_site_name"/>
+                    <a:field name="currency_code" autoComplete="true" autoCompleteField="currency_code" lovHeight="490" lovService="public.pur_currency_code_lov" lovWidth="490">
+                        <a:mapping>
+                            <a:map from="currency_code" to="currency_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="data_source" displayField="code_value_name" options="acp_5010_data_source_ds" returnField="data_source" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="acp5010_gridupdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="acp_5010_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="acp.ACP5010.acp_bill_source" queryDataSet="acp_5010_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="bill_source_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton click="acp_5010_release" text="创建并发布" width="100"/>
+            <a:gridButton click="acp_5010_create" text="创建" width="100"/>
+            <a:gridButton bind="acp_5010_grid" type="excel" width="100"/>
+            <a:gridButton bind="acp_5010_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="acp_5010_query_form" bindTarget="acp_5010_query_ds" resultTarget="acp_5010_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox>
+                    <a:lov name="vendor_name" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.VENDOR_NAME"/>
+                    <a:lov name="item_name" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.ITEM_NAME"/>
+                    <a:comboBox name="company_name" bindTarget="acp_5010_query_ds" prompt="ACP_BILL.COMPANY_NAME"/>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody style="margin-left:5px">
+                <a:hBox>
+                    <a:comboBox name="vendor_site_name" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.VENDOR_SITE_CODE_NAME"/>
+                    <a:lov name="currency_code" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.CURRENCY_CODE"/>
+                    <a:comboBox name="data_source" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.DATA_SOURCE"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:datePicker name="creation_date_from" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.CREATION_DATE_FROM"/>
+                    <a:datePicker name="creation_date_to" bindTarget="acp_5010_query_ds" prompt="ACP_BILL_SOURCE.CREATION_DATE_TO"/>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="acp_5010_grid" bindTarget="acp_5010_result_ds" marginHeight="180" marginWidth="65" navBar="true">
+            <a:columns>
+                <a:column name="company_name" align="left" prompt="公司" sortable="true" width="80"/>
+                <a:column name="vendor_code" align="center" prompt="供应商编码" sortable="true" width="80"/>
+                <a:column name="vendor_name" align="left" prompt="供应商名称" sortable="true" width="100"/>
+                <a:column name="vendor_site_name" align="left" prompt="供应商地点" sortable="true" width="100"/>
+                <a:column name="item_code" align="center" prompt="物料编码" sortable="true" width="100"/>
+                <a:column name="item_name" align="left" prompt="物料描述" sortable="true" width="120"/>
+                <a:column name="quantity" align="right" prompt="可开票数量" sortable="true" width="60"/>
+                <a:column name="unit_meas_lookup_code" align="center" prompt="开票单位" sortable="true" width="60"/>
+                <a:column name="unit_price" align="right" prompt="开票单价" renderer="acp5010_billDetail" sortable="true" width="60"/>
+                <a:column name="amount" align="right" prompt="开票金额" sortable="true" width="60"/>
+                <a:column name="currency_code" align="center" prompt="币种" sortable="true" width="60"/>
+                <a:column name="creation_date" align="center" prompt="请求提交时间" sortable="true" width="120"/>
+                <a:column name="data_source" align="center" prompt="数据来源" sortable="true" width="50"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

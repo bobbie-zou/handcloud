@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="fnd.SYN0000.fnd_job_data" rootpath="fnd_job_data"/>
+        <a:model-query model="fnd.SYN0000.fnd_mail_data" rootpath="fnd_mail_data"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="syn_data_synchronization_mail_define_save_link" model="db.syn_synchronization_job_pkg.create_synchronization_mail" modelaction="update"/>
+        <a:link id="syn_data_synchronization_job_define_save_link" model="db.syn_synchronization_job_pkg.create_synchronization_job" modelaction="update"/>
+        <script><![CDATA[
+            function job_save() {
+                var records = $('data_synchronization_job_ds').getAll();
+                var paraRecord = $('data_synchronization_job_ds').getCurrentRecord();
+                if (records[0].get('data_synchronization_job_code').length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:ENTER_JOB_CODE}!');
+                    return;
+                } else {
+                    Aurora.request({
+                        url: /*${/request/@context_path}/autocrud/fnd.syn_data_synchronization_job_define_save/update*/$('syn_data_synchronization_job_define_save_link').getUrl(),
+                        para: {
+                            job_desc: paraRecord.get('data_synchronization_job_desc'),
+                            job_code: paraRecord.get('data_synchronization_job_code')
+                        },
+                        scope: this,
+                        success: job_return
+                    });
+                }
+            }
+            
+            function mail_save() {
+                var records = $('mail_address_ds').getAll();
+                var paraRecords = $('mail_address_ds').getCurrentRecord();
+                var paraRecord = $('data_synchronization_job_ds').getCurrentRecord();
+                if (records[0].get('mail_address_one').length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:ENTER_MAIL_ADDRESS}!');
+                    return;
+                } else {
+                    Aurora.request({
+                        url: /*${/request/@context_path}/autocrud/fnd.syn_data_synchronization_mail_define_save/update*/$('syn_data_synchronization_mail_define_save_link').getUrl(),
+                        para: {
+                            job_desc: paraRecord.get('data_synchronization_job_desc'),
+                            job_code: paraRecord.get('data_synchronization_job_code'),
+                            mail_address: paraRecords.get('mail_address_one')
+                        },
+                        scope: this,
+                        success: mail_return
+                    });
+                }
+            }
+            
+            function job_return(res) {
+                Aurora.showMessage('${l:PROMPT}', '${l:CREATE_JOB_SUCCESS}!');
+            }
+            
+            function mail_return(res) {
+                Aurora.showMessage('${l:PROMPT}', '${l:EBS_SAVE_SUCCESS}!');
+            }]]></script>
+        <a:dataSets>
+            <a:dataSet id="data_synchronization_job_ds" autoCreate="true">
+                <a:datas dataSource="model/fnd_job_data"/>
+                <a:fields>
+                    <a:field name="data_synchronization_job_code" defaultValue="${/model/fnd_job_data/record/@job_code}"/>
+                    <a:field name="data_synchronization_job_desc" defaultValue="${/model/fnd_job_data/record/@job_desc}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="enterDown" handler="job_save"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="ds_one" autoCreate="true">
+                <a:fields>
+                    <a:field name="test" defaultValue="${l:JOB_WORD_DESCRIPTION}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="mail_address_ds" autoCreate="true">
+                <a:datas dataSource="model/fnd_mail_data"/>
+                <a:fields>
+                    <a:field name="mail_address_one" defaultValue="${/model/fnd_mail_data/record/@recipient_mail}"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" title="JOB_DEFINE" width="800">
+                <a:textField name="data_synchronization_job_code" bindTarget="data_synchronization_job_ds" prompt="SYS_ALERT_RULE_JOB_CODES.JOB_CODE_CODE" width="200"/>
+                <a:textField name="data_synchronization_job_desc" bindTarget="data_synchronization_job_ds" prompt="ACP_INVOICE_TYPES.DESCRIPTION" width="200"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="job_save" text="HAP_CREATE"/>
+            </a:hBox>
+            <a:hBox>
+                <a:label name="test" bindTarget="ds_one" width="700"/>
+            </a:hBox>
+            <a:form column="1" title="MAIL_NOTIFICATION" width="800">
+                <a:textField name="mail_address_one" bindTarget="mail_address_ds" prompt="EMAIL_ADDRESS" width="200"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="mail_save" text="HAP_SAVE"/>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

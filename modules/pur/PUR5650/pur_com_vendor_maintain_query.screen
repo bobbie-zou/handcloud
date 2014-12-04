@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-9-2 下午9:28:23  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="pur5650_vendor_maintain_edit_link" url="${/request/@context_path}/modules/pur/PUR5650/pur_com_vendor_edit.screen"/>
+        <a:link id="pur5650_vendor_maintain_create_link" url="${/request/@context_path}/modules/pur/PUR5650/pur_com_vendor_create.screen"/>
+        <script><![CDATA[
+            var current_company_id = '${/session/@default_company_id}';
+            var current_company_desc = '${/session/@default_company_desc}';
+            
+            
+            function pur5650_result_query(ds) {
+                current_company_id = $('pur5650_vendor_maintain_query_ds').getAt(0).get('company_id');
+                current_company_desc = $('pur5650_vendor_maintain_query_ds').getAt(0).get('company_desc');
+            }
+            
+            /* function pur5650_result_add(ds, record, index) {
+                record.set('company_id', current_company_id);
+                record.set('company_desc', current_company_desc);
+                record.getField('vendor_code').setLovPara('company_id', current_company_id);
+            } */
+            
+            //打开明细页面
+            
+            function pur5650_open_win(id1,id2) {
+                new Aurora.Window({
+                    url: $('pur5650_vendor_maintain_edit_link').getUrl() + '?vendor_id=' + id1+'&company_id='+id2,
+                    id: 'pur5650_vendor_maintain_edit_win',
+                    title: '${l:PUR5650_VENDOR_MAINTAIN.CREATE_COMPANY-WIDE}',
+                    fullScreen: true
+                });
+            }
+
+            
+            //是否有权限编辑
+            
+            
+            function pur5650_edit_render(value, record, name) {
+                if (!record.isNew) {
+                    return '<a href="javascript:pur5650_open_win(' + record.get('vendor_id') + ','+ current_company_id + ')">${l:HAP_EDIT}</a>';
+                }
+                return '';
+            }
+            
+            //版本号保留一位小数
+            function pur5650_version_number_render(value,record,name){
+                return Aurora.formatNumber(value,1);
+            }
+            
+            //添加供应商
+            function pur5650_add(){
+                new Aurora.Window({
+                    url:$('pur5650_vendor_maintain_create_link').getUrl()+'?company_id='+current_company_id,
+                    id:'pur5650_vendor_maintain_create_win',
+                    title:'${l:PUR5650_VENDOR_MAINTAIN.CREATE_COMPANY-WIDE}',
+                    fullScreen:true
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5650_vendor_type_ds" autoQuery="true" fetchAll="true" model="public.pur_sys_vendor_type_lov"/>
+            <a:dataSet id="pur5650_data_source_ds" lookupCode="DATA_SOURCE"/>
+            <a:dataSet id="pur5650_org_vendor_status_ds" lookupCode="PUR_ORG_VENDOR_STATUS"/>
+            <a:dataSet id="pur5650_vendor_maintain_query_ds">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@default_company_id}"/>
+                    <a:field name="company_desc" autoComplete="true" defaultValue="${/session/@default_company_desc}" lovGridHeight="300" lovHeight="480" lovService="public.fnd_companies_lov" lovWidth="600" required="true" title="公司查询">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_short_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_type_id"/>
+                    <a:field name="vendor_type_name" displayField="description" options="pur5650_vendor_type_ds" returnField="vendor_type_id" valueField="vender_type_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur5650_vendor_maintain_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="pur.PUR5650.pur_com_vendor_maintain" queryDataSet="pur5650_vendor_maintain_query_ds" selectable="true">
+                <a:fields>
+                    <!-- <a:field name="vendor_code" autoComplete="true" lovGridHeight="300" lovHeight="450" lovService="public.pur_sys_vendors_lov" lovWidth="500" title="供应商查询">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="short_name" to="short_name"/>
+                            <a:map from="full_name" to="full_name"/>
+                            <a:map from="version_number" to="version_number"/>
+                            <a:map from="vendor_type_name" to="vendor_type_name"/>
+                        </a:mapping>
+                    </a:field> -->
+                    <a:field name="vendor_type_id"/>
+                    <a:field name="vendor_type_name" displayField="description" options="pur5650_vendor_type_ds" returnField="vendor_type_id" valueField="vender_type_id"/>
+                    <a:field name="vendor_status"/>
+                    <a:field name="vendor_status_display" displayField="code_value_name" options="pur5650_org_vendor_status_ds" returnField="vendor_status" valueField="code_value"/>
+                    <a:field name="org_enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="pur5650_result_query"/>
+                    <!-- <a:event name="add" handler="pur5650_result_add"/> -->
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="pur5650_vendor_maintain_grid" click="pur5650_add" style="margin-left:20px;" text="HAP_NEW" width="100"/>
+            <a:gridButton bind="pur5650_vendor_maintain_grid" text="HAP_SAVE" type="save" width="100"/>
+            <a:gridButton bind="pur5650_vendor_maintain_grid" text="HAP_CLEAR" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="pur5650_vendor_maintain_query_ds" resultTarget="pur5650_vendor_maintain_result_ds" style="width:100%;border:none;">
+            <a:formToolBar>
+                <a:textField style="width:100%;display:none;"/>
+                <a:hBox>
+                    <a:lov name="company_desc" bindTarget="pur5650_vendor_maintain_query_ds" prompt="EXP_DOCUMENT_AUTHORITIES_COMPANY"/>
+                    <a:textField name="vendor_code" bindTarget="pur5650_vendor_maintain_query_ds" prompt="VENDER_CODE"/>
+                    <a:textField name="full_name" bindTarget="pur5650_vendor_maintain_query_ds" prompt="PUR_SYS_VENDOR_BASICS.FULL_NAME"/>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox>
+                    <a:comboBox name="vendor_type_name" bindTarget="pur5650_vendor_maintain_query_ds" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.SUPPLIER_CATEGORY"/>
+                    <a:textField name="agent_brand" bindTarget="pur5650_vendor_maintain_query_ds" prompt="PUR_VENDORS.AGENT_BRAND"/>
+                    <a:textField name="linkman_name" bindTarget="pur5650_vendor_maintain_query_ds" prompt="CSH_BANK_BRANCHES.CONTACT_NAME"/>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="pur5650_vendor_maintain_grid" bindTarget="pur5650_vendor_maintain_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="vendor_code" align="center" prompt="VENDER_CODE" width="100"/>
+                <a:column name="version" align="center" prompt="PUR_SYS_VENDOR_BASICS.VERSION_NUM" renderer="pur5650_version_number_render" width="50"/>
+                <a:column name="vendor_type_name" align="left" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.SUPPLIER_CATEGORY" width="80"/>
+                <a:column name="short_name" align="left" prompt="PUR_SYS_VENDOR_BASICS.SHORT_NAME" width="150"/>
+                <a:column name="full_name" align="left" prompt="PUR_SYS_VENDOR_BASICS.FULL_NAME" width="200"/>
+                <!-- <a:column name="vendor_status_display" align="left" prompt="供应商状态" width="80"/> -->
+                <!-- <a:column name="org_enabled_flag" align="center" prompt="启用" width="50"/> -->
+                <a:column name="edit" align="center" prompt="HAP_EDIT" renderer="pur5650_edit_render" width="50"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-1-30 下午1:51:57  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" model="flex.fnd_flex_format_query" rootPath="flex_format_init_source"/>
+    </a:init-procedure>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="_form_check_link" model="flex.fnd_flex_format_check_format" modelaction="execute"/>
+        <style><![CDATA[
+        .lovForm .layout-th {
+            font-size:11px;
+        }
+        ]]></style>
+        <div/>
+        <script language="JavaScript"><![CDATA[
+          
+            function _lovok(){
+                var record = $('_SYS_LOV_FORM_DS').getCurrentRecord();
+                $('${/parameter/@lovid}').commit(record);
+            }
+            
+            function _lovquery(){
+                $('SYS_LOV_RESULT_DS').query();
+            }
+            
+            function _sys_lov_form_ds_update(ds, record, name, value, oldvalue){
+                if(name == 'flex_format_category'){
+                    _clear_sys_lov_form(record);
+                    if(value == 'STRING'){
+                        record.getMeta().getField('string_format_desc').setRequired(true);
+                		record.getMeta().getField('string_format_desc').setReadOnly(false);
+                    }else if(value == 'DATE'){
+                        record.getMeta().getField('date_format').setRequired(true);
+                		record.getMeta().getField('date_format').setReadOnly(false);
+                    }else if(value == 'NUMBER'){
+                        record.getMeta().getField('number_format_desc').setRequired(true);
+                		record.getMeta().getField('number_format_desc').setReadOnly(false);
+                		record.getMeta().getField('decimal_number').setRequired(true);
+		                record.getMeta().getField('decimal_number').setReadOnly(false);
+		                record.getMeta().getField('currency_symbol').setRequired(false);
+		                record.getMeta().getField('currency_symbol').setReadOnly(false);
+		                record.getMeta().getField('tausendstel_flag').setRequired(true);
+		                record.getMeta().getField('tausendstel_flag').setReadOnly(false);
+                    }
+                    
+                }
+            }
+            
+            function _clear_sys_lov_form(record){
+                record.set('flex_format_id', '');
+                
+                record.set('number_format', '');
+                record.set('number_format_desc', '');
+                record.getMeta().getField('number_format_desc').setRequired(false);
+                record.getMeta().getField('number_format_desc').setReadOnly(true);
+                
+                record.set('string_format', '');
+                record.set('string_format_desc', '');
+                record.getMeta().getField('string_format_desc').setRequired(false);
+                record.getMeta().getField('string_format_desc').setReadOnly(true);
+                
+                record.set('decimal_number', '');
+                record.getMeta().getField('decimal_number').setRequired(false);
+                record.getMeta().getField('decimal_number').setReadOnly(true);
+                
+                record.set('date_format', '');
+                record.getMeta().getField('date_format').setRequired(false);
+                record.getMeta().getField('date_format').setReadOnly(true);
+                
+                record.set('currency_code', '');
+                record.set('currency_symbol', '');
+                record.getMeta().getField('currency_symbol').setRequired(false);
+                record.getMeta().getField('currency_symbol').setReadOnly(true);
+                
+                record.set('tausendstel_flag', 'N');
+                record.getMeta().getField('tausendstel_flag').setRequired(false);
+                record.getMeta().getField('tausendstel_flag').setReadOnly(true);
+                
+            	record.set('display_example', '');
+            }
+            
+            
+            
+            function _format_submit(){
+                
+                var format_ds = $('_SYS_LOV_FORM_DS');
+                var record = format_ds.getCurrentRecord();
+                
+                if(!format_ds.validate()){
+                    return;
+                }
+                
+             	Aurora.request({
+                	url: /*exp_report_delete.svc*/
+                    $('_form_check_link').getUrl(),
+                    para: record.data,
+                    success: function(rec) {
+                        var result = rec.result;
+                        var record = format_ds.getCurrentRecord();
+                        record.set('flex_format_id',result.x_flex_format_id);
+                        record.set('display_example',result.x_display_example);
+                        _lovok();
+                        
+                    },
+                    scope: this
+                });   
+            }
+            
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="format_lov_number_formats_ds" fetchAll="true" loadData="true" model="flex.fnd_flex_format_number_formats"/>
+            <a:dataSet id="format_lov_decimal_numbers_ds" fetchAll="true" loadData="true" model="flex.fnd_flex_format_decimal_numbers"/>
+            <a:dataSet id="format_lov_string_formats_ds" fetchAll="true" loadData="true" model="flex.fnd_flex_format_string_formats"/>
+            <a:dataSet id="format_lov_date_formats_ds" fetchAll="true" loadData="true" model="flex.fnd_flex_format_date_formats"/>
+            <a:dataSet id="format_lov_currency_symbols_ds" fetchAll="true" loadData="true" model="flex.fnd_flex_format_currency_symbols"/>
+            <a:dataSet id="format_lov_flex_format_category_ds" lookupCode="FLEX_FORMAT_CATEGORY"/>
+            <a:dataSet id="_SYS_LOV_FORM_DS">
+                <a:datas dataSource="/model/flex_format_init_source"/>
+                <a:fields>
+                    <a:field name="flex_format_id"/>
+                    <a:field name="flex_format_category"/>
+                    <a:field name="flex_format_category_desc" displayField="code_value_name" options="format_lov_flex_format_category_ds" required="true" returnField="flex_format_category" valueField="code_value"/>
+                    <a:field name="number_format"/>
+                    <a:field name="number_format_desc" displayField="number_format_desc" options="format_lov_number_formats_ds" readOnly="true" returnField="number_format" valueField="number_format"/>
+                    <a:field name="decimal_number" displayField="decimal_number" options="format_lov_decimal_numbers_ds" readOnly="true" returnField="decimal_number" valueField="decimal_number"/>
+                    <a:field name="string_format"/>
+                    <a:field name="string_format_desc" displayField="string_format_desc" options="format_lov_string_formats_ds" readOnly="true" returnField="string_format" valueField="string_format"/>
+                    <a:field name="date_format" displayField="date_format" options="format_lov_date_formats_ds" readOnly="true" returnField="date_format" valueField="date_format"/>
+                    <a:field name="currency_code"/>
+                    <a:field name="currency_symbol" displayField="currency_symbol" options="format_lov_currency_symbols_ds" readOnly="true" returnField="currency_code" valueField="currency_code"/>
+                    <a:field name="tausendstel_flag" checkedValue="Y" defaultValue="N" readOnly="true" uncheckedValue="N"/>
+                    <a:field name="display_example"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="_sys_lov_form_ds_update"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <div id="lov_div">
+            <!-- <a:autoForm bindTarget="_SYS_LOV_FORM_DS" className="lovForm" column="2" labelWidth="${/parameter/@lovlabelwidth}" model="flex.fnd_flex_values_lov" style="margin:7px;" title="查询条件" width="${/parameter/@innerwidth}"/> -->
+            <!-- 增加了确定按钮-->
+            <a:form labelWidth="140" width="500">
+                <a:box column="2" labelWidth="130">
+                    <a:comboBox name="flex_format_category_desc" bindTarget="_SYS_LOV_FORM_DS" prompt="数据格式类型"/>
+                    <a:comboBox name="date_format" bindTarget="_SYS_LOV_FORM_DS" prompt="日期格式"/>
+                    <a:comboBox name="string_format_desc" bindTarget="_SYS_LOV_FORM_DS" prompt="字符格式"/>
+                </a:box>
+                <a:box column="2" labelWidth="130">
+                    <a:comboBox name="number_format_desc" bindTarget="_SYS_LOV_FORM_DS" prompt="数字格式"/>
+                    <a:comboBox name="decimal_number" bindTarget="_SYS_LOV_FORM_DS" prompt="小数位数"/>
+                    <a:comboBox name="currency_symbol" bindTarget="_SYS_LOV_FORM_DS" prompt="货币符号"/>
+                    <a:checkBox name="tausendstel_flag" bindTarget="_SYS_LOV_FORM_DS" checkedValue="Y" prompt="千分位显示" uncheckedValue="N"/>
+                </a:box>
+            </a:form>
+            <a:hBox>
+                <a:button click="_format_submit" style="margin-left:7px;" text="确定"/>
+            </a:hBox>
+        </div>
+        <script><![CDATA[
+        	
+        		
+        		Aurora.onReady(function(){
+        		    /* var tfs = Ext.fly('lov_div').select('input.item-textField');
+	        		if(tfs && tfs.elements && tfs.elements[0]){
+	        		    tfs.elements[0].focus();
+	        		} */
+	        		// if('${/parameter/@flex_format_id}'!=''){
+	        		    // $('SYS_LOV_RESULT_DS').queryurl+='&flex_format_id=${/parameter/@flex_format_id}';
+	        		// }
+        		});
+        	
+        ]]></script>
+    </a:view>
+</a:screen>

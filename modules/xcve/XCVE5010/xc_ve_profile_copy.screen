@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-5 下午4:56:34  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="xcve5010_xc_ve_profiles_query_link" url="${/request/@context_path}/modules/xcve/XCVE5010/xc_ve_profiles_query.screen"/>
+        <a:link id="xcve5010_xc_ve_profile_copy_link" model="db.xc_ve_profile_pkg.xc_ve_profile_copy" modelaction="execute"/>
+        <script><![CDATA[
+            function xcve5010_dateValidator(record, name, value) {
+                var date_from = record.get('estimate_date_from');
+                if ((date_from != "") && (date_from > value)) {
+                    return '${l:XCVE.PROFILE_START_END_DATE_ERROR}';
+                } else {
+                    return true;
+                }
+            }
+            
+            function xcve5010_backToQuery() {
+                Aurora.go($('xcve5010_xc_ve_profiles_query_link').getUrl());
+            }
+            
+            function xcve5010_copy() {
+                if ($('xcve5010_ve_profiles_new_ds').validate()) {
+                    var record = $('xcve5010_ve_profiles_new_ds').getCurrentRecord();
+                    Aurora.request({
+                        url: $('xcve5010_xc_ve_profile_copy_link').getUrl(),
+                        para: record.data,
+                        success: function(response) {
+                            var message = '${l:XCVE.REFERENCE_PROFILE_CREATE_SUCCESSFULLY}' + response.result.ve_profile_num;
+                        	Aurora.showMessage('${l:PROMPT}', message, xcve5010_pageRedirect);
+                        },
+                        failture: function() {},
+                        error: function() {},
+                        scope: this,
+                        sync: true
+                    });
+                }
+            }
+            
+            function xcve5010_pageRedirect() {
+                Aurora.go($('xcve5010_xc_ve_profiles_query_link').getUrl());
+            }
+            
+            function xcve5010_changeRefPeriod(combo, value, oldValue){
+                $('xcve5010_ref_version_number_ds').setQueryParameter('period_name', value);
+                $('xcve5010_ref_version_number_ds').query();
+                
+                $('xcve5010_gld_period_ds').setQueryParameter('period_name', value);
+                $('xcve5010_gld_period_ds').query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="xcve5010_ref_period_ds" loadData="true" model="xcve.XCVE5010.xc_ve_profile_copy_ref_period_combo"/>
+            <a:dataSet id="xcve5010_ref_version_number_ds" fetchAll="true" model="xcve.XCVE5010.xc_ve_profile_copy_version_number_combo"/>
+            <a:dataSet id="xcve5010_gld_period_ds" fetchAll="true" model="xcve.XCVE5010.xc_ve_profile_copy_gld_period_combo"/>
+            <a:dataSet id="xcve5010_ve_profiles_new_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@company_id}"/>
+                    <a:field name="ref_period_name" displayField="period_name" options="xcve5010_ref_period_ds" required="true" returnField="ref_period_name" valueField="period_name"/>
+                    <a:field name="ref_version_number" displayField="version_number" options="xcve5010_ref_version_number_ds" required="true" returnField="version_number" valueField="version_number">
+                        <a:mapping>
+                            <a:map from="ve_profile_id" to="ref_ve_profile_id"/>
+                            <a:map from="ve_profile_num" to="ref_ve_profile_num"/>
+                            <a:map from="ve_template_id" to="ref_ve_template_id"/>
+                            <a:map from="ve_template_desc" to="ref_ve_template_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="ref_ve_profile_id"/>
+                    <a:field name="ref_ve_profile_num" readOnly="true"/>
+                    <a:field name="ref_ve_template_id"/>
+                    <a:field name="ref_ve_template_desc" readOnly="true"/>
+                    <a:field name="period_name" displayField="period_name" options="xcve5010_gld_period_ds" required="true" returnField="period_name" valueField="period_name">
+                        <a:mapping>
+                            <a:map from="start_date" to="estimate_date_from"/>
+                            <a:map from="end_date" to="estimate_date_to"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="estimate_date_from" required="true"/>
+                    <a:field name="estimate_date_to" required="true" validator="xcve5010_dateValidator"/>
+                    <a:field name="ve_profile_desc" required="true"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet column="2" labelWidth="120" title="XCVE.PROFILE_REFERENCE_CREATE" width="600">
+                <a:comboBox name="ref_period_name" bindTarget="xcve5010_ve_profiles_new_ds" prompt="XCVE.PROFILE_REFERENCE_PERIOD_MONTH">
+                    <a:events>
+                        <a:event name="change" handler="xcve5010_changeRefPeriod"/>
+                    </a:events>
+                </a:comboBox>
+                <a:comboBox name="ref_version_number" bindTarget="xcve5010_ve_profiles_new_ds" prompt="XCVE_REF_PROFILE.VERSION_NUM"/>
+                <a:textField name="ref_ve_profile_num" bindTarget="xcve5010_ve_profiles_new_ds" prompt="XCVE_REF_PROFILE.VE_PROFILE_NUM"/>
+                <a:textField name="ref_ve_template_desc" bindTarget="xcve5010_ve_profiles_new_ds" prompt="XCVE_REF_PROFILE.TEMPLATE"/>
+                <a:textField name="ve_profile_desc" bindTarget="xcve5010_ve_profiles_new_ds" prompt="XCVE_REF_PROFILE.VE_PROFILE_DESC"/>
+                <a:comboBox name="period_name" bindTarget="xcve5010_ve_profiles_new_ds" prompt="XCVE_REF_PROFILE.PERIOD_NAME"/>
+                <a:datePicker name="estimate_date_from" bindTarget="xcve5010_ve_profiles_new_ds" prompt="XCVE_REF_PROFILE.ESTIMATE_DATE_FROM" renderer="Aurora.formatDate"/>
+                <a:datePicker name="estimate_date_to" bindTarget="xcve5010_ve_profiles_new_ds" prompt="XCVE_REF_PROFILE.ESTIMATE_DATE_TO" renderer="Aurora.formatDate"/>
+            </a:fieldSet>
+            <a:hBox>
+                <a:button click="xcve5010_backToQuery" text="XCVE.CANCEL_CREATE"/>
+                <a:button click="xcve5010_copy" text="XCVE.REFERENCE_PROFILE"/>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

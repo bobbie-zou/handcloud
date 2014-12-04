@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-7-5 上午10:19:24  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select * from (
+select h.feedback_header_id,
+       h.rfx_header_id,
+       h.rfx_round,
+       h.rfx_version,
+       h.vendor_id,
+       h.vendor_code,
+       h.vendor_desc,
+       rfxh.rfx_method,
+       rfxh.auction_direction,
+       rfxh.auction_rule,
+       rfxh.open_rule,
+       rfxh.ranking_rule,
+       rfxh.auction_ranking,
+       l.item_id,
+       l.item_code,
+       l.item_desc,
+       l.quantity,
+       l.valid_fb_by,
+       (select u.user_desc from sys_user_v u where u.user_id = l.valid_fb_by) feedback_by_desc,
+       l.valid_fb_wholesale_price,
+       RANK() OVER(PARTITION BY h.rfx_header_id ORDER BY decode(rfxh.auction_direction,'FORWARD',-valid_fb_wholesale_price,'REVERSE',valid_fb_wholesale_price)) RK
+  from pur_rfx_feedback_headers h,
+       pur_rfx_feedback_lines   l,
+       pur_rfx_headers rfxh
+ where h.feedback_header_id = l.feedback_header_id
+   and rfxh.rfx_header_id = h.rfx_header_id
+   and l.valid_fb_wholesale_price is not null
+   and h.rfx_header_id =  ${@rfx_header_id}
+   and h.rfx_round = ${@rfx_round}
+   and h.rfx_version = ${@rfx_version}
+   and l.rfx_line_item_id = ${@rfx_line_item_id}
+   and l.abandoned_flag = 'N'   )
+   where (rk = 1 or ranking_rule != 'PREPARE_AUCTION')
+   order by rfx_header_id,rk asc
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

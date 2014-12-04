@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua  
+    $Date: 2013-8-16 上午11:35:33  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="pur5621_select_vendor_user_link" url="${/request/@context_path}/modules/pur/PUR5620/pur_register_select_user.screen"/>
+        <a:link id="pur5621_register_vendor_reject_note_link" url="${/request/@context_path}/modules/pur/PUR5620/pur_register_vendor_reject_note.screen"/>
+        <a:link id="pur5621_register_vendor_reject_link" model="pur.PUR5620.pur_register_vendor_approve" modelaction="execute"/>
+        <a:link id="pur5621_register_vendor_approve_link" model="pur.PUR5620.pur_register_vendor_approve_query" modelaction="execute"/>
+        <script><![CDATA[
+            //未保存数据标识
+            var modify_flag = false;
+            var go_approve_flag = false;
+            //明细保存
+            
+            function pur5621_save() {
+                if ($('pur5621_vendor_register_approve_detail_ds').validate()) {
+                    pur5621_buttonDisable();
+                    $('pur5621_vendor_register_approve_detail_ds').submit();
+                }
+            }
+            
+            //保存成功
+            
+            
+            function pur5621_approve_detail_ds_submitSuccesshandler() {
+                modify_flag = false;
+                // var win = Aurora.showMessage('${l:PROMPT}', '${l:EBS_SAVE_SUCCESS}!', function() {});
+                // setTimeout(function() {
+                // win.close();
+                // }, 3000);
+                Aurora.showConfirm('${l:PROMPT}', '${l:PUR_REGISTER_VENDOR_REJECT_DETAIL.SHOWCONFIRM}？', function() {
+                    pur5621_approve();
+                }, function() {
+                    pur5621_buttonEnable();
+                }, 300, 100);
+            }
+            
+            //审批确认
+            
+            function pur5621_confirm() {
+                if ($('pur5621_vendor_register_approve_detail_ds').validate()) {
+                    if (modify_flag) {
+                        pur5621_save();
+                    } else {
+                        Aurora.showConfirm('${l:PROMPT}', '${l:PUR_REGISTER_VENDOR_REJECT_DETAIL.SHOWCONFIRM}？', function() {
+                            pur5621_buttonDisable();
+                            pur5621_approve();
+                        }, null, 300, 100);
+                    }
+                }
+            }
+            
+            function pur5621_select_user() {
+            
+                new Aurora.Window({
+                    url: $('pur5621_select_vendor_user_link').getUrl(),
+                    title: '${l:PUR_REGISTER_VENDOR_REJECT_DETAIL.WIN_TITLE}',
+                    id: 'pur5621_select_vendor_user_win',
+                    width: 540,
+                    height: 360
+                }).on('close', function() {
+                    if (go_approve_flag) {
+                        Aurora.showConfirm('${l:PROMPT}', '${l:PUR_REGISTER_VENDOR_REJECT_DETAIL.SHOWCONFIRM}？', function() {
+                            pur5621_approve();
+                        }, null, 300, 100);
+            
+                    }
+            
+                });
+            }
+            
+            function pur5621_approve() {
+                var datas = null;
+                Aurora.request({
+                    url: $('pur5621_register_vendor_approve_link').getUrl() + '?vendor_register_id=${/parameter/@vendor_register_id}',
+                    para: datas,
+                    success: function(result) {
+                        pur5621_buttonEnable();
+                        var vendor_code = result.result.vendor_code;
+                        Aurora.showMessage('${l:PROMPT}', '${l:PUR_REGISTER_VENDOR_REJECT_DETAIL.PUR5621_APPROVE}' + vendor_code).on('close', function() {
+                            $('pur5620_vendor_register_detail_win').close();
+                            pur5620_query();
+                        });
+                    },
+                    failure: function() {
+                        pur5621_buttonEnable();
+                    },
+                    error: function() {
+                        pur5621_buttonEnable();
+                    },
+                    scope: this
+                });
+            
+            }
+            
+            function pur5621_approve_detail_ds_handler(ds, record, name, value, oldvalue) {
+                modify_flag = true;
+            }
+            
+            //审批拒绝
+            
+            function pur5621_rfx_reject() {
+                new Aurora.Window({
+                    url: $('pur5621_register_vendor_reject_note_link').getUrl(),
+                    title: '${l:EXP_REPORT_REJECT.P_DESCRIPTION}',
+                    id: 'pur5621_register_vendor_reject_note_window',
+                    width: 450,
+                    height: 300
+                });
+            }
+            
+            function pur5621_reback() {
+                $('pur5620_vendor_register_detail_win').close();
+            }
+            
+            //附件上传下载
+            
+            function pur5621_upload_render(value, record, name) {
+                var atm_line_id = record.get('atm_line_id');
+                if (!record.isNew && atm_line_id) {
+                    return '<a href="javascript:pur5621_download_file(' + atm_line_id + ')">${l:HAP_DOWNLOAD}</a>';
+                }
+            }
+            
+            function pur5621_download_file(id) {
+                var url = "${/request/@context_path}/modules/public/downloadFile.screen?table_name=FND_ATM_LINES&header_id=" + id;
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                    id: 'pur5621_download_window',
+                    width: 850,
+                    height: 500
+                });
+            }
+            
+            function pur5621_buttonDisable() {
+                $('pur5621_approveSaveBtu').disable();
+                $('pur5621_approveConfirmBtu').disable();
+                $('pur5621_approveRejectBtu').disable();
+                $('pur5621_approveBackBtu').disable();
+            }
+            
+            function pur5621_buttonEnable() {
+                $('pur5621_approveSaveBtu').enable();
+                $('pur5621_approveConfirmBtu').enable();
+                $('pur5621_approveRejectBtu').enable();
+                $('pur5621_approveBackBtu').enable();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5621_vendor_register_type_ds" autoQuery="true" fetchAll="true" model="public.pur_sys_vendor_type_lov"/>
+            <a:dataSet id="pur5621_vendor_category_ds" lookupCode="PUR_VENDOR_CATEGORY"/>
+            <a:dataSet id="pur5621_enterprise_nature_ds" lookupCode="PUR_ENTERPRISE_NATURE"/>
+            <a:dataSet id="pur5621_taxpayer_identified_ds" lookupCode="PUR_TAXPAY_IDENTIFIED"/>
+            <a:dataSet id="pur5621_factory_nature_ds" lookupCode="PUR_FACTORY_NATURE"/>
+            <a:dataSet id="pur5621_certificate_ds" lookupCode="PUR_REGISTER_VENDOR_CERTIFICATE"/>
+            <a:dataSet id="pur5621_finance_ds" autoQuery="true" model="pur.PUR5610.pur_reigster_vendor_finance_query" queryUrl="${/request/@context_path}/autocrud/pur.PUR5610.pur_reigster_vendor_finance_query/query?vendor_id=${/parameter/@vendor_register_id}"/>
+            <a:dataSet id="pur5621_vendor_register_approve_detail_ds" autoQuery="true" model="pur.PUR5620.pur_register_vendor_approve_query" queryUrl="${/request/@context_path}/autocrud/pur.PUR5620.pur_register_vendor_approve_query/query?vendor_register_id=${/parameter/@vendor_register_id}">
+                <a:fields>
+                    <a:field name="vendor_register_id" defaultValue="${/parameter/@vendor_register_id}"/>
+                    <a:field name="enabled_flag" checkedValue="Y" readOnly="true" uncheckedValue="N"/>
+                    <a:field name="vendor_category"/>
+                    <a:field name="vendor_category_name" displayField="code_value_name" options="pur5621_vendor_category_ds" returnField="vendor_category" valueField="code_value"/>
+                    <a:field name="vendor_type_id"/>
+                    <a:field name="vendor_type_name" displayField="description" options="pur5621_vendor_register_type_ds" returnField="vendor_type_id" valueField="vender_type_id"/>
+                    <a:field name="payment_term_id"/>
+                    <a:field name="payment_term_name" lovHeight="500" lovLabelWidth="100" lovService="public.csh_payment_terms_lov" lovWidth="600" title="CSH_PAYMENT_TERMS.CSH_PAYMENT_TERMS_QUERY">
+                        <a:mapping>
+                            <a:map from="payment_term_id" to="payment_term_id"/>
+                            <a:map from="payment_term_code" to="payment_term_code"/>
+                            <a:map from="payment_term_name" to="payment_term_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="payment_method_id"/>
+                    <a:field name="payment_method_name" lovHeight="500" lovLabelWidth="100" lovService="public.csh_payment_method_lov" lovWidth="600" title="PUR_SYSTEM_VENDERS.PAYMENT_METHOD">
+                        <a:mapping>
+                            <a:map from="payment_method_id" to="payment_method_id"/>
+                            <a:map from="payment_method_name" to="payment_method_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="tax_type_id"/>
+                    <a:field name="tax_type_name" lovHeight="500" lovService="public.fnd_tax_type_code_lov" lovWidth="500" title="SYS_VENDOR_TAX_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="tax_type_id" to="tax_type_id"/>
+                            <a:map from="tax_type_code" to="tax_type_code"/>
+                            <a:map from="description" to="tax_type_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="tax_type_code"/>
+                    <a:field name="trade_currency_name" lovHeight="510" lovLabelWidth="100" lovService="pur.PUR5620.pur_currency_code_lov" lovWidth="580" title="CURRENCY_SELECTION">
+                        <a:mapping>
+                            <a:map from="currency_code" to="trade_currency_code"/>
+                            <a:map from="currency_name" to="trade_currency_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="trade_currency_code"/>
+                    <a:field name="enterprise_nature"/>
+                    <a:field name="enterprise_nature_name" displayField="code_value_name" options="pur5621_enterprise_nature_ds" returnField="enterprise_nature" valueField="code_value"/>
+                    <a:field name="taxpayer_type"/>
+                    <a:field name="taxpayer_type_name" displayField="code_value_name" options="pur5621_taxpayer_identified_ds" returnField="taxpayer_type" valueField="code_value"/>
+                    <a:field name="factory_nature"/>
+                    <a:field name="factory_nature_name" displayField="code_value_name" options="pur5621_factory_nature_ds" returnField="factory_nature" valueField="code_value"/>
+                    <a:field name="iso9001_flag"/>
+                    <a:field name="iso9001_flag_display" displayField="name" options="pur5621_certificate_ds" returnField="iso9001_flag" valueField="code"/>
+                    <a:field name="iso14000_flag"/>
+                    <a:field name="iso14000_flag_display" displayField="name" options="pur5621_certificate_ds" returnField="iso14000_flag" valueField="code"/>
+                    <a:field name="business_license_type" checkedValue="Y" readOnly="true" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur5621_approve_detail_ds_handler"/>
+                    <a:event name="submitsuccess" handler="pur5621_approve_detail_ds_submitSuccesshandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur5620_accounts_ds" autoQuery="true" model="pur.PUR5610.pur_register_vendor_accounts_query" queryUrl="${/request/@context_path}/autocrud/pur.PUR5610.pur_register_vendor_accounts_query/query?vendor_id=${/parameter/@vendor_register_id}">
+                <a:fields>
+                    <a:field name="vendor_id"/>
+                    <a:field name="bank_code" lovHeight="500" lovService="pur.public.csh_banks_lov" lovWidth="500">
+                        <a:mapping>
+                            <a:map from="bank_code" to="bank_code"/>
+                            <a:map from="bank_name" to="bank_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="primary_account_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur5620_site_ds" autoQuery="true" model="pur.PUR5610.pur_register_vendor_addresses_query" queryUrl="${/request/@context_path}/autocrud/pur.PUR5610.pur_register_vendor_addresses_query/query?vendor_id=${/parameter/@vendor_register_id}">
+                <a:fields>
+                    <a:field name="vendor_id"/>
+                    <a:field name="address"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="5620_pur_ctg_ds" autoQuery="true" model="pur.PUR5610.pur_register_vendor_pur_ctg" queryUrl="${/request/@context_path}/autocrud/pur.PUR5610.pur_register_vendor_pur_ctg/query?vendor_id=${/parameter/@vendor_register_id}"/>
+            <a:dataSet id="pur5621_sex_ds" lookupCode="PUR_SEX"/>
+            <a:dataSet id="pur5621_id_type_ds" lookupCode="PUR_ID_TYPE"/>
+            <a:dataSet id="pur5621_vendor_contacts_ds" autoQuery="true" model="pur.PUR5610.pur_register_vendor_contacts_query" queryUrl="${/request/@context_path}/autocrud/pur.PUR5610.pur_register_vendor_contacts_query/query?vendor_id=${/parameter/@vendor_register_id}">
+                <a:fields>
+                    <a:field name="vendor_id"/>
+                    <a:field name="contact_name"/>
+                    <a:field name="contact_sex"/>
+                    <a:field name="contact_sex_name" displayField="code_value_name" options="pur5621_sex_ds" returnField="contact_sex" valueField="code_value"/>
+                    <a:field name="id_type"/>
+                    <a:field name="id_type_name" displayField="code_value_name" options="pur5621_id_type_ds" returnField="id_type" valueField="code_value"/>
+                    <a:field name="id_number"/>
+                    <a:field name="department"/>
+                    <a:field name="position"/>
+                    <a:field name="mobile_phone"/>
+                    <a:field name="telephone"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" readOnly="true" uncheckedValue="N"/>
+                    <a:field name="default_contact_flag" checkedValue="Y" defaultValue="N" readOnly="true" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur5621_attachment_ds" autoQuery="true" model="pur.pur_fnd_atm_lines" queryUrl="${/request/@context_path}/autocrud/pur.pur_fnd_atm_lines/query?source_table_name=PUR_REGISTER_VENDORS&amp;source_pk_value=${/parameter/@vendor_register_id}"/>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton id="pur5621_approveSaveBtu" click="pur5621_save" style="margin-left:20px;" text="HAP_SAVE" width="100"/>
+            <a:toolbarButton id="pur5621_approveConfirmBtu" click="pur5621_confirm" text="CONFIRM" width="100"/>
+            <a:toolbarButton id="pur5621_approveRejectBtu" click="pur5621_rfx_reject" text="PROMPT.REJECT" width="100"/>
+            <a:toolbarButton id="pur5621_approveBackBtu" click="pur5621_reback" text="HAP_BACK" width="100"/>
+        </a:screenTopToolbar>
+        <a:vBox>
+            <a:hBox labelWidth="120">
+                <a:textField name="full_name" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_SYSTEM_VENDORS.FULL_NAME" readOnly="true" width="428"/>
+                <a:checkBox name="enabled_flag" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="SYS_CODE.ENABLED_FLAG" readOnly="true"/>
+            </a:hBox>
+            <a:hBox labelWidth="120">
+                <a:textField name="short_name" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_SYSTEM_VENDORS.SHORT_NAME"/>
+                <a:textField name="vendor_category_name" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.VENDOR_CATEGORY" readOnly="true"/>
+                <a:textField name="vendor_type_name" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.SUPPLIER_CATEGORY" readOnly="true"/>
+            </a:hBox>
+            <a:hBox labelWidth="120">
+                <a:textField name="legal_representative" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_SYS_VENDOR_BASICS.LEGAL_REPRESENTATIVE" readOnly="true"/>
+                <a:textField name="national_organization_code" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE" readOnly="true"/>
+                <a:textField name="d_b_code" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.D_B_CODE" readOnly="true"/>
+            </a:hBox>
+        </a:vBox>
+        <a:hBox height="30"/>
+        <a:tabPanel marginWidth="100">
+            <a:tabs>
+                <a:tab prompt="PUR_SYSTEM_VENDERS.BASIC_INFORMATION" width="100">
+                    <a:fieldSet style="margin-top:10px;margin-left:2px;" title="PUR5610_VENDOR_REG.BASIC_INFO">
+                        <a:hBox labelWidth="120">
+                            <a:textField name="registered_country_name" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.REGISTERED_COUNTRY_CODE" readOnly="true"/>
+                            <a:textField name="registered_province_desc" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.REGISTERED_PROVINCE_ID" readOnly="true"/>
+                            <a:textField name="registered_city_desc" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.REGISTERED_CITY_ID" readOnly="true"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:textField name="enterprise_nature_name" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.ENTERPRISE_NATURE" readOnly="true"/>
+                            <a:textField name="taxpayer_type_name" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_SYSTEM_VENDERS.TAXPAYER_IDENTIFICATION" readOnly="true"/>
+                            <a:textField name="tax_id_number" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.TAX_ID_NUMBER" readOnly="true"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:textField name="business_license_number" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.BUSINESS_LICENSE_NUMBER" readOnly="true"/>
+                            <a:textField name="business_license_end_date" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.BUSINESS_LICENSE_END_DATE" readOnly="true"/>
+                            <a:checkBox name="business_license_type" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.BUSINESS_LICENSE_TYPE" readOnly="true"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:textField name="business_license_authority" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.BUSINESS_LICENSE_AUTHORITY" readOnly="true"/>
+                            <a:textField name="operating_license_number" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.OPERATING_LICENSE_NUMBER" readOnly="true"/>
+                            <a:textField name="operating_license_end_date" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.OPERATING_LICENSE_END_DATE" readOnly="true"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:numberField name="registered_capital" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_SYSTEM_VENDERS.REGISTERED_CAPITAL" readOnly="true"/>
+                            <a:textField name="registered_currency_name" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.REGISTERED_CURRENCY_CODE" readOnly="true"/>
+                            <a:textField name="post_code" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDOR_SITES.POST_CODE" readOnly="true"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:textField name="zone_code" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.ZONE_CODE" readOnly="true"/>
+                            <a:textField name="fax_no" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.FAX_NO" readOnly="true"/>
+                            <a:textField name="official_telephone" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_SYSTEM_VENDERS.OFFICAL_TELEPHONE" readOnly="true"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:textField name="official_email" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.OFFICIAL_EMAIL" readOnly="true" width="428"/>
+                            <a:textField name="customer_service_phone" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.CUSTOMER_SERVICE_PHONE" readOnly="true" width="150"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:textField name="website" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.WEBSITE" readOnly="true" width="705"/>
+                        </a:hBox>
+                    </a:fieldSet>
+                    <a:fieldSet style="margin-top:10px;margin-left:2px;" title="PUR_REGISTER_VENDOR_REJECT_DETAIL.FIELDSET_TITLE">
+                        <a:hBox labelWidth="120">
+                            <a:textField name="factory_nature_name" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_SYSTEM_VENDERS.FACTORY_NATURE" readOnly="true"/>
+                            <a:numberField name="factory_area" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_REGISTER_VENDORS.FACTORY_AREA" readOnly="true"/>
+                            <a:textField name="iso9001_flag_display" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR5610_VENDOR_REG.ISO9001" readOnly="true"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:textField name="iso14000_flag_display" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR5610_VENDOR_REG.ISO14000" readOnly="true"/>
+                            <a:textField name="other_certificate" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.OTHER_CERTIFICATE" readOnly="true"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:textArea name="vendor_abstract" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_SYSTEM_VENDERS.VENDOR_ABSTRUCT" readOnly="true" width="704"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:textArea name="business_scope" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.BUSINESS_SCOPE" readOnly="true" width="704"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:textArea name="agent_brand" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_VENDORS.AGENT_BRAND" readOnly="true" width="704"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="120">
+                            <a:textArea name="comments" bindTarget="pur5621_vendor_register_approve_detail_ds" prompt="PUR_REGISTER_VENDORS.COMMENTS" readOnly="true" width="704"/>
+                        </a:hBox>
+                    </a:fieldSet>
+                </a:tab>
+                <a:tab prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.TAB_PROMPT" width="100">
+                    <a:grid bindTarget="pur5620_accounts_ds" height="300" marginWidth="104" navBar="true">
+                        <a:columns>
+                            <a:column name="bank_code" align="center" prompt="PUR_VENDOR_ACCOUNTS.BANK_CODE" width="60"/>
+                            <a:column name="bank_name" align="left" prompt="PUR_SYSTEM_VENDERS.BANK_CODE" width="80"/>
+                            <a:column name="bank_branch_name" align="left" prompt="PUR_SYSTEM_VENDERS.OPENING_BANK_NAME" width="120"/>
+                            <a:column name="bank_account_name" align="left" prompt="CSH_PAYMENT.BANK_ACCOUNT_NAME" width="100"/>
+                            <a:column name="bank_account_number" align="left" prompt="EXP_EMPLOYEE.BANK_ACCOUNT" width="120"/>
+                            <a:column name="primary_account_flag" align="center" prompt="PUR5610_VENDOR_REG.PRIMARY_ACCOUNT_NUMBER" width="60"/>
+                            <a:column name="enabled_flag" align="center" prompt="SYS_CODE.ENABLED_FLAG" width="60"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab>
+                <a:tab prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.ADDRESS_INFORMATION" width="100">
+                    <a:grid bindTarget="pur5620_site_ds" height="300" marginWidth="104" navBar="true">
+                        <a:columns>
+                            <a:column name="country_name" align="left" prompt="PUR_VENDOR_SITES.COUNTRY_CODE" width="120"/>
+                            <a:column name="province_name" align="left" prompt="PUR_SYSTEM_VENDERS.PROVINCE" width="100"/>
+                            <a:column name="city_name" align="left" prompt="PUR_SYSTEM_VENDERS.CITY" width="100"/>
+                            <a:column name="address" align="left" prompt="PUR_VENDOR_SITES.ADDRESS_ID" width="150"/>
+                            <a:column name="post_code" align="left" prompt="CUSTOMER.ZIP_CODE" width="60"/>
+                            <a:column name="address_comments" align="left" prompt="PUR_SYSTEM_VENDERS.NOTE_OF_ADDRESS" width="150"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab>
+                <a:tab prompt="PUR5610_VENDOR_REG.FINANCIAL_STATUS" width="100">
+                    <a:grid id="pur5621_finance_grid" bindTarget="pur5621_finance_ds" height="300" marginWidth="104" navBar="true">
+                        <a:columns>
+                            <a:column name="year_period" align="center" prompt="PUR5610_VENDOR_REG.YEAR" width="100"/>
+                            <a:column name="total_assets" align="right" prompt="PUR5641_VENDOR_MAINTAIN_DETAIL.TOTAL_ASSETS" width="100"/>
+                            <a:column name="total_liabilities" align="right" prompt="PUR_VENDOR_FINANCE.TOTAL_LIABILITIES" width="100"/>
+                            <a:column name="current_assets" align="right" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.CURRENT_ASSETS" width="100"/>
+                            <a:column name="current_liabilities" align="right" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.CURRENT_LIABILITIES" width="100"/>
+                            <a:column name="revenue" align="right" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.OPERATING_INCOME" width="100"/>
+                            <a:column name="net_profit" align="right" prompt="PUR_VENDOR_FINANCE.NET_PROFIT" width="100"/>
+                            <a:column name="asset_liability_ratio" align="right" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.ASSET_LIABILITY_RATIO" width="100"/>
+                            <a:column name="current_ratio" align="right" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.CURRENT_RATIO" width="100"/>
+                            <a:column name="total_asset_earning_ratio" align="right" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.ROE" width="100"/>
+                            <a:column name="net_asset_earning_ratio" align="right" prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.ROE" width="100"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab>
+                <a:tab prompt="INV_SYS_ITEMS.PURCHASE_CATEGORY_INFOMATION" width="100">
+                    <a:grid id="pur5621_category_grid" bindTarget="5620_pur_ctg_ds" height="300" marginWidth="104" navBar="true">
+                        <a:columns>
+                            <a:column name="purchase_category_code" align="center" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CATEGORY_CODE" width="120"/>
+                            <a:column name="purchase_category_name" align="left" prompt="INV_SYS_ITEMS.PURCHASE_CATEGORY_DESC" width="200"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab>
+                <a:tab prompt="PUR_SYSTEM_VENDERS.CONTACT_INFORMATION" width="100">
+                    <a:grid id="pur5621_contact_grid" bindTarget="pur5621_vendor_contacts_ds" height="300" marginWidth="104" navBar="true">
+                        <a:columns>
+                            <a:column name="contact_name" align="left" prompt="PUR_VENDOR_CONTACTS.CONTACT_NAME" width="65"/>
+                            <a:column name="contact_sex_name" align="left" prompt="BID_EXPERT_APP_HEADERS.SEX" width="40"/>
+                            <a:column name="id_type_name" align="left" prompt="EXP_EMPLOYEES.ID_TYPE" width="60"/>
+                            <a:column name="id_number" align="left" prompt="HCLC.ID_NUMBER" width="120"/>
+                            <a:column name="department" align="left" prompt="EXP_ORG_UNIT.UNIT" width="80"/>
+                            <a:column name="position" align="left" prompt="BID_EXPERT_CAREERS.POSITION" width="80"/>
+                            <a:column name="mobile_phone" align="left" prompt="EXP_EMPLOYEES.MOBIL" width="100"/>
+                            <a:column name="telephone" align="left" prompt="EXP_EMPLOYEES.PHONE" width="100"/>
+                            <a:column name="email" align="left" prompt="PUR_SYS_VENDOR_CONTACTS.EMAIL" width="120"/>
+                            <a:column name="default_contact_flag" align="center" editor="pur5621_contact_cb" prompt="PUR_REGISTER_VENDOR_CONTACTS.DEFAULT_CONTACT_FLAG" width="65"/>
+                            <a:column name="contact_comments" align="left" prompt="PUR_VENDORS.COMMENTS" width="90"/>
+                        </a:columns>
+                        <a:editors>
+                            <a:checkBox id="pur5621_contact_cb"/>
+                        </a:editors>
+                    </a:grid>
+                </a:tab>
+                <a:tab prompt="INV_SYS_ITEMS.ATTACHMENT_INFO" width="100">
+                    <a:grid id="pur5621_attachment_grid" bindTarget="pur5621_attachment_ds" height="300" marginWidth="104" navBar="true">
+                        <a:columns>
+                            <a:column name="atm_file" align="left" prompt="PUR5610_VENDOR_REG.ATTACHMENT_NAME" width="400"/>
+                            <a:column name="atm_desc" align="center" prompt="PUR5610_VENDOR_REG.ATTACHMENT_DESC" width="200"/>
+                            <!-- <a:column name="upload_user_name" align="center" prompt="上传人" width="100"/> -->
+                            <a:column align="center" prompt="UPLOADFILE.SCREEN.TITLE" renderer="pur5621_upload_render" width="100"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab>
+            </a:tabs>
+        </a:tabPanel>
+    </a:view>
+</a:screen>

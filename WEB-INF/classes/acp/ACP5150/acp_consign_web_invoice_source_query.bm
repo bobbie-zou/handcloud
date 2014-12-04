@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2014年1月26日 下午4:10:56  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="bill_line_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="BILL_LINE_ID"/>
+        <bm:field name="bill_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="BILL_HEADER_ID"/>
+        <bm:field name="bill_number" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BILL_NUMBER"/>
+        <bm:field name="line_num" databaseType="NUMBER" datatype="java.lang.Long" physicalName="LINE_NUM"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID"/>
+        <bm:field name="company_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_CODE"/>
+        <bm:field name="company_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_DESC"/>
+        <bm:field name="po_num" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PO_NUM"/>
+        <bm:field name="release_num" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="RELEASE_NUM"/>
+        <bm:field name="po_line_num" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PO_LINE_NUM"/>
+        <bm:field name="shipment_num" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="SHIPMENT_NUM"/>
+        <bm:field name="item_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ITEM_ID"/>
+        <bm:field name="item_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_CODE"/>
+        <bm:field name="item_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_DESC"/>
+        <bm:field name="unit_price" databaseType="NUMBER" datatype="java.lang.Double" physicalName="UNIT_PRICE"/>
+        <bm:field name="uom" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="UOM"/>
+        <bm:field name="quantity" databaseType="NUMBER" datatype="java.lang.Double" physicalName="QUANTITY"/>
+        <bm:field name="quantity_left" databaseType="NUMBER" datatype="java.lang.Double" physicalName="QUANTITY_LEFT"/>
+        <bm:field name="currency_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CURRENCY_CODE"/>
+        <bm:field name="amount" databaseType="NUMBER" datatype="java.lang.Double" physicalName="AMOUNT"/>
+        <bm:field name="invoiced_quantity" databaseType="NUMBER" datatype="java.lang.Double" physicalName="INVOICED_QUANTITY"/>
+        <bm:field name="confirmed_date" databaseType="DATE" datatype="java.util.Date" physicalName="CONFIRMED_DATE"/>
+        <bm:field name="vendor_site_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_SITE_ID"/>
+        <bm:field name="vendor_site_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="VENDOR_SITE_CODE"/>
+        <bm:field name="vendor_site_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="VENDOR_SITE_DESC"/>
+        <bm:field name="data_source" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DATA_SOURCE"/>
+        <bm:field name="data_source_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="DATA_SOURCE_ID"/>
+        <bm:field name="invoice_quantity" databaseType="NUMBER" datatype="java.lang.Double" physicalName="INVOICE_QUANTITY"/>
+        <bm:field name="invoice_price" databaseType="NUMBER" datatype="java.lang.Double" physicalName="INVOICE_PRICE"/>
+        <bm:field name="invoice_amount" databaseType="NUMBER" datatype="java.lang.Double" physicalName="INVOICE_AMOUNT"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        wis.bill_line_id,
+                        wis.bill_header_id,
+                        wis.bill_number,
+                        wis.line_num,
+                        wis.company_id,
+                        wis.company_code,
+                        wis.company_desc,
+                        wis.vendor_id,
+                        wis.vendor_code,
+                        wis.vendor_desc,
+                        wis.po_num,
+                        wis.release_num,
+                        wis.po_line_num,
+                        wis.shipment_num,
+                        wis.item_id,
+                        wis.item_code,
+                        wis.item_desc,
+                        wis.unit_price,
+                        wis.uom,
+                        wis.quantity,
+                        wis.quantity_left,
+                        wis.currency_code,
+                        wis.amount,
+                        wis.invoiced_quantity,
+                        wis.confirmed_date,
+                        wis.vendor_site_id,
+                        wis.vendor_site_code,
+                        wis.vendor_site_desc,
+                        wis.data_source,
+                        wis.data_source_id,
+                        (wis.quantity - wis.invoiced_quantity) AS invoice_quantity,               --本次开票数量
+                        wis.unit_price AS invoice_price,                                          --本次开票单价
+                        (wis.quantity - wis.invoiced_quantity) * wis.unit_price AS invoice_amount --本次开票金额
+                    FROM
+                        acp_csgn_web_invoice_srcs_vl wis
+                    WHERE
+                        wis.vendor_id = ${/session/@vendor_id} AND
+                        NOT EXISTS
+                        (SELECT
+                            1
+                        FROM
+                            acp_csgn_web_invoice_hds h,
+                            acp_csgn_web_invoice_lns l
+                        WHERE
+                            l.invoice_header_id = h.invoice_header_id AND
+                            l.bill_line_id      = wis.bill_line_id
+                        )
+                    ) #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="bill_number_from" queryExpression="bill_number &gt;= ${@bill_number_from}"/>
+        <bm:query-field name="bill_number_to" queryExpression="bill_number &lt;= ${@bill_number_to}"/>
+        <bm:query-field field="company_id" queryOperator="="/>
+        <bm:query-field name="po_num_from" queryExpression="po_num &gt;= ${@po_num_from}"/>
+        <bm:query-field name="po_num_to" queryExpression="po_num &lt;= ${@po_num_to}"/>
+    </bm:query-fields>
+</bm:model>

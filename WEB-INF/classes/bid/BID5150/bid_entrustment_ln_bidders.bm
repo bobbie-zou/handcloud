@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-4-19 下午3:21:19  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="line_bidder_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="entrustment_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="bidder_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="suggested_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="responded_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="responded_flag_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="shortlisted_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="winning_bidder_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="bidder_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="bidder_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        lb.line_bidder_id,
+                        lb.entrustment_header_id,
+                        lb.bidder_id,
+                        lb.suggested_flag,
+                        lb.responded_flag,
+                        DECODE(lb.responded_flag,'N','不参加投标','Y','参加投标','') AS responded_flag_desc,
+                        lb.shortlisted_flag,
+                        lb.winning_bidder_flag,
+                        b.bidder_code,
+                        b.bidder_desc
+                    FROM
+                        bid_entrustment_ln_bidders lb,
+                        bid_bidders_v b
+                    WHERE
+                        lb.bidder_id             = b.bidder_id(+) AND
+                        lb.entrustment_header_id = ${@entrustment_header_id}
+                    ) t #WHERE_CLAUSE#
+                ORDER BY
+                    bidder_code ASC
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="line_bidder_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@line_bidder_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+                BEGIN
+				  -- Call the procedure
+				  bid_entrustment_pkg.create_entrustment_bidder(o_line_bidder_id        => ${@line_bidder_id},
+				                                                p_entrustment_header_id => ${@entrustment_header_id},
+				                                                p_bidder_id             => ${@bidder_id},
+				                                                p_suggested_flag		=> ${@suggested_flag},
+				                                                p_user_id               => ${/session/@user_id});
+				END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+				  -- Call the procedure
+				  bid_entrustment_pkg.modify_entrustment_bidder(p_line_bidder_id        => ${@line_bidder_id},
+				                                                p_entrustment_header_id => ${@entrustment_header_id},
+				                                                p_bidder_id             => ${@bidder_id},
+				                                                p_suggested_flag		=> ${@suggested_flag},
+				                                                p_user_id               => ${/session/@user_id});
+				END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                 bid_entrustment_pkg.delete_entrustment_bidder(p_line_bidder_id => ${@line_bidder_id},
+                                             				   p_user_id 		=> ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+				BEGIN
+				  -- Call the procedure
+				  bid_entrustment_pkg.clear_bidder(p_entrustment_header_id => ${@entrustment_header_id},
+				                                   p_user_id               => ${/session/@user_id});
+				END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

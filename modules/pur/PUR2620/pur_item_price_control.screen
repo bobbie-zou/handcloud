@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: FelixDru
+    $Date: 2014-11-18 上午10:52:20  
+    $Revision: 1.0  
+    $Purpose: 物品价格信息记录
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="pur2620_itemPriceControlSave_link" url="${/request/@context_path}/modules/pur/PUR2620/pur_item_price_control_save.svc"/>
+        <div/>
+        <script><![CDATA[
+            //Query
+            
+            
+            function pur2620_itemPriceHeader_QueryFun() {
+                $('pur2620_itemPriceHeader_resultDs').query();
+            }
+            
+            
+            //Header Load
+            
+            
+            function pur2620_itemPriceHeaderResultDs_loadFun(ds) {
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    if (!Ext.isEmpty(record.get('company_id'))) {
+                        record.getField('business_unit_name').setReadOnly(false);
+                    } else {
+                        record.getField('business_unit_name').setReadOnly(true);
+                    }
+                }
+            }
+            
+            //Header Update
+            
+            
+            function pur2620_itemPriceHeaderResultDs_updateFun(ds, record, name, value, oldvalue) {
+                if (name == 'company_id') {
+                    record.set('business_unit_id', '');
+                    record.set('business_unit_name', '');
+                    if (Ext.isEmpty(value) || value == 'undefined') {
+                        record.getField('business_unit_name').setReadOnly(true);
+                    } else {
+                        record.getField('business_unit_name').setReadOnly(false);
+                    }
+                }
+            }
+            
+            //Header IndexChange
+            
+            
+            function pur2620_itemPriceHeaderResultDs_indexChangeFun(ds, record) {
+                if (!record.isNew) {
+                    $('pur2620_itemPriceDateLineResultDs_gridAddBtu').enable();
+                    $('pur2620_itemPriceDateLineResultDs_gridDeleteBtu').enable();
+                } else {
+                    $('pur2620_itemPriceDateLineResultDs_gridAddBtu').disable();
+                    $('pur2620_itemPriceDateLineResultDs_gridDeleteBtu').disable();
+                    $('pur2620_itemPriceDetailLineResultDs_gridAddBtu').disable();
+                    $('pur2620_itemPriceDetailLineResultDs_gridDeleteBtu').disable();
+                }
+            }
+            
+            //Date Line Validator
+            
+            
+            function pur2620_itemPriceDateLine_validatorFun(record, name, value) {
+                if (name == 'start_date' || name == 'end_date') {
+                    var start_date = record.get('start_date');
+                    var end_date = record.get('end_date');
+            
+                    if ( !! end_date) {
+                        if (start_date > end_date) {
+                            return '${l:PUR_ITEM_PRICE_DATE_LINES.START_DATE_BEYOND_END_DATE}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            //Date Line IndexChange
+            function pur2620_itemPriceDateLine_indexChangeFun(ds, record){
+                if (!record.isNew) {
+                    $('pur2620_itemPriceDetailLineResultDs_gridAddBtu').enable();
+                    $('pur2620_itemPriceDetailLineResultDs_gridDeleteBtu').enable();
+                } else {
+                    $('pur2620_itemPriceDetailLineResultDs_gridAddBtu').disable();
+                    $('pur2620_itemPriceDetailLineResultDs_gridDeleteBtu').disable();
+                }
+            }
+            
+            //Detail Line Validator
+            function pur2620_itemPriceDetailLine_validatorFun(record, name, value){
+                if (name == 'quantity_from' || name == 'quantity_to') {
+                    var quantity_from = record.get('quantity_from');
+                    var quantity_to = record.get('quantity_to');
+            
+                    if ( !! quantity_to) {
+                        if (quantity_from > quantity_to) {
+                            return '${l:PUR_ITEM_PRICE_DETAIL_LINES.QUANTITY_FROM_BEYOND_QUANTITY_TO}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            //All Data Save
+            function pur2620_itemPriceControl_saveFun(){
+               if(!$('pur2620_itemPriceHeader_resultDs').validate() || !$('pur2620_itemPriceDateLine_resultDs').validate() || !$('pur2620_itemPriceDetailLine_resultDs').validate()){
+                   return;
+               }
+               
+               //锁定界面
+                Aurora.Masker.mask(Ext.getBody());
+                
+                var data = $('pur2620_itemPriceHeader_resultDs').getJsonData(false);
+                //提交AjAX请求
+                Aurora.request({
+                    url: $('pur2620_itemPriceControlSave_link').getUrl(),
+                    para: data,
+                    success: function(res) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SAVE_SUCCESS}', function() {
+                            $('pur2620_itemPriceHeader_resultDs').query();
+                            Aurora.Masker.unmask(Ext.getBody());
+                        });
+                    },
+                    failure: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    error: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <!-- USER AUTHORITY COMPANY-->
+            <a:dataSet id="pur2620_userAuthorityCompany_ds" fetchAll="true" loadData="true" model="public.fnd_user_authority_company_query"/>
+            <!--Header Query Ds -->
+            <a:dataSet id="pur2620_itemPriceControl_queryDs">
+                <a:fields>
+                    <a:field name="company_id"/>
+                    <a:field name="company_name" displayField="company_full_name" options="pur2620_userAuthorityCompany_ds" returnField="company_id" valueField="company_id"/>
+                    <a:field name="business_unit_name" autoComplete="true" autoCompleteField="business_unit_name" lovHeight="480" lovService="public.fnd_business_unit_lov" lovWidth="550" prompt="ERP_AP_INVOICE_LINES.BUSINESS_UNIT_ID" title="ERP_AP_INVOICE_LINES.BUSINESS_UNIT_ID">
+                        <a:mapping>
+                            <a:map from="business_unit_id" to="business_unit_id"/>
+                            <a:map from="business_unit_name" to="business_unit_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_description" autoComplete="true" autoCompleteField="item_code" lovHeight="480" lovService="public.mtl_system_items_b_mv_lov" lovWidth="500" title="PUR_LINES_ALL.ITEM_ID">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_name" to="item_description"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <!--Header Result Ds -->
+            <a:dataSet id="pur2620_itemPriceHeader_resultDs" autoCount="true" autoPageSize="true" model="pur.PUR2620.pur_item_price_headers" queryDataSet="pur2620_itemPriceControl_queryDs" selectable="true">
+                <a:fields>
+                    <a:field name="company_id"/>
+                    <a:field name="company_name" displayField="company_full_name" options="pur2620_userAuthorityCompany_ds" required="true" requiredMessage="${l:PUR_ITEM_PRICE_HEADERS.COMPANY_ID}${l:PROMPT.INPUT}" returnField="company_id" valueField="company_id"/>
+                    <a:field name="business_unit_name" autoComplete="true" autoCompleteField="business_unit_name" lovHeight="480" lovService="public.fnd_business_unit_lov" lovWidth="550" prompt="ERP_AP_INVOICE_LINES.BUSINESS_UNIT_ID" readOnly="true" title="ERP_AP_INVOICE_LINES.BUSINESS_UNIT_ID">
+                        <a:mapping>
+                            <a:map from="business_unit_id" to="business_unit_id"/>
+                            <a:map from="business_unit_name" to="business_unit_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_code" autoComplete="true" autoCompleteField="item_code" lovHeight="480" lovService="public.mtl_system_items_b_mv_lov" lovWidth="500" required="true" requiredMessage="${l:PUR_ITEM_PRICE_HEADERS.ITEM_ID}${l:PROMPT.INPUT}" title="PUR_LINES_ALL.ITEM_ID">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_name" to="item_description"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_description" readOnly="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="pur2620_itemPriceHeaderResultDs_loadFun"/>
+                    <a:event name="update" handler="pur2620_itemPriceHeaderResultDs_updateFun"/>
+                    <a:event name="indexchange" handler="pur2620_itemPriceHeaderResultDs_indexChangeFun"/>
+                </a:events>
+            </a:dataSet>
+            <!--Date Line Ds -->
+            <a:dataSet id="pur2620_itemPriceDateLine_resultDs" autoCount="true" autoPageSize="true" bindName="date_line" bindTarget="pur2620_itemPriceHeader_resultDs" model="pur.PUR2620.pur_item_price_date_lines" selectable="true">
+                <a:fields>
+                    <a:field name="start_date" required="true" requiredMessage="${l:PUR_ITEM_PRICE_DATE_LINES.START_DATE}${l:PROMPT.INPUT}" validator="pur2620_itemPriceDateLine_validatorFun"/>
+                    <a:field name="end_date" requiredMessage="${l:PUR_ITEM_PRICE_DATE_LINES.END_DATE}${l:PROMPT.INPUT}" validator="pur2620_itemPriceDateLine_validatorFun"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="indexchange" handler="pur2620_itemPriceDateLine_indexChangeFun"/>
+                </a:events>
+            </a:dataSet>
+            <!-- Detail Line Ds -->
+            <a:dataSet id="pur2620_itemPriceDetailLine_resultDs" autoCount="true" autoPageSize="true" bindName="detail_line" bindTarget="pur2620_itemPriceDateLine_resultDs" model="pur.PUR2620.pur_item_price_detail_lines" selectable="true">
+                <a:fields>
+                    <a:field name="quantity_from" required="true" requiredMessage="${l:PUR_ITEM_PRICE_DETAIL_LINES.QUANTITY_FROM}${l:PROMPT.INPUT}" validator="pur2620_itemPriceDetailLine_validatorFun"/>
+                    <a:field name="quantity_to" requiredMessage="${l:PUR_ITEM_PRICE_DETAIL_LINES.QUANTITY_TO}${l:PROMPT.INPUT}" validator="pur2620_itemPriceDetailLine_validatorFun"/>
+                    <a:field name="unit_price" required="true" requiredMessage="${l:PUR_ITEM_PRICE_DETAIL_LINES.UNIT_PRICE}${l:PROMPT.INPUT}"/>
+                    <a:field name="price_adjustment_method"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur2620_itemPriceControl_saveFun" text="PROMPT.SAVE" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="pur2620_itemPriceControl_queryDs" resultTarget="pur2620_itemPriceHeader_resultDs" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="100">
+                        <a:comboBox name="company_name" bindTarget="pur2620_itemPriceControl_queryDs" prompt="PUR_ITEM_PRICE_HEADERS.COMPANY_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur2620_itemPriceHeader_QueryFun"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:lov name="business_unit_name" bindTarget="pur2620_itemPriceControl_queryDs" prompt="PUR_ITEM_PRICE_HEADERS.BUSINESS_UNIT_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur2620_itemPriceHeader_QueryFun"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="item_description" bindTarget="pur2620_itemPriceControl_queryDs" prompt="PUR_ITEM_PRICE_HEADERS.ITEM_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur2620_itemPriceHeader_QueryFun"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:hBox>
+                <a:grid id="pur2620_itemPriceHeaderResultDs_grid" autoAppend="false" bindTarget="pur2620_itemPriceHeader_resultDs" marginHeight="220" marginWidth="750" navBar="true">
+                    <a:toolBar>
+                        <a:button type="add"/>
+                        <a:button type="delete"/>
+                    </a:toolBar>
+                    <a:columns>
+                        <a:column name="company_name" editor="pur2620_itemPriceHeaderResultDs_gridCb" prompt="PUR_ITEM_PRICE_HEADERS.COMPANY_ID" sortable="true" width="200"/>
+                        <a:column name="business_unit_name" editor="pur2620_itemPriceHeaderResultDs_gridLov" prompt="PUR_ITEM_PRICE_HEADERS.BUSINESS_UNIT_ID" sortable="true" width="200"/>
+                        <a:column name="item_code" editor="pur2620_itemPriceHeaderResultDs_gridLov" prompt="PUR_ITEM_PRICE_HEADERS.ITEM_CODE" sortable="true" width="200"/>
+                        <a:column name="item_description" prompt="PUR_ITEM_PRICE_HEADERS.ITEM_NAME" sortable="true" width="200"/>
+                    </a:columns>
+                    <a:editors>
+                        <a:comboBox id="pur2620_itemPriceHeaderResultDs_gridCb"/>
+                        <a:lov id="pur2620_itemPriceHeaderResultDs_gridLov"/>
+                    </a:editors>
+                </a:grid>
+                <a:grid id="pur2620_itemPriceDateLineResultDs_grid" autoAppend="false" bindTarget="pur2620_itemPriceDateLine_resultDs" marginHeight="220" marginWidth="1100" navBar="true">
+                    <a:toolBar>
+                        <a:button id="pur2620_itemPriceDateLineResultDs_gridAddBtu" disabled="true" type="add"/>
+                        <a:button id="pur2620_itemPriceDateLineResultDs_gridDeleteBtu" disabled="true" type="delete"/>
+                    </a:toolBar>
+                    <a:columns>
+                        <a:column name="start_date" editor="pur2620_itemPriceDateLineResultDs_gridDp" prompt="PUR_ITEM_PRICE_DATE_LINES.START_DATE" renderer="Aurora.formatDate" sortable="true" width="320"/>
+                        <a:column name="end_date" editor="pur2620_itemPriceDateLineResultDs_gridDp" prompt="PUR_ITEM_PRICE_DATE_LINES.END_DATE" renderer="Aurora.formatDate" sortable="true" width="320"/>
+                    </a:columns>
+                    <a:editors>
+                        <a:datePicker id="pur2620_itemPriceDateLineResultDs_gridDp"/>
+                    </a:editors>
+                </a:grid>
+                <a:grid id="pur2620_itemPriceDetailLineResultDs_grid" autoAppend="false" bindTarget="pur2620_itemPriceDetailLine_resultDs" marginHeight="220" marginWidth="950" navBar="true">
+                    <a:toolBar>
+                        <a:button id="pur2620_itemPriceDetailLineResultDs_gridAddBtu" disabled="true" type="add"/>
+                        <a:button id="pur2620_itemPriceDetailLineResultDs_gridDeleteBtu" disabled="true" type="delete"/>
+                    </a:toolBar>
+                    <a:columns>
+                        <a:column name="quantity_from" editor="pur2620_itemPriceDetailLineResultDs_gridQuantityNf" prompt="PUR_ITEM_PRICE_DETAIL_LINES.QUANTITY_FROM" sortable="true" width="180"/>
+                        <a:column name="quantity_to" editor="pur2620_itemPriceDetailLineResultDs_gridQuantityNf" prompt="PUR_ITEM_PRICE_DETAIL_LINES.QUANTITY_TO" sortable="true" width="180"/>
+                        <a:column name="unit_price" editor="pur2620_itemPriceDetailLineResultDs_gridMoneyNf" prompt="PUR_ITEM_PRICE_DETAIL_LINES.UNIT_PRICE" renderer="Aurora.formatNumber" sortable="true" width="180"/>
+                        <a:column name="price_adjustment_method" editor="pur2620_itemPriceDetailLineResultDs_gridTf" prompt="PUR_ITEM_PRICE_DETAIL_LINES.PRICE_ADJUSTMENT_METHOD" width="180"/>
+                    </a:columns>
+                    <a:editors>
+                        <a:numberField id="pur2620_itemPriceDetailLineResultDs_gridQuantityNf" allowDecimals="true" allowNegative="true" decimalPrecision="4"/>
+                        <a:numberField id="pur2620_itemPriceDetailLineResultDs_gridMoneyNf" allowDecimals="true" allowFormat="true" allowNegative="false" decimalPrecision="6"/>
+                        <a:textField id="pur2620_itemPriceDetailLineResultDs_gridTf" maxLength="110"/>
+                    </a:editors>
+                </a:grid>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

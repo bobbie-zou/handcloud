@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-5-5 下午4:35:54  
+    $Revision: 1.0  
+    $Purpose: 注册供应商认证
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="pur5630_vendor_detail_link" url="${/request/@context_path}/modules/pur/PUR5660/pur_vendor_detail.screen"/>
+        <a:link id="pur5630_vendor_identification_link" url="${/request/@context_path}/modules/pur/PUR5630/pur_register_batch_identification.svc"/>
+        <script><![CDATA[
+            function pur5630_vendor_code_render(value, record, name) {
+                return '<a href="javascript:pur5630_open_win(' + record.get('vendor_id') + ')">' + value + '</a>';
+            }
+            
+            
+            function pur5630_open_win(id) {
+                new Aurora.Window({
+                    url: $('pur5630_vendor_detail_link').getUrl() + '?vendor_id=' + id,
+                    id: 'pur5660_vendor_detail_win',
+                    title: '供应商查询明细',
+                    fullScreen: true
+                });
+            }
+            
+            //重置不传ERP标志
+            
+            
+            function pur5630_setIndependent_fun() {
+                $('pur5630_vendor_result_ds').submit();
+            }
+            
+            //供应商认证
+            
+            
+            function pur5630_identification_fun() {
+                var records = $('pur5630_vendor_result_ds').getSelected();
+                if (records.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:CHOOSE_ONE_RECORD}');
+                    return;
+                } else {
+                    Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+                    Aurora.request({
+                        url: $('pur5630_vendor_identification_link').getUrl(),
+                        para: $('pur5630_vendor_result_ds').getJsonData(true),
+                        success: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+            
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            //查询条件update事件
+            function pur5630_vendorBasicsQueryDs_updateHandler(ds, record, name, value, oldvalue){
+                if (name == 'registered_country_code') {
+                    if (Ext.isEmpty(record.get('registered_country_code')) || record.get('registered_country_code') == undefined) {
+                        record.set('registered_province_id', '');
+                        record.set('registered_province_desc','');
+                        record.getField("registered_province_desc").setReadOnly(true);
+                        record.getField("registered_province_desc").setLovPara('country_code', -1);
+            
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc');
+                        record.getField("registered_city_desc").setReadOnly(true);
+                        record.getField("registered_city_desc").setLovPara('province_id', -1);
+                    } else {
+                        record.getField("registered_province_desc").setReadOnly(false);
+                        record.getField("registered_province_desc").setLovPara('country_code', record.get('registered_country_code'));
+                    }
+                } else if (name == 'registered_province_id') {
+                    if (Ext.isEmpty(record.get('registered_province_id')) || record.get('registered_province_id') == undefined) {
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc','');
+                        record.getField("registered_city_desc").setReadOnly(true);
+                        record.getField("registered_city_desc").setLovPara('province_id', -1);
+                    } else {
+                        record.getField("registered_city_desc").setReadOnly(false);
+                        record.getField("registered_city_desc").setLovPara('province_id', record.get('registered_province_id'));
+                    }
+                }
+            }
+            
+            //查询
+            function pur5630_queryFunction(){
+                $('pur5630_vendor_result_ds').query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5630_vendor_category_ds" lookupCode="PUR_VENDOR_CATEGORY"/>
+            <a:dataSet id="pur5630_vendor_query_ds">
+                <a:fields>
+                    <a:field name="vendor_category_name" displayField="code_value_name" options="pur5630_vendor_category_ds" returnField="vendor_category" valueField="code_value"/>
+                    <a:field name="registered_country_code"/>
+                    <a:field name="registered_country_name" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="public.fnd_country_lov" lovWidth="500" title="SYS_VENDOR_COUNTRY_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="country_code" to="registered_country_code"/>
+                            <a:map from="country_name" to="registered_country_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="registered_province_id"/>
+                    <a:field name="registered_province_desc" autoComplete="true" autoCompleteField="province_name" lovHeight="500" lovService="pur.public.fnd_region_province_by_country_lov?country_code=-1" lovWidth="500" readOnly="true" title="PUR_VENDORS.REGISTERED_PROVINCE_ID">
+                        <a:mapping>
+                            <a:map from="province_id" to="registered_province_id"/>
+                            <a:map from="province_name" to="registered_province_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="registered_city_id"/>
+                    <a:field name="registered_city_desc" autoComplete="true" autoCompleteField="city_name" lovHeight="500" lovService="pur.public.fnd_region_city_by_province_lov?province_id=-1" lovWidth="500" readOnly="true" title="PUR_VENDORS.REGISTERED_CITY_ID">
+                        <a:mapping>
+                            <a:map from="city_id" to="registered_city_id"/>
+                            <a:map from="city_name" to="registered_city_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="independent_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur5630_vendorBasicsQueryDs_updateHandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur5630_vendor_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="pur.PUR5630.pur_vendor_query" queryDataSet="pur5630_vendor_query_ds" selectable="true" submitUrl="${/request/@context_path}/autocrud/pur.PUR5630.pur_vendor_set_independent/batch_update">
+                <a:fields>
+                    <a:field name="vendor_type_id"/>
+                    <a:field name="vendor_type_name" displayField="description" options="pur5630_vendor_type_ds" returnField="vendor_type_id" valueField="vender_type_id"/>
+                    <a:field name="enabled_flag" checkedValue="Y" readOnly="true" uncheckedValue="N"/>
+                    <a:field name="independent_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="pur5630_setIndependent_fun" text="PUR_VENDORS.SAVE_INDEPENDENT" width="100"/>
+            <a:toolbarButton click="pur5630_identification_fun" text="PUR_VENDORS.IDENTIFICATION" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="pur5630_vendor_query_ds" resultTarget="pur5630_vendor_result_ds" style="width:100%;border:none;">
+            <a:formToolBar>
+                <a:textField style="width:100%;display:none;"/>
+                <a:hBox labelWidth="100">
+                    <a:textField name="vendor_code" bindTarget="pur5630_vendor_query_ds" prompt="PUR_SYS_VENDOR_BASICS.VENDOR_CODE" typeCase="upper">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="full_name" bindTarget="pur5630_vendor_query_ds" prompt="PUR_SYS_VENDOR_BASICS.FULL_NAME">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="short_name" bindTarget="pur5630_vendor_query_ds" prompt="PUR_VENDORS.SHORT_NAME_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:textField>
+                    <a:checkBox name="independent_flag" bindTarget="pur5630_vendor_query_ds" prompt="PUR_VENDORS.INDEPENDENT_FLAG">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:checkBox>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox labelWidth="120">
+                    <a:comboBox name="vendor_category_name" bindTarget="pur5630_vendor_query_ds" prompt="PUR_VENDORS.VENDOR_CATEGORY">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:textField name="national_organization_code" bindTarget="pur5630_vendor_query_ds" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="business_license_number" bindTarget="pur5630_vendor_query_ds" prompt="PUR_VENDORS.BUSINESS_LICENSE_NUMBER">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:textField>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:lov name="registered_country_name" bindTarget="pur5630_vendor_query_ds" prompt="PUR_VENDORS.REGISTERED_COUNTRY_CODE">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="registered_province_desc" bindTarget="pur5630_vendor_query_ds" prompt="PUR_VENDORS.REGISTERED_PROVINCE_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="registered_city_desc" bindTarget="pur5630_vendor_query_ds" prompt="PUR_VENDORS.REGISTERED_CITY_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:lov>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:datePicker name="creation_date_start" bindTarget="pur5630_vendor_query_ds" prompt="PUR_REGISTER_VENDORS.CREATE_DATE_FROM">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="creation_date_end" bindTarget="pur5630_vendor_query_ds" prompt="PUR_REGISTER_VENDORS.CREATE_DATE_TO">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur5630_queryFunction"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="pur5630_vendor_grid" bindTarget="pur5630_vendor_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+            <a:columns>
+                <a:column name="vendor_code" align="center" prompt="VENDER_CODE" renderer="pur5630_vendor_code_render" sortable="true" width="100"/>
+                <a:column name="vendor_type_name" align="center" prompt="PUR_VENDORS.VENDOR_CATEGORY" sortable="true" width="80"/>
+                <a:column name="full_name" prompt="PUR_SYS_VENDOR_BASICS.FULL_NAME" width="150"/>
+                <a:column name="short_name" prompt="PUR_SYSTEM_VENDERS.SHORT_NAME" width="100"/>
+                <a:column name="vendor_category_desc" align="center" prompt="PUR_VENDORS.VENDOR_CATEGORY" width="100"/>
+                <a:column name="national_organization_code" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE" width="100"/>
+                <a:column name="business_license_number" prompt="PUR_VENDORS.BUSINESS_LICENSE_NUMBER" width="100"/>
+                <a:column name="registered_country_name" prompt="PUR_VENDORS.REGISTERED_COUNTRY_CODE" width="80"/>
+                <a:column name="registered_province_desc" prompt="PUR_VENDORS.REGISTERED_PROVINCE_ID" width="80"/>
+                <a:column name="registered_city_desc" prompt="PUR_VENDORS.REGISTERED_CITY_ID" width="80"/>
+                <a:column name="creation_date_desc" align="center" prompt="PUR_REGISTER_VENDORS.CREATE_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                <a:column name="status_display" align="center" prompt="PUR_VENDORS.STATUS" sortable="true" width="80"/>
+                <a:column name="independent_flag" align="center" editor="pur5630_cb" prompt="PUR_VENDORS.INDEPENDENT_FLAG" sortable="true" width="60"/>
+                <a:column name="enabled_flag" align="center" prompt="SYS_CODE.ENABLED_FLAG" sortable="true" width="50"/>
+            </a:columns>
+            <a:editors>
+                <a:checkBox id="pur5630_cb"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

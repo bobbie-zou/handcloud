@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tony  
+    $Date: 2013-7-15 下午7:18:49  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="h.req_number desc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    h.req_header_id,
+                    h.req_number,
+                    h.company_name,
+                    h.req_type_name,
+                    h.version_num,
+                    h.unit_name,
+                    h.pur_organization_name,
+                    h.status,
+                    (SELECT description FROM sys_user WHERE user_id = h.created_by
+                    ) AS create_user,
+                    TO_CHAR(h.creation_date, 'yyyy-mm-dd hh24:mi:ss') AS creation_date
+                FROM
+                    pur_req_headers h #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+	        	begin
+	        	  pur_req_pkg.insert_req_distributions(p_req_header_id => ${/parameter/@req_header_id},
+				                                       p_req_line_id => ${/parameter/@@req_line_id},
+				                                       p_distribution_num => ${@distribution_num},
+				                                       p_pro_mode_code => ${@pro_mode_code},
+				                                       p_pro_mode_name => ${@pro_mode_name},
+				                                       p_quantity => ${@quantity},
+				                                       p_need_by_date => to_date(${@need_by_date},'yyyy-mm-dd'),
+				                                       p_ship_to_location_id => ${@ship_to_location_id},
+				                                       p_ship_to_location_name => ${@ship_to_location_name},
+				                                       p_ship_to_organization_id => ${@ship_to_organization_id},
+				                                       p_ship_to_organization_name => ${@ship_to_organization_name},
+				                                       p_comments => null,
+				                                       p_user_id => ${/session/@user_id});
+               end;
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        	begin
+        		pur_requisition_pkg.update_pur_requisition_hds(p_pur_requisition_header_id =>${@pur_requisition_header_id},
+                                                 p_requisition_person => ${@requisition_person},
+                                                 p_unit_id => ${@unit_id},
+                                                 p_currency_code => ${@currency_code},
+                                                 p_note => ${@note},
+                                                 p_user_id => ${/session/@user_id});
+        	end;
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+        	begin
+        		pur_requisition_pkg.modify_head_functional_amount(p_pur_requisition_header_id =>${@pur_requisition_header_id},
+                                                 p_user_id => ${/session/@user_id});
+        	end;
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="h.status = &apos;NEW&apos;"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="req_header_id" queryExpression="h.req_header_id = ${@req_header_id}"/>
+        <bm:query-field name="company_id" queryExpression="h.company_id = ${@company_id}"/>
+        <bm:query-field name="req_number" queryExpression="h.req_number = ${@req_number}"/>
+        <bm:query-field name="unit_id" queryExpression="h.unit_id = ${@unit_id}"/>
+        <bm:query-field name="created_by" queryExpression="h.created_by = ${@created_by}"/>
+        <bm:query-field name="creation_date_from" queryExpression="h.creation_date&gt;= to_date(${@creation_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="creation_date_to" queryExpression="h.creation_date &lt;= to_date(${@creation_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+        <bm:query-field name="status" queryExpression="h.status = ${@status}"/>
+        <bm:query-field name="pur_organization_id" queryExpression="h.pur_organization_id = ${@pur_organization_id}"/>
+    </bm:query-fields>
+</bm:model>

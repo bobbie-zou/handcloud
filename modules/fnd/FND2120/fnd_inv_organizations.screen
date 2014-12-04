@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du $  
+    $Date: 2013-1-18 下午3:39:20 $  
+    $Revision: 1.1 $
+    $Purpose: $
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="fnd2120_oraginzation_syn_link" model="fnd.FND2120.fnd_inv_organization_syn" modelaction="update"/>
+        <script><![CDATA[
+            var primary_organization = 0;
+            
+            function fnd2120_organization_count_primary() {
+                primary_organization = 0;
+                var records = $('fnd2120_organization_result_ds').getAll();
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].get('primary_flag') == 'Y') {
+                        primary_organization++;
+                    }
+                }
+            }
+            
+            function fnd2120_queryType() {
+                $('fnd2120_organization_result_ds').query();
+            }
+            
+            //验证库存组织机构表字段的有效性
+            
+            function fnd2120_organizationValidator(record, name, value) {
+                if (name == 'inv_organization_code') {
+                    //验证库存组织机构代码的长度不能超过30
+                    if (fnd2120_getlength(value) >= 30) {
+                        return '${l:FND2120.ORGANIZATION_CODE_OVERLENGTH}';
+                    }
+                } else if (name == 'inv_organization_name') {
+                    //验证库存组织机构名称的长度不能超过1000
+                    if (fnd2120_getlength(value) >= 1000) {
+                        return '${l:FND2120.ORGANIZATION_NAME_OVERLENGTH}';
+                    }
+                }
+                return true;
+            }
+            
+            //返回字符串真实长度
+            
+            function fnd2120_getlength(str) {
+                var realLength = 0,
+                    len = 0,
+                    charCode = -1;
+                if (!Aurora.isEmpty(str)) {
+                    len = str.length;
+                }
+                for (var i = 0;i < len;i++) {
+                    charCode = str.charCodeAt(i);
+                    if (charCode >= 0 && charCode <= 128) {
+                        realLength += 1;
+                    } else {
+                        realLength += 3;
+                    }
+                }
+                return realLength;
+            }
+            
+            
+            function fnd2120_organization_result_onQuery(ds) {
+                //触发查询事件时，锁住按钮
+                $('fnd2120_organization_grid_addButton').disable();
+                $('fnd2120_organization_grid_saveButton').disable();
+                $('fnd2120_organization_grid_clearButton').disable();
+                $('fnd2120_organization_grid_synButton').disable();
+            }
+            
+            
+            function fnd2120_organization_result_onUpdate(ds, record, name, value, oldvalue) {
+                //触发更新事件时，校验主库存组织个数
+                if (name == 'primary_flag') {
+                    if (value == 'Y') {
+                        primary_organization++;
+                    } else if (value == 'N') {
+                        primary_organization--;
+                    }
+                    if (primary_organization > 1) {
+                        record.set('primary_flag', 'N');
+                        Aurora.showMessage('${l:PROMPT}', '集团主库存组织不能为多个');
+                    }
+                }
+            }
+            
+            function fnd2120_organization_result_onLoad(ds) {
+                primary_organization = 0;
+                fnd2120_organization_count_primary();
+                //触发加载数据事件时，解锁按钮
+                $('fnd2120_organization_grid_addButton').enable();
+                $('fnd2120_organization_grid_saveButton').enable();
+                $('fnd2120_organization_grid_clearButton').enable();
+                $('fnd2120_organization_grid_synButton').enable();
+            }
+            
+            function fnd2120_organization_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+            }
+            
+            function fnd2120_editorFunction(record, name) {
+                if (name == 'inv_organization_code') {
+                    if (!record.get('inv_organization_id')) {
+                        return 'fnd2120_result_grid_tfu';
+                    } else {
+                        return '';
+                    }
+                } else if (name == 'inv_organization_name') {
+                    if (!record.get('inv_organization_id') || record.get('data_source') == 'SRM') {
+                        return 'fnd2120_result_grid_tf';
+                    } else {
+                        return '';
+                    }
+                } else if (name == 'business_unit_name') {
+                    if (!record.get('inv_organization_id') || record.get('data_source') == 'SRM') {
+                        return 'fnd2120_result_grid_lov';
+                    } else {
+                        return '';
+                    }
+                } else if (name == 'enabled_flag') {
+                    if (!record.get('inv_organization_id') || record.get('data_source') == 'SRM') {
+                        return 'fnd2120_result_grid_ckb';
+                    } else {
+                        return '';
+                    }
+                }
+            }
+            
+            
+            function fnd2120_warehouseDefine(value, record, name) {
+                //库房定义
+                if (record.isNew) {
+                    return '${l:INV_ORGANIZATIONS.WAREHOUSE_DEFINE}';
+                } else {
+                    var invOrganizationId = record.get('inv_organization_id');
+                    var dataSource = record.get('data_source');
+                    if (dataSource == 'SRM') {
+                        if (record.get('inv_organization_id')) {
+                            return '<a href="javascript:openFunction(\'modules/fnd/FND3010/fnd_3010_warehouse.screen?function_code=FND3010\',\'库房设置\')">${l:INV_ORGANIZATIONS.WAREHOUSE_DEFINE}</a>';
+                        }
+                    } else {
+                        return '${l:INV_ORGANIZATIONS.WAREHOUSE_DEFINE}';
+                    }
+                }
+            }
+            
+            function fnd2120_organization_syn() {
+                Aurora.Masker.mask(Ext.getBody(), '正在操作中..');
+                Aurora.request({
+                    url: $('fnd2120_oraginzation_syn_link').getUrl(),
+                    success: function() {
+                        Aurora.Masker.unmask(Ext.getBody());
+                        Aurora.SideBar.enable = true;
+                        Aurora.SideBar.show({
+                            msg: '${l:PROMPT.OPERATION_SUCCESS}',
+                            duration: 600
+                        });
+                    },
+                    scope: this
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2120_assign_business_unit_ds" loadData="true" model="public.fnd_business_unit_list"/>
+            <a:dataSet id="fnd2120_data_source_ds" loadData="true" lookupCode="DATA_SOURCE"/>
+            <a:dataSet id="fnd2120_query_ds">
+                <a:fields>
+                    <a:field name="inv_organization_code"/>
+                    <a:field name="inv_organization_name"/>
+                    <a:field name="data_source" displayField="code_value_name" options="fnd2120_data_source_ds" returnField="data_source" valueField="code_value"/>
+                    <a:field name="business_unit_id"/>
+                    <a:field name="business_unit_code"/>
+                    <a:field name="business_unit_name" autoComplete="true" autoCompleteField="business_unit_name" labelWidth="200" lovHeight="490" lovService="public.fnd_business_unit_lov" lovWidth="540" title="PROMPT.BUSINESS_UNIT">
+                        <a:mapping>
+                            <a:map from="business_unit_id" to="business_unit_id"/>
+                            <a:map from="business_unit_code" to="business_unit_code"/>
+                            <a:map from="business_unit_name" to="business_unit_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd2120_organization_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="fnd.FND2120.fnd_inv_organizations" queryDataSet="fnd2120_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="inv_organization_id"/>
+                    <a:field name="inv_organization_code" required="true" validator="fnd2120_organizationValidator"/>
+                    <a:field name="inv_organization_name" required="true" validator="fnd2120_organizationValidator"/>
+                    <a:field name="business_unit_id"/>
+                    <a:field name="business_unit_code"/>
+                    <a:field name="business_unit_name" autoComplete="true" autoCompleteField="business_unit_name" labelWidth="200" lovHeight="490" lovService="public.fnd_business_unit_lov" lovWidth="540" required="true" title="PROMPT.BUSINESS_UNIT">
+                        <a:mapping>
+                            <a:map from="business_unit_id" to="business_unit_id"/>
+                            <a:map from="business_unit_code" to="business_unit_code"/>
+                            <a:map from="business_unit_name" to="business_unit_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="data_source" defaultValue="SRM"/>
+                    <a:field name="primary_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N" validator="fnd2120_organizationValidator"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd2120_organization_result_onLoad"/>
+                    <a:event name="query" handler="fnd2120_organization_result_onQuery"/>
+                    <a:event name="update" handler="fnd2120_organization_result_onUpdate"/>
+                    <a:event name="submitsuccess" handler="fnd2120_organization_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton id="fnd2120_organization_grid_addButton" bind="fnd2120_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton id="fnd2120_organization_grid_saveButton" bind="fnd2120_grid" style="margin-left:20px;" type="save" width="100"/>
+                <a:gridButton id="fnd2120_organization_grid_clearButton" bind="fnd2120_grid" style="margin-left:20px;" type="clear" width="100"/>
+                <a:toolbarButton id="fnd2120_organization_grid_synButton" click="fnd2120_organization_syn" style="margin-left:5px;" text="FND.FND_ENABLED_FLAG_UPDATE" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="fnd2120_query_form" bindTarget="fnd2120_query_ds" resultTarget="fnd2120_organization_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="inv_organization_code" bindTarget="fnd2120_query_ds" labelWidth="200" prompt="INV_ORGANIZATIONS.INV_ORGANIZATION_CODE" typeCase="upper">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd2120_queryType"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="inv_organization_name" bindTarget="fnd2120_query_ds" labelWidth="200" prompt="INV_ORGANIZATIONS.INV_ORGANIZATION_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd2120_queryType"/>
+                            </a:events>
+                        </a:textField>
+                        <a:lov name="business_unit_name" bindTarget="fnd2120_query_ds" labelWidth="200" prompt="FND_BUSINESS_UNITS.BUSINESS_UNIT_NAME_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd2120_queryType"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:comboBox name="data_source" bindTarget="fnd2120_query_ds" labelWidth="200" prompt="INV_ORGANIZATIONS.DATA_SOURCE">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd2120_queryType"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="fnd2120_grid" bindTarget="fnd2120_organization_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="inv_organization_code" editorFunction="fnd2120_editorFunction" prompt="INV_ORGANIZATIONS.INV_ORGANIZATION_CODE" sortable="true" width="130"/>
+                    <a:column name="inv_organization_name" editorFunction="fnd2120_editorFunction" prompt="INV_ORGANIZATIONS.INV_ORGANIZATION_NAME" width="200"/>
+                    <a:column name="business_unit_name" align="left" editorFunction="fnd2120_editorFunction" prompt="FND_BUSINESS_UNITS.BUSINESS_UNIT_NAME_ID" sortable="true" width="200"/>
+                    <a:column name="warehouse_define" align="left" prompt="INV_ORGANIZATIONS.WAREHOUSE_DEFINE" renderer="fnd2120_warehouseDefine" width="60"/>
+                    <a:column name="data_source" align="left" prompt="INV_ORGANIZATIONS.DATA_SOURCE" width="60"/>
+                    <a:column name="primary_flag" align="left" editor="fnd2120_result_grid_ckb" prompt="主库存组织" sortable="true" width="60"/>
+                    <a:column name="enabled_flag" align="left" editor="fnd2120_result_grid_ckb" prompt="INV_ORGANIZATIONS.ENABLED_FLAG" sortable="true" width="60"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="fnd2120_result_grid_ckb"/>
+                    <a:textField id="fnd2120_result_grid_tf"/>
+                    <a:textField id="fnd2120_result_grid_tfu" typeCase="upper"/>
+                    <a:lov id="fnd2120_result_grid_lov"/>
+                    <a:comboBox id="fnd2120_result_grid_cmb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

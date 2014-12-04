@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model   xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+   SELECT GD.DETAIL_ID,
+       GD.GRAPHIC_ID,
+       GD.CONFIG,
+       GD.TABLE_NAME,
+       GD.TABLE_ID,
+       GD.TYPE,
+       O.status ACTION_TYPE,
+       to_char(O.CREATION_DATE,'yyyy-mm-dd hh24:mi:ss')as arrive_date,
+       to_char(wfl_workflow_pkg.get_dispose_date(O.history_record_id,O.node_id,O.instance_id,O.CREATION_DATE,O.last_update_date),'yyyy-mm-dd hh24:mi:ss') as dispose_date,
+       wfl_workflow_pkg.get_dispose_user(O.history_record_id,O.node_id,O.instance_id,O.CREATION_DATE,O.last_update_date)as dispose_user
+  FROM SYS_GRAPHICS_DETAIL GD,
+       (select *
+          from wfl_instance_node_history
+         where History_Record_Id in (select max(y.history_record_id)
+                                       from (SELECT *
+                                               FROM wfl_instance_node_history R
+                                              WHERE R.INSTANCE_ID = ${/parameter/@instance_id}
+                                                and R.approve_count =
+                                                    (select max(x.approve_count)
+                                                       from wfl_instance_node_history x
+                                                      where x.instance_id = ${/parameter/@instance_id})) y
+                                      group by node_id)) O
+ WHERE GD.TABLE_ID = O.NODE_ID(+)
+   AND GD.GRAPHIC_ID = ${/parameter/@graphics_id}
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

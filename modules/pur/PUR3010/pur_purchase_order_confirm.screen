@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wsh  
+    $Date: 2013-1-17 下午06:07:40  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure><![CDATA[
+    ]]></a:init-procedure>
+    <a:view>
+        <a:link id="pur3010_purchase_order_confirm_detail_link" url="${/request/@context_path}/modules/pur/PUR3010/pur_purchase_order_confirm_detail.screen"/>
+        <a:link id="pur3010_puchase_order_verify_record_link" url="${/request/@context_path}/modules/pur/public/pur_purchase_order_operate_record.screen"/>
+        <a:link id="pur3010_purchase_order_confirm_link" url="${/request/@context_path}/modules/pur/PUR3010/pur_purchase_order_confirm_detail.svc"/>
+        <style type="text/css"><![CDATA[
+
+.urgent_button {
+    border-radius: 3px;
+border: 1px solid rgba(0, 0, 0, 0.15);
+box-shadow: 0 -2px 0px rgba(0, 0, 0, 0.15) inset;
+-webkit-appearance: none;
+outline: none !important;
+-webkit-transition: all 0.1s;
+transition: all 0.1s;
+color: #ffffff;
+height: 25px!important;
+line-height: 22px!important;
+cursor:pointer;
+width:100px;
+text-align:center;
+margin-left:10px;
+}
+
+.urgent_button:hover,
+.urgent_button:focus,
+.urgent_button:active,
+.urgent_button.active {
+    outline: 0;
+    background-image: none;
+    -webkit-box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    color: #ffffff;
+    
+}
+
+
+.status-text {
+    color: #fff;
+    border-radius: 2px;
+}
+
+.status-red {
+    background-color: #f6504d;
+}
+
+.status-gray {
+    background-color: #a0aa99;
+}
+        ]]></style>
+        <script><![CDATA[
+            function pur_3010_purchase_order_query() {
+                $('pur3010_purchase_order_verify_ds').query();
+            }
+            
+            //加急订单查询
+            
+            function pur3010_purchaseOrderHeaderUrgent_query() {
+                $('pur3010_purchase_order_confirm_query_ds').getAt(0).set('urgent_status', 'URGENT');
+                $('pur3010_purchase_order_confirm_query_ds').getAt(0).set('urgent_status_desc', '已加急');
+                $('pur3010_purchase_order_verify_ds').query();
+            }
+            
+            //比较两个日期的大小
+            
+            function pur3010_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            
+            //发布日期校验
+            
+            function pur3010_release_dateValidator(record, name, value) {
+                if (name == 'release_date_begin' || name == 'release_date_end') {
+                    var start_rele_date = record.get('release_date_begin');
+                    var end_rele_date = record.get('release_date_end');
+            
+                    if ( !! end_rele_date) {
+                        if (!pur3010_compareDate(start_rele_date, end_rele_date)) {
+                            return '${l:ORDER_DATE_COMPARE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            //截止回复日期校验
+            
+            function pur3010_end_reply_dateValidator(record, name, value) {
+                if (name == 'reply_date_from' || name == 'reply_date_to') {
+                    var start_reply_date = record.get('reply_date_from');
+                    var end_reply_date = record.get('reply_date_to');
+            
+                    if ( !! end_reply_date) {
+                        if (!pur3010_compareDate(start_reply_date, end_reply_date)) {
+                            return '${l:ORDER_REPLY_DATE_COMPARE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            //查看明细
+            
+            function pur3010_detailRender(value, record, name) {
+                //alert(record.get('pur_header_id'));
+                if (record.isNew) {
+                    return '';
+                }
+            
+                return '<a href="javascript:pur3010_openDetail(' + record.get('pur_header_id') + ')">' + value + '</a>';
+            
+            }
+            
+            function pur3010_openDetail(id) {
+                new Aurora.Window({
+                    id: 'pur_purchase_order_detail_window',
+                    url: $('pur3010_purchase_order_confirm_detail_link').getUrl() + '?pur_header_id=' + id,
+                    title: '${l:PUR_HEADERS_ALL.PUR_DETAILS}',
+                    fullScreen: true
+                });
+            }
+            
+            //${l:PUR_HEADERS_ALL.OPERATION_RECORD}
+            
+            
+            function pur3010_recordRender(value, record, name) {
+                if (record.isNew) {
+                    return '';
+                }
+                return '<a href="javascript:pur3010_openRecord(' + record.get('pur_header_id') + ')">${l:PUR_HEADERS_ALL.OPERATION_RECORD}</a>';
+            }
+            
+            function pur3010_openRecord(id) {
+                new Aurora.Window({
+                    id: 'pur_purchase_order_record_window',
+                    url: $('pur3010_puchase_order_verify_record_link').getUrl() + '?transaction_object=PUR_HEADERS_ALL' + '&pur_header_id=' + id,
+                    title: '${l:PUR_HEADERS_ALL.OPERATION_RECORD}',
+                    height: 450,
+                    width: 700
+                });
+            }
+            
+            
+            //确认操作
+            
+            function pur_3010_purchase_order_confirm() {
+                Aurora.showConfirm('${l:MODULES/PUR/PUR3010/PUR_PURCHASE_ORDER_CONFIRM.SCREEN.TITLE}', '${l:PUR_HEADERS_ALL.CONFIRM}', function() {
+            
+                    var list_ds = $('pur3010_purchase_order_verify_ds');
+            
+                    var datas = [];
+                    var records = list_ds.getSelected();
+                    if (records.length == 0) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PUR_HEADERS_ALL.UNSELECT_ERROR}！');
+                    }
+                    for (var i = 0;i < records.length;i++) {
+                        datas.push(records[i].data);
+                    }
+                    Aurora.request({
+                        url: $('pur3010_purchase_order_confirm_link').getUrl(),
+                        para: datas,
+                        success: function() {
+                            list_ds.query();
+                        },
+                        scope: this
+                    });
+                }, null, 300, 100);
+            }
+            
+            function pur3010_urgentRendererFun(value, record, name) {
+                if ('URGENT' == record.get('urgent_status')) {
+                    return '<div class="status-text status-red">' + value + '</div>';
+                } else {
+                    return value;
+                }
+            }
+            
+            function pur3010_purchaseOrderConfirmQuery_updateFun(ds,record,name,value,oldvalue){
+                if(name == 'company_id'){
+                    record.set('business_unit_name','');
+                    record.set('business_unit_id','');
+                    if(Ext.isEmpty(value)){
+                        record.getField('business_unit_name').setReadOnly(true);
+                        record.getField('business_unit_name').setLovPara('company_id',-1);
+                    }else{
+                        record.getField('business_unit_name').setReadOnly(false);
+                        record.getField('business_unit_name').setLovPara('company_id',value);
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <!-- 加急状态 -->
+            <a:dataSet id="pur3010_po_urgent_status_ds" lookupCode="PUR_PO_URGENT_STATUS"/>
+            <a:dataSet id="pur3010_order_verify_order_type_options" fetchAll="true" loadData="true" model="pur.public.pur_purchase_order_type"/>
+            <a:dataSet id="pur3010_headeErpStatus" lookupCode="PUR_HEADER_ERP_STATUS"/>
+            <a:dataSet id="pur3010_purchase_order_confirm_query_ds">
+                <a:fields>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_full_name" lovHeight="500" lovService="public.fnd_cooperative_company_by_supply_lov" lovWidth="500" title="FND_COMPANIES.QUERY">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="business_unit_name" autoComplete="true" autoCompleteField="business_unit_name" lovHeight="480" lovService="public.fnd_client_business_unit_by_supply_lov?company_id=-1" lovWidth="550" prompt="ERP_AP_INVOICE_LINES.BUSINESS_UNIT_ID" readOnly="true" title="ERP_AP_INVOICE_LINES.BUSINESS_UNIT_ID">
+                        <a:mapping>
+                            <a:map from="business_unit_id" to="business_unit_id"/>
+                            <a:map from="business_unit_name" to="business_unit_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <!-- <a:field name="type_lookup_desc" displayField="description" options="pur3010_order_verify_order_type_options" returnField="type_lookup_code" valueField="order_type_code"/> -->
+                    <a:field name="release_date_begin" validator="pur3010_release_dateValidator"/>
+                    <a:field name="release_date_end" validator="pur3010_release_dateValidator"/>
+                    <a:field name="reply_date_from" validator="pur3010_end_reply_dateValidator"/>
+                    <a:field name="reply_date_to" validator="pur3010_end_reply_dateValidator"/>
+                    <a:field name="urgent_status_desc" displayField="code_value_name" options="pur3010_po_urgent_status_ds" returnField="urgent_status" valueField="code_value"/>
+                    <a:field name="urgent_date_from"/>
+                    <a:field name="urgent_date_to"/>
+                    <a:field name="erp_status_desc" displayField="code_value_name" options="pur3010_headeErpStatus" returnField="erp_status" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur3010_purchaseOrderConfirmQuery_updateFun"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur3010_purchase_order_verify_ds" autoCount="true" autoPageSize="true" model="pur.PUR3010.pur_purchase_order_confirm" queryDataSet="pur3010_purchase_order_confirm_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="pur_header_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur_3010_purchase_order_confirm" text="CONFIRM" width="100"/>
+                <a:gridButton bind="pur3010_purchase_order_verify_grid" text="HAP_EXPORT" type="excel" width="100"/>
+                <div class="urgent_button status-red" onclick="javascript:pur3010_purchaseOrderHeaderUrgent_query();" style="margin-top:8px;"><![CDATA[${l:PUR_URGENT_PO_QUERY}]]></div>
+            </a:screenTopToolbar>
+            <a:queryForm id="pur3010_purchase_order_verify_query_form" bindTarget="pur3010_purchase_order_confirm_query_ds" marginWidth="60" resultTarget="pur3010_purchase_order_verify_ds" style="border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="display_po_number" prompt="PUR_HEADERS_ALL.SEGMENT1">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="type_lookup_desc" prompt="PUR_HEADERS_ALL.ORDER_TYPE_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:lov name="company_name" prompt="PROMPT.CLIENT">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody prompt="HAP_MORE" style="margin-left:8px">
+                    <a:hBox labelWidth="120">
+                        <a:textField name="display_release_num" prompt="PUR_HEADERS_ALL.RELEASE_NUM">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="urgent_status_desc" prompt="PUR_LINE_LOCATIONS_ALL.URGENT_STATUS">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:lov name="business_unit_name">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:comboBox name="erp_status_desc" prompt="PUR_HEADERS_ALL.ERP_STATUS">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:datePicker name="release_date_begin" prompt="PUR_HEADERS_ALL.RELEASE_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="release_date_end" prompt="PUR_HEADERS_ALL.RELEASE_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                    <!--  <a:hBox labelWidth="120">
+                    <a:dateTimePicker name="urgent_date_from" prompt="PUR_LINE_LOCATIONS_ALL.URGENT_DATE_FROM">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                        </a:events>
+                    </a:dateTimePicker>
+                    <a:dateTimePicker name="urgent_date_to" prompt="PUR_LINE_LOCATIONS_ALL.URGENT_DATE_TO">
+                        <a:events>
+                            <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                        </a:events>
+                    </a:dateTimePicker>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                        <a:datePicker name="reply_date_from" prompt="PUR_HEADERS_ALL.REPLY_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="reply_date_to" prompt="PUR_HEADERS_ALL.REPLY_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur_3010_purchase_order_query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox> -->
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="pur3010_purchase_order_verify_grid" autoAppend="false" bindTarget="pur3010_purchase_order_verify_ds" marginHeight="194" marginWidth="60" navBar="true" style="margin-top:5px;">
+                <a:columns>
+                    <a:column name="erp_status_desc" align="center" prompt="PUR_HEADERS_ALL.ERP_STATUS" width="50"/>
+                    <a:column name="display_po_number" align="center" prompt="PUR_HEADERS_ALL.SEGMENT1" renderer="pur3010_detailRender" sortable="true" width="60"/>
+                    <a:column name="display_release_num" align="center" prompt="PUR_HEADERS_ALL.RELEASE_NUM" width="40"/>
+                    <a:column name="type_lookup_desc" align="center" prompt="PUR_HEADERS_ALL.ORDER_TYPE_ID" sortable="true" width="80"/>
+                    <a:column name="vendor_site_name" align="center" prompt="PUR_HEADERS_ALL.VENDOR_SITE" width="80"/>
+                    <a:column name="release_date_desc" align="center" prompt="PUR_HEADERS_ALL.RELEASE_DATE" sortable="true" width="80"/>
+                    <a:column name="company_name" align="center" prompt="PROMPT.CLIENT" sortable="true" width="100"/>
+                    <a:column name="business_unit_name" align="center" prompt="ERP_AP_INVOICE_LINES.BUSINESS_UNIT_ID" sortable="true" width="100"/>
+                    <a:column name="agent_name" align="center" prompt="PUR_HEADERS_ALL.PUR_BUYER" width="60"/>
+                    <a:column name="urgent_status_desc" align="center" prompt="PUR_LINE_LOCATIONS_ALL.URGENT_STATUS" renderer="pur3010_urgentRendererFun" sortable="true" width="60"/>
+                    <a:column name="reply_date_desc" align="center" prompt="PUR_HEADERS_ALL.REPLY_DATE" sortable="true" width="80"/>
+                    <a:column name="urgent_date_desc" align="center" prompt="PUR_LINE_LOCATIONS_ALL.URGENT_DATE" width="70"/>
+                    <a:column name="comments" align="center" prompt="PUR_HEADERS_ALL.COMMENTS" width="100"/>
+                    <a:column align="center" prompt="PUR_HEADERS_ALL.OPERATION_RECORD" renderer="pur3010_recordRender" width="50"/>
+                    <a:column name="revision_num" align="center" prompt="PUR_HEADERS_ALL.REVISION_NUM" width="30"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

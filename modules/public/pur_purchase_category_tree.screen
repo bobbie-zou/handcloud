@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-6-14 下午4:26:51  
+    $Revision: 1.0  
+    $Purpose: 采购品类树形选择页面（公用页面）,注意script代码的最后部分
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        
+            //记录首位置
+            var local_index = 0;
+            
+            //数组记录查询到的结果在dataset中的row
+            var row_list = [];
+            
+            //是否初始化定位数组
+            var local_flag = false;
+            
+            //初始化定位数组
+            function initRowList(para) {
+                //获取dataset数据
+                var records = $('public_pur_purchase_category_tree_ds').getAll();
+                //对dataset进行遍历
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    //判断是否包含当前查询字符，且当前index不等于全局变量local_index
+                    if (record.get('purchase_category_code').indexOf(para) != -1 || record.get('purchase_category_name').indexOf(para) != -1) {
+                        //记录当前指针
+                        local_index = $('public_pur_purchase_category_tree_ds').indexOf(record) + 1;
+                        //定位行
+                        row_list.push(local_index);
+                    }
+                }
+                local_flag = true;
+            }
+            
+            //查询dataset更新事件
+            function public_purchaseCategoryUpdateQueryHandler(ds, record, name, value, oldvalue) {
+                $('public_pur_purchase_category_tree_query_ds').getCurrentRecord().dirty = false;
+                if (name == 'purchase_category_code_name') {
+                    //查询条件改变，重置全局定位变量
+                    local_index = 0;
+                    row_list = [];
+                    local_flag = false;
+                }
+            }
+            
+            //采购品类tree查询按钮执行方法
+            function publicPurchaseCategoryTreeQuery() {
+                //获取查询字符串
+                var para = $('public_pur_purchase_category_tree_query_ds').getCurrentRecord().get('purchase_category_code_name');
+                if (para != undefined && !Ext.isEmpty(para)) {
+                    //判断是否初始化定位数组
+                    if (!local_flag) {
+                        initRowList(para);
+                    }
+                    if (row_list.length > 0) {
+                        //定位至当前数组位置
+                        $('public_pur_purchase_category_tree_ds').locate(row_list[local_index]);
+                        //数组当前指针+1
+                        if (local_index < row_list.length - 1) {
+                            local_index++;
+                        } else {
+                            //若当前指针超过数组长度，从0开始
+                            local_index = 0;
+                        }
+                    }
+                }
+            }
+            
+            //采购品类tree关闭按钮执行方法
+            function publicPurchaseCategoryTreeClose() {
+                $('link_public_pur_purchase_category_tree_window').close();
+            }
+            
+            //检查是否已经添加到grid
+            function check_grid_by_purchase_category_id(grid_ds, purchase_category_id) {
+                var records = grid_ds.getAll();
+                //循环校验右边的DS，如果已经添加过了，则不会在进行添加动作
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].get('purchase_category_id') == purchase_category_id) {
+                        //不通过校验
+                        return false; 
+                    }
+                }
+            
+                //通过校验
+                return true;
+            }
+            
+            //采购品类tree新增按钮执行方法
+            function publicPurchaseCategoryTreeAdd() {
+                //获取2个数据DATASET
+                var tree_ds = $('public_pur_purchase_category_tree_ds');
+                var grid_ds = $('public_pur_purchase_category_grid_ds');
+            	
+                var tree_records = tree_ds.getAll();
+                for (var i = 0;i < tree_records.length;i++) {
+                    var record = tree_records[i];
+                    //判断，只有被勾选且没有子节点的品类才会被添加到右边的数据源
+                    if (record.get('checked') == "Y" && record.get('extend_flag') == "N") {
+                        if (check_grid_by_purchase_category_id(grid_ds, record.get('purchase_category_id'))) {
+                            grid_ds.add(record);
+                        }
+                    }
+                }
+            }
+            
+            //采购品类tree移除按钮执行方法
+            function publicPurchaseCategoryTreeRemove() {
+                $('public_pur_purchase_category_autogrid_grid').clear();
+            }
+            
+            
+           //============================================================
+           // 说明：
+           // 为达到公用效果，此保存方法，需在父页面进行调用，可直接将下述方法copy到父页面，然后加入逻辑代码即可
+           
+           // 调用方法：采购品类tree保存按钮执行方法
+           // 参数：无
+           // 返回：无
+           // 注意：方法名称不可修改
+           // function publicPurchaseCategoryTreeSave() {
+            	//code here!
+           // }
+           //============================================================
+           
+           
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="public_pur_purchase_category_tree_query_ds">
+                <a:events>
+                    <a:event name="update" handler="public_purchaseCategoryUpdateQueryHandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="public_pur_purchase_category_tree_ds" fetchAll="true" loadData="true" model="public.pur_purchase_category_tree_query"/>
+            <a:dataSet id="public_pur_purchase_category_grid_ds" selectable="true"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:hBox>
+                <a:vBox>
+                    <a:form row="1">
+                        <a:textField name="purchase_category_code_name" bindTarget="public_pur_purchase_category_tree_query_ds" emptyText="请输入采购品类代码或名称" width="270"/>
+                        <a:toolbarButton click="publicPurchaseCategoryTreeQuery" style="margin-left:20px;" text="HAP_QUERY" width="100"/>
+                    </a:form>
+                    <a:treeGrid id="public_pur_purchase_category_tree_grid" bindTarget="public_pur_purchase_category_tree_ds" height="530" idField="purchase_category_id" parentField="parent_category_id" showCheckBox="true" width="405">
+                        <a:columns>
+                            <a:column name="purchase_category_code" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CATEGORY_NAME" width="300"/>
+                            <a:column name="purchase_category_name" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CATEGORY_CODE" width="104"/>
+                        </a:columns>
+                    </a:treeGrid>
+                </a:vBox>
+                <a:vBox height="550" width="50">
+                    <div style="vertical-align:middle">
+                        <a:toolbarButton click="publicPurchaseCategoryTreeAdd" text="PROMPT.NEW" width="80"/>
+                        <br/>
+                        <a:toolbarButton click="publicPurchaseCategoryTreeRemove" text="PROMPT.REMOVE" width="80"/>
+                    </div>
+                </a:vBox>
+                <a:vBox>
+                    <a:form row="1">
+                        <a:toolbarButton click="publicPurchaseCategoryTreeSave" text="HAP_SAVE" width="100"/>
+                        <a:toolbarButton click="publicPurchaseCategoryTreeClose" style="margin-left:10px;" text="HAP_CLOSE" width="100"/>
+                    </a:form>
+                    <a:grid id="public_pur_purchase_category_autogrid_grid" bindTarget="public_pur_purchase_category_grid_ds" height="530" width="345">
+                        <a:columns>
+                            <a:column name="purchase_category_code" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CATEGORY_CODE" width="120"/>
+                            <a:column name="purchase_category_name" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CATEGORY_NAME" width="199"/>
+                        </a:columns>
+                    </a:grid>
+                </a:vBox>
+            </a:hBox>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

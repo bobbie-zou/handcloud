@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2014年1月17日 下午2:55:17  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="acp5190_consign_web_invoice_return_after_check_link" url="${/request/@context_path}/modules/acp/ACP5190/acp_consign_web_invoice_return_after_check.svc"/>
+        <a:link id="acp5190_consign_web_invoice_edit_link" url="${/request/@context_path}/modules/acp/ACP5190/acp_consign_web_invoice_edit.screen"/>
+        <a:link id="acp5190_operation_record_link" url="${/request/@context_path}/modules/acp/PUBLIC/acp_operation_record.screen"/>
+        <script><![CDATA[
+            function acp5190Query() {
+                $('acp5190_consign_web_invoice_result_ds').query();
+            }
+            
+            function acp5190ConsignWebInvoiceReturnAfterCheck() {
+                var result_ds = $('acp5190_consign_web_invoice_result_ds');
+                var selected_recs = result_ds.getSelected();
+            
+                if (selected_recs.length > 0) {
+                    Aurora.showConfirm('提示', '确认退回？', function() {
+                        Aurora.Masker.mask(Ext.getBody(), '正在加载');
+            
+                        Aurora.request({
+                            url: $('acp5190_consign_web_invoice_return_after_check_link').getUrl(),
+                            para: selected_recs.data,
+                            success: function() {
+                                Aurora.showMessage('提示', '已退回！', function() {
+                                    acp5190Query();
+                                });
+                            },
+                            failure: function() {
+                                return;
+                            },
+                            error: function() {
+                                return;
+                            }
+                        });
+            
+                        Aurora.Masker.unmask(Ext.getBody());
+                    });
+                }
+            }
+            
+            function acp5190ConsignWebInvoiceResultRender(value, rec, name) {
+                var invoice_header_id = rec.get('invoice_header_id');
+                if (name == 'invoice_num') {
+                    return '<a href="javascript:acp5190ConsignWebInvoiceDetail(' + invoice_header_id + ')">' + value + '</a>';
+                } else if (name == 'operation_record') {
+                    return '<a href="javascript:acp5190OperationRecord(' + invoice_header_id + ')">操作记录</a>';
+                }
+            }
+            
+            function acp5190ConsignWebInvoiceDetail(invoice_header_id) {
+                new Aurora.Window({
+                    id: 'acp5190_consign_web_invoice_edit_window',
+                    title: '寄销网上发票明细',
+                    url: $('acp5190_consign_web_invoice_edit_link').getUrl() + '?invoice_header_id=' + invoice_header_id,
+                    fullScreen: true
+                }).on('beforeclose', function() {
+                    acp5190Query();
+                });
+            }
+            
+            function acp5190OperationRecord(invoice_header_id) {
+                new Aurora.Window({
+                    id: 'acp5190_operation_record_window',
+                    title: '操作记录',
+                    url: $('acp5190_operation_record_link').getUrl() + '?operation_table=ACP_CSGN_WEB_INVOICE_HDS&operation_table_id=' + invoice_header_id,
+                    height: 450,
+                    width: 600
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp5190_consign_web_invoice_query_ds">
+                <a:fields>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="company_full_name" lovGridHeight="320" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" title="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="acp5190_consign_web_invoice_result_ds" autoCount="true" autoPageSize="true" model="acp.ACP5190.acp_consign_web_invoice_query" queryDataSet="acp5190_consign_web_invoice_query_ds" selectable="true"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="acp5190ConsignWebInvoiceReturnAfterCheck" text="退回" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="acp5190_consign_web_invoice_query_ds" resultTarget="acp5190_consign_web_invoice_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="bill_number_from" bindTarget="acp5190_consign_web_invoice_query_ds" prompt="开票单编号从">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5190Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="bill_number_to" bindTarget="acp5190_consign_web_invoice_query_ds" prompt="开票单编号至">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5190Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:lov name="company_desc" bindTarget="acp5190_consign_web_invoice_query_ds" prompt="公司">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5190Query"/>
+                        </a:events>
+                    </a:lov>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:vBox labelWidth="100">
+                            <a:textField name="po_num_from" bindTarget="acp5190_consign_web_invoice_query_ds" prompt="采购订单号从">
+                                <a:events>
+                                    <a:event name="enterdown" handler="acp5190Query"/>
+                                </a:events>
+                            </a:textField>
+                        </a:vBox>
+                        <a:vBox labelWidth="100">
+                            <a:textField name="po_num_to" bindTarget="acp5190_consign_web_invoice_query_ds" prompt="采购订单号至">
+                                <a:events>
+                                    <a:event name="enterdown" handler="acp5190Query"/>
+                                </a:events>
+                            </a:textField>
+                        </a:vBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="acp5190_consign_web_invoice_result_grid" bindTarget="acp5190_consign_web_invoice_result_ds" marginHeight="130" marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="invoice_num" align="left" prompt="网上发票编号" renderer="acp5190ConsignWebInvoiceResultRender" sortable="true" width="80"/>
+                    <a:column name="company_code" align="left" prompt="公司编码" sortable="true" width="60"/>
+                    <a:column name="company_desc" align="left" prompt="公司名称" sortable="true" width="100"/>
+                    <a:column name="vendor_code" align="left" prompt="供应商编码" sortable="true" width="60"/>
+                    <a:column name="vendor_desc" align="left" prompt="供应商名称" sortable="true" width="100"/>
+                    <a:column name="vendor_site_desc" align="left" prompt="供应商地点" sortable="true" width="60"/>
+                    <a:column name="currency_code" align="left" prompt="币种" sortable="true" width="60"/>
+                    <a:column name="invoice_amount_system" align="right" prompt="含税总额(系统)" sortable="true" width="80"/>
+                    <a:column name="invoice_tax_amount_system" align="right" prompt="税额(系统)" sortable="true" width="80"/>
+                    <a:column name="invoice_amount" align="right" prompt="发票总额" sortable="true" width="80"/>
+                    <a:column name="invoice_tax_amount" align="right" prompt="发票税额" sortable="true" width="80"/>
+                    <a:column name="tax_invoice_num" align="left" prompt="税务发票号" sortable="true" width="60"/>
+                    <a:column name="status_desc" align="left" prompt="状态" sortable="true" width="60"/>
+                    <a:column name="creation_date" align="center" prompt="创建日期" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                    <a:column name="approved_date" align="center" prompt="审核日期" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                    <a:column name="operation_record" align="center" prompt="操作记录" renderer="acp5190ConsignWebInvoiceResultRender" sortable="true" width="60"/>
+                    <a:column name="data_source" align="left" prompt="数据来源" sortable="true" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: huyijun 
+    $Date: 2013-5-30 上午10:00:39  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="fnd7020_fnd_message_user_assign_link" url="${/request/@context_path}/modules/fnd/FND7020/fnd_message_user_assign.screen"/>
+        <a:link id="fnd7020_fnd_message_all_user_assign_link" url="${/request/@context_path}/modules/fnd/FND7020/fnd_message_all_user_assign.screen"/>
+        <script><![CDATA[
+        	
+         	//权限策略EditFunction
+    		function accessCodeEditFunc(record, name){
+    		    if(name == 'access_code'){
+    		        if(record.isNew){
+    		            return 'access_define_cmb';
+    		        }else{
+    		            return '';
+    		        }
+    		    }
+    		}
+    		
+    		//权限组EditFunction
+    		function accessGroupEditFunction(record, name){
+    		    if(name == 'access_group_code'){
+    		        if(record.isNew){
+    		            return 'access_group_tf';
+    		        }else{
+    		            return '';
+    		        }
+    		    }
+    		}
+    		
+    		//权限明细分配渲染
+    		function accessGroupAssaginRenderer(value, record, name){
+    		    if(record.isNew){
+    		        return '';
+    		    }else{
+    		        return '<a href="javascript:accessGroupAssign('+record.get('group_hds_id')+');">${l:MODULES/FND/FND7020/FND_MESSAGE_ACCESS_GROUP_DTL.SCREEN.TITLE}</a>';
+    		    }
+    		}
+    		
+    		//权限明细维护窗口
+    		function accessGroupAssign(group_hds_id){
+    		    new Aurora.Window({
+    		        id:'accessGroupAssignWin',
+    		        title:'${l:MODULES/FND/FND7020/FND_MESSAGE_ACCESS_GROUP_DTL.SCREEN.TITLE}',
+    		        url:'${/request/@context_path}/modules/fnd/FND7020/fnd_message_access_group_dtl.screen?group_hds_id='+group_hds_id,
+    		        width: 700,
+    		        height: 500
+    		    });
+    		}
+    		
+    		//权限组提交成功，回调查询
+    		function accessGroupSubSuccHandler(){
+    		    $('fnd_msg_access_hds_ds').query();
+    		}
+    		
+    		//权限策略提交成功，回调查询
+    		function accessSubSuccHandler(){
+    		    $('fnd_message_access_ds').query();
+    		}
+    		
+    		//校验权限组代码是否过长
+    		function accessGroupCodeValidate(record, name, value){
+    		    if(name == 'access_group_code'){
+    		        if(record.get(name)){
+    		            if(record.get(name).length > 30){
+    		                return '${l:FND7020.ACCESS_GROUP_CODE_LONG}';
+    		            }else{
+    		                return true;
+    		            }
+    		        }
+    		    }
+    		}
+    		
+    		//校验权限策略代码是否过长
+    		function accessCodeValidate(record, name, value){
+    		    if(name == 'access_code'){
+    		        if(record.get(name)){
+    		            if(record.get(name).length > 30){
+    		                return '${l:FND7020.ACCESS_POLICY_CODE_LONG}';
+    		            }else{
+    		                return true;
+    		            }
+    		        }
+    		    }
+    		}
+    		
+    		//用户分配渲染函数
+    		function fnd7020_user_assign_renderer(value, record, name){
+    		    if(record.isNew){
+    		        return '';
+    		    }else{
+    		        if(record.get('access_code') == 'T-001'){
+    		            return '';
+    		        }else{
+    		        	return '<a href="javascript:fnd7020_user_assign(\''+record.get('access_code')+'\','+record.get('group_hds_id')+');">${l:FND.SYS_MESSAGE_ACCESS_USER_ASSIGN}</a>';
+    		        }
+    		    }
+    		}
+    		
+    		function fnd7020_user_assign(access_code,group_hds_id){
+    		    var url;
+    		    if(access_code == 'T-002' || access_code == 'T-003'){
+    		        url = $('fnd7020_fnd_message_user_assign_link').getUrl()+'?group_hds_id='+group_hds_id;
+    		    }else if(access_code == 'T-004' || access_code == 'T-005'){
+    		        url = $('fnd7020_fnd_message_all_user_assign_link').getUrl()+'?group_hds_id='+group_hds_id;
+    		    }
+    		    new Aurora.Window({
+    		        id:'fnd7020_user_assign_win',
+    		        title:'${l:FND.SYS_MESSAGE_ACCESS_USER_ASSIGN}',
+    		        url:url,
+    		        width:600,
+    		        height:500
+    		    });
+    		}
+    		
+    		function fnd7020_access_editfunction(record, name){
+    		    if(record.isNew){
+    		        return 'fnd7020_access_group_lov';
+    		    }else{
+    		        return '';
+    		    }
+    		}
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd7020_fnd_message_access_type_ds" lookupCode="SYS_USER_TYPE"/>
+            <a:dataSet id="fnd_message_access_type_ds" autoQuery="true" fetchAll="true" model="fnd.FND7020.fnd_message_access_type_query"/>
+            <a:dataSet id="fnd_message_access_query_ds"/>
+            <a:dataSet id="fnd_message_access_ds" autoPageSize="true" model="fnd.FND7020.fnd_message_access" queryDataSet="fnd_message_access_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="access_code" autoComplete="true" autoCompleteField="code_value" lovHeight="500" lovService="fnd.FND7020.fnd_message_access_type_query" lovWidth="500" required="true" title="FND.SYS_MESSAGE_ACCESS_TYPE_LOV_TITLE" validator="accessCodeValidate">
+                        <a:mapping>
+                            <a:map from="code_value" to="access_code"/>
+                            <a:map from="code_value_name" to="access_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="access_name"/>
+                    <a:field name="package_name" required="true"/>
+                    <a:field name="access_type" defaultValue="UNION"/>
+                    <a:field name="note"/>
+                    <a:field name="enable_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="access_type_display" displayField="code_value_name" options="fnd7020_fnd_message_access_type_ds" required="true" returnField="access_type" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="accessSubSuccHandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd_msg_access_hds_query_ds"/>
+            <a:dataSet id="fnd_msg_access_hds_ds" autoPageSize="true" model="fnd.FND7020.fnd_msg_access_group_hds" queryDataSet="fnd_msg_access_hds_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="access_group_code" required="true" typeCase="upper" validator="accessGroupCodeValidate"/>
+                    <a:field name="access_group_name" required="true"/>
+                    <a:field name="enable_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="access_name" lovHeight="500" lovLabelWidth="110" lovService="fnd.FND7020.fnd_msg_access_lov" lovWidth="550" required="true" title="FND.SYS_MESSAGE_ACCESS_LOV_TITLE">
+                        <a:mapping>
+                            <a:map from="access_desc" to="access_name"/>
+                            <a:map from="access_id" to="access_id"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="accessGroupSubSuccHandler"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:tabPanel marginHeight="80" marginWidth="60" style="margin-top:10px;">
+                <a:tabs>
+                    <a:tab marginHeight="20" marginWidth="20" prompt="FND.SYS_MESSAGE_ACCESS_DEFINITION_TAB_TITLE" width="120">
+                        <a:form column="1">
+                            <a:screenTopToolbar>
+                                <a:gridButton bind="access_grid" type="add" width="100"/>
+                                <a:gridButton bind="access_grid" type="save" width="100"/>
+                                <a:gridButton bind="access_grid" type="clear" width="100"/>
+                            </a:screenTopToolbar>
+                            <a:queryForm id="access_query_form" bindTarget="fnd_message_access_query_ds" defaultQueryField="access_code" defaultQueryHint="FND.SYS_MESSAGE_ACCESS_DEFINITION_QUERY_HINT" resultTarget="fnd_message_access_ds" style="width:100%;border:none"/>
+                            <a:grid id="access_grid" bindTarget="fnd_message_access_ds" marginHeight="230" marginWidth="120" navBar="true">
+                                <a:columns>
+                                    <a:column name="access_code" editorFunction="accessCodeEditFunc" width="120"/>
+                                    <a:column name="access_name" width="120"/>
+                                    <a:column name="access_type_display" align="center" editor="fnd7020_access_define_cmb" prompt="FND_MESSAGE_ACCESS.ACCESS_TYPE"/>
+                                    <a:column name="package_name" editor="access_define_tf" width="250"/>
+                                    <a:column name="note" editor="access_define_tf" width="100"/>
+                                    <a:column name="enable_flag" editor="access_define_cb" width="80"/>
+                                </a:columns>
+                                <a:editors>
+                                    <a:checkBox id="access_define_cb" checkedValue="Y" uncheckedValue="N"/>
+                                    <a:textField id="access_define_tf"/>
+                                    <a:lov id="access_define_cmb"/>
+                                    <a:comboBox id="fnd7020_access_define_cmb"/>
+                                </a:editors>
+                            </a:grid>
+                        </a:form>
+                    </a:tab>
+                    <a:tab marginHeight="80" marginWidth="20" prompt="FND.SYS_MESSAGE_ACCESS_GROUP_DEFINITION_TAB_TITLE" width="120">
+                        <a:form column="1">
+                            <a:screenTopToolbar>
+                                <a:gridButton bind="access_group_grid" type="add" width="100"/>
+                                <a:gridButton bind="access_group_grid" type="save" width="100"/>
+                                <a:gridButton bind="access_group_grid" type="delete" width="100"/>
+                            </a:screenTopToolbar>
+                            <a:queryForm id="access_group_query_from" bindTarget="fnd_msg_access_hds_query_ds" defaultQueryField="access_group_code" defaultQueryHint="FND.SYS_MESSAGE_ACCESS_GROUP_DEFINITION_QUERY_HINT" resultTarget="fnd_msg_access_hds_ds" style="width:100%;border:none"/>
+                            <a:grid id="access_group_grid" bindTarget="fnd_msg_access_hds_ds" marginHeight="230" marginWidth="120" navBar="true">
+                                <a:columns>
+                                    <a:column name="access_group_code" editorFunction="accessGroupEditFunction" width="120"/>
+                                    <a:column name="access_group_name" editor="access_group_tf_lowcase" width="150"/>
+                                    <a:column name="note" editor="access_group_tf_lowcase" width="150"/>
+                                    <a:column name="enable_flag" editor="access_group_cb" width="100"/>
+                                    <a:column name="access_name" align="center" editorFunction="fnd7020_access_editfunction" width="120"/>
+                                    <a:column name="user_assign" align="center" prompt="FND.SYS_MESSAGE_ACCESS_USER_ASSIGN" renderer="fnd7020_user_assign_renderer" width="100"/>
+                                </a:columns>
+                                <a:editors>
+                                    <a:textField id="access_group_tf"/>
+                                    <a:textField id="access_group_tf_lowcase"/>
+                                    <a:checkBox id="access_group_cb" checkedValue="Y" uncheckedValue="N"/>
+                                    <a:lov id="fnd7020_access_group_lov"/>
+                                </a:editors>
+                            </a:grid>
+                        </a:form>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

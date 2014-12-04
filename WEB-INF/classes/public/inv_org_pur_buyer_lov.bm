@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-8-22 下午1:59:16  
+    $Revision: 1.0  
+    $Purpose: 通过库存组织查找对应采购组织下的采购员BM 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.buyer_id,
+                    v.buyer_code,
+                    v.buyer_name
+                FROM
+                    (SELECT
+                        b.buyer_id,
+                        b.buyer_code,
+                        b.description AS buyer_name
+                    FROM
+                        pur_pur_orgs_inv_orgs o,
+                        pur_buyer_org_assign a,
+                        pur_buyers_vl b
+                    WHERE
+                        o.pur_organization_id = a.pur_org_id AND
+                        a.buyer_id            = b.buyer_id AND
+                        o.inv_organization_id = ${@inv_organization_id}
+                    GROUP BY
+                        b.buyer_id,
+                        b.buyer_code,
+                        b.description
+                    ) v #WHERE_CLAUSE#
+                ORDER BY
+                    v.buyer_code
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="buyer_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="buyer_code" databaseType="STRING" datatype="java.lang.String" displayWidth="120" forDisplay="true" forQuery="true" prompt="采购员代码"/>
+        <bm:field name="buyer_name" databaseType="STRING" datatype="java.lang.String" displayWidth="200" forDisplay="true" forQuery="true" prompt="采购员描述"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="buyer_code" queryExpression="v.buyer_code like &apos;%&apos;||trim(${@buyer_code})||&apos;%&apos;"/>
+        <bm:query-field name="buyer_name" queryExpression="v.buyer_name like &apos;%&apos;||trim(${@buyer_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

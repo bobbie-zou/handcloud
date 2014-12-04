@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui 6743$
+    $Date: 2014/09/29 10:46:59 $
+    $Revision: 1.0 $
+    $Purpose: ERP应付发票明细查询页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.flex_value_set_code = &apos;PAYMENT_STATUS&apos;" model="public.fnd_flex_value_v_lov" rootPath="payment_status"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="ap7130_invoice_detail_pur_link" url="${/request/@context_path}/modules/ap/PUBLIC/pur_purchase_order_query.screen"/>
+        <a:link id="ap7130_invoice_detail_rcv_trx_link" url="${/request/@context_path}/modules/ap/PUBLIC/pur_rcv_trx_purchaser_query.screen"/>
+        <script><![CDATA[
+            function ap7130_ap_invoice_detail_query() {
+                $('ap7130_invoice_lines_result_ds').query();
+            }
+            
+            function ap7130_invoice_detail_renderer(value, record, name) {
+                if (name == 'pur_header_num') {
+                    if (value) {
+                        var pur_header_id = record.get('pur_header_id');
+                        return '<a href="javascript:ap7130_invoice_detail_pur(' + pur_header_id + ')">' + value + '</>';
+                    } else {
+                        return null;
+                    }
+                } else if (name == 'rcv_trx_number') {
+                    if (value) {
+                        var rcv_trx_line_id = record.get('rcv_trx_line_id');
+                        return '<a href="javascript:ap7130_invoice_detail_rcv_trx(' + rcv_trx_line_id + ')">' + value + '</>';
+                    } else {
+                        return null;
+                    }
+                }
+            }
+            
+            
+            function ap7130_invoice_detail_number_renderer(value, record, name) {
+                if (name == 'unit_price') {
+                    if (value == 0) {
+                        return Aurora.formatNumber(value, 0);
+                    } else {
+                        return Aurora.formatNumber(value, 8);
+                    }
+                } else {
+                    if (value == 0) {
+                        return Aurora.formatNumber(value, 0);
+                    } else {
+                        return Aurora.formatNumber(value, 4);
+                    }
+                }
+            }
+            
+            
+            
+            function ap7130_invoice_detail_pur(pur_header_id) {
+                var url = $('ap7130_invoice_detail_pur_link').getUrl() + '?pur_header_id=' + pur_header_id;
+                new Aurora.Window({
+                    id: 'ap7130_invoice_detail_pur_window',
+                    url: url,
+                    title: '${l:}',
+                    fullScreen: true
+                });
+            }
+            
+            function ap7130_invoice_detail_rcv_trx(rcv_trx_line_id) {
+                var url = $('ap7130_invoice_detail_rcv_trx_link').getUrl() + '?rcv_trx_line_id=' + rcv_trx_line_id;
+                new Aurora.Window({
+                    id: 'ap7130_invoice_detail_rcv_trx_window',
+                    url: url,
+                    title: '${l:}',
+                    fullScreen: true
+                });
+            }
+            
+            function gld1030_formatMoney(value, record, name) {
+                return ap7130_invoice_detail_number_renderer(value, 4);
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="ap71301_payment_status_list_ds">
+                <a:datas dataSource="/model/payment_status"/>
+            </a:dataSet>
+            <a:dataSet id="ap7130_invoice_header_info_ds" autoQuery="true" fetchAll="true" model="ap.AP7130.erp_ap_invoice_headers_query" queryUrl="${/request/@context_path}/autocrud/ap.AP7130.erp_ap_invoice_headers_query/query?invoice_id=${/parameter/@invoice_id}"/>
+            <a:dataSet id="ap7130_invoice_amount_info_ds" autoQuery="true" fetchAll="true" model="ap.AP7130.erp_ap_invoice_amount_info" queryUrl="${/request/@context_path}/autocrud/ap.AP7130.erp_ap_invoice_amount_info/query?invoice_id=${/parameter/@invoice_id}"/>
+            <a:dataSet id="ap7130_invoice_payment_info_ds" autoQuery="true" fetchAll="true" model="ap.AP7130.erp_ap_invoice_payment_info" queryUrl="${/request/@context_path}/autocrud/ap.AP7130.erp_ap_invoice_payment_info/query?invoice_id=${/parameter/@invoice_id}">
+                <a:fields>
+                    <a:field name="payment_status_desc" displayField="flex_desc" options="ap71301_payment_status_list_ds" returnField="payment_status" valueField="flex_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="ap7130_invoice_lines_result_ds" autoPageSize="true" autoQuery="true" fetchAll="true" model="ap.AP7130.erp_ap_invoice_lines_query" queryDataSet="ap7130_invoice_header_info_ds" queryUrl="${/request/@context_path}/autocrud/ap.AP7130.erp_ap_invoice_lines_query/query?invoice_id=${/parameter/@invoice_id}" selectable="true">
+                <a:fields>
+                    <a:field name="payment_status_desc" displayField="flex_desc" options="ap71301_payment_status_list_ds" returnField="payment_status" valueField="flex_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:hBox marginWidth="580" textFieldWidth="250" title="ACP_REQUISITION_QUERY.TITLE">
+                <a:form style="margin-left:20px;" title="基本信息">
+                    <a:textField name="invoice_num" bindTarget="ap7130_invoice_header_info_ds" prompt="ERP_AP_INVOICE_HEADERS.INVOICE_NUM" readOnly="true" width="200"/>
+                    <a:textField name="invoice_date" bindTarget="ap7130_invoice_header_info_ds" prompt="ERP_AP_INVOICE_HEADERS.INVOICE_DATE" readOnly="true" width="200"/>
+                    <a:textField name="site_name" bindTarget="ap7130_invoice_header_info_ds" prompt="ERP_AP_INVOICE_HEADERS.VENDOR_SITE_ID" readOnly="true" width="200"/>
+                    <a:textField name="business_unit_name" bindTarget="ap7130_invoice_header_info_ds" prompt="业务部" readOnly="true" width="200"/>
+                </a:form>
+                <a:form style="margin-left:20px;" title="金额信息">
+                    <a:numberField name="item" align="right" bindTarget="ap7130_invoice_amount_info_ds" prompt="开票净额" readOnly="true" renderer="ap7130_invoice_detail_number_renderer" width="200"/>
+                    <a:numberField name="freight" align="right" bindTarget="ap7130_invoice_amount_info_ds" prompt="运费" readOnly="true" renderer="ap7130_invoice_detail_number_renderer" width="200"/>
+                    <a:numberField name="miscellaneous" align="right" bindTarget="ap7130_invoice_amount_info_ds" prompt="杂费" readOnly="true" renderer="ap7130_invoice_detail_number_renderer" width="200"/>
+                    <a:numberField name="tax" align="right" bindTarget="ap7130_invoice_amount_info_ds" prompt="税" readOnly="true" renderer="ap7130_invoice_detail_number_renderer" width="200"/>
+                    <a:numberField name="prepay" align="right" bindTarget="ap7130_invoice_amount_info_ds" prompt="预付款" readOnly="true" renderer="ap7130_invoice_detail_number_renderer" width="200"/>
+                    <!-- 
+                    <a:numberField name="retention" width="200" readOnly="true" bindTarget="ap7130_invoice_amount_info_ds"  prompt="保留金"/> -->
+                    <a:numberField name="awt" align="right" bindTarget="ap7130_invoice_amount_info_ds" prompt="预扣税" readOnly="true" renderer="ap7130_invoice_detail_number_renderer" width="200"/>
+                    <a:numberField name="invoice_amount" align="right" bindTarget="ap7130_invoice_amount_info_ds" prompt="合计" readOnly="true" renderer="ap7130_invoice_detail_number_renderer" width="200"/>
+                </a:form>
+                <a:form style="margin-left:20px;" title="付款信息">
+                    <a:numberField name="amount_paid" align="right" bindTarget="ap7130_invoice_payment_info_ds" prompt="已付" readOnly="true" renderer="ap7130_invoice_detail_number_renderer" width="200"/>
+                    <a:numberField name="discount_taken" align="right" bindTarget="ap7130_invoice_payment_info_ds" prompt="应得折扣" readOnly="true" renderer="ap7130_invoice_detail_number_renderer" width="200"/>
+                    <a:textField name="payment_status_desc" bindTarget="ap7130_invoice_payment_info_ds" prompt="付款状态" readOnly="true" width="200"/>
+                    <a:textField name="check_date" bindTarget="ap7130_invoice_payment_info_ds" prompt="付款日期" readOnly="true" width="200"/>
+                    <a:textField name="terms_name" bindTarget="ap7130_invoice_payment_info_ds" prompt="付款条款" readOnly="true" width="200"/>
+                </a:form>
+            </a:hBox>
+            <a:grid id="ap7130_invoice_lines_result_grid" bindTarget="ap7130_invoice_lines_result_ds" marginHeight="280" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="line_number" prompt="ERP_AP_INVOICE_LINES.LINE_NUMBER" width="100"/>
+                    <a:column name="line_type" prompt="ERP_AP_INVOICE_LINES.LINE_TYPE" width="100"/>
+                    <a:column name="comments" prompt="描述" width="100"/>
+                    <a:column name="quantity_invoiced" align="right" prompt="数量" width="100"/>
+                    <a:column name="uom_name" prompt="ERP_AP_INVOICE_LINES.UOM_CODE" width="100"/>
+                    <a:column name="unit_price" align="right" prompt="ERP_AP_INVOICE_LINES.UNIT_PRICE" width="100"/>
+                    <a:column name="amount" align="right" prompt="净总价" renderer="ap7130_invoice_detail_number_renderer" width="100"/>
+                    <!-- <a:column name="retention" prompt="保留金" width="100"/> -->
+                    <a:column name="pur_header_num" align="center" prompt="ERP_AP_INVOICE_LINES.PUR_HEADER_ID" renderer="ap7130_invoice_detail_renderer" width="100"/>
+                    <a:column name="pur_line_num" prompt="ERP_AP_INVOICE_LINES.PUR_LINE_ID" width="100"/>
+                    <a:column name="shipment_num" prompt="ERP_AP_INVOICE_LINES.PUR_LINE_LOCATION_ID" width="100"/>
+                    <a:column name="agent_name" prompt="采购员" width="100"/>
+                    <a:column name="rcv_trx_number" align="center" prompt="ERP_AP_INVOICE_LINES.RECEIPT_NUMBER" renderer="ap7130_invoice_detail_renderer" width="100"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="bg_function_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="function_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="function_code" databaseType="VARCHAR" datatype="java.lang.String" displayWidth="150" forDisplay="true" forQuery="true" prompt="FND_FUNCTION.FUNCTION_CODE"/>
+        <bm:field name="function_name" databaseType="VARCHAR" datatype="java.lang.String" displayWidth="150" forDisplay="true" forQuery="true" prompt="FND_FUNCTION.FUNCTION_NAME"/>
+        <bm:field name="start_date" databaseType="DATE" datatype="java.sql.Date" prompt="FND8510.BG_FUNCTION_START_DATE"/>
+        <bm:field name="end_date" databaseType="DATE" datatype="java.sql.Date" prompt="FND8510.BG_FUNCTION_END_DATE"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="function_id" queryExpression="function_id = ${@function_id}"/>
+        <bm:query-field name="function_name" queryExpression="function_name like &apos;%&apos;||trim(${@function_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="t1.business_group_code = ${/session/@business_group}"/>
+        <bm:data-filter expression="t1.start_date &lt;sysdate"/>
+        <bm:data-filter expression="(t1.end_date is null or t1.end_date &gt;sysdate)"/>
+    </bm:data-filters>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        fbgf.bg_function_id,
+                        fbgf.function_id,
+                        (SELECT
+                            fv.function_code
+                        FROM
+                            sys_function_vl fv
+                        WHERE
+                            fv.function_id=fbgf.function_id
+                        ) function_code,
+                        (SELECT
+                            fv.function_name
+                        FROM
+                            sys_function_vl fv
+                        WHERE
+                            fv.function_id=fbgf.function_id
+                        ) function_name,
+                        fbgf.business_group AS business_group_code,
+                        (SELECT
+                            bg.business_group_name
+                        FROM
+                            fnd_business_groups_vl bg
+                        WHERE
+                            bg.business_group_code=fbgf.business_group
+                        )AS business_group_name,
+                        fbgf.start_date,
+                        fbgf.end_date
+                    FROM
+                        fnd_business_group_function fbgf
+                    ) t1 #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[	select *
+  from (SELECT TAV.TRANSACTION_LINE_ID,
+               TAV.DISTRIBUTION_LINE_ID,
+               TAV.TRANSACTION_JE_LINE_ID,
+               TAV.DESCRIPTION,
+               TAV.RESPONSIBILITY_CENTER_ID,
+               TAV.RESPONSIBILITY_CENTER_CODE,
+               TAV.ACCOUNT_ID,
+               TAV.ACCOUNT_CODE,
+               TAV.ACCOUNT_NAME,
+               TAV.creation_date,
+               TAV.ENTERED_AMOUNT_CR,
+               TAV.ENTERED_AMOUNT_DR,
+               TAV.FUNCTIONAL_AMOUNT_CR,
+               TAV.FUNCTIONAL_AMOUNT_DR,
+               (SELECT RCV.RESPONSIBILITY_CENTER_NAME
+                  FROM FND_RESPONSIBILITY_CENTERS_VL RCV
+                 WHERE RCV.RESPONSIBILITY_CENTER_ID =
+                       TAV.RESPONSIBILITY_CENTER_ID) RESPONSIBILITY_CENTER_NAME,
+               TAV.COMPANY_ID,
+               (select t.COMPANY_SHORT_NAME
+                  from fnd_companies_vl t
+                 where t.COMPANY_ID = TAV.COMPANY_ID) COMPANY_SHORT_NAME
+          FROM CSH_TRANSACTION_ACCOUNTS_V TAV
+        
+        union
+        select cwo.csh_transaction_line_id TRANSACTION_LINE_ID,
+               cwo.document_line_id DISTRIBUTION_LINE_ID,
+               cwa.write_off_je_line_id TRANSACTION_JE_LINE_ID,
+               cwa.description,
+               cwa.responsibility_center_id,
+               f.responsibility_center_code,
+               cwa.account_id,
+               g.account_code,
+               g.description account_name,
+               cwa.creation_date,
+               cwa.entered_amount_cr,
+               cwa.entered_amount_dr,
+               cwa.functional_amount_cr,
+               cwa.functional_amount_dr,
+               (select rcv.responsibility_center_name
+                  from fnd_responsibility_centers_vl rcv
+                 where rcv.responsibility_center_id =
+                       cwa.responsibility_center_id) responsibility_center_name,
+               cwa.company_id,
+               (select t.company_short_name
+                  from fnd_companies_vl t
+                 where t.company_id = cwa.company_id) company_short_name
+          from csh_write_off_accounts     cwa,
+               gld_accounts_vl            g,
+               fnd_responsibility_centers f,
+               csh_write_off              cwo
+         where cwa.account_id = g.account_id
+           and cwa.responsibility_center_id = f.responsibility_center_id
+           and cwo.write_off_id = cwa.write_off_id) v
+		#WHERE_CLAUSE#
+		 order by entered_amount_dr
+		]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="transaction_line_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="TRANSACTION_LINE_ID"/>
+        <bm:field name="distribution_line_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="DISTRIBUTION_LINE_ID"/>
+        <bm:field name="transaction_je_line_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="TRANSACTION_JE_LINE_ID"/>
+        <bm:field name="description" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DESCRIPTION" prompt="CSH_TRANSACTION_CLASSES.DESCRIPTION"/>
+        <bm:field name="responsibility_center_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="RESPONSIBILITY_CENTER_ID"/>
+        <bm:field name="responsibility_center_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="RESPONSIBILITY_CENTER_CODE"/>
+        <bm:field name="account_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="ACCOUNT_ID"/>
+        <bm:field name="account_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ACCOUNT_CODE" prompt="CSH_WRITE_OFF_ACCOUNTS.ACCOUNT_ID"/>
+        <bm:field name="account_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ACCOUNT_NAME" prompt="CSH_WRITE_OFF_ACCOUNTS.ACCOUNT_NAME"/>
+        <bm:field name="entered_amount_cr" databaseType="NUMBER" datatype="java.lang.Double" physicalName="ENTERED_AMOUNT_CR" prompt="CSH_WRITE_OFF_ACCOUNTS.ENTERED_AMOUNT_CR"/>
+        <bm:field name="entered_amount_dr" databaseType="NUMBER" datatype="java.lang.Double" physicalName="ENTERED_AMOUNT_DR" prompt="CSH_WRITE_OFF_ACCOUNTS.ENTERED_AMOUNT_DR"/>
+        <bm:field name="functional_amount_cr" databaseType="NUMBER" datatype="java.lang.Double" physicalName="FUNCTIONAL_AMOUNT_CR" prompt="CSH_WRITE_OFF_ACCOUNTS.FUNCTIONAL_AMOUNT_CR"/>
+        <bm:field name="functional_amount_dr" databaseType="NUMBER" datatype="java.lang.Double" physicalName="FUNCTIONAL_AMOUNT_DR" prompt="CSH_WRITE_OFF_ACCOUNTS.FUNCTIONAL_AMOUNT_DR"/>
+        <bm:field name="responsibility_center_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="RESPONSIBILITY_CENTER_NAME" prompt="CSH_WRITE_OFF_ACCOUNTS.RESPONSIBILITY_CENTER_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="COMPANY_ID"/>
+        <bm:field name="company_short_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_SHORT_NAME"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="transaction_line_id" queryExpression="v.TRANSACTION_LINE_ID =${@transaction_line_id}"/>
+    </bm:query-fields>
+</bm:model>

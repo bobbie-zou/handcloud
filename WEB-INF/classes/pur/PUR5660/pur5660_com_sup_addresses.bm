@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT address_id,
+               supplier_id,
+               country_code,
+               (SELECT fc.description FROM fnd_country_code_vl fc WHERE fc.country_code = a.country_code) country_name,
+               province_id,
+               (SELECT r.description FROM fnd_region_code_vl r WHERE r.region_id = a.province_id) province_name,
+               city_id,
+               (SELECT r.description FROM fnd_region_code_vl r WHERE r.region_id = a.city_id) city_name,
+               address_detail_id,
+               (SELECT adt.description_text
+                  FROM fnd_com_sup_addresses_tl adt
+                 WHERE adt.language = userenv('LANG')
+                       AND adt.description_id = a.address_detail_id) address_detail_desc,
+               address_comments,
+               post_code,
+               nvl(enabled_flag,
+                   'N') enabled_flag
+          FROM fnd_com_sup_addresses a
+         WHERE EXISTS (SELECT 1
+          FROM fnd_com_sup_infos f,
+               pur_vendors       pv
+         WHERE f.company_id = pv.coop_company_id
+               AND f.supplier_id = ${@supplier_id}
+               AND pv.business_group = ${/session/@business_group})
+       AND a.supplier_id = ${@supplier_id})
+         #WHERE_CLAUSE# order by address_id]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

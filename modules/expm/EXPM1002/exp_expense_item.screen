@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query model="expm.EXPM1002.exp_get_set_of_books_id" rootPath="set_of_books_id"/>
+    </a:init-procedure>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="exp_expense_item_company_assigned_batch_link" url="${/request/@context_path}/modules/expm/EXPM1002/exp_expense_item_company_assigned_batch.screen"/>
+        <a:link id="exp_expense_item_company_assigned_batch_tmp_control_link" url="${/request/@context_path}/modules/expm/EXPM1002/exp_expense_item_company_assigned_batch_tmp_control.svc"/>
+        <a:link id="exp_expense_items_company_link" url="${/request/@context_path}/modules/expm/EXPM1002/exp_expense_items_company.screen"/>
+        <script><![CDATA[
+        
+            function queryOrgUnitLevels(){
+                $('exp_expense_item_result_ds').query();
+            }
+            function resetOrgUnitLevels(){
+            	$('exp_expense_item_query_ds').reset();
+            }
+            function levelIdEdit(record,name){
+                if(record.isNew){
+                    return 'org_unit_level_code_grid_tf';
+                }
+                return '';
+            }
+			//明细列渲染
+			function detailsRenderer(value, record, name){
+				if (record.get("expense_item_id")) {
+					var url = /*exp_expense_items_company.screen*/$('exp_expense_items_company_link').getUrl()+'?expense_item_id=' + record.get('expense_item_id');
+					return '<a href="#" onclick="jump_details(\'' + url + '\')">' + '${l:FND_COMPANIES.DISTRIBUTION_COMPANY}' + '</a>';
+				}
+			}
+			function jump_details(url){
+				new Aurora.Window({
+					url:url,
+					title:'${l:ACP_INVOICE_TYPES_ASSIGN_COMPANY.TITLE}',
+					id:'exp_expense_items_company_screen',
+					width:620,
+					height:430
+				});
+			}
+			//批量分配公司
+			function batchAssignCompany(){
+				if ($('exp_expense_item_result_ds').getSelected().length < 1){
+					Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}');
+				} else{
+					var records	= $('exp_expense_item_result_ds').getJsonData(true);
+					var param	= $('exp_expense_item_query_ds').getJsonData()[0];
+					param['details']	=  records;
+					Aurora.request({
+						url		: /*exp_expense_item_company_assigned_batch_tmp_control.svc*/$('exp_expense_item_company_assigned_batch_tmp_control_link').getUrl(),
+						para	: param,
+						success	: function(){
+							url = /*exp_expense_item_company_assigned_batch.screen*/$('exp_expense_item_company_assigned_batch_link').getUrl()+'?application_code=FND2130';
+							new Aurora.Window({
+								url:url,
+								title:'${l:BUDGET_ITEM_COMPANY_ASSIGNED_BATCH}',
+								id:'exp_expense_item_company_assigned_batch_screen',
+								width:530,
+								height:535
+							});
+						}
+					});
+				}
+			}
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="exp_expense_item_query_ds">
+                <a:fields>
+                    <a:field name="expense_item_code" prompt="EXP_EXPENSE_ITEMS.EXPENSE_ITEM_CODE"/>
+                    <a:field name="expense_item_desc" prompt="EXP_EXPENSE_ITEMS.DESCRIPTION"/>
+                    <a:field name="budget_item_code" prompt="EXP_REQ_ITEMS.BUDGET_ITEM_ID"/>
+                    <a:field name="budget_item_desc" prompt="EXP_COMPANY_REQ_ITEM.BUDGET_ITEM_DESC"/>
+                    <a:field name="query_set_of_books_id" defaultValue="${/parameter/@set_of_books_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="exp_expense_item_result_ds" autoQuery="true" fetchAll="false" model="expm.EXPM1002.exp_expense_item_query" queryDataSet="exp_expense_item_query_ds" selectable="true" submitUrl="${/request/@context_path}/autocrud/expm.EXPM1002.exp_expense_item_save/batch_update">
+                <a:fields>
+                    <a:field name="expense_item_id"/>
+                    <a:field name="expense_item_code" prompt="EXP_EXPENSE_ITEMS.EXPENSE_ITEM_CODE" required="true"/>
+                    <a:field name="expense_item_desc" prompt="EXP_EXPENSE_ITEMS.DESCRIPTION" required="true"/>
+                    <a:field name="req_item_code" autoComplete="true" autoCompleteField="req_item_code" lovGridHeight="320" lovHeight="440" lovService="expm.EXPM1002.exp_req_item_lov?set_of_books_id=${/model/set_of_books_id/record/@set_of_books_id}" lovWidth="500" prompt="EXP_REQ_ITEMS.REQ_ITEM_CODE" title="EXP_REQ_ITEMS.REQ_ITEM_CODE">
+                        <a:mapping>
+                            <a:map from="req_item_id" to="req_item_id"/>
+                            <a:map from="req_item_code" to="req_item_code"/>
+                            <a:map from="description" to="req_item_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="req_item_id"/>
+                    <a:field name="req_item_desc" prompt="EXP_REQ_REF_OBJ_TMP1.DESCRIPTION"/>
+                    <a:field name="budget_item_code" autoComplete="true" autoCompleteField="budget_item_code" lovGridHeight="320" lovHeight="440" lovService="expm.EXPM1002.exp_expense_item_budget_item_lov?set_of_books_id=${/model/set_of_books_id/record/@set_of_books_id}" lovWidth="500" prompt="EXP_REQ_ITEMS.BUDGET_ITEM_ID" title="EXP_REQ_ITEMS.BUDGET_ITEM_ID">
+                        <a:mapping>
+                            <a:map from="budget_item_id" to="budget_item_id"/>
+                            <a:map from="budget_item_code" to="budget_item_code"/>
+                            <a:map from="description" to="budget_item_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="budget_item_id"/>
+                    <a:field name="budget_item_desc" prompt="BGT_BUDGET_ITEMS.DESCRIPTION"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="EXP_EXPENSE_ITEMS.ENABLED_FLAG" unCheckedValue="N"/>
+                    <a:field name="set_of_books_id" defaultValue="${/model/set_of_books_id/record/@set_of_books_id}"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" title="PROMPT.EXPENSE_ITEM_QUERY" width="600">
+                <a:textField name="expense_item_code" bindTarget="exp_expense_item_query_ds" typeCase="upper" width="150">
+                    <a:events>
+                        <a:event name="enterdown" handler="queryOrgUnitLevels"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="expense_item_desc" bindTarget="exp_expense_item_query_ds" width="150">
+                    <a:events>
+                        <a:event name="enterdown" handler="queryOrgUnitLevels"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="budget_item_code" bindTarget="exp_expense_item_query_ds">
+                    <a:events>
+                        <a:event name="enterdown" handler="queryOrgUnitLevels"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="budget_item_desc" bindTarget="exp_expense_item_query_ds">
+                    <a:events>
+                        <a:event name="enterdown" handler="queryOrgUnitLevels"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:hBox>
+                <a:button click="queryOrgUnitLevels" text="HAP_QUERY"/>
+                <a:button click="resetOrgUnitLevels" text="HAP_RESET"/>
+            </a:hBox>
+            <a:hBox>
+                <a:button click="batchAssignCompany" text="INV_SYSTEM_ITEMS.BATCH"/>
+            </a:hBox>
+            <a:grid bindTarget="exp_expense_item_result_ds" height="350" navBar="true" width="870">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="clear"/>
+                    <a:button type="save"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="expense_item_code" align="center" editorFunction="levelIdEdit" sortable="true"/>
+                    <a:column name="expense_item_desc" editor="description_grid_tf" width="120"/>
+                    <a:column name="req_item_code" align="center" editor="result_lov"/>
+                    <a:column name="req_item_desc" width="120"/>
+                    <a:column name="budget_item_code" align="center" editor="result_lov"/>
+                    <a:column name="budget_item_desc" width="120"/>
+                    <a:column name="enabled_flag" align="center" editor="fnd_calendar_grid_dp" sortable="true" width="60"/>
+                    <a:column name="detailsRenderer" align="center" renderer="detailsRenderer"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="org_unit_level_code_grid_tf" typeCase="upper"/>
+                    <a:textField id="description_grid_tf"/>
+                    <a:checkBox id="fnd_calendar_grid_dp"/>
+                    <a:lov id="result_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

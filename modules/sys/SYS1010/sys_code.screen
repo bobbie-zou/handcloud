@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang3816 $
+    $Date: 2013/06/19 09:05:54 $
+    $Revision: 1.2 $
+    $Purpose: 系统代码维护
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+            var sys1010_isSys = 'Y';
+            
+            function sys1010_querySysCode() {
+                $('sys1010_sys_code_result_ds').query();
+            }
+            
+            function sys1010_resetSysCode() {
+                $('sys1010_sys_code_query_ds').reset();
+            }
+            
+            function sys1010_indexChangeFunction(ds, record) {
+                if (record.get('sys_flag') == 'Y') {
+                    sys1010_isSys = 'Y';
+                    $('sys1010_btn_ref_add').disable();
+                    $('sys1010_btn_ref_cle').disable();
+                } else {
+                    sys1010_isSys = 'N';
+                    $('sys1010_btn_ref_add').enable();
+                    $('sys1010_btn_ref_cle').enable();
+                }
+            }
+            
+            function sys1010_deleteCheck() {
+                var ds = $('sys1010_sys_code_result_ds');
+                var records = ds.getSelected();
+                for (var i = 0;records[i];i++) {
+                    if (records[i].get('sys_flag') == 'Y') {
+                        Aurora.showMessage('${l:PROMPT}', '${l:NOT_DELETE_SYS_CODE}');
+                        return;
+                    }
+                }
+            
+                for (i = 0;records[i];i++) {
+                    ds.remove(records[i]);
+                }
+            
+            }
+            
+            function sys1010_sysFlagRenderer(value, record, name) {
+                return value == 'Y' ? '是' : '否';
+            }
+            
+            function sys1010_codeEditer(record, name) {
+                if (record.get('code_id')) {
+                    return '';
+                } else {
+                    return 'sys1010_sys_code_result_grid_tfu';
+                }
+            }
+            
+            function sys1010_codeNameEditer(record, name) {
+                if (record.get('sys_flag') == 'Y') {
+                    return '';
+                } else {
+                    return 'sys1010_sys_code_result_grid_tf';
+                }
+            }
+            
+            function sys1010_enabledEditer(record, name) {
+                if (record.get('sys_flag') == 'Y') {
+                    return '';
+                } else {
+                    return 'sys1010_sys_code_result_grid_ckb';
+                }
+            }
+            
+            function sys1010_codeValueEditer(record, name) {
+                if (record.get('code_value_id')) {
+                    return '';
+                } else {
+                    return 'sys1010_sys_code_ref_grid_tf';
+                }
+            }
+            
+            function sys1010_codeValueNameEditer(record, name) {
+                if (sys1010_isSys == 'Y') {
+                    return '';
+                } else if (sys1010_isSys == 'N') {
+                    return 'sys1010_sys_code_ref_grid_tf';
+                }
+            }
+            
+            function sys1010_enabledFlagEditer(record, name) {
+                if (sys1010_isSys == 'Y') {
+                    return '';
+                } else if (sys1010_isSys == 'N') {
+                    return 'sys1010_sys_code_ref_grid_ckb';
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys1010_yes_no_ds" lookupCode="YES_OR_NO"/>
+            <a:dataSet id="sys1010_sys_code_sysflag_ds" loadData="true" lookupCode="SYS_CODE_SYSFLAG"/>
+            <a:dataSet id="sys1010_sys_code_query_ds">
+                <a:fields>
+                    <a:field name="sys_flag_display" displayField="code_value_name" options="sys1010_sys_code_sysflag_ds" returnField="sys_flag" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys1010_sys_code_result_ds" autoCount="true" autoQuery="true" fetchAll="false" model="sys.SYS1010.sys_codes" pageSize="5" queryDataSet="sys1010_sys_code_query_ds" queryUrl="${/request/@context_path}/autocrud/sys.SYS1010.sys_codes/query?ORDER_FIELD=code" selectable="true" submitUrl="${/request/@context_path}/modules/sys/SYS1010/sys_code_update.svc">
+                <a:fields>
+                    <a:field name="code" required="true"/>
+                    <a:field name="sys_flag" defaultValue="N"/>
+                    <a:field name="sys_flag_display" displayField="code_value_name" options="sys1010_sys_code_sysflag_ds" returnField="sys_flag" valueField="code_value"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="indexchange" handler="sys1010_indexChangeFunction"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys1010_sys_code_ref_ds" bindName="result_ds" bindTarget="sys1010_sys_code_result_ds" fetchAll="true" model="sys.SYS1010.sys_code_values" queryUrl="${/request/@context_path}/autocrud/sys.SYS1010.sys_code_values/query?ORDER_FIELD=code_value" selectable="true">
+                <a:fields>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm id="sys1010_sys_code_query_form" bindTarget="sys1010_sys_code_query_ds" resultTarget="sys1010_sys_code_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="code" bindTarget="sys1010_sys_code_query_ds" prompt="SYS_CODE.CODE" typeCase="upper">
+                            <a:events>
+                                <a:event name="enterdown" handler="sys1010_querySysCode"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="code_name" bindTarget="sys1010_sys_code_query_ds" prompt="SYS_CODE.CODE_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="sys1010_querySysCode"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="sys_flag_display" bindTarget="sys1010_sys_code_query_ds" prompt="SYS_CODE.CODE_TYPE">
+                            <a:events>
+                                <a:event name="enterdown" handler="sys1010_querySysCode"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="sys1010_sysGrid" bindTarget="sys1010_sys_code_result_ds" height="200" marginWidth="50" navBar="true">
+                <a:toolBar>
+                    <a:button id="sys1010_btn_rst_add" type="add"/>
+                    <a:button id="sys1010_btn_rst_cle" type="clear"/>
+                    <a:button id="sys1010_btn_rst_save" type="save"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="code" editorFunction="sys1010_codeEditer" sortable="true" width="250"/>
+                    <a:column name="code_name" editorFunction="sys1010_codeNameEditer" width="160"/>
+                    <a:column name="sys_flag_display" align="center" prompt="SYS_CODE.CODE_TYPE" width="50"/>
+                    <a:column name="enabled_flag" align="center" editorFunction="sys1010_enabledEditer" sortable="true" width="50"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="sys1010_sys_code_result_grid_ckb"/>
+                    <a:textField id="sys1010_sys_code_result_grid_tf"/>
+                    <a:textField id="sys1010_sys_code_result_grid_tfu" typeCase="upper"/>
+                </a:editors>
+            </a:grid>
+            <a:grid id="sys1010_refSysGrid" autoFocus="false" bindTarget="sys1010_sys_code_ref_ds" height="260" marginWidth="50">
+                <a:toolBar>
+                    <a:button id="sys1010_btn_ref_add" type="add"/>
+                    <a:button id="sys1010_btn_ref_cle" type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="code_value" editorFunction="sys1010_codeValueEditer" sortable="true" width="245"/>
+                    <a:column name="code_value_name" editorFunction="sys1010_codeValueNameEditer" width="230"/>
+                    <a:column name="enabled_flag" align="center" editorFunction="sys1010_enabledFlagEditer" sortable="true" width="50"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="sys1010_sys_code_ref_grid_ckb"/>
+                    <a:textField id="sys1010_sys_code_ref_grid_tf"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

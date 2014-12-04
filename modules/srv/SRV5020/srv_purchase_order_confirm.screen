@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wsh  
+    $Date: 2013-1-17 下午06:07:40  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure><![CDATA[
+    ]]></a:init-procedure>
+    <a:view>
+        <a:link id="srv5020_purchase_order_confirm_detail_link" url="${/request/@context_path}/modules/srv/SRV5020/srv_purchase_order_confirm_detail.screen"/>
+        <a:link id="srv5020_puchase_order_verify_record_link" url="${/request/@context_path}/modules/srv/public/srv_purchase_order_operate_record.screen"/>
+        <a:link id="srv5020_purchase_order_confirm_link" url="${/request/@context_path}/modules/srv/SRV5020/srv_purchase_order_confirm_detail.svc"/>
+        <script><![CDATA[
+
+            function srv5020_purchase_order_query() {
+                $('srv5020_purchase_order_verify_ds').query();
+            }
+            
+            //比较两个日期的大小
+            
+            function srv5020_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+          
+            //发布日期校验
+            
+            function srv5020_release_dateValidator(record, name, value) {
+                if (name == 'release_date_begin' || name == 'release_date_end') {
+                    var start_rele_date = record.get('release_date_begin');
+                    var end_rele_date = record.get('release_date_end');
+            
+                    if ( !! end_rele_date) {
+                        if (!srv5020_compareDate(start_rele_date, end_rele_date)) {
+                            return '${l:ORDER_DATE_COMPARE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            //截止回复日期校验
+            
+            function srv5020_end_reply_dateValidator(record, name, value) {
+                if (name == 'reply_date_from' || name == 'reply_date_to') {
+                    var start_reply_date = record.get('reply_date_from');
+                    var end_reply_date = record.get('reply_date_to');
+            
+                    if ( !! end_reply_date) {
+                        if (!srv5020_compareDate(start_reply_date, end_reply_date)) {
+                            return '${l:ORDER_REPLY_DATE_COMPARE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            //查看明细
+            
+            function srv5020_detailRender(value, record, name) {
+                //alert(record.get('pur_header_id'));
+                if (record.isNew) {
+                    return '';
+                }
+            
+                return '<a href="javascript:srv5020_openDetail(' + record.get('pur_header_id') + ')">' + value + '</a>';
+            
+            }
+            
+            function srv5020_openDetail(id) {
+                new Aurora.Window({
+                    id: 'pur_purchase_order_detail_window',
+                    url: $('srv5020_purchase_order_confirm_detail_link').getUrl() + '?pur_header_id=' + id,
+                    title: '${l:PUR_HEADERS_ALL.PUR_DETAILS}',
+                    fullScreen: true
+                });
+            }
+            
+            //${l:PUR_HEADERS_ALL.OPERATION_RECORD}
+            
+            
+            function srv5020_recordRender(value, record, name) {
+                if (record.isNew) {
+                    return '';
+                }
+                return '<a href="javascript:srv5020_openRecord(' + record.get('pur_header_id') + ')">${l:PUR_HEADERS_ALL.OPERATION_RECORD}</a>';
+            }
+            
+            function srv5020_openRecord(id) {
+                new Aurora.Window({
+                    id: 'pur_purchase_order_record_window',
+                    url: $('srv5020_puchase_order_verify_record_link').getUrl() + '?transaction_object=PUR_HEADERS_ALL' + '&pur_header_id=' + id,
+                    title: '${l:PUR_HEADERS_ALL.OPERATION_RECORD}',
+                    height: 450,
+                    width: 700
+                });
+            }
+            
+            
+            //确认操作
+            
+            function srv5020_purchase_order_confirm() {
+                Aurora.showConfirm('${l:MODULES/SRV/SRV5020/SRV_PURCHASE_ORDER_CONFIRM.SCREEN.TITLE}', '${l:PUR_HEADERS_ALL.CONFIRM}', function() {
+                    
+                    var list_ds = $('srv5020_purchase_order_verify_ds');
+            
+                    var datas = [];
+                    var records = list_ds.getSelected();
+                    if (records.length == 0) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PUR_HEADERS_ALL.UNSELECT_ERROR}！');
+                    }
+                    for (var i = 0;i < records.length;i++) {
+                        datas.push(records[i].data);
+                    }
+                    Aurora.request({
+                        url: $('srv5020_purchase_order_confirm_link').getUrl(),
+                        para: datas,
+                        success:function (){
+                            list_ds.query();
+                        },
+                        scope: this
+                    });
+                }, null, 300, 100);
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="srv5020_order_verify_order_type_options" fetchAll="true" loadData="true" model="pur.public.pur_purchase_order_type"/>
+            <a:dataSet id="srv5020_purchase_order_confirm_query_ds">
+                <a:fields>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_full_name" lovHeight="500" lovService="public.fnd_cooperative_company_by_supply_lov" lovWidth="500" title="FND_COMPANIES.QUERY">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="type_lookup_desc" displayField="description" options="srv5020_order_verify_order_type_options" returnField="type_lookup_code" valueField="order_type_code"/>
+                    <a:field name="release_date_begin" validator="srv5020_release_dateValidator"/>
+                    <a:field name="release_date_end" validator="srv5020_release_dateValidator"/>
+                    <a:field name="reply_date_from" validator="srv5020_end_reply_dateValidator"/>
+                    <a:field name="reply_date_to" validator="srv5020_end_reply_dateValidator"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="srv5020_purchase_order_verify_ds" autoCount="true" autoPageSize="true" model="srv.SRV5020.srv_purchase_order_confirm" queryDataSet="srv5020_purchase_order_confirm_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="pur_header_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:hBox>
+            <a:toolbarButton click="srv5020_purchase_order_confirm" text="CONFIRM" width="100"/>
+            <a:gridButton bind="srv5020_purchase_order_verify_grid" text="HAP_EXPORT" type="excel" width="100"/>
+        </a:hBox>
+        <a:queryForm id="srv5020_purchase_order_verify_query_form" bindTarget="srv5020_purchase_order_confirm_query_ds" marginWidth="70" resultTarget="srv5020_purchase_order_verify_ds" style="border:none">
+            <a:formToolBar>
+                <a:textField style="width:100%;display:none"/>
+                <a:hBox labelWidth="100">
+                    <a:textField name="segment1" prompt="PUR_HEADERS_ALL.SEGMENT1">
+                        <a:events>
+                            <a:event name="enterdown" handler="srv5020_purchase_order_query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="type_lookup_desc" prompt="PUR_HEADERS_ALL.ORDER_TYPE_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="srv5020_purchase_order_query"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:lov name="company_name" prompt="PUR_HEADERS_ALL.COMPANY">
+                        <a:events>
+                            <a:event name="enterdown" handler="srv5020_purchase_order_query"/>
+                        </a:events>
+                    </a:lov>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody prompt="HAP_MORE" style="margin-left:8px">
+                <a:hBox labelWidth="120">
+                    <a:textField name="release_num" prompt="PUR_HEADERS_ALL.RELEASE_NUM">
+                        <a:events>
+                            <a:event name="enterdown" handler="srv5020_purchase_order_query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:datePicker name="release_date_begin" prompt="PUR_HEADERS_ALL.RELEASE_DATE_FROM">
+                        <a:events>
+                            <a:event name="enterdown" handler="srv5020_purchase_order_query"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="release_date_end" prompt="PUR_HEADERS_ALL.RELEASE_DATE_TO">
+                        <a:events>
+                            <a:event name="enterdown" handler="srv5020_purchase_order_query"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:datePicker name="reply_date_from" prompt="PUR_HEADERS_ALL.REPLY_DATE_FROM">
+                        <a:events>
+                            <a:event name="enterdown" handler="srv5020_purchase_order_query"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="reply_date_to" prompt="PUR_HEADERS_ALL.REPLY_DATE_TO">
+                        <a:events>
+                            <a:event name="enterdown" handler="srv5020_purchase_order_query"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="srv5020_purchase_order_verify_grid" autoAppend="false" bindTarget="srv5020_purchase_order_verify_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="segment1" align="center" prompt="PUR_HEADERS_ALL.SEGMENT1" renderer="srv5020_detailRender" sortable="true" width="100"/>
+                <a:column name="release_num" align="center" prompt="PUR_HEADERS_ALL.RELEASE_NUM" width="60"/>
+                <a:column name="revision_num" align="center" prompt="PUR_HEADERS_ALL.REVISION_NUM" width="60"/>
+                <a:column name="type_lookup_desc" align="center" prompt="PUR_HEADERS_ALL.ORDER_TYPE_ID" sortable="true" width="80"/>
+                <a:column name="vendor_site_name" align="center" prompt="PUR_HEADERS_ALL.VENDOR_SITE" width="120"/>
+                <a:column name="agent_name" align="center" prompt="PUR_HEADERS_ALL.PUR_BUYER" width="80"/>
+                <a:column name="release_date_desc" align="center" prompt="PUR_HEADERS_ALL.RELEASE_DATE" sortable="true" width="100"/>
+                <a:column name="reply_date_desc" align="center" prompt="PUR_HEADERS_ALL.REPLY_DATE" sortable="true" width="100"/>
+                <a:column name="company_name" align="center" prompt="PUR_HEADERS_ALL.COMPANY" sortable="true" width="100"/>
+                <a:column name="comments" align="center" prompt="PUR_HEADERS_ALL.COMMENTS" width="100"/>
+                <a:column align="center" prompt="PUR_HEADERS_ALL.OPERATION_RECORD" renderer="srv5020_recordRender" width="50"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

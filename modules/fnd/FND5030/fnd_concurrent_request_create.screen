@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duxiaofu4653 $
+    $Date: 2013/08/26 01:51:03 $
+    $Revision: 1.4 $
+    $Purpose: “请求列表
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+
+            function fnd5030_request_query() {
+                $('fnd5030_fnd_request_info_result_ds').query();
+            }
+            
+            function fnd5030_request_reset() {
+                $('fnd5030_fnd_request_info_query_ds').reset();
+            }
+            
+            function fnd5030_closeWindow() {
+                $('fnd5030_fnd_concurrent_request_create_window').close();
+            }
+            function fnd5030_formSelect(ds, record) {
+                var records = ds.getAll();
+                for (var i = 0; i < records.length; i++) {
+                    if (records[i] != record) {
+                        ds.unSelect(records[i]);
+                    }
+                }
+            }
+            
+            function fnd5030_requestPost() {
+                
+                var ds = $('fnd5030_fnd_request_info_result_ds');
+                var records = ds.getSelected();
+                var record = records[0];
+                var parameter_count = record.get('parameter_count');
+                if (parameter_count==0)
+                {
+                    var data = [];
+                         data = {
+                            request_info_id: record.get('request_info_id')
+                        };
+                    Aurora.request({
+                        	url: '${/request/@context_path}/modules/fnd/FND5030/fnd_request_submit_no_parameter.svc',
+                            para: data,
+                            success: fnd5030_submitSuccess,
+                            scope: this
+                        });
+                } else { 
+                    var request_info_id=record.get('request_info_id');
+                    new Aurora.Window({
+	                    id: 'fnd5030_fnd_concurrent_request_submit_window',
+	                    url: '${/request/@context_path}/modules/fnd/FND5030/fnd_request_submit.screen?request_info_id='+request_info_id,
+	                    title: '请求参数',
+	                    height:520,
+	                    width:600
+	                });
+                }
+            }
+            
+            function fnd5030_formDbclick(grid,record,row,name) {
+                var parameter_count = record.get('parameter_count');
+                var company_id = $('fnd5030_fnd_request_info_query_ds').getCurrentRecord().get('company_id');
+                if (parameter_count==0)
+                {
+                    var data = [];
+                    data = {
+                        request_info_id: record.get('request_info_id')
+                    };
+                    //请求加入选择的company_id
+                    data['company_id'] = company_id;
+                    Aurora.request({
+                        	url: '${/request/@context_path}/modules/fnd/FND5030/fnd_request_submit_no_parameter.svc',
+                            para: data,
+                            success: fnd5030_submitSuccess,
+                            scope: this
+                        });
+                } else { 
+                    var request_info_id=record.get('request_info_id');
+                    new Aurora.Window({
+	                    id: 'fnd5030_fnd_concurrent_request_submit_window',
+	                    url: '${/request/@context_path}/modules/fnd/FND5030/fnd_request_submit.screen?request_info_id=' + request_info_id + '&company_id=' + company_id,
+	                    title: '请求参数',
+	                    height:520,
+	                    width:600
+	                });
+                }
+            }
+            function fnd5030_submitSuccess(res) {
+                Aurora.showMessage('提示', '请求已成功提交！');
+                closeWindow();
+                query();
+            
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd5030_fnd_request_info_query_ds" model="fnd.FND5030.fnd_request_list">
+                <a:fields>
+                    <a:field name="request_info_id"/>
+                    <a:field name="parameter_count"/>
+                    <a:field name="company_id"/>
+                    <a:field name="company_name" autoComplete="true" lovHeight="500" lovService="fnd.fnd_companies_no_filters_lov" lovWidth="500" title="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_short_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd5030_fnd_request_info_result_ds" autoCount="true" autoQuery="true" fetchAll="false" model="fnd.FND5030.fnd_request_list" queryDataSet="fnd5030_fnd_request_info_query_ds" selectable="true">
+                <a:events>
+                    <a:event name="select" handler="fnd5030_formSelect"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" labelWidth="100" title="请求列表" width="580">
+                <a:textField name="request_code" bindTarget="fnd5030_fnd_request_info_query_ds" prompt="编码" typeCase="upper">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd5030_request_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="request_name" bindTarget="fnd5030_fnd_request_info_query_ds" prompt="名称">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd5030_request_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="description" bindTarget="fnd5030_fnd_request_info_query_ds" prompt="描述">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd5030_request_query"/>
+                    </a:events>
+                </a:textField>
+                <a:lov name="company_name" bindTarget="fnd5030_fnd_request_info_query_ds" prompt="公司"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="fnd5030_requestPost" text="提交"/>
+                <a:button click="fnd5030_request_query" text="HAP_QUERY"/>
+                <a:button click="fnd5030_request_reset" text="HAP_RESET"/>
+                <a:button click="fnd5030_closeWindow" text="返回"/>
+            </a:hBox>
+            <a:grid id="fnd5030_request_grid" bindTarget="fnd5030_fnd_request_info_result_ds" height="300" navBar="true" width="580">
+                <a:columns>
+                    <a:column name="request_code" align="center" prompt="编码" sortable="true" width="150"/>
+                    <a:column name="request_name" align="left" prompt="名称" width="200"/>
+                    <a:column name="description" align="left" prompt="描述" width="200"/>
+                </a:columns>
+                <a:events>
+                    <a:event name="dblclick" handler="fnd5030_formDbclick"/>
+                </a:events>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

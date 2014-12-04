@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-2-19 下午06:45:09  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="acp.acp_company_list" rootPath="company_name_list"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="acp_7010_bill_line_query_link" url="${/request/@context_path}/modules/acp/ACP7010/acp_7010_bill_line_query.screen"/>
+        <a:link id="acp_7010_operation_record_link" url="${/request/@context_path}/modules/acp/ACP7010/acp_7010_operation_record.screen"/>
+        <script><![CDATA[
+            //未选择供应商时,供应商地点为灰色不可选
+            function acp_7010_query_ds_update() {
+                var ds = $('acp_7010_query_ds');
+                var record = ds.getCurrentRecord();
+                var field = record.getField('vendor_site_name');
+                if (!Aurora.isEmpty(record.get('vendor_code_name'))) {
+                    field.setReadOnly(false);
+                } else {
+                    field.setReadOnly(true);
+                }
+            }
+            function acp_7010_post() {
+                var ds = $('acp_7010_result_ds');
+                var records = ds.getSelected();
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:ACP_BILL.PLEASE_SELECT_POST}');
+                    return false;
+                } else {
+                    Aurora.showConfirm('${l:HAP_PROMPT}', '${l:ACP_BILL.CONFIRM_POST}?', function() {
+                        for (var i = 0;i < records.length;i++) {
+                            records[i].set('_status', 'update');
+                        }
+                        ds.submit('${/request/@context_path}/autocrud/db.acp_bill_pkg.bill_header_post/batch_update');
+                    });
+                }
+            }
+            //操作记录--暂无对应表
+            function operationRecord(value, record, name) {
+                if (record.isNew){
+                    return '${l:ACP_BILL.OPERATION_RECORD}';
+                }else{
+                    var headerId = record.get('header_id');
+                    var dataSource = record.get('data_source');
+                    if (dataSource == 'SRM'){
+                        if(record.get('header_id')){
+                            return '<a href="javascript:openOperationRecord('+headerId+')">${l:ACP_BILL.OPERATION_RECORD}</a>';
+                        }
+                    }else{
+                        return '${l:ACP_BILL.OPERATION_RECORD}';
+                    }
+                }
+            }
+            function openOperationRecord(headerId) {
+                new Aurora.Window({
+                    id: 'acp_operation_record_window',
+                    url: /*acp_7010_operation_record.screen*/
+                    $('acp_7010_operation_record_link').getUrl() + '?bill_header_id=' + headerId,
+                    title: '${l:ACP_BILL.OPERATION_RECORD}',
+                    fullScreen:true
+                });
+            }
+            //开票单状态
+            function statusRenderer(value,record, name){
+                if (value=='NEW'){
+                    return '${l:ACP_BILL.NEW}';
+                } else if (value == 'RELEASED'){
+                    return '${l:ACP_BILL.RELEASED}';
+                } else if (value == 'CONFIRMED'){
+                    return '${l:ACP_BILL.CONFIRMED}';
+                } else if (value == 'RETURNED'){
+                    return '${l:ACP_BILL.RETURNED}';
+                } else if (value == 'CANCELED'){
+                    return '${l:ACP_BILL.CANCELED}';
+                } else if (value == 'PARTIALLY GENERATED'){
+                    return '${l:ACP_BILL.PARTIALLY_GENERATED}';
+                } else if (value == 'COMPLETELY GENERATED'){
+                    return '${l:ACP_BILL.COMPLETELY_GENERATED}';
+                }
+            }
+            //开票单号
+            function billMaintainDetail(value, record, name) {
+                var billHeaderId = record.get('header_id');
+                var billNumber = record.get('bill_number');
+                if (record.get('header_id')) {
+                    return '<a href="javascript:openBillMaintainDetail(' + billHeaderId + ')">' + billNumber + '</a>';
+                }
+            }
+            function openBillMaintainDetail(billHeaderId) {
+                new Aurora.Window({
+                    id: 'bill_line_query_window',
+                    url: /*acp_7010_bill_line_query.screen*/
+                    $('acp_7010_bill_line_query_link').getUrl() + '?bill_header_id=' + billHeaderId,
+                    title: '${l:ACP_BILL.BILL_QUERY}',
+                    fullScreen: true
+                });
+            }
+            function acp_7010_cancel(){
+                alert('待定');
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp_7010_data_source_ds" loadData="true" lookupCode="DATA_SOURCE"/>
+            <a:dataSet id="acp_7010_company_name_list" autoQuery="true" model="fnd.fnd_companies_vl"/>
+            <a:dataSet id="acp_7010_vendor_site_name_list" autoQuery="true" model="acp.ACP5010.acp_vendor_site_lov"/>
+            <a:dataSet id="acp_7010_status_list" autoQuery="true" model="acp.ACP5020.acp_status_list"/>
+            <a:dataSet id="acp_7010_query_ds">
+                <a:fields>
+                    <a:field name="bill_number_from"/>
+                    <a:field name="bill_number_to"/>
+                    <a:field name="vendor_id"/>
+                    <a:field name="vendor_code"/>
+                    <a:field name="vendor_name"/>
+                    <a:field name="vendor_code_name" autoComplete="true" autoCompleteField="vendor_code_name" lovHeight="490" lovService="acp.ACP5010.acp_vendor_lov" lovWidth="490" title="ACP_BILL_SOURCE.VENDOR_CODE_NAME">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                            <a:map from="vendor_code_name" to="vendor_code_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_name" displayField="company_short_name" options="acp_7010_company_name_list" returnField="company_name" valueField="company_short_name"/>
+                    <a:field name="status" displayField="code_value_name" options="acp_7010_status_list" returnField="status" valueField="code_value"/>
+                    <a:field name="data_source" displayField="code_value_name" options="acp_7010_data_source_ds" returnField="data_source" valueField="code_value"/>
+                    <a:field name="vendor_site_name" displayField="vendor_site_name" options="acp_7010_vendor_site_name_list" readOnly="true" returnField="vendor_site_name" valueField="vendor_site_name"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="acp_7010_query_ds_update"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="acp_7010_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="acp.ACP5020.acp_bill_headers" queryDataSet="acp_7010_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="header_id"/>
+                    <a:field name="bill_number"/>
+                    <a:field name="company_name"/>
+                    <a:field name="vendor_code_name"/>
+                    <a:field name="vendor_site_name"/>
+                    <a:field name="amount"/>
+                    <a:field name="status"/>
+                    <a:field name="creation_date"/>
+                    <a:field name="vendor_desc"/>
+                    <a:field name="data_source"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="acp_7010_grid" type="excel" width="100"/>
+            <a:gridButton bind="acp_7010_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="acp_7010_query_form" bindTarget="acp_7010_query_ds" resultTarget="acp_7010_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox>
+                    <a:textField name="bill_number_from" bindTarget="acp_7010_query_ds" prompt="ACP_BILL.BILL_NUMBER_FROM"/>
+                    <a:textField name="bill_number_to" bindTarget="acp_7010_query_ds" prompt="ACP_BILL.BILL_NUMBER_TO"/>
+                    <a:comboBox name="company_name" bindTarget="acp_7010_query_ds" prompt="ACP_BILL.COMPANY_NAME"/>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody style="margin-left:5px">
+                <a:hBox>
+                    <a:lov name="vendor_code_name" bindTarget="acp_7010_query_ds" prompt="ACP_BILL_SOURCE.VENDOR_CODE_NAME"/>
+                    <a:comboBox name="vendor_site_name" bindTarget="acp_7010_query_ds" prompt="ACP_BILL_SOURCE.VENDOR_SITE_CODE_NAME"/>
+                    <a:comboBox name="status" bindTarget="acp_7010_query_ds" prompt="ACP_BILL_HEADERS.STATUS"/>
+                    <a:comboBox name="data_source" bindTarget="acp_7010_query_ds" prompt="ACP_BILL_SOURCE.DATA_SOURCE"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:datePicker name="creation_date_from" bindTarget="acp_7010_query_ds" prompt="ACP_BILL_HEADERS.CREATION_DATE_FROM"/>
+                    <a:datePicker name="creation_date_to" bindTarget="acp_7010_query_ds" prompt="ACP_BILL_HEADERS.CREATION_DATE_TO"/>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="acp_7010_grid" bindTarget="acp_7010_result_ds" marginHeight="99" marginWidth="40" navBar="true" style="border:none">
+            <a:columns>
+                <a:column name="bill_number" align="center" prompt="ACP_BILL_HEADERS.BILL_NUMBER" renderer="billMaintainDetail" sortable="true" width="80"/>
+                <a:column name="company_name" align="center" prompt="ACP_BILL.COMPANY_NAME" sortable="true" width="60"/>
+                <a:column name="vendor_code_name" align="center" prompt="ACP_BILL_SOURCE.VENDOR_CODE_NAME" sortable="true" width="80"/>
+                <a:column name="vendor_site_name" align="center" prompt="ACP_BILL_SOURCE.VENDOR_SITE_CODE_NAME" width="80"/>
+                <a:column name="amount" align="right" prompt="ACP_BILL_HEADERS.AMOUNT" sortable="true" width="60"/>
+                <a:column name="status" align="center" prompt="ACP_BILL_HEADERS.STATUS" renderer="statusRenderer" width="60"/>
+                <a:column name="creation_date" align="center" prompt="ACP_BILL_SOURCE.CREATION_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                <a:column name="vendor_desc" prompt="ACP_BILL_HEADERS.VENDOR_DESC" width="160"/>
+                <a:column name="operation_record" align="center" prompt="ACP_BILL.OPERATION_RECORD" renderer="operationRecord" width="80"/>
+                <a:column name="data_source" align="center" prompt="ACP_BILL_SOURCE.DATA_SOURCE" sortable="true" width="40"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

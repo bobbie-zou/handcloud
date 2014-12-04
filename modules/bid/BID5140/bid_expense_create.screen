@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2014年1月8日 下午1:58:22  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="bid5140_expense_create_save_link" url="${/request/@context_path}/modules/bid/BID5140/bid_expense_create_save.svc"/>
+        <script><![CDATA[
+            function bid5140ExpenseDocumentCreateOnUpdate(ds, rec, name, value, oldvalue) {
+                if (name == 'unit_price' || name == 'quantity') {
+                    var unit_price = rec.get('unit_price');
+                    var quantity = rec.get('quantity');
+            
+                    if (!Aurora.isEmpty(unit_price) && !Aurora.isEmpty(quantity)) {
+                        rec.set('receivable_amount', parseFloat(unit_price * quantity).toFixed(2));
+                    } else {
+                        rec.set('receivable_amount', 0);
+                    }
+                }
+            }
+            
+            function bid5140CreateSave() {
+                var header_ds = $('bid5140_create_expense_header_ds');
+                var document_ds = $('bid5140_create_expense_document_ds');
+                var deposit_ds = $('bid5140_create_expense_deposit_ds');
+                var expert_ds = $('bid5140_create_expense_expert_ds');
+            
+                if (!header_ds.validate()) {
+                    return;
+                }
+                if (!document_ds.validate()) {
+                    return;
+                }
+                if (!deposit_ds.validate()) {
+                    return;
+                }
+                if (!expert_ds.validate()) {
+                    return;
+                }
+            
+                Aurora.Masker.mask($('bid5140_expense_create_window').wrap, '${l:LOADING}');
+            
+                var header_rec = header_ds.getCurrentRecord();
+                header_rec.isNew = true;
+                header_rec.dirty = true;
+                var header_data = header_rec.data;
+                header_data._status = 'insert';
+            
+                header_data['documents'] = document_ds.getJsonData();
+                header_data['deposits'] = deposit_ds.getJsonData();
+                header_data['experts'] = expert_ds.getJsonData();
+            
+                Aurora.request({
+                    url: $('bid5140_expense_create_save_link').getUrl(),
+                    para: header_data,
+                    success: function(res) {
+                        var expense_header_id = res.result.expense_header_id;
+            
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SAVED}', function() {
+                            new Aurora.Window({
+                                id: 'bid5140_expense_edit_window',
+                                title: '${l:BID_ENTRUSTMENT_HEADESR.ENTRUSTMENT_EXPENSE}',
+                                url: $('bid5140_expense_edit_link').getUrl() + '?expense_header_id=' + expense_header_id,
+                                fullScreen: true
+                            });
+            
+                            $('bid5140_expense_create_window').close();
+                        });
+                    },
+                    failure: function() {
+                        return;
+                    },
+                    error: function() {
+                        return;
+                    }
+                });
+            
+                Aurora.Masker.unmask($('bid5140_expense_create_window').wrap);
+            }
+            
+            function bid5140CreateReturn() {
+                $('bid5140_expense_create_window').close();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5140_create_expense_header_ds" autoQuery="true" model="bid.BID5140.bid_expense_header_create" queryUrl="${/request/@context_path}/autocrud/bid.BID5140.bid_expense_header_create/query?entrustment_header_id=${/parameter/@entrustment_header_id}">
+                <a:fields>
+                    <a:field name="operator_id" required="true"/>
+                    <a:field name="operator_name" autoComplete="true" autoCompleteField="name" lovGridHeight="320" lovHeight="500" lovService="public.exp_employees_lov" lovWidth="500" required="true" title="BID_EXPENSE_HEADERS.OPERATOR_ID">
+                        <a:mapping>
+                            <a:map from="employee_id" to="operator_id"/>
+                            <a:map from="name" to="operator_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="bid5140_create_expense_document_ds" model="bid.BID5140.bid_expense_document_create" selectable="true">
+                <a:fields>
+                    <a:field name="bidder_id" required="true"/>
+                    <a:field name="bidder_code" autoComplete="true" autoCompleteField="bidder_code" lovGridHeight="350" lovHeight="500" lovService="bid.public.bid_bidders_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_HEADERS.BIDDER">
+                        <a:mapping>
+                            <a:map from="bidder_id" to="bidder_id"/>
+                            <a:map from="bidder_code" to="bidder_code"/>
+                            <a:map from="bidder_desc" to="bidder_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="unit_price" required="true"/>
+                    <a:field name="quantity" required="true"/>
+                    <a:field name="received_amount" required="true"/>
+                    <a:field name="currency_name" displayField="currency_name" options="bid5140_currency_list_ds" required="true" returnField="currency_code" valueField="currency_code"/>
+                    <a:field name="status_desc" displayField="code_value_name" options="bid5140_bid_expense_document_status_ds" required="true" returnField="status" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="bid5140ExpenseDocumentCreateOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5140_create_expense_deposit_ds" model="bid.BID5140.bid_expense_deposit_create" selectable="true">
+                <a:fields>
+                    <a:field name="bidder_id" required="true"/>
+                    <a:field name="bidder_code" autoComplete="true" autoCompleteField="bidder_code" lovGridHeight="350" lovHeight="500" lovService="bid.public.bid_bidders_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_HEADERS.BIDDER">
+                        <a:mapping>
+                            <a:map from="bidder_id" to="bidder_id"/>
+                            <a:map from="bidder_code" to="bidder_code"/>
+                            <a:map from="bidder_desc" to="bidder_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="receivable_amount" required="true"/>
+                    <a:field name="received_amount" required="true"/>
+                    <a:field name="currency_name" displayField="currency_name" options="bid5140_currency_list_ds" required="true" returnField="currency_code" valueField="currency_code"/>
+                    <a:field name="status_desc" displayField="code_value_name" options="bid5140_bid_expense_deposit_status_ds" required="true" returnField="status" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="bid5140_create_expense_expert_ds" model="bid.BID5140.bid_expense_expert_create" selectable="true">
+                <a:fields>
+                    <a:field name="expert_id" required="true"/>
+                    <a:field name="expert_code" autoComplete="true" autoCompleteField="expert_code" lovGridHeight="320" lovHeight="500" lovService="bid.public.bid_experts_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_LN_EXPERTS.EXPERT">
+                        <a:mapping>
+                            <a:map from="expert_id" to="expert_id"/>
+                            <a:map from="expert_code" to="expert_code"/>
+                            <a:map from="expert_desc" to="expert_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="payable_amount" required="true"/>
+                    <a:field name="paid_amount" required="true"/>
+                    <a:field name="currency_name" displayField="currency_name" options="bid5140_currency_list_ds" required="true" returnField="currency_code" valueField="currency_code"/>
+                    <a:field name="status_desc" displayField="code_value_name" options="bid5140_bid_expense_expert_status_ds" required="true" returnField="status" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid5140CreateSave" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="bid5140CreateReturn" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100">
+                <a:vBox labelWidth="100">
+                    <a:label name="entrustment_header_number" bindTarget="bid5140_create_expense_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_HEADER_NUMBER"/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:label name="title" bindTarget="bid5140_create_expense_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TITLE"/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:lov name="operator_name" bindTarget="bid5140_create_expense_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICANT"/>
+                </a:vBox>
+            </a:hBox>
+            <a:tabPanel height="380" marginWidth="50">
+                <a:tabs>
+                    <a:tab prompt="BID_ENTRUSTMENT_HEADERS.BID_FILE_AMOUNT" width="100">
+                        <a:grid id="bid5140_create_expense_document_grid" bindTarget="bid5140_create_expense_document_ds" height="350" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="bidder_code" align="left" editor="bid5140_create_expense_document_lov" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_CODE" width="100"/>
+                                <a:column name="bidder_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_NAME" width="150"/>
+                                <a:column name="unit_price" align="right" editor="bid5140_create_expense_document_nf" prompt="BID_EXPENSE_DOCUMENTS.UNIT_PRICE" width="80"/>
+                                <a:column name="quantity" align="right" editor="bid5140_create_expense_document_nf2" prompt="BID_EXPENSE_DOCUMENTS.QUANTITY" width="80"/>
+                                <a:column name="receivable_amount" align="right" prompt="BID_EXPENSE_DOCUMENTS.RECEIVABLE_AMOUNT" width="80"/>
+                                <a:column name="received_amount" align="right" editor="bid5140_create_expense_document_nf" prompt="BID_EXPENSE_DOCUMENTS.RECEIVED_AMOUNT" width="80"/>
+                                <a:column name="currency_name" align="center" editor="bid5140_create_expense_document_cmb" prompt="BID_EXPENSE_DOCUMENTS.CURRENCY_CODE" width="50"/>
+                                <a:column name="status_desc" align="left" editor="bid5140_create_expense_document_cmb" prompt="BID_EXPENSE.STATUS" width="50"/>
+                                <a:column name="voucher_number" align="left" editor="bid5140_create_expense_document_tf" prompt="BID_EXPENSE_DOCUMENTS.VOUCHER_NUMBER" width="100"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="bid5140_create_expense_document_lov"/>
+                                <a:numberField id="bid5140_create_expense_document_nf" allowDecimals="true" allowNegative="false" decimalPrecision="2"/>
+                                <a:numberField id="bid5140_create_expense_document_nf2" allowDecimals="false" decimalPrecision="2"/>
+                                <a:comboBox id="bid5140_create_expense_document_cmb"/>
+                                <a:textField id="bid5140_create_expense_document_tf"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="BID_EXPENSE_DEPOSITS.BID_DEPOSIT" width="100">
+                        <a:grid id="bid5140_create_expense_deposit_grid" bindTarget="bid5140_create_expense_deposit_ds" height="350" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="bidder_code" align="left" editor="bid5140_create_expense_deposit_lov" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_CODE" width="100"/>
+                                <a:column name="bidder_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_NAME" width="150"/>
+                                <a:column name="receivable_amount" align="right" editor="bid5140_create_expense_deposit_nf" prompt="BID_EXPENSE_DOCUMENTS.RECEIVABLE_AMOUNT" width="80"/>
+                                <a:column name="received_amount" align="right" editor="bid5140_create_expense_deposit_nf" prompt="BID_EXPENSE_DEPOSITS.RECEIVABLE_AMOUNT" width="80"/>
+                                <a:column name="currency_name" align="center" editor="bid5140_create_expense_deposit_cmb" prompt="BID_EXPENSE_DEPOSITS.CURRENCY_CODE" width="50"/>
+                                <a:column name="status_desc" align="left" editor="bid5140_create_expense_deposit_cmb" prompt="BID_EXPENSE.STATUS" width="50"/>
+                                <a:column name="voucher_number" align="left" editor="bid5140_create_expense_deposit_tf" prompt="BID_EXPENSE_DEPOSITS.VOUCHER_NUMBER" width="100"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="bid5140_create_expense_deposit_lov"/>
+                                <a:numberField id="bid5140_create_expense_deposit_nf" allowDecimals="true" allowNegative="false" decimalPrecision="2"/>
+                                <a:comboBox id="bid5140_create_expense_deposit_cmb"/>
+                                <a:textField id="bid5140_create_expense_deposit_tf"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="BID_EXPENSE_EXPERTS.EXPENSE_EXPERT_ID" width="100">
+                        <a:grid id="bid5140_create_expense_expert_grid" bindTarget="bid5140_create_expense_expert_ds" height="350" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="expert_code" align="left" editor="bid5140_create_expense_expert_lov" prompt="BID_ENTRUSTMENT_HEADERS.EXPERT_CODE" width="100"/>
+                                <a:column name="expert_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.EXPERT_NAME" width="150"/>
+                                <a:column name="payable_amount" align="right" editor="bid5140_create_expense_expert_nf" prompt="BID_EXPENSE_EXPERTS.PAYABLE_AMOUNT" width="80"/>
+                                <a:column name="paid_amount" align="right" editor="bid5140_create_expense_expert_nf" prompt="BID_EXPENSE_EXPERTS.PAID_AMOUNT" width="80"/>
+                                <a:column name="currency_name" align="center" editor="bid5140_create_expense_expert_cmb" prompt="BID_EXPENSE_EXPERTS.CURRENCY_CODE" width="50"/>
+                                <a:column name="status_desc" align="left" editor="bid5140_create_expense_expert_cmb" prompt="BID_EXPENSE.STATUS" width="50"/>
+                                <a:column name="voucher_number" align="left" editor="bid5140_create_expense_expert_tf" prompt="BID_EXPENSE_DEPOSITS.VOUCHER_NUMBER" width="100"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="bid5140_create_expense_expert_lov"/>
+                                <a:numberField id="bid5140_create_expense_expert_nf" allowDecimals="true" allowNegative="false" decimalPrecision="2"/>
+                                <a:comboBox id="bid5140_create_expense_expert_cmb"/>
+                                <a:textField id="bid5140_create_expense_expert_tf"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

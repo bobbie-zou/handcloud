@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        SU.USER_NAME,
+                        USER_ID,
+                        SU.DESCRIPTION,
+                        DECODE(SU.TYPE,'INTERNAL','内部用户','外部用户') TYPE,
+                        SU.TYPE user_type,
+                        (SELECT
+                            psv.vendor_code
+                        FROM
+                            PUR_VENDORS_VL psv
+                        WHERE
+                            psv.vendor_id = SU.VENDER_ID
+                        ) VENDOR_CODE,
+                        TO_CHAR(SU.START_DATE,'yyyy-mm-dd') START_DATE ,
+                        TO_CHAR(SU.END_DATE,'yyyy-mm-dd') END_DATE,
+                        DECODE(SU.FROZEN_FLAG, 'Y', '已冻结', '未冻结') P_FROZEN_FLAG,
+                        SU.FROZEN_FLAG,
+                        TO_CHAR(SU.FROZEN_DATE,'yyyy-mm-dd') FROZEN_DATE,
+                        (SELECT
+                            EE.EMPLOYEE_CODE
+                        FROM
+                            EXP_EMPLOYEES EE
+                        WHERE
+                            EE.EMPLOYEE_ID = SU.EMPLOYEE_ID
+                        ) EMPLOYEE_CODE,
+                        (SELECT EE.NAME FROM EXP_EMPLOYEES EE WHERE EE.EMPLOYEE_ID = SU.EMPLOYEE_ID
+                        ) EMPLOYEE_NAME,
+                        (SELECT
+                            ah.authority_hds_id
+                        FROM
+                            fnd_user_authority_hds ah
+                        WHERE
+                            su.user_id = ah.user_id
+                        ) authority_hds_id
+                    FROM
+                        sys_user su
+                    WHERE
+                        su.vender_id     = ${/session/@vendor_id} AND
+                        su.type = 'VENDOR_TYPE'
+                    ORDER BY
+                        su.USER_NAME
+                    ) #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="user_name" dataType="java.lang.String" queryExpression="upper(USER_NAME) like  upper(&apos;%&apos;||trim(${@user_name})||&apos;%&apos;)"/>
+        <bm:query-field name="description" dataType="java.lang.String" queryExpression="upper(DESCRIPTION) like  upper(&apos;%&apos;||trim(${@description})||&apos;%&apos;)"/>
+        <bm:query-field name="employee_code" dataType="java.lang.String" queryExpression="upper(EMPLOYEE_CODE) like  upper(&apos;%&apos;||${@employee_code}||&apos;%&apos;)"/>
+        <bm:query-field name="employee_name" dataType="java.lang.String" queryExpression="EMPLOYEE_NAME like  &apos;%&apos;||${@employee_name}||&apos;%&apos;"/>
+        <bm:query-field name="frozen_flag" dataType="java.lang.String" queryExpression="FROZEN_FLAG = ${@frozen_flag}"/>
+        <bm:query-field name="user_type" dataType="java.lang.String" queryExpression="user_type = ${@user_type}"/>
+        <bm:query-field name="start_date" dataType="java.lang.String" queryExpression="start_date = ${@start_date}"/>
+        <bm:query-field name="end_date" dataType="java.lang.String" queryExpression="end_date = ${@end_date}"/>
+    </bm:query-fields>
+</bm:model>

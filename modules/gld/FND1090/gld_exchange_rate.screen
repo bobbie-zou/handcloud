@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duxiaofu4653 $
+    $Date: 2014/02/10 02:15:47 $
+    $Revision: 1.5 $
+    $Purpose: “汇率定义”模块的页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="currency_code = gld_common_pkg.get_company_currency_code(${/session/@company_id})" model="gld.gld_currency" rootPath="fnd1090_gerc"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd1090_gld_exchange_rate_detail_link" url="${/request/@context_path}/modules/gld/FND1090/gld_exchange_rate_detail.screen"/>
+        <script><![CDATA[
+            function fnd1090_createRate() {
+                //$('fnd1090_gld_exchange_rate_ds').post($('fnd1090_gld_exchange_rate_detail_link').getUrl());
+                new Aurora.Window({
+                    id: 'fnd1090_gld_exchange_rate_detail_window',
+                    url: $('fnd1090_gld_exchange_rate_detail_link').getUrl() +'?currency_code='+$('fnd1090_gld_exchange_rate_ds').getCurrentRecord().get('currency_code'),
+                    title: '${l:FND_CLIENT_SYSTEMS.NAME}',
+                    height: 550,
+                    width: 1040
+                });
+            }
+            
+            function fnd1090_dataSetUpdate(ds, record, name, value) {
+                var currency_code_frn = record.getMeta().getField('currency_code_frn');
+                var currency_name_frn = record.getMeta().getField('currency_name_frn');
+                var period_from = record.getMeta().getField('period_from');
+                var period_to = record.getMeta().getField('period_to');
+                var date_from = record.getMeta().getField('date_from');
+                var date_to = record.getMeta().getField('date_to');
+            
+                var currencyCodeValue = record.get("currency_code");
+            
+                if (name == 'currency_code') {
+                    var field = record.getMeta().getField('currency_code_frn');
+                    field.setLovPara('currency_code_frn', record.get('currency_code'));
+                }
+            
+                var typeNameValue = record.get("rate_method_code");
+                //alert(typeNameValue);
+                if (typeNameValue == "DAILY") {
+                    period_from.setReadOnly(true);
+                    period_to.setReadOnly(true);
+            
+                    date_from.setReadOnly(false);
+                    date_to.setReadOnly(false);
+                    record.set('date_from', null);
+                    record.set('date_to', null);
+                } else if (typeNameValue == "PERIOD") {
+                    period_from.setReadOnly(false);
+                    period_to.setReadOnly(false);
+                    record.set('period_from', null);
+                    record.set('period_to', null);
+            
+                    date_from.setReadOnly(true);
+                    date_to.setReadOnly(true);
+                } else {
+                    period_from.setReadOnly(true);
+                    period_to.setReadOnly(true);
+                    date_from.setReadOnly(true);
+                    date_to.setReadOnly(true);
+            
+                    record.set('date_from', null);
+                    record.set('date_to', null);
+                    record.set('period_from', null);
+                    record.set('period_to', null);
+                }
+            
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd1090_gld_exchange_rate_ds" autocreate="true">
+                <a:datas dataSource="/model/fnd1090_gerc"/>
+                <a:fields>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="assign_code" lovGridHeight="320" lovHeight="450" lovService="gld.FND1090.fnd_user_auth_company_lov" lovWidth="490" required="true" title="FND_COMPANIES.COMPANY">
+                        <a:mapping>
+                            <a:map from="assign_id" to="company_id"/>
+                            <a:map from="assign_desc" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="currency_code" autoComplete="true" autoCompleteField="quick_currency_code" lovGridHeight="320" lovHeight="450" lovService="gld.gld_currency_lov" lovWidth="490" required="true" title="CURRENCY_SELECTION">
+                        <a:mapping>
+                            <a:map from="currency_code" to="currency_code"/>
+                            <a:map from="currency_name" to="currency_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="currency_name" readonly="true"/>
+                    <a:field name="type_code" autoComplete="true" autoCompleteField="quick_type_code" lovGridHeight="320" lovHeight="450" lovService="gld.gld_exchangerate_type_lov" lovWidth="550" required="true" title="TYPE_SELECTION">
+                        <a:mapping>
+                            <a:map from="type_name" to="type_name"/>
+                            <a:map from="type_code" to="type_code"/>
+                            <a:map from="rate_method_code" to="rate_method_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="type_name" readonly="true"/>
+                    <a:field name="currency_code_frn" autoComplete="true" autoCompleteField="quick_currency_code_frn" lovGridHeight="320" lovHeight="450" lovService="gld.gld_currency_lov?currency_code_frn=${/model/fnd1090_gerc/record/@currency_code}" lovWidth="490" title="CURRENCY_SELECTION">
+                        <a:mapping>
+                            <a:map from="currency_code" to="currency_code_frn"/>
+                            <a:map from="currency_name" to="currency_name_frn"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="currency_name_frn" readonly="true"/>
+                    <a:field name="period_from" lovGridHeight="300" lovHeight="460" lovService="gld.gld_period_lov" lovWidth="490" readonly="true" title="GLD_EXCHANGE_RATE.PERIOD_FROM">
+                        <a:mapping>
+                            <a:map from="period_name" to="period_from"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="period_to" lovGridHeight="300" lovHeight="460" lovService="gld.gld_period_lov" lovWidth="490" readonly="true" title="GLD_EXCHANGE_RATE.PERIOD_TO">
+                        <a:mapping>
+                            <a:map from="period_name" to="period_to"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="date_from" readonly="true"/>
+                    <a:field name="date_to" readonly="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd1090_dataSetUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="fnd1090_createRate" style="margin-left:20px;" text="HAP_OK"/>
+            </a:screenTopToolbar>
+            <a:form marginWidth="80">
+                <a:hBox labelWidth="150">
+                    <a:lov name="company_name" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="FND_COMPANIES.COMPANY"/>
+                </a:hBox>
+                <a:hBox labelWidth="150">
+                    <a:lov name="currency_code" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_CURRENCY.CURRENCY_CODE"/>
+                    <a:textField name="currency_name" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_CURRENCY.CURRENCY_NAME"/>
+                </a:hBox>
+                <a:hBox labelWidth="150">
+                    <a:lov name="type_code" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGERATE_TYPES.TYPE_CODE"/>
+                    <a:textField name="type_name" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGERATE_TYPES.TYPE_NAME"/>
+                </a:hBox>
+                <a:hBox labelWidth="150">
+                    <a:lov name="currency_code_frn" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_CURRENCY.CURRENCY_CODE_FRN"/>
+                    <a:textField name="currency_name_frn" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_CURRENCY.CURRENCY_NAME_FRN"/>
+                </a:hBox>
+                <a:hBox labelWidth="150">
+                    <a:lov name="period_from" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGE_RATE.PERIOD_FROM"/>
+                    <a:lov name="period_to" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGE_RATE.PERIOD_TO"/>
+                </a:hBox>
+                <a:hBox labelWidth="150">
+                    <a:datePicker name="date_from" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGE_RATE.START_DATE" renderer="Aurora.formatDate"/>
+                    <a:datePicker name="date_to" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGE_RATE.END_DATE" renderer="Aurora.formatDate"/>
+                </a:hBox>
+            </a:form>
+            <!-- <a:fieldSet column="2" title="GLD_EXCHANGE_RATE.TITLE" width="800">
+                <a:lov name="currency_code" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_CURRENCY.CURRENCY_CODE"/>
+                <a:textField name="currency_name" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_CURRENCY.CURRENCY_NAME"/>
+                <a:lov name="type_code" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGERATE_TYPES.TYPE_CODE"/>
+                <a:textField name="type_name" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGERATE_TYPES.TYPE_NAME"/>
+                <a:lov name="currency_code_frn" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_CURRENCY.CURRENCY_CODE_FRN"/>
+                <a:textField name="currency_name_frn" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_CURRENCY.CURRENCY_NAME_FRN"/>
+                <a:lov name="period_from" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGE_RATE.PERIOD_FROM"/>
+                <a:lov name="period_to" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGE_RATE.PERIOD_TO"/>
+                <a:datePicker name="date_from" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGE_RATE.START_DATE" renderer="Aurora.formatDate"/>
+                <a:datePicker name="date_to" bindTarget="fnd1090_gld_exchange_rate_ds" prompt="GLD_EXCHANGE_RATE.END_DATE" renderer="Aurora.formatDate"/>
+            </a:fieldSet> -->
+            <!-- <a:hBox>
+                <a:button click="fnd1090_createRate" text="HAP_OK"/>
+            </a:hBox> -->
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

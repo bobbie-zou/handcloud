@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT f.business_unit_id,
+               f.business_unit_code,
+               f.business_unit_name_id,
+               f.business_unit_name,
+               f.business_group,
+               f.company_id,
+               fc.company_full_name company_name,
+               nvl(f.enabled_flag,
+                   'N') enabled_flag,
+               f.comments,
+               nvl(f.company_maintenance_flag,'N') company_maintenance_flag
+          FROM fnd_business_units_vl f,
+               fnd_companies_vl      fc
+         WHERE f.company_id = fc.company_id(+)
+         AND (EXISTS (SELECT 1
+                              FROM sys_role sr
+                             WHERE sr.role_type = 'GROUP_ADMIN'
+                                   AND sr.role_id = ${/session/@role_id}) OR EXISTS
+                (SELECT 1
+                       FROM fnd_user_authority t,
+                            fnd_companies_vl   fc
+                      WHERE fc.company_id = f.company_id
+                            AND t.assign_id = fc.company_id
+                            AND t.authority_type = 'COMPANY'
+                            AND t.user_id = ${/session/@user_id}) OR f.company_id IS NULL)
+           AND f.business_group = ${/session/@business_group})
+         #WHERE_CLAUSE# #ORDER_BY_CLAUSE#]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[  
+            BEGIN
+  fnd_business_unit_pkg.create_business_unit(x_business_unit_id   => ${@business_unit_id},
+                                             p_business_unit_name => ${@business_unit_name},
+                                             p_business_group     => ${/session/@business_group},
+                                             p_company_id         => ${@company_id},
+                                             p_enabled_flag       => ${@enabled_flag},
+                                             p_comments           => ${@comments},
+                                             p_user_id            => ${/session/@user_id});
+END;
+            
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[  
+            BEGIN
+  fnd_business_unit_pkg.modify_business_unit(p_business_unit_id   => ${@business_unit_id},
+                                             p_business_unit_name => ${@business_unit_name},
+                                             p_business_group     => ${/session/@business_group},
+                                             p_company_id         => ${@company_id},
+                                             p_enabled_flag       => ${@enabled_flag},
+                                             p_comments           => ${@comments},
+                                             p_user_id            => ${/session/@user_id});
+END;
+            
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="business_unit_code" queryExpression="business_unit_code like &apos;%&apos;||trim(${@business_unit_code})||&apos;%&apos;"/>
+        <bm:query-field name="business_unit_name" queryExpression="business_unit_name like &apos;%&apos;||trim(${@business_unit_name})||&apos;%&apos;"/>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+    </bm:query-fields>
+</bm:model>

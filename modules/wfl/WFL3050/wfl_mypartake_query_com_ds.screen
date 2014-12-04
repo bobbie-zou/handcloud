@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="wfl.WFL3050.syscode_workflow_end_procedure" rootPath="wfl_syscode_end_procedure"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="wfl_mypartake_detail_link" url="${/request/@context_path}/modules/wfl/WFL3050/wfl_mypartake_detail.screen"/>
+        <a:link id="wfl_back_instance_link" model="wfl.WFL3050.wfl_back_instance" modelaction="update"/>
+        <div/>
+        <script><![CDATA[
+            function onQuery() {
+                $('wfl_mypartake_result_ds').query();
+            }
+            
+            function onReset() {
+                $('wfl_mypartake_query_ds').reset();
+            }
+            
+            function mypartakeDetail(value, record, name) {
+                if (!record.isNew) {
+                    var id = record.get('instance_id');
+                    var read_only = record.get('display_read_only');
+                    var doc = record.get('document_number');
+                    return '<a href="javascript:openMypartakeDetailPage(\'' + doc + '\',\'' + id + '\',\'' + read_only + '\')">详细信息</a>';
+                }
+                return '';
+            }
+            
+            function openMypartakeDetailPage(document_only, id, read_only) {
+                new Aurora.Window({
+                    id: 'wfl_workflow_mypartake_detail_window',
+                    url: $('wfl_mypartake_detail_link').getUrl()+'?instance_id=' + id + '&display_read_only=' + read_only + '&document_number=' + document_only,
+                    title: '详细信息',
+                    fullScreen: true
+                });
+            }
+            
+            
+            function gotoBack(value, record, name) {
+                if (record.get('can_cancel_flag') == 'Y') {
+                    //判断是否可收回
+                    return '<a href="javascript:backRecord(' + record.get('instance_id') + ')">${l:WFL_MY_INSTANCE.TAKEBACK}</a>';
+                }
+            
+            }
+            //收回
+            
+            function backRecord(id) {
+                var confirm = Aurora.showConfirm("${l:SUBSTANCE_COMPANY_CHECK}", "${l:WFL_INSTANCE_VIEW.SURE_FIND_WORKFLOW}", function() {
+                    Aurora.request({
+                        url: $('wfl_back_instance_link').getUrl(),
+                        para: {
+                            instance_id: id
+                        },
+                        success: function(res) {
+                            Aurora.showMessage('${l:SUBSTANCE_COMPANY_CHECK}', '${l:SUCCESSFUL_OPERATION}', reback);
+                        },
+                        scope: this
+                    });
+                    confirm.close();
+                });
+            }
+            
+            function reback() {
+                $("wfl_mypartake_result_ds").query();
+            }
+            
+            function graphicsRenderer(value, record, name) {
+            
+                if (!record.isNew) {
+                    var graphic_id = record.get('graphic_id');
+                    if (graphic_id == -1) {
+                        return '图形未定义';
+                    } else {
+                        var workflow_id = record.get('workflow_id');
+                        var instance_id = record.get('instance_id');
+                        return '<a href=\"javascript:showGraphics(' + graphic_id + ',' + instance_id + ',' + workflow_id + ')\">查看</a>';
+                    }
+                } else {
+                    return '';
+                }
+            }
+            
+            function showGraphics(v, i, w) {
+                new Aurora.Window({
+                    id: 'graphicsWindow',
+                    url: '${/request/@context_path}/sys_graphics.screen?instance_id=' + i + '&graphics_id=' + v + '&workflow_id=' + w,
+                    title: '流程图',
+                    fullScreen: true
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="workflow_status_ds">
+                <a:datas dataSource="/model/wfl_syscode_end_procedure"/>
+            </a:dataSet>
+            <a:dataSet id="wfl_mypartake_query_ds" model="wfl.WFL3050.wfl_mypartake_query_com_ds">
+                <a:fields>
+                    <a:field name="document_number"/>
+                    <a:field name="workflow_code" autoComplete="true" autoCompleteField="workflow_code" lovGridHeight="350" lovHeight="500" lovService="wfl.WFL3050.wfl_workflow_lov" lovWidth="500" title="工作流">
+                        <a:mapping>
+                            <a:map from="workflow_id" to="workflow_id"/>
+                            <a:map from="workflow_code" to="workflow_code"/>
+                            <a:map from="workflow_desc" to="workflow_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="workflow_desc" readOnly="true"/>
+                    <a:field name="status_desc" displayField="code_value_name" options="workflow_status_ds" returnField="status" valueField="code_value"/>
+                    <a:field name="creation_date"/>
+                    <a:field name="creation_date_from"/>
+                    <a:field name="creation_date_to"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl_mypartake_result_ds" autoPageSize="true" autoQuery="false" model="wfl.WFL3050.wfl_mypartake_query_com_ds" queryDataSet="wfl_mypartake_query_ds"/>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="wfl_mypartake_query_ds" resultTarget="wfl_mypartake_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:hBox column="3">
+                    <a:lov name="workflow_code" bindTarget="wfl_mypartake_query_ds" prompt="工作流代码">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:lov>
+                    <a:datePicker name="creation_date_from" bindTarget="wfl_mypartake_query_ds" prompt="启动日期从">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="creation_date_to" bindTarget="wfl_mypartake_query_ds" prompt="启动日期到">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:hBox>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox column="3">
+                    <a:textField name="document_number" bindTarget="wfl_mypartake_query_ds" prompt="单据号">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="status_desc" bindTarget="wfl_mypartake_query_ds" prompt="状态">
+                        <a:events>
+                            <a:event name="enterdown" handler="onQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="wfl_mypartake_result_grid" bindTarget="wfl_mypartake_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:columns>
+                <!--                                         <a:column name="display_read_only" prompt="只读标志" width="146"/>
+ -->
+                <!-- <a:column name="can_cancel_flag" prompt="收回标志" width="146"/>     -->
+                <a:column name="graphics_id" align="center" prompt="流程图" renderer="graphicsRenderer" width="60"/>
+                <a:column name="workflow_code" prompt="工作流代码" width="80"/>
+                <a:column name="workflow_desc" prompt="工作流描述" width="100"/>
+                <a:column name="document_number" prompt="单据号" width="80"/>
+                <a:column name="current_seq" align="center" prompt="当前节点序号" width="60"/>
+                <a:column name="current_node_desc" prompt="当前节点描述" width="100"/>
+                <a:column name="status_desc" align="center" prompt="状态" width="60"/>
+                <a:column name="last_approve_date" align="center" prompt="上一节点审批时间" width="80"/>
+                <a:column name="approve_user_name" prompt="当前审批人" width="100"/>
+                <a:column name="creation_date" align="center" prompt="启动日期" width="60"/>
+                <!--                     <a:column name="back" align="center" lock="false" prompt="WFL_MY_INSTANCE.TAKEBACK" renderer="gotoBack" width="50"/>
+ -->
+                <a:column name="mypartake_detail" align="center" prompt="详细信息" renderer="mypartakeDetail" width="60"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

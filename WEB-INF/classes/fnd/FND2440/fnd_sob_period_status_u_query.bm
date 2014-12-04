@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zjw  
+    $Date: 2011-9-7 上午10:06:32  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t.*,
+                    t.period_set_code,
+                    TO_CHAR(t.start_date, 'yyyy-mm-dd') start_date_c,
+                    TO_CHAR(t.end_date, 'yyyy-mm-dd') end_date_c
+                FROM
+                    gld_periods t
+                WHERE
+                    t.period_set_code     = ${@period_set_code} AND
+                    t.internal_period_num > NVL(
+                    (SELECT
+                        MAX(s.internal_period_num) internal_period_num
+                    FROM
+                        fnd_sob_period_status s
+                    WHERE
+                        s.period_set_code = ${@period_set_code} AND
+                        s.set_of_books_id =
+                        (SELECT
+                            f.set_of_books_id
+                        FROM
+                            fnd_companies f
+                        WHERE
+                            f.company_id = ${/session/@company_id}
+                        )
+                    GROUP BY
+                        period_set_code
+                    ), 0)
+                ORDER BY
+                    t.period_year ASC,
+                    t.period_num ASC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="period_year" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PERIOD_YEAR" required="true"/>
+        <bm:field name="period_num" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PERIOD_NUM" required="true"/>
+        <bm:field name="period_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PERIOD_NAME" required="true"/>
+        <bm:field name="start_date_c" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="START_DATE_C"/>
+        <bm:field name="end_date_c" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="END_DATE_C"/>
+        <bm:field name="quarter_num" databaseType="NUMBER" datatype="java.lang.Long" physicalName="QUARTER_NUM" required="true"/>
+        <bm:field name="period_set_code" databaseType="VARCHAR2" datatype="java.lang.String" required="true"/>
+        <bm:field name="adjustment_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ADJUSTMENT_FLAG" required="true"/>
+    </bm:fields>
+</bm:model>

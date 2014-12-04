@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui 6743$
+    $Date: 2014/09/29 10:46:59 $
+    $Revision: 1.0 $
+    $Purpose: ERP应付发票查询-采购方
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        eaih.invoice_id,
+                        eaih.invoice_num,
+                        eaih.invoice_type,
+                        TO_CHAR(eaih.invoice_date,'yyyy-mm-dd') invoice_date,
+                        eaih.pur_header_id,
+                        (SELECT
+                            pha.display_po_number
+                        FROM
+                            pur_headers_all_v pha
+                        WHERE
+                            pha.pur_header_id = eaih.pur_header_id
+                        ) pur_header_num,
+                        eaih.vendor_id,
+                        (SELECT
+                            pv.full_name
+                        FROM
+                            pur_vendors_vl pv
+                        WHERE
+                            pv.vendor_id = eaih.vendor_id
+                        ) vendor_name,
+                        eaih.vendor_site_id,
+                        (SELECT
+                            pvs.display_site_code
+                        FROM
+                            pur_vendor_sites_vl pvs
+                        WHERE
+                            pvs.vendor_site_id = eaih.vendor_site_id
+                        ) site_code,
+                        eaih.business_unit_id,
+                        (SELECT
+                            fbu.business_unit_name
+                        FROM
+                            fnd_business_units_vl fbu
+                        WHERE
+                            fbu.business_unit_id = eaih.business_unit_id
+                        ) business_unit_name,
+                        (SELECT
+                            SUM(NVL(ip.amount,0))
+                        FROM
+                            erp_ap_invoice_headers ih,
+                            erp_ap_invoice_payments ip
+                        WHERE
+                            ih.invoice_id = ip.invoice_id(+) AND
+                            ih.invoice_id = eaih.invoice_id
+                        GROUP BY
+                            ih.invoice_id
+                        ) amount_paid,
+                        NVL(eaih.invoice_amount,0) -
+                        (SELECT
+                            SUM(NVL(ip.amount,0))
+                        FROM
+                            erp_ap_invoice_headers ih,
+                            erp_ap_invoice_payments ip
+                        WHERE
+                            ih.invoice_id = ip.invoice_id(+) AND
+                            ih.invoice_id = eaih.invoice_id
+                        GROUP BY
+                            ih.invoice_id
+                        ) amount_unpaid,
+                        (SELECT
+                            DECODE(ih.invoice_amount -
+                            (SELECT
+                                SUM(NVL(ip1.amount,0))
+                            FROM
+                                erp_ap_invoice_headers ih1,
+                                erp_ap_invoice_payments ip1
+                            WHERE
+                                ih1.invoice_id = ip1.invoice_id(+) AND
+                                ih1.invoice_id = ih.invoice_id
+                            GROUP BY
+                                ih1.invoice_id
+                            ), 0, 'Y', NVL(ih.invoice_amount,0), 'N', 'P')
+                        FROM
+                            erp_ap_invoice_headers ih
+                        WHERE
+                            eaih.invoice_id = ih.invoice_id
+                        ) AS payment_status,
+                        eaih.invoice_currency_code,
+                        eaih.invoice_amount,
+                        eaih.payment_method_code
+                    FROM
+                        erp_ap_invoice_headers eaih
+                    WHERE
+                        eaih.vendor_id=
+                        (SELECT
+                            v.vendor_id
+                        FROM
+                            pur_vendors_v v
+                        WHERE
+                            v.coop_business_group = ${ / session / @business_group}
+                        )
+                    ) t1 #WHERE_CLAUSE#
+                ORDER BY
+                    invoice_date DESC,
+                    invoice_num
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters><![CDATA[
+    ]]></bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="invoice_id" queryExpression="t1.invoice_id=${@invoice_id}"/>
+        <bm:query-field name="invoice_num" queryExpression="t1.invoice_num=${@invoice_num}"/>
+        <bm:query-field name="invoice_type" queryExpression="t1.invoice_type=${@invoice_type}"/>
+        <bm:query-field name="invoice_date" queryExpression="t1.invoice_date=${@invoice_date}"/>
+        <bm:query-field name="invoice_date_from" queryExpression="t1.invoice_date &gt;=to_date(${@invoice_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="invoice_date_to" queryExpression="t1.invoice_date &lt;=to_date(${@invoice_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="vendor_site_id" queryExpression="t1.vendor_site_id=${@vendor_site_id}"/>
+        <bm:query-field name="business_unit_id" queryExpression="t1.business_unit_id=${@business_unit_id}"/>
+        <bm:query-field name="payment_status" queryExpression="t1.payment_status=${@payment_status}"/>
+        <bm:query-field name="owner_business_group" queryExpression="t1.owner_business_group=${@owner_business_group}"/>
+        <bm:query-field name="coop_business_group" queryExpression="t1.coop_business_group=${@coop_business_group}"/>
+        <bm:query-field name="rcv_trx_number" queryExpression="EXISTS (SELECT 1 FROM pur_rcv_trx_headers_v prth WHERE prth.rcv_trx_number = ${@rcv_trx_number} AND prth.rcv_trx_header_id = (select eail.rcv_transaction_id from erp_ap_invoice_lines eail where eail.invoice_id=t1.invoice_id) )"/>
+        <bm:query-field name="pur_header_num" queryExpression="EXISTS (SELECT 1 FROM pur_headers_all_v pha WHERE pha.pur_header_num = ${@pur_header_num} AND pha.pur_header_id = t1.pur_header_id )"/>
+        <bm:query-field name="check_number" queryExpression="EXISTS (SELECT 1 FROM erp_ap_invoice_payments eaip WHERE eaip.check_number = ${@check_number} AND eaip.invoice_id = t1.invoice_id )"/>
+        <bm:query-field name="check_id" queryExpression="EXISTS (SELECT 1 FROM erp_ap_invoice_payments eaip WHERE eaip.check_id = ${@check_id} AND eaip.invoice_id = t1.invoice_id )"/>
+    </bm:query-fields>
+</bm:model>

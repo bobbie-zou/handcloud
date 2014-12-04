@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-7-2 下午3:32:40  
+    $Revision: 1.0  
+    $Purpose: 自主品类定义，入口页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="mtl1050_mtl_category_user_defined_disable_link" model="mtl.MTL1050.mtl_category_user_defined_disable_enable" modelaction="delete"/>
+        <a:link id="mtl1050_mtl_category_user_defined_enable_link" model="mtl.MTL1050.mtl_category_user_defined_disable_enable" modelaction="update"/>
+        <a:link id="mtl1050_mtl_category_user_defined_import_link" url="${/request/@context_path}/modules/mtl/MTL1050/mtl_category_user_defined_import.screen"/>
+        <a:link id="mtl1050_mtl_category_classify_items_import_link" url="${/request/@context_path}/modules/mtl/MTL1050/mtl_category_classify_item_import.screen"/>
+        <a:link id="mtl1050_mtl_category_classify_items_link" url="${/request/@context_path}/modules/mtl/MTL1050/mtl_category_classify_items.screen"/>
+        <script><![CDATA[
+            var max_category_level = 3; //最多定义的品类层数
+            
+            //验证自定义品类表字段的有效性
+            
+            function mtl1050_categoryUserDefinedValidator(record, name, value) {
+                if (name == 'category_code') {
+                    //验证自定义品类代码的长度不能超过30
+                    if (mtl1050_getLength(value) >= 30) {
+                        return '${l:MTL1050.CATEGORY_CODE_OVERLENGTH}';
+                    }
+                } else if (name == 'category_name') {
+                    //验证自定义品类名称的长度不能超过1000
+                    if (mtl1050_getLength(value) >= 1000) {
+                        return '${l:MTL1050.CATEGORY_NAME_OVERLENGTH}';
+                    }
+                }
+                return true;
+            }
+            
+            //返回字符串真实长度
+            
+            function mtl1050_getLength(str) {
+                var realLength = 0,
+                    len = 0,
+                    charCode = -1;
+                if (!Aurora.isEmpty(str)) {
+                    len = str.length;
+                }
+                for (var i = 0;i < len;i++) {
+                    charCode = str.charCodeAt(i);
+                    if (charCode >= 0 && charCode <= 128) {
+                        realLength += 1;
+                    } else {
+                        realLength += 3;
+                    }
+                }
+                return realLength;
+            }
+            
+            function mtl1050_categoryUserDefined_result_onQuery(ds) {
+                //触发查询事件时，锁住按钮
+                $('mtl1050_categoryUserDefined_grid_addButton').disable();
+                $('mtl1050_categoryUserDefined_grid_saveButton').disable();
+            }
+            
+            function mtl1050_categoryUserDefined_result_onLoad(ds) {
+                //触发加载数据事件时，解锁按钮
+                $('mtl1050_categoryUserDefined_grid_addButton').enable();
+                $('mtl1050_categoryUserDefined_grid_saveButton').enable();
+            }
+            
+            
+            function mtl1050_categoryUserDefinedMaintainDsTreeGridEditorFunction(record, name) {
+                if (name == 'category_code') {
+                    if (record.isNew) {
+                        return 'mtl1050_category_user_defined_maintain_ds_treegrid_textField';
+                    } else {
+                        return '';
+                    }
+                }
+            
+                if (name == 'category_name') {
+                    if (record.get('enabled_flag') == 'Y') {
+                        return 'mtl1050_category_user_defined_maintain_ds_treegrid_textField';
+                    } else {
+                        return '';
+                    }
+                }
+            
+                if (name == 'uom_name') {
+                    if (record.get('enabled_flag') == 'Y') {
+                        return 'mtl1050_category_user_defined_maintain_ds_treegrid_lov';
+                    } else {
+                        return '';
+                    }
+                }
+            }
+            
+            function mtl1050_categoryUserDefinedMaintainDsSubmitSuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+                ds.query();
+            }
+            
+            function mtl1050_categoryUserDefinedMaintainAddRoot() {
+                var ds = $('mtl1050_category_user_defined_maintain_ds');
+            
+                var new_record = ds.create({
+                    'category_udf_id': '',
+                    'expanded': 'Y',
+                    'category_code': '',
+                    'category_name_id': '',
+                    'category_name': '',
+                    'uom_code': '',
+                    'uom_name': '',
+                    'category_level': 1,
+                    'parent_category_udf_id': -1,
+                    'enabled_flag': 'Y'
+                });
+            }
+            
+            function mtl1050_categoryUserDefinedMaintainSave() {
+                var ds = $('mtl1050_category_user_defined_maintain_ds');
+                ds.submit();
+            }
+            
+            function mtl1050_categoryUserDefinedMaintainDsTreegridRenderer(value, record, name) {
+                var category_level = record.get('category_level');
+                var category_udf_id = record.get('category_udf_id');
+                var enabled_flag = record.get('enabled_flag');
+                
+                if (name == 'addChird') {
+                    if (!Aurora.isEmpty(category_udf_id) && enabled_flag == 'Y' && category_level < max_category_level) {
+                        return '<a href="javascript:mtl1050_categoryUserDefinedMaintainDsTreegridRendererAddChird(' + category_level + ',' + category_udf_id + ')">${l:MTL_CATEGORIES_USER_DEFINED.ADD_CHIRD_CATEGORY}</a>';
+                    } else if (enabled_flag == 'N') {
+                        return '<div style="background:red">${l:MTL_CATEGORIES_USER_DEFINED.DISABLED_CATEGORY}</div>';
+                    }
+                }else if (name == 'removeCategory') {
+                    var parent_category_udf_id = record.get('parent_category_udf_id');
+                    var records = $('mtl1050_category_user_defined_maintain_ds').getAll();
+                    
+                    if (!Aurora.isEmpty(category_udf_id) && enabled_flag == 'Y') {
+                        if (category_level < max_category_level) {
+                            return '<a href="javascript:mtl1050_categoryUserDefinedMaintainDsTreegridRendererDisableCategory(' + category_udf_id + ')">${l:MTL_CATEGORIES_USER_DEFINED.DISABLE_CATEGORY_AND_CHIRD}</a>';
+                        } else {
+                            return '<a href="javascript:mtl1050_categoryUserDefinedMaintainDsTreegridRendererDisableCategory(' + category_udf_id + ')">${l:MTL_CATEGORIES_USER_DEFINED.DISABLE_THIS_CATEGORY}</a>';
+                        }
+                    } else if (record.isNew) {
+                        return '<a href="javascript:mtl1050_categoryUserDefinedMaintainDsTreegridRendererClearCategory()">${l:MTL_CATEGORIES_USER_DEFINED.CLEAR_LINE}</a>';
+                    } else if (enabled_flag == 'N') {
+                        if (Aurora.isEmpty(parent_category_udf_id)) { //根级品类
+                            return '<a href="javascript:mtl1050_categoryUserDefinedMaintainDsTreegridRendererEnableCategory(' + category_udf_id + ')">${l:MTL_CATEGORIES_USER_DEFINED.ENABLE_CATEGORY_AND_CHIRD}</a>';
+                        } else {
+                            for (var i = 0;i < records.length;i++) { //判断上级品类是否启用，启用则显示，禁用则不显示
+                                if (parent_category_udf_id == records[i].get('category_udf_id') && records[i].get('enabled_flag') == 'Y') {
+                                    return '<a href="javascript:mtl1050_categoryUserDefinedMaintainDsTreegridRendererEnableCategory(' + category_udf_id + ')">${l:MTL_CATEGORIES_USER_DEFINED.ENABLE_CATEGORY_AND_CHIRD}</a>';
+                                }
+                            }
+                        }
+                    }
+                }else if(name == 'classify_items'){
+                    if (!Aurora.isEmpty(category_udf_id) && enabled_flag == 'Y' ){
+                        return '<a href="javascript:mtl1050_categoryClassifyItemsOpenWondow(' + category_udf_id + ')">${l:MTL_CATEGORIES_USER_DEFINED.CLASSIFY_ITEMS}</a>';
+                     }else{
+                         return '';
+                     }
+                    
+                }
+            }
+            
+            function mtl1050_categoryClassifyItemsOpenWondow(category_udf_id){
+                new Aurora.Window({
+                    id: 'mtl1050_mtl_category_classify_items_window',
+                    url: $('mtl1050_mtl_category_classify_items_link').getUrl()+'?category_udf_id='+category_udf_id,
+                    title: '${l:MTL_CATEGORIES_USER_DEFINED.CLASSIFY_ITEMS}',
+                    width: 900,
+                    height: 500
+                });
+            }
+            
+            function mtl1050_categoryUserDefinedMaintainDsTreegridRendererAddChird(category_level, category_udf_id) {
+                var ds = $('mtl1050_category_user_defined_maintain_ds');
+                var new_record = ds.create({
+                    'category_udf_id': '',
+                    'expanded': 'Y',
+                    'category_code': '',
+                    'category_name_id': '',
+                    'category_name': '',
+                    'uom_code': '',
+                    'uom_name': '',
+                    'category_level': category_level + 1,
+                    'parent_category_udf_id': category_udf_id,
+                    'enabled_flag': 'Y'
+                });
+            }
+            
+            function mtl1050_categoryUserDefinedMaintainDsTreegridRendererDisableCategory(category_udf_id) {
+            
+                //提交AjAX请求
+                Aurora.showConfirm('${l:PROMPT}', '${l:MTL_CATEGORIES_USER_DEFINED.SURE_TO_DISABLE_CATEGORY}', function() {
+                    Aurora.request({
+                        url: $('mtl1050_mtl_category_user_defined_disable_link').getUrl(),
+                        para: {
+                            category_udf_id: category_udf_id
+                        },
+                        success: function() {
+                            $('mtl1050_category_user_defined_maintain_ds').query();
+                        },
+                        failure: function() {},
+                        error: function() {},
+                        scope: this
+                    });
+                });
+            }
+            
+            function mtl1050_categoryUserDefinedMaintainDsTreegridRendererEnableCategory(category_udf_id) {
+            
+                //提交AjAX请求
+                Aurora.showConfirm('${l:PROMPT}', '${l:MTL_CATEGORIES_USER_DEFINED.SURE_TO_ENABLE_CATEGORY}', function() {
+                    Aurora.request({
+                        url: $('mtl1050_mtl_category_user_defined_enable_link').getUrl(),
+                        para: {
+                            category_udf_id: category_udf_id
+                        },
+                        success: function() {
+                            $('mtl1050_category_user_defined_maintain_ds').query();
+                        },
+                        failure: function() {},
+                        error: function() {},
+                        scope: this
+                    });
+                });
+            }
+            
+            function mtl1050_categoryUserDefinedMaintainDsTreegridRendererClearCategory() {
+                var ds = $('mtl1050_category_user_defined_maintain_ds');
+                var record = ds.getCurrentRecord();
+                ds.remove(record);
+            }
+            
+            
+            
+            /**************************************************************
+             * 树形数据查询开始
+             **************************************************************/
+            
+            /**************************************************************
+             * tree型数据查询说明：（静态全局参数）
+             * 	每组树形数据查询所需多个全局变量(多个tree多组变量，分别以_01,_02...表示)
+             *	参数1：显示位置（初始为0）
+             *	参数2：匹配结果数组
+             *	参数3：是否初始化匹配结果数组标识
+             **************************************************************/
+            var show_index_01 = 0; //显示位置
+            var row_list_01 = []; //匹配结果数组
+            var init_flag_01 = false; //初始化标识
+            
+            /**************************************************************
+             * tree型数据查询说明：（动态全局参数）
+             * 	每组树形数据查询所需多个全局变量(多个tree多组变量，分别以_01,_02...表示)
+             *	参数1：treegrid绑定的DS对象
+             *	参数2：查询条件绑定的DS对象
+             *	参数3：treegrid对象
+             *	参数4：查询条件的参数名称
+             *	参数5：查询匹配的参数名称（可以有多个，用_1,_2表示）
+             **************************************************************/
+            var treegrid_ds_01 = 'mtl1050_category_user_defined_maintain_ds'; //treegrid绑定的DS
+            var query_ds_01 = 'mtl1050_category_user_defined_query_ds'; //查询条件绑定的DS
+            var treegrid_01 = 'mtl1050_category_user_defined_maintain_ds_treegrid'; //treegrid对象
+            var query_name_01 = 'category_code_name'; //查询条件的参数名称
+            var indexof_01_1 = 'category_code'; //匹配参数1
+            var indexof_01_2 = 'category_name'; //匹配参数2
+            
+            //初始全局变量
+            
+            function initGlobalPara() {
+                show_index_01 = 0;
+                row_list_01 = [];
+                init_flag_01 = false;
+            }
+            
+            //初始化定位数组
+            
+            function initRowList(para) {
+            
+                //获取树形结果数据
+                var records = $(treegrid_ds_01).getAll();
+            
+                //对数据进行遍历
+                for (var i = 0;i < records.length;i++) {
+            
+                    //判断是否包含当前查询字符，包含则将其位置放入匹配结果数组
+                    if ((!Aurora.isEmpty(records[i].get(indexof_01_1)) && records[i].get(indexof_01_1).indexOf(para) != -1) || (!Aurora.isEmpty(records[i].get(indexof_01_2)) && records[i].get(indexof_01_2).indexOf(para) != -1)) {
+                        row_list_01.push($(treegrid_ds_01).indexOf(records[i]));
+                    }
+                }
+            
+                //改变初始化标识
+                init_flag_01 = true;
+            }
+            
+            //采购品类tree查询按钮执行方法
+            
+            function mtl1050_categoryUserDefinedTreeQuery() {
+            
+                //获取查询条件字符串
+                var record = $(query_ds_01).getCurrentRecord();
+            
+                //判断查询条件的值是否为空，为空不做查询操作
+                if (!Ext.isEmpty(record.get(query_name_01))) {
+            
+                    //判断是否初始化定位数组
+                    if (!init_flag_01) {
+                        initRowList(record.get(query_name_01));
+                    }
+                    //结果匹配数组有值时
+                    if (row_list_01.length > 0) {
+                        //显示匹配数组里的位置
+                        $(treegrid_01).selectRow(row_list_01[show_index_01]);
+            
+                        //判断显示位置是否越界,没有则++，有责回到初始0
+                        if (show_index_01 < row_list_01.length - 1) {
+                            show_index_01++;
+                        } else {
+                            show_index_01 = 0;
+                        }
+                    }
+                }
+            }
+            
+            //查询dataset更新事件
+            
+            function mtl1050_onPurchaseCategoryTreeQueryUpdate(ds, record, name, value, oldvalue) {
+                $(query_ds_01).getCurrentRecord().dirty = false;
+                if (name == query_name_01) {
+                    //查询条件改变，重置全局定位变量
+                    initGlobalPara();
+                }
+            }
+            /**************************************************************
+             * 树形数据查询结束
+             **************************************************************/
+            
+            //Import category
+            
+            
+            function mtl1050_categoryUserDefinedImportFun() {
+                window.open($('mtl1050_mtl_category_user_defined_import_link').getUrl());
+            }
+            
+            //Import Classify
+            function mtl1050_categoryClassifyItemsImportFun(){
+                window.open($('mtl1050_mtl_category_classify_items_import_link').getUrl());
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="mtl1050_category_user_defined_query_ds" autoCreate="true">
+                <a:events>
+                    <a:event name="update" handler="mtl1050_onPurchaseCategoryTreeQueryUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="mtl1050_category_user_defined_maintain_ds" autoQuery="true" fetchAll="true" model="mtl.MTL1050.mtl_category_user_defined_maintain" queryDataSet="mtl1050_category_user_defined_query_ds">
+                <a:fields>
+                    <a:field name="parent_category_udf_id"/>
+                    <a:field name="category_code" required="true" requiredMessage="${l:MTL_CATEGORIES_USER_DEFINED.CATEGORY_CODE_NOT_NULL}" validator="mtl1050_categoryUserDefinedValidator"/>
+                    <a:field name="category_name" required="true" requiredMessage="${l:MTL_CATEGORIES_USER_DEFINED.CATEGORY_NAME_NOT_NULL}" validator="mtl1050_categoryUserDefinedValidator"/>
+                    <a:field name="uom_code"/>
+                    <a:field name="uom_name" autoComplete="true" autoCompleteField="uom_desc" lovGridHeight="350" lovHeight="500" lovService="public.fnd_uom_codes_lov" lovWidth="500" title="MTL_CATEGORIES_USER_DEFINED.UOM_CODE">
+                        <a:mapping>
+                            <a:map from="uom_code" to="uom_code"/>
+                            <a:map from="uom_desc" to="uom_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="category_level"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="expanded" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="mtl1050_categoryUserDefined_result_onQuery"/>
+                    <a:event name="load" handler="mtl1050_categoryUserDefined_result_onLoad"/>
+                    <a:event name="submitsuccess" handler="mtl1050_categoryUserDefinedMaintainDsSubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton id="mtl1050_categoryUserDefined_grid_addButton" click="mtl1050_categoryUserDefinedMaintainAddRoot" style="margin-left:20px;" text="MTL_CATEGORIES_USER_DEFINED.NEW_TOP_CATEGORY" width="100"/>
+                <a:toolbarButton id="mtl1050_categoryUserDefined_grid_saveButton" click="mtl1050_categoryUserDefinedMaintainSave" style="margin-left:20px;" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton id="mtl1050_categoryUserDefinedImportButton" click="mtl1050_categoryUserDefinedImportFun" style="margin-left:20px;" text="MTL_CATEGORY_IMPORTS.BATCH_IMPORT" width="100"/>
+                <a:toolbarButton id="mtl1050_categoryClassifyItemsImportButton" click="mtl1050_categoryClassifyItemsImportFun" style="margin-left:20px;" text="MTL_CATEGORY_IMPORTS.IMPORT_CLASSIFY_ITEMS" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm createSearchButton="false" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField name="category_code_name" bindTarget="mtl1050_category_user_defined_query_ds" emptyText="品类代码/品类名称" marginWidth="210"/>
+                    <a:toolbarButton click="mtl1050_categoryUserDefinedTreeQuery" style="margin-left:20px;" text="HAP_QUERY" width="100"/>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:treeGrid id="mtl1050_category_user_defined_maintain_ds_treegrid" bindTarget="mtl1050_category_user_defined_maintain_ds" expandField="expanded" idField="category_udf_id" marginHeight="160" marginWidth="80" parentField="parent_category_udf_id" showCheckBox="false">
+                <a:columns>
+                    <a:column name="category_code" align="left" editorFunction="mtl1050_categoryUserDefinedMaintainDsTreeGridEditorFunction" width="160"/>
+                    <a:column name="category_name" align="left" editorFunction="mtl1050_categoryUserDefinedMaintainDsTreeGridEditorFunction" width="160"/>
+                    <a:column name="uom_name" align="left" editorFunction="mtl1050_categoryUserDefinedMaintainDsTreeGridEditorFunction" width="160"/>
+                    <a:column name="category_level" align="left" width="50"/>
+                    <a:column align="center" prompt="HAP_OPERATION">
+                        <a:column name="addChird" align="center" renderer="mtl1050_categoryUserDefinedMaintainDsTreegridRenderer" width="70"/>
+                        <a:column name="removeCategory" align="center" renderer="mtl1050_categoryUserDefinedMaintainDsTreegridRenderer" width="90"/>
+                    </a:column>
+                    <a:column name="classify_items" align="center" prompt="MTL_CATEGORIES_USER_DEFINED.CLASSIFY_ITEMS" renderer="mtl1050_categoryUserDefinedMaintainDsTreegridRenderer" width="60"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="mtl1050_category_user_defined_maintain_ds_treegrid_lov"/>
+                    <a:textField id="mtl1050_category_user_defined_maintain_ds_treegrid_textField"/>
+                </a:editors>
+            </a:treeGrid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

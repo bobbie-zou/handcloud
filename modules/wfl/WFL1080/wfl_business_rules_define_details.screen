@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query model="wfl.WFL1080.wfl_business_rules" rootPath="wfl_business_rule_detail"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function gridcellclick(grid, row, name, record) {
+                if (name == 'rule_parameter_code') {
+                    var f = record.getField('rule_parameter_code');
+                    f.setLovPara('business_rule_id', '${/parameter/@business_rule_id}');
+                    f.setLovPara('workflow_category', '${/parameter/@workflow_category}');
+                    f.setLovPara('type', record.get('rule_parameter_type'));
+                }
+            }
+            
+            function grid_editor_sql_param(record, name) {
+                var workflow_type_para_code = record.get("rule_parameter_type");
+                if (workflow_type_para_code == 'WORKFLOW_TYPE_PARAMETER') {
+                    return '';
+                } else {
+                    return 'grid_text_detail';
+                }
+            }
+            
+            
+            function setinitdatedetail(ds, record, index) {
+                record.set('business_rule_id', '${/parameter/@business_rule_id}');
+            }
+            
+            function onUpdate(ds, record, name, value, oldvalue) {
+                if (name == 'workflow_type_para_code') {
+                    record.set('rule_parameter_code', '');
+                    record.set('rule_parameter_name', '');
+            
+                    record.set('sql_param_1', '');
+                    record.set('sql_param_2', '');
+                    record.set('sql_param_3', '');
+                    record.set('sql_param_4', '');
+                    record.set('sql_param_5', '');
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl_workflow_detail_type" loadData="true" lookupCode="WFL_WORKFLOW_DETAIL_TYPE"/>
+            <a:dataSet id="filtrate_method_ds" loadData="true" lookupCode="WFL_WORKFLOW_FILTRATE_METHOD"/>
+            <a:dataSet id="and_or_ds" loadData="true" lookupCode="WFL_WORKFLOW_APPROVAL_RULE"/>
+            <a:dataSet id="wfl_workflow_type_parameter" loadData="true" lookupCode="WFL_WORKFLOW_TYPE_PARAMETER"/>
+            <a:dataSet id="wfl_business_rule_detail_ds">
+                <a:datas dataSource="/model/wfl_business_rule_detail"/>
+                <a:fields>
+                    <a:field name="business_rule_code" prompt="WFL_BUSINESS_RULES.BUSINESS_RULE_CODE" readOnly="true"/>
+                    <a:field name="description" prompt="WFL_BUSINESS_RULES.DESCRIPTION_ID" readOnly="true"/>
+                    <a:field name="workflow_category" prompt="WFL_BUSINESS_RULES.WORKFLOW_CATEGORY" readOnly="true"/>
+                    <a:field name="workflow_category_dsc" prompt="WFL_BUSINESS_RULES.DESCRIPTION_ID" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl_business_rule_detail_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="wfl.WFL1080.wfl_business_rule_details" queryUrl="${/request/@context_path}/autocrud/wfl.WFL1080.wfl_business_rule_details/query?business_rule_id=${/parameter/@business_rule_id}&amp;workflow_category=${/parameter/@workflow_category}" selectable="true">
+                <a:fields>
+                    <a:field name="rule_parameter_code" autoComplete="true" autoCompleteField="workflow_type_para_code" lovGridHeight="350" lovHeight="500" lovService="wfl.WFL1080.wfl_business_rule_parameters_valid" lovWidth="500" required="true" title="规则参数代码">
+                        <a:mapping>
+                            <a:map from="parameter_id" to="rule_parameter_id"/>
+                            <a:map from="workflow_type_para_code" to="rule_parameter_code"/>
+                            <a:map from="workflow_type_para_desc" to="rule_parameter_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="value_compare_method_ds" displayField="code_value_name" options="wfl_workflow_detail_type" required="true" returnField="value_compare_method" valueField="code_value"/>
+                    <a:field name="value_compare_method" defaultValue="CHAR"/>
+                    <a:field name="workflow_type_para_code" displayField="code_value_name" options="wfl_workflow_type_parameter" required="true" returnField="rule_parameter_type" valueField="code_value"/>
+                    <a:field name="filtrate_method_code" displayField="code_value_name" options="filtrate_method_ds" required="true" returnField="filtrate_method" valueField="code_value"/>
+                    <a:field name="and_or_code" displayField="code_value_name" options="and_or_ds" required="true" returnField="and_or" valueField="code_value"/>
+                    <a:field name="parameter_lower_limit" lovService="wfl.WFL1080.wfl_business_get_budget_limit" required="true">
+                        <a:mapping>
+                            <a:map from="budget_item_code" to="parameter_lower_limit"/>
+                            <a:map from="description_text" to="description_text"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="parameter_upper_limit" lovService="wfl.WFL1080.wfl_business_get_budget_limit" required="true">
+                        <a:mapping>
+                            <a:map from="budget_item_code" to="parameter_upper_limit"/>
+                            <a:map from="description_text" to="description_text"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="setinitdatedetail"/>
+                    <a:event name="update" handler="onUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="business_rule_detail_result_grid" type="add" width="100"/>
+            <a:gridButton bind="business_rule_detail_result_grid" type="save" width="100"/>
+            <a:gridButton bind="business_rule_detail_result_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:form id="wfl_business_rule_detail_ds_form" column="4" labelWidth="100" marginWidth="40">
+            <a:textField name="business_rule_code" bindTarget="wfl_business_rule_detail_ds"/>
+            <a:textField name="description" bindTarget="wfl_business_rule_detail_ds"/>
+            <a:textField name="workflow_category" bindTarget="wfl_business_rule_detail_ds"/>
+            <a:textField name="workflow_category_dsc" bindTarget="wfl_business_rule_detail_ds"/>
+        </a:form>
+        <a:grid id="business_rule_detail_result_grid" bindTarget="wfl_business_rule_detail_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="workflow_type_para_code" editor="grid_combo" prompt="工作流类型参数" width="60"/>
+                <a:column name="rule_parameter_code" editor="limit_grid_lov" width="80"/>
+                <a:column name="rule_parameter_name"/>
+                <a:column name="and_or_code" editor="grid_combo" prompt="AND_OR" width="50"/>
+                <a:column name="filtrate_method_code" editor="grid_combo" width="50"/>
+                <a:column name="parameter_lower_limit" editor="grid_text_detail"/>
+                <a:column name="parameter_upper_limit" editor="grid_text_detail"/>
+                <a:column name="value_compare_method_ds" editor="grid_combo" prompt="值比较方式" width="50"/>
+                <a:column name="sql_param_1" editorFunction="grid_editor_sql_param"/>
+                <a:column name="sql_param_2" editorFunction="grid_editor_sql_param"/>
+                <a:column name="sql_param_3" editorFunction="grid_editor_sql_param"/>
+                <a:column name="sql_param_4" editorFunction="grid_editor_sql_param"/>
+                <a:column name="sql_param_5" editorFunction="grid_editor_sql_param" prompt="SQL参数5"/>
+                <a:column name="invalid_date" align="center" editor="grid_date" renderer="Aurora.formatDate" width="60"/>
+            </a:columns>
+            <a:editors>
+                <a:lov id="limit_grid_lov" fetchRemote="false"/>
+                <a:comboBox id="grid_combo"/>
+                <a:textField id="grid_text_detail"/>
+                <a:datePicker id="grid_date"/>
+            </a:editors>
+            <a:events>
+                <a:event name="cellclick" handler="gridcellclick"/>
+            </a:events>
+        </a:grid>
+    </a:view>
+</a:screen>

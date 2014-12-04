@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace  
+    $Date: 2013-11-10 上午9:54:40  
+    $Revision: 1.0  
+    $Purpose: 用户权限下的公司lov
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            SELECT *
+			  FROM (SELECT t.company_id,
+					       company_code,
+					       company_name,
+					       company_code || '_' || company_name company_desc,
+					       eop.position_id,
+					       eop.position_code,
+					       eop.description position_desc
+					  FROM (SELECT al.assign_id company_id,
+					               (SELECT fc.company_code FROM fnd_companies fc WHERE fc.company_id = al.assign_id) company_code,
+					               al.assign_desc company_name,
+					               (SELECT ea.position_id
+					                  FROM exp_employee_assigns ea,
+					                       sys_user             u
+					                 WHERE u.user_id = ah.connect_id
+					                       AND ea.employee_id = u.employee_id
+					                       AND ea.company_id(+) = al.assign_id
+					                       AND ea.primary_position_flag = 'Y') position_id
+					          FROM fnd_config_authority_hds ah,
+					               fnd_config_authority_lns al,
+					               fnd_companies            fc
+					         WHERE ah.connect_id = 1
+					               AND ah.connect_type = 'USER'
+					               AND al.config_hd_id = ah.config_hd_id
+					               AND al.assign_type = 'COMPANY'
+					               AND trunc(fc.start_date_active) <= trunc(SYSDATE)
+					               AND (fc.end_date_active IS NULL OR trunc(fc.end_date_active) >= trunc(SYSDATE))
+					               AND fc.company_id(+) = al.assign_id) t,
+					       exp_org_position_vl eop
+					 WHERE eop.position_id(+) = t.position_id) t1
+			         #WHERE_CLAUSE#
+			 ORDER BY company_code
+ 			]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="company_code" databaseType="VARCHAR" datatype="java.lang.String" displayWidth="234" forQuery="true" fordisplay="true" prompt="FND_COMPANIES.COMPANY_CODE" queryWidth="150"/>
+        <bm:field name="company_name" databaseType="VARCHAR" datatype="java.lang.String" displayWidth="234" forInsert="false" forQuery="true" forUpdate="false" fordisplay="true" prompt="FND_COMPANIES.COMPANY"/>
+        <bm:field name="company_desc" databaseType="VARCHAR" datatype="java.lang.String"/>
+        <bm:field name="position_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="position_code" databaseType="VARCHAR" datatype="java.lang.String"/>
+        <bm:field name="position_desc" databaseType="VARCHAR" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="company_code" queryExpression="company_code like &apos;%&apos;||upper(${@company_code})||&apos;%&apos;"/>
+        <bm:query-field name="company_name" queryExpression="company_name like &apos;%&apos;||${@company_name}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

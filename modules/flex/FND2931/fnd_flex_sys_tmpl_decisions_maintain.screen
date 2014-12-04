@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-3-5 下午1:27:24  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="fnd29312_temp_decision_check_link" model="flex.FND2931.fnd_flex_temp_decisions" modelaction="execute"/>
+        <script><![CDATA[
+			function fnd29312_temp_decision_ds_update(ds, record, name, value, oldvalue){
+	             if(name == 'flex_value_set_id'){
+	                 record.set('parameter_value_id','');
+	                 record.set('parameter_value','');
+	                 record.set('parameter_value_desc','');
+	                 record.getField('parameter_value_desc').setLovPara('flex_value_set_id', value);
+	             }
+	         }
+	         
+	         function fnd29312_temp_decision_check(){
+                
+                var format_ds = $('fnd29312_temp_decision_ds');
+                if(!format_ds.validate()){
+                    return;
+                }
+                
+                var para = {};
+                para.appl_table_id = ${/parameter/@appl_table_id};
+                para.template_id = ${/parameter/@template_id};
+                
+                
+             	Aurora.request({
+                	url: $('fnd29312_temp_decision_check_link').getUrl(),
+                    para: para,
+                    success: function(rec) {
+                        Aurora.showMessage('', '校验成功!');
+                    },
+                    scope: this
+                });   
+            }
+            
+            function fnd29312_parameter_value_desc_edited(record, name){
+                if(!Aurora.isEmpty(record.get('parameter_id'))){
+                    return 'fnd29312_parameter_value_desc_lov';
+                }
+                return '';
+            }
+		    function fnd29312_grid_click(grid, row, name, rec) {
+	            if (name == 'parameter_desc') {
+	                rec.getField('parameter_desc').setLovPara('appl_table_id',${/parameter/@appl_table_id});  
+	            }
+	        }
+		
+			function fnd29312_grid_ds_load(dataSet){
+         	    var records = dataSet.getAll();
+                if (Aurora.isEmpty(records) || records.length == 0) {
+                    return;
+                }
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    record.getField('parameter_value_desc').setLovPara('flex_value_set_id', record.get('flex_value_set_id'));
+                }
+         	}
+		
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd29312_relation_ds" lookupCode="FND_FLEX_DECISION_RELATION"/>
+            <a:dataSet id="fnd29312_greater_smaller_character_ds">
+                <a:datas>
+                    <a:record code=""/>
+                    <a:record code="&gt;"/>
+                    <a:record code="&lt;"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="fnd29312_equal_character_ds">
+                <a:datas>
+                    <a:record code=""/>
+                    <a:record code="="/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="fnd29312_left_bracket_ds">
+                <a:datas>
+                    <a:record code=""/>
+                    <a:record code="("/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="fnd29312_right_bracket_ds">
+                <a:datas>
+                    <a:record code=""/>
+                    <a:record code=")"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="fnd29312_temp_instance_ds" autoQuery="true" queryUrl="${/request/@context_path}/autocrud/flex.FND2931.fnd_flex_temp_instances/query?template_id=${/parameter/@template_id}"/>
+            <a:dataSet id="fnd29312_temp_decision_ds" autoQuery="true" fetchAll="true" model="flex.FND2931.fnd_flex_temp_decisions" queryUrl="${/request/@context_path}/autocrud/flex.FND2931.fnd_flex_temp_decisions/query?template_id=${/parameter/@template_id}&amp;appl_table_id=${/parameter/@appl_table_id}" selectable="true">
+                <a:fields>
+                    <a:field name="decision_id"/>
+                    <a:field name="display_sequence" required="true"/>
+                    <a:field name="appl_table_id" defaultValue="${/parameter/@appl_table_id}"/>
+                    <a:field name="template_id" defaultValue="${/parameter/@template_id}"/>
+                    <a:field name="parameter_id"/>
+                    <a:field name="parameter_code"/>
+                    <a:field name="flex_value_set_id"/>
+                    <a:field name="parameter_desc" lovGridHeight="300" lovHeight="430" lovService="flex.fnd_flex_appl_decision_para_lov" lovWidth="600" required="true" title="参数">
+                        <a:mapping>
+                            <a:map from="parameter_id" to="parameter_id"/>
+                            <a:map from="parameter_code" to="parameter_code"/>
+                            <a:map from="parameter_desc" to="parameter_desc"/>
+                            <a:map from="flex_value_set_id" to="flex_value_set_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="parameter_value_id"/>
+                    <a:field name="parameter_value"/>
+                    <a:field name="parameter_value_desc" lovGridHeight="300" lovHeight="430" lovUrl="${/request/@context_path}/modules/flex/fnd_flex_value_set_lov.screen" lovWidth="600" required="true" title="参数值">
+                        <a:mapping>
+                            <a:map from="flex_value_id" to="parameter_value_id"/>
+                            <a:map from="flex_value" to="parameter_value"/>
+                            <a:map from="flex_desc" to="parameter_value_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="greater_smaller_character" displayField="code" options="fnd29312_greater_smaller_character_ds" returnField="greater_smaller_character" valueField="code"/>
+                    <a:field name="equal_character" displayField="code" options="fnd29312_equal_character_ds" returnField="equal_character" valueField="code"/>
+                    <a:field name="relation"/>
+                    <a:field name="relation_desc" displayField="code_value_name" options="fnd29312_relation_ds" required="true" returnField="relation" valueField="code_value"/>
+                    <a:field name="left_bracket" displayField="code" options="fnd29312_left_bracket_ds" returnField="left_bracket" valueField="code"/>
+                    <a:field name="right_bracket" displayField="code" options="fnd29312_right_bracket_ds" returnField="right_bracket" valueField="code"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd29312_temp_decision_ds_update"/>
+                    <a:event name="load" handler="fnd29312_grid_ds_load"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar id="fnd29312_screenTopToolbar">
+                <a:screenTitle/>
+                <a:gridButton bind="fnd29312_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="fnd29312_grid" type="save" width="100"/>
+                <a:gridButton bind="fnd29312_grid" type="clear" width="100"/>
+                <a:toolbarButton click="fnd29312_temp_decision_check" text="校验" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox padding="0">
+                <a:textField name="template_code" bindTarget="fnd29312_temp_instance_ds" prompt="模板代码" readOnly="true"/>
+                <a:textField name="template_desc" bindTarget="fnd29312_temp_instance_ds" prompt="模板描述" readOnly="true"/>
+            </a:hBox>
+            <a:grid id="fnd29312_grid" bindTarget="fnd29312_temp_decision_ds" marginHeight="120" marginWidth="40" navBar="true">
+                <a:columns>
+                    <a:column name="display_sequence" align="center" editor="fnd29312_display_sequence_nf" prompt="编号" width="30"/>
+                    <a:column name="relation_desc" align="center" editor="fnd29312_combobox_cb" prompt="参数关系" width="60"/>
+                    <a:column name="left_bracket" align="center" editor="fnd29312_combobox_cb" prompt="左括号" width="60"/>
+                    <a:column name="parameter_desc" align="center" editor="fnd29312_parameter_desc_lov" prompt="参数" width="100"/>
+                    <a:column name="greater_smaller_character" align="center" editor="fnd29312_combobox_cb" prompt="大于小于" width="60"/>
+                    <a:column name="equal_character" align="center" editor="fnd29312_combobox_cb" prompt="等于" width="60"/>
+                    <a:column name="parameter_value_desc" align="center" editorFunction="fnd29312_parameter_value_desc_edited" prompt="参数值" width="100"/>
+                    <a:column name="right_bracket" align="center" editor="fnd29312_combobox_cb" prompt="右括号" width="60"/>
+                    <a:column name="enabled_flag" align="center" editor="fnd29312_enabled_flag_tf" prompt="启用" width="30"/>
+                </a:columns>
+                <a:editors>
+                    <a:numberField id="fnd29312_display_sequence_nf" allowDecimals="false" allowNegative="false"/>
+                    <a:lov id="fnd29312_parameter_desc_lov"/>
+                    <a:lov id="fnd29312_parameter_value_desc_lov"/>
+                    <a:checkBox id="fnd29312_enabled_flag_tf" checkedValue="Y" uncheckedValue="N"/>
+                    <a:comboBox id="fnd29312_combobox_cb"/>
+                </a:editors>
+                <a:events>
+                    <a:event name="cellclick" handler="fnd29312_grid_click"/>
+                </a:events>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

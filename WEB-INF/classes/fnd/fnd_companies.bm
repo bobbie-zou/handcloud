@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:order-by>
+        <bm:order-field name="company_code"/>
+    </bm:order-by>
+    <bm:query-fields>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+        <bm:query-field name="company_code" queryExpression="company_code like &apos;%&apos;||${@company_code}||&apos;%&apos;"/>
+        <bm:query-field name="set_of_books_id" queryExpression="set_of_books_id = ${@set_of_books_id}"/>
+        <bm:query-field name="company_short_name" queryExpression="company_short_name like &apos;%&apos;||${@company_short_name}||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    company_id,
+                    company_code,
+                    company_icon,
+                    company_short_name,
+                    company_full_name,
+                    company_type,
+                    set_of_books_id,
+                    (SELECT
+                        v.set_of_books_code
+                        ||'-'
+                        ||fd.description_text
+                    FROM
+                        gld_set_of_books v,
+                        fnd_descriptions fd
+                    WHERE
+                        fd.description_id=v.set_of_books_name_id AND
+                        language         =${/session/@lang} AND
+                        v.set_of_books_id=f.set_of_books_id
+                    ) set_of_books_id_display,
+                    company_level_id,
+                    (SELECT
+                        d.company_level_code
+                        || '-'
+                        || fd.description_text
+                    FROM
+                        fnd_descriptions fd,
+                        fnd_company_levels d
+                    WHERE
+                        fd.description_id =d.description_id AND
+                        language          =${/session/@lang} AND
+                        d.company_level_id=f.company_level_id
+                    ) company_level_id_display,
+                    (SELECT
+                        d.company_level_code
+                        || '-'
+                        || fd.description_text
+                    FROM
+                        fnd_descriptions fd,
+                        fnd_company_levels d
+                    WHERE
+                        fd.description_id =d.description_id AND
+                        language          =${/session/@lang} AND
+                        d.company_level_id=f.company_level_id AND
+                        d.enabled_flag    = 'Y'
+                    ) company_level_display,
+                    chief_position_id,
+                    (SELECT
+                        op.position_code
+                        ||'-'
+                        || fd.description_text
+                    FROM
+                        exp_org_position op,
+                        fnd_descriptions fd
+                    WHERE
+                        fd.description_id=op.description_id AND
+                        language         =${/session/@lang} AND
+                        op.company_id    = f.company_id AND
+                        op.position_id   =f.chief_position_id
+                    ) chief_position_id_display,
+                    parent_company_id,
+                    (SELECT
+                        parent.company_code
+                        ||'-'
+                        || fd.description_text
+                    FROM
+                        fnd_companies parent,
+                        fnd_descriptions fd
+                    WHERE
+                        fd.description_id =parent.company_short_name_id AND
+                        language          =${/session/@lang} AND
+                        parent.company_id = f.parent_company_id
+                    ) parent_company_id_display,
+                    data_source,
+                    data_source_id,
+                    data_source_code,
+                    data_source_name,
+                    address,
+                    start_date_active,
+                    sequence,
+                    company_class,
+                    end_date_active,
+                    client,
+                    last_update_date,
+                    last_updated_by,
+                    creation_date,
+                    created_by
+                FROM
+                    fnd_companies_vl f #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+    		BEGIN
+			  fnd_companies_pkg.create_fnd_companies(p_company_code       => ${@company_code},
+			                                         p_company_type       => ${@company_type},
+			                                         p_company_short_name => ${@company_short_name},
+			                                         p_company_full_name  => ${@company_full_name},
+			                                         p_set_of_books_id    => ${@set_of_books_id},
+			                                         p_company_level_id   => ${@company_level_id},
+			                                         p_chief_position_id  => ${@chief_position_id},
+			                                         p_parent_company_id  => ${@parent_company_id},
+			                                         p_address            => ${@address},
+			                                         p_start_date_active  => to_date(${@start_date_active},'yyyy-mm-dd'),
+			                                         p_end_date_active    => to_date(${@end_date_active},'yyyy-mm-dd'),
+			                                         p_sequence           => ${@sequence},
+			                                         p_company_class      => ${@company_class},
+			                                         p_user_id         => ${/session/@user_id});
+			END;
+    	
+    	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+    		BEGIN
+			  fnd_companies_pkg.modify_fnd_companies(p_company_code       => ${@company_code},
+			                                         p_company_type       => ${@company_type},
+			                                         p_company_short_name => ${@company_short_name},
+			                                         p_company_full_name  => ${@company_full_name},
+			                                         p_set_of_books_id    => ${@set_of_books_id},
+			                                         p_company_level_id   => ${@company_level_id},
+			                                         p_chief_position_id  => ${@chief_position_id},
+			                                         p_parent_company_id  => ${@parent_company_id},
+			                                         p_address            => ${@address},
+			                                         p_start_date_active  => to_date(${@start_date_active},'yyyy-mm-dd'),
+			                                         p_end_date_active    => to_date(${@end_date_active},'yyyy-mm-dd'),
+			                                         p_sequence           => ${@sequence},
+			                                         p_user_id         => ${/session/@user_id});
+			END;
+    	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+        <bm:data-filter enforceOperations="insert,update" expression="f.data_source!=&apos;ERP&apos;"/>
+    </bm:data-filters>
+    <authority client_alias="f" client_name="client"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

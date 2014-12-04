@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui6743  
+    $Date: 2014/09/5 11:25:26
+    $Revision: 1.4 $
+    $Purpose: 税率定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="fnd2101_load_cloud_link" model="fnd.FND2101.fnd_tax_type_codes_bg" modelaction="execute"/>
+        <a:link id="fnd2101_assign_tax_link" url="${/request/@context_path}/modules/fnd/FND2101/fnd_assign_tax_type_codes_bg.screen"/>
+        <script><![CDATA[
+            function fnd2101_queryTaxTypeCodes() {
+                $('fnd2101_tax_type_codes_result_ds').query();
+            }
+            
+            function fnd2101_taxTypeCode_onQuery(ds) {
+                //触发查询事件时，锁住按钮
+                $('fnd2101_taxTypeCode_grid_saveButton').disable();
+                $('fnd2101_tax_type_grid_loadCloud').disable();
+            }
+            
+            function fnd2101_taxTypeCode_onLoad(ds) {
+                //触发加载数据事件时，解锁按钮
+                $('fnd2101_taxTypeCode_grid_saveButton').enable();
+                $('fnd2101_tax_type_grid_loadCloud').enable();
+            }
+            
+            function fnd2101_taxTypeCodeEdit(record, name) {
+                if (record.isNew) {
+                    return 'fnd2101_tfu';
+                } else {
+                    return '';
+                }
+            }
+            
+            //验证输入参数的有效性
+            
+            function fnd2101_tax_code_result_validate(record, name, value) {
+                if (name == 'tax_type_code') {
+                    if (fnd2101_getLength(value) >= 30) {
+                        return '${l:fnd2101.TAX_TYPE_CODE_OVERLENGTH}';
+                    }
+                }
+                if (name == 'description') {
+                    if (fnd2101_getLength(value) >= 1000) {
+                        return '${l:fnd2101.DESCRIPTION_OVERLENGTH}';
+                    }
+                }
+                return true;
+            }
+            
+            //返回字符串真实长度
+            
+            function fnd2101_getLength(str) {
+                var realLength = 0,
+                    len = str.length,
+                    charCode = -1;
+                for (var i = 0;i < len;i++) {
+                    charCode = str.charCodeAt(i);
+                    if (charCode >= 0 && charCode <= 128) {
+                        realLength += 1;
+                    } else {
+                        realLength += 3;
+                    }
+                }
+                return realLength;
+            }
+            
+            
+            //导入云级数据
+            
+            function fnd2101_loadCloud() {
+                Aurora.showConfirm('${l:PROMPT}', '${l:PROMPT.LOAD_CLOUD_CONFIRM}', function() {
+                    Aurora.request({
+                        url: $('fnd2101_load_cloud_link').getUrl(),
+                        success: function(result) {
+                            Aurora.SideBar.enable = true;
+                            Aurora.SideBar.show({
+                                msg: '${l:PROMPT.LOAD_SUCCESS}'
+                            });
+                            $('fnd2101_tax_type_codes_result_ds').query();
+                        },
+                        scopo: this,
+                        sync: true
+                    });
+                });
+            
+            }
+            
+            
+            //保存成功的操作
+            
+            function fnd2101_tax_type_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+            }
+            
+            
+            function fnd2101_assignTaxRenderer(value, record, name) {
+                if (!record.isNew) {
+                    return '<a href="javascript:fnd2101_assignTax()">${l:fnd2101.CODE_RULE_COMPANY}</a>';
+                }
+            }
+            
+            function fnd2101_assignTax() {
+                new Aurora.Window({
+                    id: 'fnd2101_assign_tax_window',
+                    url: $('fnd2101_assign_tax_link').getUrl(),
+                    title: '${l:fnd2101.CODE_RULE_COMPANY}',
+                    height: 460,
+                    width: 650
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2101_tax_type_codes_query_ds"><![CDATA[
+            ]]></a:dataSet>
+            <a:dataSet id="fnd2101_tax_type_codes_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="fnd.FND2101.fnd_tax_type_codes_bg" queryDataSet="fnd2101_tax_type_codes_query_ds">
+                <a:fields>
+                    <a:field name="tax_type_id"/>
+                    <a:field name="tax_type_code"/>
+                    <a:field name="tax_type_name"/>
+                    <a:field name="bg_tax_type_code" validator="fnd2101_tax_code_result_validate"/>
+                    <a:field name="bg_tax_type_name" validator="fnd2101_tax_code_result_validate"/>
+                    <a:field name="tax_type_rate" required="true"/>
+                    <a:field name="source_tax_code"/>
+                    <a:field name="source_tax_name"/>
+                    <a:field name="bg_enabled_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd2101_taxTypeCode_onLoad"/>
+                    <a:event name="query" handler="fnd2101_taxTypeCode_onQuery"/>
+                    <a:event name="submitsuccess" handler="fnd2101_tax_type_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton id="fnd2101_taxTypeCode_grid_saveButton" bind="fnd2101_tax_type_codes_grid" style="margin-left:20px;" type="save" width="100"/>
+                <a:toolbarButton id="fnd2101_tax_type_grid_loadCloud" click="fnd2101_loadCloud" style="margin-left:20px;" text="PROMPT.LOAD_CLOUD_DATA" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="fnd2101_query_form_id" bindTarget="fnd2101_tax_type_codes_query_ds" defaultQueryField="tax_type_code_name_rate" defaultQueryHint="FND2100.TAX_TYPE_CODE_QUERY_HINT" resultTarget="fnd2101_tax_type_codes_result_ds" style="width:100%;border:none"/>
+            <a:grid id="fnd2101_tax_type_codes_grid" bindTarget="fnd2101_tax_type_codes_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="tax_type_code" align="left" sortable="true" width="90"/>
+                    <a:column name="tax_type_name" align="left" width="150"/>
+                    <a:column name="bg_tax_type_code" align="left" editor="fnd2101_tfu" sortable="true" width="90"/>
+                    <a:column name="bg_tax_type_name" align="left" editor="fnd2101_tf" width="150"/>
+                    <a:column name="tax_type_rate" align="right" editor="fnd2101_nf" width="90"/>
+                    <a:column name="bg_enabled_flag" align="left" editor="fnd2101_cb" width="30"/>
+                    <!-- 
+                <a:column name="assign_company" align="left" renderer="fnd2101_assignTaxRenderer" /> -->
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd2101_tfu" typeCase="upper"/>
+                    <a:textField id="fnd2101_tf"/>
+                    <a:numberField id="fnd2101_nf" allowNegative="false"/>
+                    <a:checkBox id="fnd2101_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

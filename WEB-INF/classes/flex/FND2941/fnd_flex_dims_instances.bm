@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-4-7 下午6:42:27  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select ti.temp_instance_id,
+       ti.appl_table_id,
+       ft.template_id,
+       ft.flexfield_group_id,
+       ft.template_code,
+       ft.compiled_flag,
+       ft.used_flag,
+       ti.level_type,
+       ti.enabled_flag,
+       ti.dimension_line_id,
+       ti.dimension_flex_value_id,
+       (select fc.framework_type
+          from fnd_flexfield_groups fg, fnd_flexfield_categories fc
+         where fg.flexfield_category_id = fc.flexfield_category_id
+           and fg.flexfield_group_id = ft.flexfield_group_id) framework_type,
+       (select 'Y'
+          from dual where exists(select 1 from fnd_flex_dimension_lines pdl, fnd_flex_dimension_lines sdl
+         where sdl.hierarchy > pdl.hierarchy
+           and sdl.dimension_id = pdl.dimension_id
+           and pdl.dimension_line_id = ti.dimension_line_id)) children_exists,
+       ftd.description_text template_desc
+  from fnd_flex_temp_instances ti,
+       fnd_flex_templates      ft,
+       fnd_descriptions        ftd
+ where ft.template_id = ti.template_id
+   and ft.description_id = ftd.description_id
+   and ft.enabled_flag = 'Y'
+   and ti.level_type = 'APPLYING'
+   and ti.dimension_line_id = ${@dimension_line_id}
+   and ti.dimension_flex_value_id = ${@dimension_flex_value_id}
+   and ti.appl_table_id = ${@appl_table_id}
+   and ftd.language = ${/session/@lang}
+   
+   ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

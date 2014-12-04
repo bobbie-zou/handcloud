@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-10 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 送货单创建，入口页面数据查询BM（采购订单信息查询）
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    rownum AS line_sequence,
+                    v.pur_line_location_id,
+                    v.business_group,
+                    v.require_item_id,
+                    v.require_item_code,
+                    v.require_item_name,
+                    v.supply_item_id,
+                    v.supply_item_code,
+                    v.supply_item_name,
+                    v.company_id,
+                    v.company_name,
+                    v.po_num,
+                    v.line_num,
+                    v.shipment_num,
+                    v.quantity,
+                    v.unit_meas_lookup_code,
+                    v.quantity_enable_shipped,
+                    v.quantity_shipped,
+                    v.quantity_received,
+                    v.quantity_on_the_way,
+                    v.lots_num,
+                    v.lots_validity_date,
+                    v.invoice_num,
+                    v.serial_num,
+                    v.need_by_date,
+                    v.promised_date,
+                    v.need_by_date_fmt,
+                    v.promised_date_fmt,
+                    v.revision_num,
+                    v.release_num,
+                    v.vendor_id,
+                    v.vendor_site_id,
+                    v.vendor_site_name,
+                    v.ship_to_location_id,
+                    v.ship_to_location_code,
+                    v.ship_to_location_name,
+                    v.agent_id,
+                    v.agent_name,
+                    v.ship_to_organization_id,
+                    v.ship_to_organization_name,
+                    v.ship_date,
+                    v.expected_date,
+                    v.comments
+                FROM
+                    (SELECT
+                        ll.pur_line_location_id,
+                        h.coop_business_group AS business_group,
+                        l.item_id AS require_item_id,
+                        l.item_code AS require_item_code,
+                        l.item_description AS require_item_name,
+                        (SELECT
+                            imv.partner_item_id
+                        FROM
+                            mtl_item_mapping_vendor_v imv
+                        WHERE
+                            imv.item_id = l.item_id
+                        ) AS supply_item_id,
+                        (SELECT
+                            imv.partner_item_code
+                        FROM
+                            mtl_item_mapping_vendor_v imv
+                        WHERE
+                            imv.item_id = l.item_id
+                        ) AS supply_item_code,
+                        (SELECT
+                            imv.partner_item_name
+                        FROM
+                            mtl_item_mapping_vendor_v imv
+                        WHERE
+                            imv.item_id = l.item_id
+                        ) AS supply_item_name,
+                        h.owner_company_id AS company_id,
+                        (SELECT
+                            fcv.company_full_name
+                        FROM
+                            fnd_companies_vl fcv
+                        WHERE
+                            fcv.company_id = h.owner_company_id
+                        ) AS company_name,
+                        h.segment1 AS po_num,
+                        l.line_num,
+                        ll.shipment_num,
+                        ll.quantity,
+                        ll.unit_meas_lookup_code,
+                        (ll.quantity - NVL(ll.quantity_shipped, 0) + NVL(ll.quantity_return_to_vendor, 0)) AS quantity_enable_shipped,
+                        NVL(ll.quantity_shipped, 0) AS quantity_shipped,
+                        NVL(ll.quantity_received, 0) AS quantity_received,
+                        (NVL(ll.quantity_shipped, 0) - NVL(ll.quantity_received, 0)) AS quantity_on_the_way,
+                        NULL AS lots_num,
+                        NULL AS lots_validity_date,
+                        NULL AS invoice_num,
+                        NULL AS serial_num,
+                        ll.need_by_date,
+                        ll.promised_date,
+                        TO_CHAR(ll.need_by_date,'yyyy-mm-dd')AS need_by_date_fmt,
+                        TO_CHAR(ll.promised_date,'yyyy-mm-dd')AS promised_date_fmt,
+                        h.revision_num,
+                        h.release_num,
+                        h.vendor_id,
+                        h.vendor_site_id,
+                        h.vendor_site_name,
+                        ll.ship_to_location_id,
+                        ll.ship_to_location_code,
+                        NVL(ll.ship_to_location_name, ll.ship_to_location_address) AS ship_to_location_name,
+                        h.agent_id,
+                        h.agent_name,
+                        ll.ship_to_organization_id,
+                        ll.ship_to_organization_name,
+                        NULL AS ship_date,
+                        NULL AS expected_date,
+                        NULL AS comments
+                    FROM
+                        pur_headers_all_v h,
+                        pur_lines_all l,
+                        pur_line_locations_all ll
+                    WHERE
+                        h.pur_header_id = l.pur_header_id AND
+                        l.pur_line_id   = ll.pur_line_id AND
+                        l.pur_header_id = h.pur_header_id AND
+                        h.last_version  = 'Y' AND
+                        (
+                            ll.quantity - NVL(ll.quantity_shipped, 0) + NVL(ll.quantity_return_to_vendor, 0)
+                        )
+                                               > 0 AND
+                        h.coop_business_group IN
+                        (SELECT
+                            fcpas.coop_business_group
+                        FROM
+                            fnd_coop_partner_ac_service_vl fcpas
+                        WHERE
+                            fcpas.owner_business_group=${/session/@business_group}
+                        )
+                    ORDER BY
+                        h.owner_company_id,
+                        h.segment1,
+                        l.line_num,
+                        ll.shipment_num ASC
+                    ) v #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="po_num" queryExpression="v.po_num like &apos;%&apos;||trim(${@po_num})||&apos;%&apos;"/>
+        <bm:query-field name="company_id" queryExpression="v.company_id = ${@company_id}"/>
+        <bm:query-field name="item_id" queryExpression="v.supply_item_id = ${@item_id}"/>
+        <bm:query-field name="need_by_date_from" queryExpression="v.need_by_date &gt;= to_date(${@need_by_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="need_by_date_to" queryExpression="v.need_by_date &lt;= to_date(${@need_by_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="promised_date_from" queryExpression="v.promised_date &lt;= to_date(${@promised_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="promised_date_to" queryExpression="v.promised_date &lt;= to_date(${@promised_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="agent_name" queryExpression="v.agent_name like &apos;%&apos;||trim(${@agent_name})||&apos;%&apos;"/>
+        <bm:query-field name="vendor_site_id" queryExpression="v.vendor_site_id = ${@vendor_site_id}"/>
+        <bm:query-field name="ship_to_organization_id" queryExpression="v.ship_to_organization_id = ${@ship_to_organization_id}"/>
+    </bm:query-fields>
+    <!-- #AUTHORIY_FROM# #AUTHORIY_WHERE# 
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority foundation_code="INV_ASN">
+        <authority-segment source_alias="v" source_name="company_id" type="CLIENT"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+      		Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+          	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features> -->
+</bm:model>

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-9 下午5:52:51  
+    $Revision: 1.0  
+    $Purpose: 送货单创建，送货单导入页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.imp_template_code = &apos;INV_ASN_CREATE_IMPORT&apos;" fetchAll="true" model="public.get_fnd_excel_import_template" rootPath="import_template"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="inv5010_asn_header_link" url="${/request/@context_path}/modules/inv/INV5010/inv_asn_header.screen"/>
+        <a:link id="inv5010_asn_import_upload_link" url="${/request/@context_path}/modules/inv/INV5010/inv_asn_import_upload.screen"/>
+        <a:link id="inv5010_asn_import_check_link" model="inv.INV5010.inv_asn_import_check" modelaction="execute"/>
+        <a:link id="inv5010_asn_import_error_link" url="${/request/@context_path}/modules/inv/INV5010/inv_asn_import_error.screen"/>
+        <a:link id="inv5010_asn_import_submit_link" model="inv.INV5010.inv_asn_import_submit" modelaction="execute"/>
+        <a:link id="inv5010_asn_import_template_uploadtimes_link" model="public.get_fnd_excel_import_template" modelaction="execute"/>
+        <script><![CDATA[
+            var batch_id = '${/session/@session_id}';
+            
+            function inv5010_asnImportLoadData() {
+                new Aurora.Window({
+                    id: 'upload_window',
+                    url: $('inv5010_asn_import_upload_link').getUrl() + '?batch_id=' + batch_id,
+                    title: '${l:INV5010.ASN_IMPORT}',
+                    width: 450,
+                    height: 275
+                });
+            }
+            
+            function inv5010_asnImportCheckData() {
+                var allData = $('inv5010_inv_asn_import_temp_ds').getAll();
+                if (allData.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:MTL_SYSTEM_VENDOR_ITEMS.NO_DATA_TO_IMPORT}');
+                } else {
+                    Aurora.request({
+                        url: $('inv5010_asn_import_check_link').getUrl(),
+                        para: {
+                            batch_id: batch_id
+                        },
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:MTL_SYSTEM_VENDOR_ITEMS.CHECK_COMPLETE_VIEW_ERROR_MESSAGE}', function() {
+                                $('inv5010_asnImportSubmitData_btn').enable();
+                                $('inv5010_asnImportErrorData_btn').enable();
+                            }, 280, 150);
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function inv5010_asnImportSubmitData() {
+                var allData = $('inv5010_inv_asn_import_temp_ds').getAll();
+                var errorData = $('inv5010_inv_asn_import_error_ds').getAll();
+                if (allData.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:MTL_SYSTEM_VENDOR_ITEMS.NO_DATA_TO_SUBMIT}');
+                } else {
+                    if (errorData.length > 0) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:MTL_SYSTEM_VENDOR_ITEMS.CHECK_DATA_SUCCESS_TO_SUBMIT}');
+                    } else {
+                        Aurora.request({
+                            url: $('inv5010_asn_import_submit_link').getUrl(),
+                            para: {
+                                batch_id: batch_id
+                            },
+                            success: function() {
+                                Aurora.showMessage('${l:PROMPT}', '${l:SUCCESSFUL_OPERATION}', function() {
+                                    $('inv5010_inv_asn_import_temp_ds').query();
+                                    $('inv5010_inv_asn_import_error_ds').query();
+                                    new Aurora.Window({
+                                        id: 'inv5010_asn_header_window',
+                                        url: $('inv5010_asn_header_link').getUrl(),
+                                        title: '送货单预览',
+                                        fullScreen: true
+                                    });
+                                });
+                            },
+                            scope: this
+                        });
+                    }
+                }
+            }
+            
+            function inv5010_asnImportErrorData() {
+                new Aurora.Window({
+                    id: 'inv5010_asn_import_error_link_window',
+                    url: $('inv5010_asn_import_error_link').getUrl() + '?batch_id=' + batch_id,
+                    title: '导入错误信息查看',
+                    width: 600,
+                    height: 500
+                });
+            }
+            
+            function inv5010_invAsnImportErrorDsLoad(ds) {
+                var error_lines = ds.getAll().length;
+                if (error_lines > 0) {
+                    $('inv5010_asnImportSubmitData_btn').enable();
+                    $('inv5010_asnImportErrorData_btn').enable();
+                }
+            }
+            
+            function inv5010_asnImportTemplateDownload() {
+                var attachment_id = '${/model/import_template/record/@attachment_id}';
+                if (attachment_id == undefined || Aurora.isEmpty(attachment_id)) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:MTL_SYSTEM_VENDOR_ITEMS.NO_IMPORT_TEMPLATE_TO_DOWNLOAD}');
+                    return;
+                } else {
+                    Aurora.request({
+                        url: $('inv5010_asn_import_template_uploadtimes_link').getUrl(),
+                        para: {
+                            imp_template_code: 'INV_ASN_CREATE_IMPORT'
+                        },
+                        success: function() {
+                            document.getElementById('attachment_id').value = attachment_id;
+                            document.downloadform.submit();
+                        },
+                        scope: this
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv5010_inv_asn_import_error_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="inv.INV5010.inv_asn_import_error">
+                <a:events>
+                    <a:event name="load" handler="inv5010_invAsnImportErrorDsLoad"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="inv5010_inv_asn_import_temp_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="inv.INV5010.inv_asn_import_temp"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="inv5010_asnImportTemplateDownload" style="margin-left:20px;" text="PROMPT.DOWNLOAD_IMPORT_TEMPLATE" width="100"/>
+                <a:toolbarButton click="inv5010_asnImportLoadData" text="PROMPT.LOADDATA" width="100"/>
+                <a:toolbarButton click="inv5010_asnImportCheckData" text="PROMPT.CHECK" width="100"/>
+                <a:toolbarButton id="inv5010_asnImportSubmitData_btn" click="inv5010_asnImportSubmitData" disabled="true" text="PROMPT.SUBMIT" width="100"/>
+                <a:toolbarButton id="inv5010_asnImportErrorData_btn" click="inv5010_asnImportErrorData" disabled="true" text="PROMPT.ERROR" width="100"/>
+            </a:screenTopToolbar>
+            <a:grid id="inv5010_inv_asn_import_temp_ds_grid" autoAppend="false" bindTarget="inv5010_inv_asn_import_temp_ds" marginHeight="90" marginWidth="65" navBar="true">
+                <a:columns>
+                    <a:column name="line_sequence" align="left" prompt="序号" width="40"/>
+                    <a:column name="require_item_code" align="left" prompt="客户物品编码" width="100"/>
+                    <a:column name="require_item_name" align="left" prompt="客户物品名称" width="100"/>
+                    <a:column name="vendor_item_code" align="left" prompt="我的产品编码" width="100"/>
+                    <a:column name="vendor_item_name" align="left" prompt="我的产品名称" width="100"/>
+                    <a:column name="company_name" align="left" prompt="客户名称" width="80"/>
+                    <a:column name="company_code" align="left" prompt="公司代码" width="80"/>
+                    <a:column name="segment1" align="left" prompt="订单号" width="80"/>
+                    <a:column name="line_num" align="left" prompt="行号" width="60"/>
+                    <a:column name="shipment_num" align="left" prompt="发运号" width="60"/>
+                    <a:column name="po_quantity" align="left" prompt="订单数量" width="60"/>
+                    <a:column name="unit_meas_lookup_code" align="left" prompt="单位" width="60"/>
+                    <a:column name="quantity_enable_shipped" align="left" prompt="可发运" width="60"/>
+                    <a:column name="quantity_shipped" align="left" prompt="已发运" width="60"/>
+                    <a:column name="quantity_received" align="left" prompt="已接收" width="60"/>
+                    <a:column name="quantity_on_the_way" align="left" prompt="在途" width="60"/>
+                    <a:column name="lots_num" align="left" prompt="批次号" width="60"/>
+                    <a:column name="lots_validity_date" align="left" prompt="批次有效期" width="60"/>
+                    <a:column name="invoice_num" align="left" prompt="发票号" width="80"/>
+                    <a:column name="serial_num" align="left" prompt="序列号" width="60"/>
+                    <a:column name="need_by_date" align="left" prompt="需求日期" width="80"/>
+                    <a:column name="promised_date" align="left" prompt="承诺日期" width="80"/>
+                    <a:column name="revision_num" align="left" prompt="版本号" width="80"/>
+                    <a:column name="release_num" align="left" prompt="发放号" width="80"/>
+                    <a:column name="vendor_site_name" align="left" prompt="发货地点" width="80"/>
+                    <a:column name="agent_name" align="left" prompt="采购员" width="80"/>
+                    <a:column name="ship_to_location_name" align="left" prompt="收货地点" width="80"/>
+                    <a:column name="ship_to_organization_name" align="left" prompt="收货地点" width="80"/>
+                    <a:column name="ship_date" align="left" prompt="发货日期" width="80"/>
+                    <a:column name="expected_date" align="left" prompt="预计到货日期" width="80"/>
+                    <a:column name="comments" align="left" prompt="备注" width="150"/>
+                </a:columns>
+            </a:grid>
+            <form name="downloadform" action="${/request/@context_path}/atm_download.svc" enctype="multipart/form-data" method="get" style="display:none;">
+                <input name="attachment_id" id="attachment_id" type="hidden"/>
+            </form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

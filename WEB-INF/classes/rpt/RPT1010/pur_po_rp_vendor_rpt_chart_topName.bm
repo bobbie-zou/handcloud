@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-9-17 下午5:18:21  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="PUR_PO_RP_DETAILS">
+    <bm:fields>
+        <bm:field name="rp_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="RP_HEADER_ID" prompt="PUR_PO_RP_DETAILS.RP_HEADER_ID"/>
+        <bm:field name="vendor_name1"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t1.short_name vendor_name1,
+                    t1.rp_header_id
+                FROM
+                    (SELECT
+                        short_name,
+                        rp_header_id,
+                        SUM
+                    FROM
+                        (SELECT
+                            SUM(total_amount) SUM,
+                            v2.short_name,
+                            pr.rp_header_id
+                        FROM
+                            PUR_PO_RP_DETAILS pr,
+                            pur_vendors_vl v2,
+                            rpt_setting_frequency sf
+                        WHERE
+                            pr.rp_header_id = sf.rp_header_id  AND
+                            sf.rpt_code = 'RPT5020' AND
+                            v2.vendor_id = pr.coop_company_id
+                        GROUP BY
+                            v2.short_name,
+                            pr.rp_header_id
+                        ORDER BY
+                            SUM DESC
+                        )
+                    WHERE
+                        rownum < 7
+                    ) t1 #WHERE_CLAUSE#
+                    order by t1.SUM desc
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field field="rp_header_id" queryExpression="t1.rp_header_id = ${@rp_header_id}"/>
+    </bm:query-fields>
+    <!--     <bm:data-filters>
+        <bm:data-filter enforceOperations="query" expression="t1.rp_header_id = ${@rp_header_id}"/>
+    </bm:data-filters> -->
+</bm:model>

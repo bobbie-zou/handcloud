@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-4-2 下午03:11:24  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="expense_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="entrustment_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="entrustment_header_number" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="title" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="operator_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="operator_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    NULL AS expense_header_id,
+                    h.entrustment_header_id,
+                    h.entrustment_header_number,
+                    h.title,
+                    (SELECT
+                        su.employee_id
+                    FROM
+                        sys_user su
+                    WHERE
+                        su.user_id = ${/session/@user_id}
+                    ) AS operator_id,
+                    (SELECT
+                        ee.name
+                    FROM
+                        sys_user su,
+                        exp_employees ee
+                    WHERE
+                        su.user_id     = ${/session/@user_id} AND
+                        ee.employee_id = su.employee_id
+                    ) AS operator_name
+                FROM
+                    bid_entrustment_headers h
+                WHERE
+                    h.entrustment_header_id = ${/parameter/@entrustment_header_id}
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="expense_header_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@expense_header_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              BEGIN
+                bid_expense_pkg.create_expense_header
+                (
+                  o_expense_header_id=>${@expense_header_id},
+                  p_entrustment_header_id=>${@entrustment_header_id},
+                  p_operator_id=>${@operator_id},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                bid_expense_pkg.modify_expense_header
+                (
+                  p_expense_header_id=>${@expense_header_id},
+                  p_entrustment_header_id=>${@entrustment_header_id},
+                  p_operator_id=>${@operator_id},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                bid_expense_pkg.delete_expense_header
+                (
+                  p_expense_header_id=>${@expense_header_id},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

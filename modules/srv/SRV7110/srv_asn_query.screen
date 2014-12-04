@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-10 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 送货单查询-采购方，入口页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="srv7110_asn_receive_detail_link" url="${/request/@context_path}/modules/srv/SRV7110/srv_asn_receive_detail.screen"/>
+        <a:link id="srv7110_asn_operation_record_link" url="${/request/@context_path}/modules/srv/SRV7110/srv_asn_operation_record.screen"/>
+        <a:link id="srv7110_asn_print_link" url="${/request/@context_path}/modules/srv/SRV7110/srv_asn_print.screen"/>
+        <a:link id="srv7110_asn_print_insert_link" url="${/request/@context_path}/modules/srv/SRV7110/srv_asn_print.svc"/>
+        <a:link id="srv7110_asnDocumentView_link" url="${/request/@context_path}/modules/srv/public/srv_asn_document_view.screen"/>
+        <script><![CDATA[
+
+            function srv7110_query() {
+                var ds = $('srv7110_asn_query_result_ds');
+                ds.query();
+            }
+            
+            function srv7110_operation_records_render(value, record, name) {
+                return '<a href="javascript:srv7110_go_operation_records(' + record.get('asn_line_id') + ');">${l:MODULES/inv/INV5020/INV_ASN_OPERATION_RECORD.SCREEN.TITLE}</a>';
+            }
+            
+            function srv7110_go_operation_records(asn_line_id) {
+                new Aurora.Window({
+                    id: 'srv7110_asn_operation_record_win',
+                    title: '${l:MODULES/inv/INV5020/INV_ASN_OPERATION_RECORD.SCREEN.TITLE}',
+                    url: $('srv7110_asn_operation_record_link').getUrl() + '?asn_line_id=' + asn_line_id ,
+                    height: 450,
+                    width: 600
+                });
+            
+            }
+            
+            function srv7110_receive_detail_render(value, record, name) {
+                return '<a href="javascript:srv7110_go_receive_detail();">${l:INV.ASN_RECEIVE_DETAIL}</a>';
+            }
+            
+            function srv7110_go_receive_detail() {
+            
+                new Aurora.Window({
+                    id: 'srv7110_asn_receive_detail_win',
+                    title: '${l:INV.ASN_RECEIVE_DETAIL}',
+                    url: $('srv7110_asn_receive_detail_link').getUrl(),
+                    height: 450,
+                    width: 600
+                });
+            }
+            
+            //打印操作
+            
+            function srv7110_asn_query_print() {
+                var ds = $('srv7110_asn_query_result_selected_ds');
+                var records = ds.getAll();
+                var datas = [];
+                for (var i = 0;i < records.length;i++) {
+                    datas.push(records[i].data);
+                }
+                Aurora.Masker.mask(Ext.getBody());
+                Aurora.request({
+                    url: $('srv7110_asn_print_insert_link').getUrl(),
+                    para: datas,
+                    success: function(res) {
+                        window.open($('srv7110_asn_print_link').getUrl(), '_blank');
+                        
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    error: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+            
+            //勾选时的操作
+            
+            function srv7110_asn_query_result_select(ds, record) {
+                var select_ds = $('srv7110_asn_query_result_selected_ds');
+                var result_record = select_ds.find('asn_line_id', record.get('asn_line_id'));
+                if (Aurora.isEmpty(result_record)) {
+                    select_ds.create();
+                    var select_record = select_ds.getCurrentRecord();
+                    select_record.set('asn_line_id', record.get('asn_line_id'));
+                    select_record.set('asn_header_id', record.get('asn_header_id'));
+                }
+            }
+            
+            
+            
+            
+            //去掉选时的操作
+            
+            function srv7110_asn_query_result_unselect(ds, record) {
+                var select_ds = $('srv7110_asn_query_result_selected_ds');
+                var result_record = select_ds.find('asn_line_id', record.get('asn_line_id'));
+                if (!Aurora.isEmpty(result_record)) {
+                    select_ds.remove(result_record);
+                }
+            }
+            
+            
+            
+            //查询时的操作
+            
+            function srv7110_asn_codes_grid_render(grid) {
+                var ds = $('srv7110_asn_query_result_ds');
+                var list_ds = $('srv7110_asn_query_result_selected_ds');
+                var records = list_ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var asn_line_id = records[i].get('asn_line_id');
+                    var result_record = ds.find('asn_line_id', asn_line_id);
+                    if (!Aurora.isEmpty(result_record)) {
+                        ds.select(result_record);
+                    }
+                }
+            }
+            
+            //送货单头查询
+            function srv7110_asnHeader_query(){
+                $('srv7110_asn_header_result_ds').query();
+            }
+            
+            //送货单
+            function srv7110_asnDocumentView_render(value, record, name){
+                return '<a href="javascript:srv7110_asnDocumentView_open(' + record.get('asn_header_id') + ');">'+value+'</a>';
+            }
+            
+            function srv7110_asnDocumentView_open(asn_header_id){
+                new Aurora.Window({
+                    id: 'inv_asn_document_view_window',
+                    title: '${l:INV_ASN_HEDER_DETAIL_TITLE}',
+                    url: $('srv7110_asnDocumentView_link').getUrl() + '?asn_header_id=' + asn_header_id ,
+                    height: 550,
+                    width: 1000
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="srv7110_asn_headers_status" lookupCode="INV_ASN_HEADERS_STATUS"/>
+            <a:dataSet id="srv7110_asn_query_result_selected_ds">
+                <a:fields>
+                    <a:field name="asn_line_id"/>
+                    <a:field name="asn_header_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="srv7110_asn_query_ds">
+                <a:fields>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_full_name" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" title="FND_COMPANIES.QUERY">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="ship_to_organization_name" autoComplete="true" autoCompleteField="inv_organization_name" lovHeight="500" lovLabelWidth="100" lovService="public.inv_organizations_lov" lovWidth="540" title="收货组织">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="ship_to_organization_id"/>
+                            <a:map from="inv_organization_name" to="ship_to_organization_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="header_status" displayField="code_value_name" options="srv7110_asn_headers_status" returnField="status" valueField="code_value"/>
+                    <a:field name="vendor_site_name" autoComplete="true" autoCompleteField="site_name" lovHeight="470" lovLabelWidth="100" lovService="public.pur_vendor_sites_lov?business_group=${/session/@business_group}" lovWidth="900" title="发货地点">
+                        <a:mapping>
+                            <a:map from="vendor_site_id" to="vendor_site_id"/>
+                            <a:map from="site_name" to="vendor_site_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_name" autoComplete="true" autoCompleteField="item_name" lovGridHeight="320" lovHeight="500" lovService="public.mtl_item_mapping_supply_lov" lovWidth="1000" title="我的物料">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_name" to="item_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="srv7110_asn_query_result_ds" autoCount="true" autoPageSize="true" autoQuery="false" model="srv.SRV7110.srv_asn_query" queryDataSet="srv7110_asn_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="cancel_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="close_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="select" handler="srv7110_asn_query_result_select"/>
+                    <a:event name="unselect" handler="srv7110_asn_query_result_unselect"/>
+                </a:events>
+            </a:dataSet>
+            <!-- 送货单头查询DS -->
+            <a:dataSet id="srv7110_asn_header_query_ds">
+                <a:fields>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_full_name" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" title="FND_COMPANIES.QUERY">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="ship_to_organization_name" autoComplete="true" autoCompleteField="inv_organization_name" lovHeight="500" lovLabelWidth="100" lovService="public.inv_organizations_lov" lovWidth="540" title="收货组织">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="ship_to_organization_id"/>
+                            <a:map from="inv_organization_name" to="ship_to_organization_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="exclude_all_close" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <!-- 送货单头结果DS-->
+            <a:dataSet id="srv7110_asn_header_result_ds" autoCount="true" autoPageSize="true" autoQuery="false" model="srv.SRV7110.srv_asn_header_query" queryDataSet="srv7110_asn_header_query_ds" selectable="true"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:tabPanel marginHeight="80" marginWidth="70">
+                <a:tabs>
+                    <a:tab prompt="INV_ASN_HEADER_QUERY_TITLE" width="130">
+                        <a:hBox style="margin-top:10px;margin-left:20px">
+                            <a:gridButton bind="srv7110_asn_header_grid" className="item-rbtn-blue button-excel" type="excel" width="100"/>
+                            <a:gridButton bind="srv7110_asn_header_grid" className="item-rbtn-blue button-clear" type="clear" width="100"/>
+                        </a:hBox>
+                        <a:queryForm bindTarget="srv7110_asn_header_query_ds" defaultQueryField="journal_num" resultTarget="srv7110_asn_header_result_ds" style="width:100%;">
+                            <a:formToolBar>
+                                <a:hBox labelWidth="110">
+                                    <a:textField name="asn_number" bindTarget="srv7110_asn_header_query_ds" prompt="INV_ASN_HEADERS.ASN_NUMBER">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_asnHeader_query"/>
+                                        </a:events>
+                                    </a:textField>
+                                    <a:lov name="company_name" bindTarget="srv7110_asn_header_query_ds" prompt="INV_ASN_HEADERS.COMPANY_ID">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_asnHeader_query"/>
+                                        </a:events>
+                                    </a:lov>
+                                    <a:checkBox name="exclude_all_close" bindTarget="inv7020_asn_header_query_ds" label="排除已完全收货单据" style="margin-left:50px;" width="130"/>
+                                </a:hBox>
+                            </a:formToolBar>
+                            <a:formBody>
+                                <a:hBox labelWidth="110">
+                                    <a:datePicker name="creation_date_from" bindTarget="srv7110_asn_header_query_ds" prompt="INV_ASN_HEADERS.CREATION_DATE_FROM">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_asnHeader_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                    <a:datePicker name="creation_date_to" bindTarget="srv7110_asn_header_query_ds" prompt="INV_ASN_HEADERS.CREATION_DATE_TO">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_asnHeader_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                    <a:lov name="ship_to_organization_name" bindTarget="srv7110_asn_header_query_ds" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_asnHeader_query"/>
+                                        </a:events>
+                                    </a:lov>
+                                </a:hBox>
+                                <a:hBox labelWidth="110">
+                                    <a:datePicker name="ship_date_from" bindTarget="srv7110_asn_header_query_ds" prompt="INV_ASN_HEADERS.SHIP_DATE_FROM">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_asnHeader_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                    <a:datePicker name="ship_date_to" bindTarget="srv7110_asn_header_query_ds" prompt="INV_ASN_HEADERS.SHIP_DATE_TO">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_asnHeader_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                </a:hBox>
+                                <a:hBox labelWidth="110">
+                                    <a:datePicker name="expected_date_from" bindTarget="srv7110_asn_header_query_ds" prompt="INV_ASN_HEADERS.EXPECTED_DATE_FROM">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_asnHeader_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                    <a:datePicker name="expected_date_to" bindTarget="srv7110_asn_header_query_ds" prompt="INV_ASN_HEADERS.EXPECTED_DATE_TO">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_asnHeader_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                </a:hBox>
+                            </a:formBody>
+                        </a:queryForm>
+                        <a:grid id="srv7110_asn_header_grid" autoAppend="false" bindTarget="srv7110_asn_header_result_ds" marginHeight="210" marginWidth="90" navBar="true">
+                            <a:columns>
+                                <a:column name="header_status" align="center" prompt="状态" width="40"/>
+                                <a:column name="asn_number" align="left" prompt="INV_ASN_HEADERS.ASN_NUMBER" renderer="srv7110_asnDocumentView_render" width="80"/>
+                                <a:column name="company_name" align="left" prompt="INV_ASN_HEADERS.COMPANY_ID" width="100"/>
+                                <a:column name="creation_date_fmt" align="left" prompt="创建日期" width="60"/>
+                                <a:column name="ship_date_fmt" align="left" prompt="INV_ASN_HEADERS.SHIP_DATE" width="60"/>
+                                <a:column name="expected_date_fmt" align="left" prompt="INV_ASN_HEADERS.EXPECTED_DATE" width="60"/>
+                                <a:column name="comments" align="left" prompt="INV_ASN_HEADERS.HEADER_DESC" width="150"/>
+                                <a:column name="location_name" align="left" prompt="INV_ASN_HEADERS.LOCATION_ID" width="120"/>
+                                <a:column name="ship_to_organization_name" align="left" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID" width="120"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="INV_ASN_LOCATION_QUERY_TITLE" width="130">
+                        <a:hBox style="margin-top:10px;margin-left:20px">
+                            <a:gridButton bind="srv7110_asn_query_grid" className="item-rbtn-blue button-excel" type="excel" width="100"/>
+                            <a:gridButton bind="srv7110_asn_query_grid" className="item-rbtn-blue button-clear" type="clear" width="100"/>
+                            <a:toolbarButton click="srv7110_asn_query_print" text="PROMPT.PRINT" width="100"/>
+                        </a:hBox>
+                        <a:queryForm bindTarget="srv7110_asn_query_ds" defaultQueryField="journal_num" resultTarget="srv7110_asn_query_result_ds" style="width:100%;">
+                            <a:formToolBar>
+                                <a:hBox labelWidth="110">
+                                    <a:textField name="asn_number" bindTarget="srv7110_asn_query_ds" prompt="INV_ASN_HEADERS.ASN_NUMBER">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:textField>
+                                    <a:textField name="order_num" bindTarget="srv7110_asn_query_ds" prompt="INV_ASN_LINES.SEGMENT1">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:textField>
+                                    <a:lov name="company_name" bindTarget="srv7110_asn_query_ds" prompt="INV_ASN_HEADERS.COMPANY_ID">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:lov>
+                                </a:hBox>
+                            </a:formToolBar>
+                            <a:formBody>
+                                <a:hBox labelWidth="110">
+                                    <a:datePicker name="creation_date_from" bindTarget="srv7110_asn_query_ds" prompt="INV_ASN_HEADERS.CREATION_DATE_FROM">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                    <a:datePicker name="creation_date_to" bindTarget="srv7110_asn_query_ds" prompt="INV_ASN_HEADERS.CREATION_DATE_TO">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                    <a:lov name="item_name" bindTarget="srv7110_asn_query_ds" prompt="我的产品">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:lov>
+                                </a:hBox>
+                                <a:hBox labelWidth="110">
+                                    <a:datePicker name="ship_date_from" bindTarget="srv7110_asn_query_ds" prompt="INV_ASN_HEADERS.SHIP_DATE_FROM">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                    <a:datePicker name="ship_date_to" bindTarget="srv7110_asn_query_ds" prompt="INV_ASN_HEADERS.SHIP_DATE_TO">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                    <a:comboBox name="header_status" bindTarget="srv7110_asn_query_ds" prompt="STATUS">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:comboBox>
+                                </a:hBox>
+                                <a:hBox labelWidth="110">
+                                    <a:datePicker name="expected_date_from" bindTarget="srv7110_asn_query_ds" prompt="INV_ASN_HEADERS.EXPECTED_DATE_FROM">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                    <a:datePicker name="expected_date_to" bindTarget="srv7110_asn_query_ds" prompt="INV_ASN_HEADERS.EXPECTED_DATE_TO">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:datePicker>
+                                    <a:textField name="agent_name" bindTarget="srv7110_asn_query_ds" prompt="INV_ASN_LINES.AGENT_ID">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:textField>
+                                </a:hBox>
+                                <a:hBox labelWidth="110">
+                                    <a:lov name="ship_to_organization_name" bindTarget="srv7110_asn_query_ds" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:lov>
+                                    <a:lov name="vendor_site_name" bindTarget="srv7110_asn_query_ds" lovHeight="500" lovWidth="500" prompt="INV_ASN_HEADERS.VENDOR_SITE_ID">
+                                        <a:events>
+                                            <a:event name="enterdown" handler="srv7110_query"/>
+                                        </a:events>
+                                    </a:lov>
+                                    <a:checkBox name="exclude_all_close" bindTarget="srv7110_asn_query_ds" label="排除已完全收货单据" style="margin-left:50px;" width="130"/>
+                                    <a:checkBox name="on_the_way_qty_view" bindTarget="srv7110_asn_query_ds" label="仅查看在途单据" style="margin-left:20px;" width="120"/>
+                                </a:hBox>
+                            </a:formBody>
+                        </a:queryForm>
+                        <a:grid id="srv7110_asn_query_grid" bindTarget="srv7110_asn_query_result_ds" marginHeight="210" marginWidth="90" navBar="true">
+                            <a:columns>
+                                <a:column name="header_status" align="left" prompt="STATUS" width="40"/>
+                                <a:column name="asn_number" align="left" prompt="INV_ASN_HEADERS.ASN_NUMBER" sortable="true" width="80"/>
+                                <a:column name="asn_line_num" align="left" prompt="行号" sortable="true" width="30"/>
+                                <a:column name="require_item_code" align="left" prompt="我的物品编码" sortable="true" width="60"/>
+                                <a:column name="require_item_name" align="left" prompt="我的物品名称" sortable="true" width="100"/>
+                                <a:column name="supply_item_code" align="left" prompt="INV_ASN_LINES_TEMP.VENDOR_ITEM_CODE" sortable="true" width="60"/>
+                                <a:column name="supply_item_name" align="left" prompt="INV_ASN_LINES_TEMP.VENDOR_ITEM_NAME" sortable="true" width="100"/>
+                                <a:column name="company_name" align="left" prompt="INV_ASN_HEADERS.COMPANY_ID" sortable="true" width="100"/>
+                                <a:column name="po_num" align="left" prompt="INV_ASN_LINES.SEGMENT1" sortable="true" width="80"/>
+                                <a:column name="line_num" align="left" prompt="INV_ASN_LINES.LINE_NUM" sortable="true" width="30"/>
+                                <a:column name="shipment_num" align="left" prompt="INV_ASN_LINES.SHIPMENT_NUM" width="30"/>
+                                <a:column name="line_status" align="left" prompt="状态" sortable="true" width="40"/>
+                                <a:column name="ship_quantity" align="right" prompt="INV_ASN_LINES.SHIP_QUANTITY" renderer="Aurora.formatNumber" width="40"/>
+                                <a:column name="uom_code" align="left" prompt="INV_ASN_LINES.UNIT_MEAS_LOOKUP_CODE" width="50"/>
+                                <a:column name="unit_price" align="right" prompt="单价" renderer="Aurora.formatNumber" width="50"/>
+                                <a:column name="line_receive_status" align="left" prompt="接收状态" width="40"/>
+                                <a:column name="receive_quantity" align="right" prompt="已接收" renderer="Aurora.formatNumber" width="40"/>
+                                <a:column name="on_the_way_quantity" align="right" prompt="在途" renderer="Aurora.formatNumber" width="40"/>
+                                <a:column name="return_vendor_quantity" align="right" prompt="已退回" renderer="Aurora.formatNumber" width="40"/>
+                                <a:column name="line_deliver_status" align="left" prompt="入库状态" width="40"/>
+                                <a:column name="deliver_quantity" align="right" prompt="已入库" renderer="Aurora.formatNumber" width="40"/>
+                                <a:column name="inspection_pending_quantity" align="right" prompt="待检" renderer="Aurora.formatNumber" width="40"/>
+                                <a:column name="return_receive_quantity" align="right" prompt="退至接收" renderer="Aurora.formatNumber" width="40"/>
+                                <a:column name="cancel_flag" align="center" prompt="已取消" width="30"/>
+                                <a:column name="close_flag" align="center" prompt="已关闭" width="30"/>
+                                <a:column name="lots_num" align="left" prompt="INV_ASN_LINES_TEMP.LOTS_NUM" width="80"/>
+                                <a:column name="lots_validity_date" align="left" prompt="INV_ASN_LINES_TEMP.LOTS_VALIDITY_DATE" renderer="Aurora.formatDate" width="80"/>
+                                <a:column name="invoice_num" align="left" prompt="INV_ASN_LINES_TEMP.INVOICE_NUM" width="80"/>
+                                <a:column name="serial_num" align="left" prompt="INV_ASN_LINES_TEMP.SERIAL_NUM" width="80"/>
+                                <a:column name="ship_date" align="left" prompt="INV_ASN_HEADERS.SHIP_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                                <a:column name="expected_date" align="left" prompt="INV_ASN_HEADERS.EXPECTED_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                                <a:column name="need_by_date" align="left" prompt="INV_ASN_LINES.NEED_BY_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                                <a:column name="promised_date" align="left" prompt="PUR_LINE_LOCATIONS_ALL.PROMISED_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                                <a:column name="reversion_num" align="left" prompt="INV_ASN_LINES.REVERSION_NUM" width="50"/>
+                                <a:column name="release_num" align="left" prompt="INV_ASN_LINES.RELEASE_NUM" width="60"/>
+                                <a:column name="vendor_site_name" align="left" prompt="发货地点" width="100"/>
+                                <a:column name="agent_name" align="left" prompt="INV_ASN_LINES.AGENT_ID" width="60"/>
+                                <a:column name="location_name" align="left" prompt="INV_ASN_HEADERS.LOCATION_ID" width="100"/>
+                                <a:column name="ship_to_organization_name" align="left" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID" width="100"/>
+                                <a:column name="header_desc" align="left" prompt="INV_ASN_HEADERS.HEADER_DESC" width="120"/>
+                            </a:columns>
+                            <a:events>
+                                <a:event name="render" handler="srv7110_asn_codes_grid_render"/>
+                            </a:events>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui 6743$
+    $Date: 2014/09/29 10:46:59 $
+    $Revision: 1.0 $
+    $Purpose: ERP应付发票查询-采购方
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        eaih.invoice_id,
+                        eaih.invoice_num,
+                        eaih.invoice_type,
+                        TO_CHAR(eaih.invoice_date,'yyyy-mm-dd') invoice_date,
+                        eaih.pur_header_id,
+                        DECODE( NVL(
+                        (SELECT
+                            COUNT(eail.pur_header_id)
+                        FROM
+                            erp_ap_invoice_lines eail
+                        WHERE
+                            eail.invoice_id = eaih.invoice_id
+                        GROUP BY
+                            eail.pur_header_id
+                        ),0), 0, 'N', 'Y') pur_header_num,
+                        DECODE( NVL(
+                        (SELECT
+                            COUNT(eail.rcv_transaction_line_id)
+                        FROM
+                            erp_ap_invoice_lines eail
+                        WHERE
+                            eail.invoice_id               = eaih.invoice_id AND
+                            eail.rcv_transaction_line_id IS NOT NULL
+                        GROUP BY
+                            eail.rcv_transaction_line_id
+                        ),0), 0, 'N', 'Y') rcv_trx_number,
+                        eaih.vendor_id,
+                        (SELECT
+                            pv.full_name
+                        FROM
+                            pur_vendors_vl pv
+                        WHERE
+                            pv.vendor_id = eaih.vendor_id
+                        ) vendor_name,
+                        eaih.vendor_site_id,
+                        (SELECT
+                            pvs.site_name
+                        FROM
+                            pur_vendor_sites_vl pvs
+                        WHERE
+                            pvs.vendor_site_id = eaih.vendor_site_id
+                        ) site_name,
+                        eaih.business_unit_id,
+                        (SELECT
+                            fbu.business_unit_name
+                        FROM
+                            fnd_business_units_vl fbu
+                        WHERE
+                            fbu.business_unit_id = eaih.business_unit_id
+                        ) business_unit_name,
+                        (SELECT
+                            SUM(NVL(ip.amount,0))
+                        FROM
+                            erp_ap_invoice_headers ih,
+                            erp_ap_invoice_payments ip
+                        WHERE
+                            ih.invoice_id = ip.invoice_id(+) AND
+                            ih.invoice_id = eaih.invoice_id
+                        GROUP BY
+                            ih.invoice_id
+                        ) amount_paid,
+                        NVL(eaih.invoice_amount,0) -
+                        (SELECT
+                            SUM(NVL(ip.amount,0))
+                        FROM
+                            erp_ap_invoice_headers ih,
+                            erp_ap_invoice_payments ip
+                        WHERE
+                            ih.invoice_id = ip.invoice_id(+) AND
+                            ih.invoice_id = eaih.invoice_id
+                        GROUP BY
+                            ih.invoice_id
+                        ) amount_unpaid,
+                        (SELECT
+                            DECODE(NVL(ih.invoice_amount,0) -
+                            (SELECT
+                                SUM(NVL(ip1.amount,0))
+                            FROM
+                                erp_ap_invoice_headers ih1,
+                                erp_ap_invoice_payments ip1
+                            WHERE
+                                ih1.invoice_id = ip1.invoice_id(+) AND
+                                ih1.invoice_id = ih.invoice_id
+                            GROUP BY
+                                ih1.invoice_id
+                            ), 0, 'Y', NVL(ih.invoice_amount,0), 'N', 'P')
+                        FROM
+                            erp_ap_invoice_headers ih
+                        WHERE
+                            eaih.invoice_id = ih.invoice_id
+                        ) AS payment_status,
+                        eaih.invoice_currency_code,
+                        eaih.invoice_amount,
+                        eaih.payment_method_code,
+                        eaih.owner_company_id,
+                        (SELECT
+                            fc.company_full_name
+                        FROM
+                            fnd_companies_vl fc
+                        WHERE
+                            fc.company_id=owner_company_id
+                        ) owner_company_name,
+                        NULL AS useless_id_1,
+                        NULL AS useless_id_2,
+                        NULL AS useless_id_3,
+                        NULL AS useless_id_4,
+                        NULL AS useless_id_5,
+                        NULL AS useless_id_6,
+                        NULL AS useless_id_7,
+                        NULL AS useless_id_8,
+                        NULL AS useless_id_9,
+                        NULL AS useless_id_10,
+                        NULL AS useless_id_11,
+                        NULL AS useless_id_12,
+                        NULL AS useless_id_13
+                    FROM
+                        erp_ap_invoice_headers eaih
+                    WHERE
+                        eaih.vendor_id IN
+                        (SELECT
+                            v.vendor_id
+                        FROM
+                            pur_vendors_v v
+                        WHERE
+                            v.coop_business_group =${/session/@business_group}
+                        )
+                    ) t1 #WHERE_CLAUSE#
+                ORDER BY
+                    invoice_date DESC,
+                    invoice_num
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters><![CDATA[
+    ]]></bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="invoice_id" queryExpression="t1.invoice_id=${@invoice_id}"/>
+        <bm:query-field name="invoice_num" queryExpression="t1.invoice_num like &apos;%&apos;||${@invoice_num}||&apos;%&apos;"/>
+        <bm:query-field name="invoice_type" queryExpression="t1.invoice_type=${@invoice_type}"/>
+        <bm:query-field name="invoice_date" queryExpression="to_date(t1.invoice_date,&apos;yyyy-mm-dd&apos;)=${@invoice_date}"/>
+        <bm:query-field name="invoice_date_from" queryExpression="to_date(t1.invoice_date,&apos;yyyy-mm-dd&apos;) &gt;=to_date(${@invoice_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="invoice_date_to" queryExpression="to_date(t1.invoice_date,&apos;yyyy-mm-dd&apos;) &lt;=to_date(${@invoice_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="vendor_id" queryExpression="t1.vendor_id=${@vendor_id}"/>
+        <bm:query-field name="vendor_site_id" queryExpression="t1.vendor_site_id=${@vendor_site_id}"/>
+        <bm:query-field name="business_unit_id" queryExpression="t1.business_unit_id=${@business_unit_id}"/>
+        <bm:query-field name="payment_status" queryExpression="t1.payment_status=${@payment_status}"/>
+        <bm:query-field name="owner_company_id" queryExpression="t1.owner_company_id=${@owner_company_id}"/>
+        <bm:query-field name="owner_business_group" queryExpression="t1.owner_business_group=${@owner_business_group}"/>
+        <bm:query-field name="coop_business_group" queryExpression="t1.coop_business_group=${@coop_business_group}"/>
+        <bm:query-field name="rcv_trx_number" queryExpression=" EXISTS (SELECT 1 FROM erp_ap_invoice_lines eail,pur_rcv_trx_headers_v prth WHERE prth.rcv_trx_header_id = eail.rcv_transaction_id AND eail.invoice_id=t1.invoice_id and prth.display_number like &apos;%&apos;||${@pur_header_num}||&apos;%&apos;)"/>
+        <bm:query-field name="pur_header_num" queryExpression=" EXISTS (SELECT 1 FROM erp_ap_invoice_lines eail,pur_headers_all_v pha WHERE eail.pur_header_id=pha.pur_header_id and eail.invoice_id = t1.invoice_id and pha.display_po_number like &apos;%&apos;||${@pur_header_num}||&apos;%&apos;)"/>
+        <bm:query-field name="check_number" queryExpression="EXISTS (SELECT 1 FROM erp_ap_invoice_payments eaip,erp_ap_payment_checks eapc WHERE eaip.check_id = eapc.check_id AND eaip.invoice_id = t1.invoice_id AND eapc.check_number like &apos;%&apos;||${@check_number}||&apos;%&apos;)"/>
+        <bm:query-field name="check_id" queryExpression=" EXISTS (SELECT 1 FROM erp_ap_invoice_payments eaip WHERE eaip.invoice_id = t1.invoice_id AND eaip.check_id=${@check_id})"/>
+    </bm:query-fields>
+    <authority foundation_code="AP_INVOICE">
+        <!-- CLIENT,CLIENT_SITE,SD_ORGANIZATION,PUR_ORGANIZATION -->
+        <authority-segment source_alias="t1" source_name="useless_id_1" type="CREATER"/>
+        <authority-segment source_alias="t1" source_name="useless_id_2" type="RECEIVER"/>
+        <authority-segment source_alias="t1" source_name="useless_id_3" type="COMPANY"/>
+        <authority-segment source_alias="t1" source_name="useless_id_4" type="BUSINESS_UNIT"/>
+        <authority-segment source_alias="t1" source_name="useless_id_5" type="VENDOR"/>
+        <authority-segment source_alias="t1" source_name="useless_id_6" type="CLIENT"/>
+        <authority-segment source_alias="t1" source_name="useless_id_7" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="t1" source_name="useless_id_8" type="VENDOR_SITE"/>
+        <authority-segment source_alias="t1" source_name="useless_id_9" type="CLIENT_SITE"/>
+        <authority-segment source_alias="t1" source_name="useless_id_10" type="SD_ORGANIZATION"/>
+        <authority-segment source_alias="t1" source_name="useless_id_11" type="PUR_ORGANIZATION"/>
+        <authority-segment source_alias="t1" source_name="useless_id_12" type="SALES_PRODUCTION"/>
+        <authority-segment source_alias="t1" source_name="useless_id_13" type="PURHASE_MATERIAL"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+            var cx = Packages.aurora.javascript.Context.getCurrentContext();
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

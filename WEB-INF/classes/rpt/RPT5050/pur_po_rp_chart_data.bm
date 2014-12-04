@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-9-17 下午5:18:21  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="PUR_PO_RP_DETAILS">
+    <bm:fields>
+        <bm:field name="rp_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="RP_HEADER_ID" prompt="PUR_PO_RP_DETAILS.RP_HEADER_ID"/>
+        <bm:field name="chart_item_category_code"/>
+        <bm:field name="chart_item_category_name"/>
+        <bm:field name="business_unit_name"/>
+        <bm:field name="business_unit_code"/>
+        <bm:field name="vendor_name"/>
+        <bm:field name="organization_ratio"/>
+        <bm:field name="coop_company_name"/>
+        <bm:field name="total_ratio"/>
+        <bm:field name="company_short_name"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT DISTINCT
+                    (SELECT
+                        t2.category_name
+                    FROM
+                        mtl_categories_user_defined_vl t2
+                    WHERE
+                        t2.category_udf_id = t1.item_category_id
+                    ) chart_item_category_name,
+                    (SELECT
+                        t3.short_name
+                    FROM
+                        pur_vendors_vl t3
+                    WHERE
+                        t3.vendor_id = t1.coop_company_id
+                    ) vendor_name,
+                    (SELECT
+                        t3.short_name
+                    FROM
+                        pur_vendors_vl t3
+                    WHERE
+                        t3.vendor_id = t1.coop_company_id
+                    ) coop_company_name,
+                    (SELECT
+                        t4.category_code
+                    FROM
+                        mtl_categories_user_defined_vl t4
+                    WHERE
+                        t4.category_udf_id = t1.item_category_id
+                    ) chart_item_category_code,
+                    (SELECT
+                        t5.business_unit_code
+                    FROM
+                        fnd_business_units_vl t5
+                    WHERE
+                        t5.business_unit_id = t1.business_unit_id
+                    ) business_unit_code,
+                    (SELECT
+                        t5.business_unit_name
+                    FROM
+                        fnd_business_units_vl t5
+                    WHERE
+                        t5.business_unit_id = t1.business_unit_id
+                    ) business_unit_name,
+                    (SELECT
+                        t3.company_short_name
+                    FROM
+                        fnd_companies_vl t3
+                    WHERE
+                        t3.company_id = t1.company_id
+                    ) company_short_name,
+                    t1.rp_header_id,
+                    ROUND(t1.total_ratio*100,2) total_ratio,
+                    ROUND(t1.organization_ratio*100,2) organization_ratio
+                FROM
+                    PUR_PO_RP_DETAILS t1 #WHERE_CLAUSE#
+                order by total_ratio
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="item_category_code" queryExpression="(SELECT                         t4.category_code                     FROM                         mtl_categories_user_defined_vl t4                     WHERE                         t4.category_udf_id = t1.item_category_id                     ) = ${@item_category_code}"/>
+        <bm:query-field name="chart_item_category_code" queryExpression="(SELECT                         t4.category_code                     FROM                         mtl_categories_user_defined_vl t4                     WHERE                         t4.category_udf_id = t1.item_category_id                     ) like &apos;%&apos;||trim(${@chart_item_category_code})||&apos;%&apos;"/>
+        <bm:query-field name="chart_item_category_name" queryExpression="(SELECT                         t2.category_name                     FROM                         mtl_categories_user_defined_vl t2                     WHERE                         t2.category_udf_id = t1.item_category_id                     ) like &apos;%&apos;||trim(${@chart_item_category_name})||&apos;%&apos;"/>
+        <bm:query-field name="full_business_unit_code" queryExpression="                    (SELECT                         t5.business_unit_code                     FROM                         fnd_business_units_vl t5                     WHERE                         t5.business_unit_id = t1.business_unit_id      ) = ${@full_business_unit_code}"/>
+        <bm:query-field name="business_unit_code" queryExpression="                    (SELECT                         t5.business_unit_code                     FROM                         fnd_business_units_vl t5                     WHERE                         t5.business_unit_id = t1.business_unit_id      ) like &apos;%&apos;||trim(${@business_unit_code})||&apos;%&apos;"/>
+        <bm:query-field name="business_unit_name" queryExpression="                    (SELECT                         t5.business_unit_name                     FROM                         fnd_business_units_vl t5                     WHERE                         t5.business_unit_id = t1.business_unit_id      ) like &apos;%&apos;||trim(${@business_unit_name})||&apos;%&apos;"/>
+        <bm:query-field name="vendor_name" queryExpression="(SELECT                         t3.short_name                     FROM                         pur_vendors_vl t3                     WHERE                         t3.vendor_id = t1.coop_company_id                     ) like &apos;%&apos;||trim(${@vendor_name})||&apos;%&apos;"/>
+        <bm:query-field field="rp_header_id" queryExpression="t1.rp_header_id = ${@rp_header_id}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter enforceOperations="query" expression="t1.rp_header_id = ${@rp_header_id}"/>
+    </bm:data-filters>
+</bm:model>

@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2014-2-20 上午10:07:13  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="pur.PUR5310.po_headers_all_init" rootPath="pur53101_po_header_init_source"/>
+        <a:model-query fetchAll="true" model="public.currency_list" rootPath="pur53101_currency_source"/>
+        <a:model-query fetchAll="true" model="public.fnd_tax_type_code_lov" rootPath="pur53101_tax_type_code_source"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="pur53101_po_maintain_link" url="${/request/@context_path}/modules/pur/PUR5320/pur_po_maintain.screen"/>
+        <a:link id="pur53101_po_create_link" url="${/request/@context_path}/modules/pur/PUR5310/pur_po_create.svc"/>
+        <a:link id="pur53101_po_line_locations_link" url="${/request/@context_path}/modules/pur/PUR5310/pur_po_line_locations_all.screen"/>
+        <script><![CDATA[
+        
+        	function pur53101_po_headers_ds_update(ds, record, name, value, oldvalue){
+	       		
+			}
+			
+			function pur53101_po_headers_ds_load(dataSet){
+	         	
+        	}
+        	
+        	function pur53101_po_line_locations_renderer(value,record,name){
+        	    return '<a href="javascript:pur53101_po_line_locations_window()">'+'发运'+'</a>';
+	        }    
+	        	
+	        function pur53101_po_line_locations_window(id,data_source){
+	            
+	        	new Aurora.Window({
+	        	    id:'pur531011_po_line_location_window',
+	        	    title:'发运行',
+	        	    url: $('pur53101_po_line_locations_link').getUrl(),
+	        	    fullScreen:true
+	        	}).on('beforeclose', function(){});
+	        } 
+        	
+        	
+        	function pur53101_po_header_check(record){
+        	    
+        	    return true;
+        	}
+        	
+        	function pur53101_po_create() {
+	             var header_ds = $('pur53101_po_headers_ds');
+	             var item_ds = $('pur5310_req_distributions_po_lines_ds');
+	             var header_record = header_ds.getCurrentRecord();
+	             
+	             if(!header_ds.validate()){
+	              	return;   
+	             }
+	             if(!item_ds.validate()){
+	              	return;   
+	             }
+	             
+	             if(!pur53101_po_header_check(header_record)){
+	              	return;   
+	             }
+	             
+	             var data = header_record.data; 
+	             
+	             
+	             var pur5310_req_distributions_selected_ds = $('pur5310_req_distributions_selected_ds');
+	             
+	             var item_records = item_ds.getAll();
+	             var item_datas = [];
+	             for (var i=0;i<item_records.length;i++){
+	    			 var item_data = item_records[i].data;
+	             	 var po_line_array = item_records[i].get('po_line_array');
+	             	 var line_locations =[];
+	             	 for(var j=0;j<po_line_array.length;j++){
+    		 		     var dp_record=pur5310_req_distributions_selected_ds.find("req_distribution_id",po_line_array[j]);
+	                     if(!Ext.isEmpty(dp_record)){
+	                         dp_record.set('po_data_source','PUR_REQ');
+	                         dp_record.set('data_source_id',dp_record.get('req_distribution_id'));
+	                         dp_record.set('data_source_code',dp_record.get('req_number'));
+	                         dp_record.set('shipment_type','STANDARD');
+	                         line_locations.push(dp_record.data);
+	                     }
+		 		     }
+		 		     item_data.line_locations = line_locations;
+	             	 item_datas.push(item_data);
+	             }
+	             
+	             //data['items'] = item_ds.getJsonData();
+	             data['items'] = item_datas;
+	             
+	             Aurora.Masker.mask($('pur53101_po_create_window').wrap, '正在加载...');  
+	             Aurora.request({
+	                url: $('pur53101_po_create_link').getUrl(),
+	                para: data,
+	                success: function(result) {
+	                    Aurora.Masker.unmask($('pur53101_po_create_window').wrap);
+	                    var pur_header_id = result.result.pur_header_id;
+	                    header_ds.getCurrentRecord().set('segment1',result.result.segment1);
+	                    Aurora.showMessage('提示', '采购订单创建成功!',function(){
+	                        var url = $('pur53101_po_maintain_link').getUrl();
+	                        url += '?pur_header_id='+pur_header_id;
+	                        
+	                        //alert('创建成功！');
+				        	new Aurora.Window({
+				        	    id:'pur53201_po_maintain_window',
+				        	    title:'采购订单维护维护',
+				        	    url:url,
+				        	    fullScreen:true
+				        	}).on('beforeclose', pur5310_query);
+				        	
+				        	pur53101_reback();
+	                    });
+	                    
+	                    //window.setTimeout("pur53101_window_reload()", 1000);
+	                },
+	                failure: function() {
+	                    Aurora.Masker.unmask($('pur53101_po_create_window').wrap);
+	                    return;
+	                },
+	                error: function() {
+	                    Aurora.Masker.unmask($('pur53101_po_create_window').wrap);
+	                    return;
+	                }
+	             });
+	        } 
+	        
+	        // function pur53101_window_reload(){
+	         	  // var url = $('pur53101_po_maintain_link').getUrl();
+	         	  
+	         	  // var header_record = $('pur53101_po_headers_ds').getCurrentRecord();
+	         	  // var pur_header_id = header_record.get('pur_header_id');
+	         	  // url += '?pur_header_id='+pur_header_id;
+	         	  // $('pur53101_po_create_window').load(url);
+	         	  
+	        // }
+        	
+        	function pur53101_reback() {
+	        	$('pur53101_po_create_window').close();
+	        }
+	        
+        	
+        	//比较两个日期的大小
+        	function pur53101_compareDate(start,end){
+        	    if(typeof(start) == 'string'){
+        	        start = new Date(start.replace(/-/g,"/"));
+        	    }
+        	    
+        	    if(typeof(end) == 'string'){
+        	        end = new Date(end.replace(/-/g,"/"));
+        	    }
+        	    
+        	    if(start > end){
+        	        return false;
+        	    }
+        	    return true;
+        	}
+        	
+        	//发布日期校验
+        	function pur53101_release_dateValidator(record,name,value){
+        	    if(name == 'feedback_start_time' || name == 'feedback_end_time'){
+        	        var start = record.get('feedback_start_time');
+        	        var end = record.get('feedback_end_time');       	            	            	       
+        	        
+
+        	        
+        	        if(!!end){
+        	            if(!pur53101_compareDate(start,end)){
+        	                return '报价开始时间从不能大于报价结束时间';
+        	            }
+        	        }
+        	        return true;
+        	    }
+        	}
+        	
+        	
+        
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur53101_order_type_ds" fetchAll="true" loadData="true" model="pur.public.pur_purchase_order_type"/>
+            <a:dataSet id="pur53101_exchangerate_type_ds" loadData="true" model="public.gld_exchangerate_types_list"/>
+            <a:dataSet id="pur53101_currency_ds" loadData="true">
+                <a:datas dataSource="/model/pur53101_currency_source"/>
+            </a:dataSet>
+            <a:dataSet id="pur53101_tax_type_code_ds" loadData="true">
+                <a:datas dataSource="/model/pur53101_tax_type_code_source"/>
+            </a:dataSet>
+            <a:dataSet id="pur53101_po_headers_ds">
+                <a:datas dataSource="/model/pur53101_po_header_init_source"/>
+                <a:fields>
+                    <a:field name="company_id"/>
+                    <a:field name="company_desc"/>
+                    <a:field name="segment1" readOnly="true"/>
+                    <a:field name="revision_num"/>
+                    <a:field name="type_lookup_desc" displayField="description" options="pur53101_order_type_ds" required="true" returnField="type_lookup_code" valueField="order_type_code"/>
+                    <a:field name="vendor_code"/>
+                    <a:field name="vendor_desc"/>
+                    <a:field name="vendor_site_name" autoComplete="true" autoCompleteField="address" lovGridHeight="320" lovHeight="450" lovService="public.pur_vendor_sites_lov" lovWidth="800" required="true" title="供应商地点">
+                        <a:mapping>
+                            <a:map from="vendor_site_id" to="vendor_site_id"/>
+                            <a:map from="site_name" to="vendor_site_name"/>
+                            <a:map from="address" to="vendor_address"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="contact_person" autoComplete="true" autoCompleteField="linkman_name" lovGridHeight="320" lovHeight="450" lovService="public.pur_sys_vendor_cantacts_lov" lovWidth="800" title="联系人">
+                        <a:mapping>
+                            <a:map from="contact_id" to="contact_id"/>
+                            <a:map from="linkman_name" to="contact_person"/>
+                            <a:map from="mobile_phone" to="contact_mobile"/>
+                            <a:map from="email" to="e_mail"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="agent_name" autoComplete="true" autoCompleteField="linkman_name" lovGridHeight="320" lovHeight="450" lovService="public.pur_buyers_lov" lovWidth="800" required="true" title="采购员">
+                        <a:mapping>
+                            <a:map from="buyer_id" to="agent_id"/>
+                            <a:map from="buyer_code" to="agent_code"/>
+                            <a:map from="description" to="agent_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="currency_code"/>
+                    <a:field name="currency_desc" displayField="currency_name" options="pur53101_currency_ds" required="true" returnField="currency_code" valueField="currency_code">
+                        <a:mapping>
+                            <a:map from="currency_name" to="currency_desc"/>
+                            <a:map from="currency_code" to="currency_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="rate_type_name" displayField="type_name" options="pur53101_exchangerate_type_ds" required="true" returnField="rate_type" valueField="type_code"/>
+                    <a:field name="rate" required="true"/>
+                    <a:field name="ship_to_location_name" required="true"/>
+                    <a:field name="total_amount" readOnly="true"/>
+                    <a:field name="comments"/>
+                    <a:field name="data_source" defaultValue="PUR_REQ"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur53101_po_headers_ds_update"/>
+                    <a:event name="load" handler="pur53101_po_headers_ds_load"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur53101_po_create" style="margin-left:20px;" text="创建" width="100"/>
+                <a:toolbarButton click="pur53101_reback" text="返回" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox padding="0">
+                <a:vBox>
+                    <a:textField name="company_desc" bindTarget="pur53101_po_headers_ds" prompt="公司" readOnly="true"/>
+                    <a:textField name="vendor_code" bindTarget="pur53101_po_headers_ds" prompt="供应商编码" readOnly="true"/>
+                    <a:textField name="ship_to_location_name" bindTarget="pur53101_po_headers_ds" prompt="交货地点"/>
+                    <a:comboBox name="rate_type_name" bindTarget="pur53101_po_headers_ds" prompt="汇率类型"/>
+                    <a:textField name="status_desc" bindTarget="pur53101_po_headers_ds" prompt="状态" readOnly="true"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:textField name="segment1" bindTarget="pur53101_po_headers_ds" prompt="单据编号"/>
+                    <a:textField name="vendor_desc" bindTarget="pur53101_po_headers_ds" prompt="供应商描述" readOnly="true"/>
+                    <a:textField name="bill_to_location_name" bindTarget="pur53101_po_headers_ds" prompt="收单地点"/>
+                    <a:datePicker name="rate_date" bindTarget="pur53101_po_headers_ds" prompt="汇率日期"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:textField name="revision_num" bindTarget="pur53101_po_headers_ds" prompt="版本" readOnly="true"/>
+                    <a:lov name="vendor_site_name" bindTarget="pur53101_po_headers_ds" prompt="供应商地点"/>
+                    <a:lov name="agent_name" bindTarget="pur53101_po_headers_ds" prompt="采购员"/>
+                    <a:textField name="rate" bindTarget="pur53101_po_headers_ds" prompt="汇率"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:comboBox name="type_lookup_desc" bindTarget="pur53101_po_headers_ds" prompt="类型"/>
+                    <a:lov name="contact_person" bindTarget="pur53101_po_headers_ds" prompt="联系人"/>
+                    <a:comboBox name="currency_desc" bindTarget="pur53101_po_headers_ds" prompt="币种"/>
+                    <a:textField name="total_amount" bindTarget="pur53101_po_headers_ds" prompt="合计" renderer="Aurora.formatMoney"/>
+                </a:vBox>
+            </a:hBox>
+            <a:hBox padding="0">
+                <a:textArea name="comments" bindTarget="pur53101_po_headers_ds" height="60" marginWidth="360" prompt="备注"/>
+            </a:hBox>
+        </a:defaultScreen>
+        <a:grid id="pur53101_po_lines_grid" bindTarget="pur5310_req_distributions_po_lines_ds" height="350" marginWidth="140" navBar="true" showRowNumber="true">
+            <!-- <a:toolBar>
+                <a:button type="delete"/>
+            </a:toolBar> -->
+            <a:columns>
+                <a:column name="line_num" align="left" lock="true" prompt="行号" width="50"/>
+                <a:column name="line_location" align="left" prompt="发运" renderer="pur53101_po_line_locations_renderer" width="50"/>
+                <a:column name="pur_line_type_name" align="left" prompt="类型" width="50"/>
+                <a:column name="item_code" align="left" prompt="物料编码" width="50"/>
+                <a:column name="item_desc" align="left" prompt="物料描述" width="50"/>
+                <a:column name="item_category_desc" align="left" prompt="采购品类" width="50"/>
+                <a:column name="" align="left" prompt="配置清单" width="50"/>
+                <a:column name="parameter_config" align="left" prompt="配置信息" width="50"/>
+                <a:column name="quantity" align="left" prompt="数量" width="50"/>
+                <a:column name="unit_meas_lookup_code" align="left" prompt="单位" width="50"/>
+                <a:column name="decided_unit_price" align="left" prompt="单价" width="50"/>
+                <a:column name="need_by_date" align="left" prompt="需求日期" renderer="Aurora.formatDate" width="50"/>
+                <a:column name="decided_promised_date" align="left" prompt="承诺日期" width="50"/>
+            </a:columns>
+        </a:grid>
+        <script><![CDATA[
+        	function pur53101_init() {
+                var header_record = $('pur53101_po_headers_ds').getAt(0);
+                var pur5310_req_distributions_po_lines = $("pur5310_req_distributions_po_lines_ds");
+                var records = pur5310_req_distributions_po_lines.getAll();
+                
+                header_record.set('vendor_id',records[0].get('decided_vendor_id'));
+                header_record.set('vendor_code',records[0].get('decided_vendor_code'));
+                header_record.set('vendor_desc',records[0].get('decided_vendor_desc'));
+                header_record.set('po_data_source','PUR_REQ');
+                
+                var total_amount = 0;
+                
+                header_record.getField('vendor_site_name').setLovPara('vendor_id', records[0].get('decided_vendor_id'));
+				for (var i = 0;i < records.length;i++) {
+                 	records[i].set('line_num',i+1); 
+                 	records[i].set('po_data_source','PUR_REQ');
+                 	var quantity = Number(records[i].get('quantity'));
+                 	var unit_price = Number(records[i].get('decided_unit_price'));
+                 	total_amount = total_amount + quantity*unit_price;
+                 	
+                 	
+                 	var req_distributions_selected_ds = $('pur5310_req_distributions_selected_ds');
+                
+                    var line_record = records[i];
+	                var po_line_array = line_record.get('po_line_array');
+	                
+	                for(var j=0;j<po_line_array.length;j++){
+	                	var selectedRecord = req_distributions_selected_ds.find("req_distribution_id",po_line_array[j]);
+	                	if(!Aurora.isEmpty(selectedRecord)){
+	                	    selectedRecord.set('shipment_num',i+1);
+							selectedRecord.set('from_header_id',selectedRecord.get('req_header_id'));
+							selectedRecord.set('from_line_id',selectedRecord.get('req_line_id'));
+							selectedRecord.set('from_line_location_id',selectedRecord.get('req_distribution_id'));
+	                	}
+					}
+                 	
+                 	
+				}
+				
+				header_record.set('total_amount',total_amount);
+
+                 /*for (var i = 0;i < records.length;i++) {
+                    var newRecord = new Aurora.Record(records[i].data);
+                    pur53101_rfx_ln_items_ds.add(newRecord);
+                    var tax_included_flag = records[i].get('tax_included_flag');
+                    tax_included_flag = Aurora.isEmpty(tax_included_flag)?'N':tax_included_flag;
+                    newRecord.set('need_by_date_desc',records[i].get('need_by_date_desc'));
+                    newRecord.set('need_by_date',records[i].get('need_by_date'));
+                    newRecord.set('uom_code',records[i].get('unit_meas_lookup_code'));
+                    newRecord.set('uom_desc',records[i].get('uom_desc'));
+                    newRecord.set('data_source','DEMAND_POOL');
+                    newRecord.set('data_source_id',records[i].get('pool_id'));
+                    newRecord.set('pur_req_created_by',records[i].get('pur_req_created_by'));
+                    newRecord.set('pur_req_created_by_code',records[i].get('pur_req_created_by_code'));
+                    newRecord.set('pur_req_created_by_name',records[i].get('pur_req_created_by_name'));
+                    newRecord.set('pur_req_creation_date',records[i].get('pur_req_creation_date'));
+                    newRecord.set('line_number',(i+1)*10);
+                    newRecord.set('pur_ln_type',records[i].get('pur_ln_type'));
+                    newRecord.set('pur_ln_type_desc',records[i].get('pur_ln_type_desc'));
+                    newRecord.set('tax_included_flag',Aurora.isEmpty(tax_included_flag)?'N':tax_included_flag);
+                    newRecord.isNew=true;
+                    if(i==0){
+                     	header_record.set('tax_included_flag',tax_included_flag);
+		             	if(tax_included_flag == 'Y'){
+		             	    header_record.getMeta().getField('tax_type_desc').setRequired(true);
+		        			header_record.getMeta().getField('tax_type_desc').setReadOnly(false); 
+		             	}else{
+		             	    header_record.getMeta().getField('tax_type_desc').setRequired(true);
+		        			header_record.getMeta().getField('tax_type_desc').setReadOnly(false); 
+		             	}
+		             	header_record.getField('rfx_type_desc').setLovPara('rfx_category', records[i].get('pro_mode_code'));
+                    }
+                }
+                header_record.isNew = true; */
+                
+            }
+            
+            Aurora.onReady(function(){
+                pur53101_init();
+            });
+        ]]></script>
+    </a:view>
+</a:screen>

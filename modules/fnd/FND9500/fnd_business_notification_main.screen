@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-10-14 下午6:46:54  
+    $Revision: 1.0  
+    $Purpose: 业务通知单发布管理，入口页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.flex_value_set_code = &apos;FND_NOTIFICATION_TYPE&apos;" fetchAll="true" model="public.fnd_flex_value_v_lov" rootPath="notification_type_list"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd9500_fnd_business_notification_maintain_link" url="${/request/@context_path}/modules/fnd/FND9500/fnd_business_notification_maintain.screen"/>
+        <a:link id="fnd9500_fnd_business_notification_receive_detail_link" url="${/request/@context_path}/modules/fnd/FND9500/fnd_business_notification_receive_detail.screen"/>
+        <div/>
+        <script><![CDATA[
+            function fnd9500_queryFunction() {
+                $('fnd9500_fnd_business_notification_resutl_ds').query();
+            }
+            
+            function fnd9500_createBusinessNotification() {
+                new Aurora.Window({
+                    id: 'fnd9500_fnd_business_notification_maintain_link_window',
+                    url: $('fnd9500_fnd_business_notification_maintain_link').getUrl(),
+                    title: '新增业务通知单',
+                    height: 580,
+                    width: 1000
+                }).on('beforeclose', fnd9500_queryFunction);
+            }
+            
+            function fnd9500_fndBusinessNotificationResutlDsGridRenderer(value, record, name) {
+                if(name == 'notification_number'){
+	                return '<a href="javascript:fnd9500_modifyBusinessNotification(' + record.get('notification_id') + ');">' + value + '</a>';
+                }
+                
+                if(name == 'receive_detail'){
+                	return '<a href="javascript:fnd9500_showNotificationReceiveDetail(' + record.get('notification_id') + ');">签收明细</a>';    
+                }
+            }
+            
+            function fnd9500_modifyBusinessNotification(notification_id) {
+                new Aurora.Window({
+                    id: 'fnd9500_fnd_business_notification_maintain_link_window',
+                    url: $('fnd9500_fnd_business_notification_maintain_link').getUrl() + '?notification_id=' + notification_id,
+                    title: '维护业务通知单',
+                    height: 620,
+                    width: 1000
+                }).on('beforeclose', fnd9500_queryFunction);
+            }
+            
+            function fnd9500_showNotificationReceiveDetail(notification_id) {
+                new Aurora.Window({
+                    id: 'fnd9500_fnd_business_notification_receive_detail_link_window',
+                    url: $('fnd9500_fnd_business_notification_receive_detail_link').getUrl() + '?notification_id=' + notification_id,
+                    title: '签收明细',
+                    height: 380,
+                    width: 580
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd9500_fnd_notification_release_status_list_ds">
+                <a:datas>
+                    <a:record name="已发布" value="Y"/>
+                    <a:record name="未发布" value="N"/>
+                    <a:record name="全部" value="ALL"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="fnd9500_fnd_notification_type_list_query_ds" autoCreate="true">
+                <a:datas dataSource="/model/notification_type_list"/>
+            </a:dataSet>
+            <a:dataSet id="fnd9500_fnd_business_notification_query_ds">
+                <a:fields>
+                    <a:field name="notification_title"/>
+                    <a:field name="notification_type_display" displayField="flex_desc" options="fnd9500_fnd_notification_type_list_query_ds" returnField="notification_type" valueField="flex_value"/>
+                    <a:field name="coop_company_name" autoComplete="true" autoCompleteField="company_full_name" lovHeight="500" lovService="public.fnd_coop_partner_vendors_lov" lovWidth="500" title="供应商">
+                        <a:mapping>
+                            <a:map from="company_id" to="coop_company_id"/>
+                            <a:map from="company_full_name" to="coop_company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="release_status_display" displayField="name" options="fnd9500_fnd_notification_release_status_list_ds" returnField="release_status" valueField="value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd9500_fnd_business_notification_resutl_ds" autoCount="true" autoPageSize="true" autoQuery="false" model="fnd.FND9500.fnd_business_notification" queryDataSet="fnd9500_fnd_business_notification_query_ds"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton id="fnd9500_createBusinessNotification_btn" click="fnd9500_createBusinessNotification" style="margin-left:20px;" text="新增通知单" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="fnd9500_fnd_business_notification_query_form_id" bindTarget="fnd9500_fnd_business_notification_query_ds" resultTarget="fnd9500_fnd_business_notification_resutl_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:hBox labelWidth="110">
+                        <a:textField name="notification_title" bindTarget="fnd9500_fnd_business_notification_query_ds" prompt="通知单标题">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9500_queryFunction"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="notification_type_display" bindTarget="fnd9500_fnd_business_notification_query_ds" prompt="通知单类型">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9500_queryFunction"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="release_status_display" bindTarget="fnd9500_fnd_business_notification_query_ds" prompt="发布状态">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9500_queryFunction"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="110">
+                        <a:datePicker name="creation_date_from" bindTarget="fnd9500_fnd_business_notification_query_ds" prompt="创建日期从">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9500_queryFunction"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="creation_date_to" bindTarget="fnd9500_fnd_business_notification_query_ds" prompt="创建日期至">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9500_queryFunction"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                    <a:hBox labelWidth="110">
+                        <a:datePicker name="release_date_from" bindTarget="fnd9500_fnd_business_notification_query_ds" prompt="发布日期从">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9500_queryFunction"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="release_date_to" bindTarget="fnd9500_fnd_business_notification_query_ds" prompt="发布日期至">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9500_queryFunction"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="fnd9500_fnd_business_notification_resutl_ds_grid" autoAppend="false" bindTarget="fnd9500_fnd_business_notification_resutl_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="notification_number" align="left" prompt="通知单编号" renderer="fnd9500_fndBusinessNotificationResutlDsGridRenderer" sortable="true" width="120"/>
+                    <a:column name="notification_title" align="left" prompt="通知单标题" width="150"/>
+                    <a:column name="notification_type_desc" align="left" prompt="通知单类型" sortable="true" width="120"/>
+                    <a:column name="status_desc" align="center" prompt="签收状态" sortable="true" width="50"/>
+                    <a:column name="receive_detail" align="center" prompt="签收明细" renderer="fnd9500_fndBusinessNotificationResutlDsGridRenderer" width="50"/>
+                    <a:column name="owner_company_name" align="left" prompt="公司" width="120"/>
+                    <a:column name="business_unit_name" align="left" prompt="业务单元" width="100"/>
+                    <a:column name="release_flag_desc" align="center" prompt="发布状态" width="50"/>
+                    <a:column name="release_date_fmt" align="center" prompt="发布日期" width="80"/>
+                    <a:column name="release_user_name" align="center" prompt="发布人" width="50"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

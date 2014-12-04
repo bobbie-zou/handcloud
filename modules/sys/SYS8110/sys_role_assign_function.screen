@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-8-26 下午1:40:40  
+    $Revision: 1.0  
+    $Purpose: 角色管理-云级，角色分配功能页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="sys8110_sys_role_function_save_link" url="${/request/@context_path}/modules/sys/SYS8110/sys_role_function_save.svc"/>
+        <script><![CDATA[
+        
+            function sys8110_roleFunctionClose() {
+                $('sys8110_sys_role_assign_function_link_window').close();
+            }
+            
+            function sys8110_roleFunctionSave() {
+                var ds = $('sys8110_function_tree_ds');
+                var role_id = '${/parameter/@role_id}';
+                var data = {
+                    role_id: role_id,
+                    '_status':'update'
+                };
+                var functions = [];
+                var items = ds.getAll();
+                var count = items.length;
+                if (count == 0) {
+                    Aurora.showMessage('${l:PROMPT.HINT}', '${l:NO_MENU_INFO}');
+                } else {
+                    var d = items[0].data;
+                    var dr = d['role_id'];
+                    if (dr && dr != role_id) {
+                        Aurora.showMessage('${l:PROMPT.HINT}', '${l:CHECK_MENU_DATA}');
+                        return;
+                    }
+                    for (var i = 0,
+                        l = count;i < l;i++) {
+                        if(items[i].dirty){
+	                        var d2 = items[i].data;
+	                        d2['role_id'] = role_id;
+	                        functions[functions.length] = d2;
+                        }
+                    }
+                    data['functions'] = functions;
+                    
+                    $('sys8110_roleFunctionSave_btn').disable();
+                    Aurora.request({
+                        url: $('sys8110_sys_role_function_save_link').getUrl(),
+                        para: data,
+                        success: function(){
+                            Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.OPERATION_SUCCESS}',function(){
+				                $('sys8110_function_tree_ds').query();
+				                $('sys8110_roleFunctionSave_btn').enable();
+			                });
+                        },
+                        failure: function() {
+                            $('sys8110_roleFunctionSave_btn').enable();
+                        },
+                        error: function() {
+                            $('sys8110_roleFunctionSave_btn').enable();
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function sys8110_onSys8110FunctionTreeDsSubmitSuccess(dataset, response){
+                Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.OPERATION_SUCCESS}',function(){
+	                dataset.query();
+                });
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys8110_function_tree_ds" autoQuery="true" fetchAll="true" model="sys.SYS8110.sys_role_function" queryUrl="${/request/@context_path}/autocrud/sys.SYS8110.sys_role_function/query?role_id=${/parameter/@role_id}">
+                <a:fields>
+                    <a:field name="function_code" readOnly="true"/>
+                    <a:field name="function_name" readOnly="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="sys8110_onSys8110FunctionTreeDsSubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:toolbarButton id="sys8110_roleFunctionSave_btn" click="sys8110_roleFunctionSave" text="PROMPT.SAVE" width="100"/>
+            <a:toolbarButton click="sys8110_roleFunctionClose" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+        </a:screenTopToolbar>
+        <a:hBox>
+            <a:label name="role_name" bindTarget="sys8110_role_result_ds" prompt="SYS_ROLE.ROLE_NAME"/>
+            <a:label name="role_description" bindTarget="sys8110_role_result_ds" prompt="SYS_ROLE.ROLE_DESCRIPTION"/>
+        </a:hBox>
+        <a:treeGrid id="sys8110_function_tree_ds_grid" bindTarget="sys8110_function_tree_ds" expandField="expanded" height="400" idField="function_id" parentField="parent_function_id" showCheckBox="true" width="580">
+            <a:columns>
+                <a:column name="function_name" prompt="FND_FUNCTION.FUNCTION_NAME" width="350"/>
+                <a:column name="function_code" prompt="FND_FUNCTION.FUNCTION_CODE" width="200"/>
+            </a:columns>
+        </a:treeGrid>
+    </a:view>
+</a:screen>

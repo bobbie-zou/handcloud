@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-8-1 上午10:09:37  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="inv2090_flex_temp_insc_link" url="${/request/@context_path}/modules/inv/INV2090/fnd_flex_temp_insc_attrs_maintain.screen"/>
+        <script><![CDATA[
+			function inv2090_queryHook(value, ds) {
+               var record = ds.getCurrentRecord();
+               record.set('flexfield_group_code', null);
+               record.set('flexfield_group_desc', null);
+               record.set('quick_value',value);
+         	}
+         	
+         	function inv2090_flex_temp_tabs_renderer(value,record,name){
+	            var template_id = record.get('template_id');
+	            var temp_instance_id = record.get('temp_instance_id');
+	            var framework_type=$('inv2090_flexfield_groups_ds').getCurrentRecord().get('framework_type');
+	            var desc='键弹性域';
+	            
+	            if(!Aurora.isEmpty(template_id)&&!Aurora.isEmpty(temp_instance_id)&&record.get('enabled_flag') == 'Y'){
+	            	return '<a href="javascript:inv2090_new_flex_temp_tabs_window(\'' + template_id + '\',\''+temp_instance_id+'\');">'+desc+'</a>';
+	            }
+	            return '';
+	        }
+	        
+	        function inv2090_new_flex_temp_tabs_window(template_id,temp_instance_id){
+	            var framework_type=$('inv2090_flexfield_groups_ds').getCurrentRecord().get('framework_type');
+	            var url = $('inv2090_flex_temp_insc_link').getUrl();
+	            
+	            new Aurora.Window({
+	                id:'inv2090_flex_temp_insc_window',
+	                url:url+'?template_id='+template_id+'&temp_instance_id='+temp_instance_id,
+	                title:'子段维护',
+	                fullScreen:true});
+	        }
+		
+			function inv2090_gridRenderer(value, record, name){
+			    //模板代码
+			    if(name=="template_code"){
+			        if(value){
+			            if(record.get('new_attribute_count') > 0){
+			                return '<div><font color="red">(NEW)&nbsp;</font>' + value + '</div>';
+			            }else{
+			                return value;
+			            }
+			        }
+			    }
+			}
+	
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv2090_flexfield_groups_query_ds"/>
+            <a:dataSet id="inv2090_flex_templates_query_ds"/>
+            <a:dataSet id="inv2090_flexfield_groups_ds" autoPageSize="true" autoQuery="true" fetchAll="false" model="inv.INV2090.fnd_flexfield_groups_query" queryDataSet="inv2090_flexfield_groups_query_ds">
+                <a:fields>
+                    <a:field name="enabled_flag" checkedValue="Y" readOnly="true" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv2090_flex_templates_result_ds" autoPageSize="true" bindName="result_ds" bindTarget="inv2090_flexfield_groups_ds" fetchAll="false" model="inv.INV2090.fnd_flex_templates" selectable="true">
+                <a:fields>
+                    <a:field name="template_id"/>
+                    <a:field name="temp_instance_id"/>
+                    <a:field name="used_flag"/>
+                    <a:field name="template_code" required="true"/>
+                    <a:field name="template_desc" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar id="inv2090_screenTopToolbar">
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm id="fnd2901_query_form" bindTarget="inv2090_flexfield_groups_query_ds" defaultQueryField="flexfield_group_code" defaultQueryHint="模版组代码或描述" queryHook="inv2090_queryHook" resultTarget="inv2090_flexfield_groups_ds" style="width:100%;border:none"/>
+            <a:grid id="inv2090_group_grid" bindTarget="inv2090_flexfield_groups_ds" height="200" marginWidth="60" navBar="true">
+                <a:columns>
+                    <a:column name="flexfield_category_code" align="center" prompt="模版类型代码" width="80"/>
+                    <a:column name="flexfield_category_desc" align="center" prompt="模版类型描述" width="150"/>
+                    <a:column name="flexfield_group_code" align="center" prompt="模版组代码" width="80"/>
+                    <a:column name="flexfield_group_desc" align="center" prompt="模版组描述" width="150"/>
+                    <a:column name="framework_type_desc" align="center" prompt="结构样式" width="80"/>
+                    <a:column name="enabled_flag" align="center" prompt="启用" width="60"/>
+                </a:columns>
+            </a:grid>
+            <a:grid id="inv2090_grid" bindTarget="inv2090_flex_templates_result_ds" height="200" marginWidth="60" navBar="true">
+                <a:columns>
+                    <a:column name="template_code" align="center" prompt="模版代码" renderer="inv2090_gridRenderer" width="80"/>
+                    <a:column name="template_desc" align="center" prompt="模版描述" width="80"/>
+                    <a:column name="temp_instances" align="center" renderer="inv2090_flex_temp_tabs_renderer"/>
+                    <a:column name="enabled_flag" align="center" prompt="启用"/>
+                    <a:column name="compiled_flag_desc" align="center" prompt="已编译"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

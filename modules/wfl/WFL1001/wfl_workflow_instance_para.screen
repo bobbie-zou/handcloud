@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <model-query autocount="true" fetchall="true" model="wfl.WFL5010.wfl_workflow_node_action" queryOrderBy="sequence_num desc" rootpath="wfl1001_node_action"/>
+        <model-query model="wfl.WFL5010.wfl_workflow_service_open_url" rootPath="wfl1001_approvelist"/>
+        <a:model-query autoCount="true" defaultWhereClause="t1.record_id = ${/parameter/@record_id}" fetchAll="true" model="wfl.WFL5010.wfl_instance_node_recipient" rootPath="wfl1001_instance_one"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="wfl_node_action_agree_control_link" url="${/request/@context_path}/modules/wfl/WFL5010/wfl_node_action_agree_control.svc"/>
+        <a:link id="wfl_node_action_refuse_control_link" url="${/request/@context_path}/modules/wfl/WFL5010/wfl_node_action_refuse_control.svc"/>
+        <a:link id="wfl_node_action_skip_control_link" url="${/request/@context_path}/modules/wfl/WFL5010/wfl_node_action_skip_control.svc"/>
+        <a:link id="wfl_node_action_procedure_control_link" url="${/request/@context_path}/modules/wfl/WFL5010/wfl_node_action_procedure_control.svc"/>
+        <a:link id="wfl_node_action_viewpage_control_link" url="${/request/@context_path}/modules/wfl/WFL5010/wfl_node_action_viewpage_control.svc"/>
+        <style><![CDATA[
+         .buttongroup .item-btn-tl,.buttongroup .item-btn-tc,.buttongroup .item-btn-tr,.buttongroup .item-btn-bl,.buttongroup .item-btn-bc,.buttongroup .item-btn-br,.buttongroup .item-btn-mr{
+            display:none;
+         }
+         .buttongroup .item-btn{
+            height:30px;
+            border:none;
+         }
+         .buttongroup .item-btn-ml{
+            background:url(${/request/@context_path}/images/button2.gif)
+         }
+        .buttongroup .item-btn-mc{
+             background:url(${/request/@context_path}/images/button2.gif) right 0;
+            padding:9px 8px 5px 0;
+        }
+        .buttongroup .item-btn-mc button div{ 
+             color:#ffffff;
+        }
+        .buttongroup .item-btn-over .item-btn-mc{
+             background:url(${/request/@context_path}/images/button2.gif) right -30px;
+        }
+        .buttongroup .item-btn-over .item-btn-ml{
+            background:url(${/request/@context_path}/images/button2.gif) left -30px;
+         }
+        .buttongroup  .item-btn-over button div{ 
+             color:#000000;
+        }
+        ]]></style>
+        <a:link/>
+        <script><![CDATA[
+            function wfl1001_onCloseInstancePara() {
+                $('wfl1001_wfl_todo_detail_window').close();
+            }
+            
+            //设置请求的时间
+            Ext.Ajax.timeout = 2 * 60 * 60 * 1000;
+            
+            function wfl1001_onAgree(record) {
+                var record_id = ${/parameter/@record_id};
+                var comment_text = $('wfl1001_comment_text_id').getValue();
+                var node_action_id = record.get('node_action_id');
+            
+                //在提交请求的过程中锁屏
+                wfl1001_lockScreenInstancePara();
+            
+                Aurora.request({
+                    url: $('wfl_node_action_agree_control_link').getUrl(),
+                    para: {
+                        record_id: record_id,
+                        comment_text: comment_text,
+                        node_action_id: node_action_id
+                    },
+                    success: function(response) {
+                        //解锁
+                        wfl1001_unLockScreenInstancePara();
+                        var result_num = response.result.result_num;
+                        var ins_status = response.result.ins_status;
+                        if (result_num == 0) {
+                            if (ins_status == 10) {
+                                Aurora.showMessage('提示', '操作成功!', wfl1001_onCloseQuery);
+                            } else {
+                                Aurora.showMessage('提示', '操作成功', wfl1001_onCloseQuery);
+                            }
+                        } else if (result_num == 1) {
+                            Aurora.showMessage('提示', '操作失败', wfl1001_onCloseQuery);
+                        }
+                    },
+                    failure: function() {
+                        wfl1001_unLockScreenInstancePara();
+                    },
+                    error: function() {
+                        wfl1001_unLockScreenInstancePara();
+                    },
+                    scope: this
+                });
+            }
+            
+            function wfl1001_onRefuse(record) {
+                var record_id = ${/parameter/@record_id};
+                var comment_text = $('wfl1001_comment_text_id').getValue();
+                var node_action_id = record.get('node_action_id');
+            
+                //在提交请求的过程中锁屏
+                wfl1001_lockScreenInstancePara();
+            
+                //设置请求的时间
+                Ext.Ajax.timeout = 20 * 60 * 1000;
+            
+                Aurora.request({
+                    url: $('wfl_node_action_refuse_control_link').getUrl(),
+                    para: {
+                        record_id: record_id,
+                        comment_text: comment_text,
+                        node_action_id: node_action_id
+                    },
+                    success: function(response) {
+                        //解锁
+                        wfl1001_unLockScreenInstancePara();
+            
+                        var result_num = response.result.result_num;
+                        if (result_num == 0) {
+                            Aurora.showMessage('提示', '操作成功', wfl1001_onCloseQuery);
+                        } else if (result_num == 1) {
+                            Aurora.showMessage('提示', '操作失败', wfl1001_onCloseQuery);
+                        }
+                    },
+                    failure: function() {
+                        wfl1001_unLockScreenInstancePara();
+                    },
+                    error: function() {
+                        wfl1001_unLockScreenInstancePara();
+                    },
+                    scope: this
+                });
+            }
+            
+            function wfl1001_onSkip(record) {
+                var record_id = ${/parameter/@record_id};
+                var comment_text = $('wfl1001_comment_text_id').getValue();
+                var node_action_id = record.get('node_action_id');
+            
+                //在提交请求的过程中锁屏
+                wfl1001_lockScreenInstancePara();
+            
+                //设置请求的时间
+                Ext.Ajax.timeout = 20 * 60 * 1000;
+            
+                Aurora.request({
+                    url: $('wfl_node_action_skip_control_link').getUrl(),
+                    para: {
+                        record_id: record_id,
+                        comment_text: comment_text,
+                        node_action_id: node_action_id
+                    },
+                    success: function(response) {
+                        //解锁
+                        wfl1001_unLockScreenInstancePara();
+            
+                        var result_num = response.result.result_num;
+                        if (result_num == 0) {
+                            Aurora.showMessage('提示', '操作成功', wfl1001_onCloseQuery);
+                        } else if (result_num == 1) {
+                            Aurora.showMessage('提示', '操作失败', wfl1001_onCloseQuery);
+                        }
+                    },
+                    failure: function() {
+                        wfl1001_unLockScreenInstancePara();
+                    },
+                    error: function() {
+                        wfl1001_unLockScreenInstancePara();
+                    },
+                    scope: this
+                });
+            }
+            
+            function wfl1001_onProcedure(record) {
+                var record_id = ${/parameter/@record_id};
+                var node_action_id = record.get('node_action_id');
+            
+                //在提交请求的过程中锁屏
+                wfl1001_lockScreenInstancePara();
+            
+                //设置请求的时间
+                Ext.Ajax.timeout = 20 * 60 * 1000;
+            
+                Aurora.request({
+                    url: $('wfl_node_action_procedure_control_link').getUrl(),
+                    para: {
+                        record_id: record_id,
+                        node_action_id: node_action_id
+                    },
+                    success: function(response) {
+                        //解锁
+                        wfl1001_unLockScreenInstancePara();
+            
+                        var result_num = response.result.result_num;
+                        if (result_num == 0) {
+                            Aurora.showMessage('提示', '操作成功');
+                        } else if (result_num == 1) {
+                            Aurora.showMessage('提示', '操作失败');
+                        }
+                    },
+                    failure: function() {
+                        wfl1001_unLockScreenInstancePara();
+                    },
+                    error: function() {
+                        wfl1001_unLockScreenInstancePara();
+                    },
+                    scope: this
+                });
+            }
+            
+            function wfl1001_onViewPage(record) {
+                var record_id = ${/parameter/@record_id};
+                var node_action_id = record.get('node_action_id');
+            
+                //在提交请求的过程中锁屏
+                wfl1001_lockScreenInstancePara();
+            
+                //设置请求的时间
+                Ext.Ajax.timeout = 20 * 60 * 1000;
+            
+                Aurora.request({
+                    url: $('wfl_node_action_viewpage_control_link').getUrl(),
+                    para: {
+                        record_id: record_id,
+                        node_action_id: node_action_id
+                    },
+                    success: function(response) {
+                        //解锁
+                        wfl1001_unLockScreenInstancePara();
+            
+                        var result_num = response.result.result_num;
+                        var service_url = '${/request/@context_path}/' + response.result.service_url;
+                        if (result_num == 0) {
+                            new Aurora.Window({
+                                id: 'wfl_workflow_service_window',
+                                url: service_url,
+                                title: '',
+                                fullScreen: true
+                            });
+                        } else if (result_num == 1) {
+                            Aurora.showMessage('提示', '操作失败');
+                        }
+                    },
+                    failure: function() {
+                        wfl1001_unLockScreenInstancePara();
+                    },
+                    error: function() {
+                        wfl1001_unLockScreenInstancePara();
+                    },
+                    scope: this
+                });
+            }
+            
+            //关闭当前页，刷新父页面列表
+            
+            function wfl1001_onCloseQuery() {
+                wfl1001_onCloseInstancePara();
+            }
+            
+            function wfl1001_actionTypeRenderer(value, record, name) {
+                var action_type = record.get('action_type');
+                var action_type_desc = record.get('action_type_desc');
+                if (action_type == '1') {
+                    return "<div style='background-color:rgb(127,255,0)'>" + action_type_desc + "</div>"; //同意,绿色
+                } else if (action_type == '2') {
+                    return "<div style='background-color:rgb(255,69,0)'>" + action_type_desc + "</div>"; //拒绝,红色
+                } else if (action_type == '3') {
+                    return "<div style='background-color:rgb(255,255,0)'>" + action_type_desc + "</div>"; //跳转,黄色
+                } else {
+                    return "";
+                }
+            }
+            
+            //提交时，锁屏
+            
+            function wfl1001_lockScreenInstancePara() {
+                Aurora.Masker.mask($('wfl1001_wfl_todo_detail_window').wrap, '正在加载');
+            }
+            
+            //提交完成后，解锁
+            
+            function wfl1001_unLockScreenInstancePara() {
+                Aurora.Masker.unmask($('wfl1001_wfl_todo_detail_window').wrap);
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl1001_wfl_workflow_node_action_ds">
+                <a:datas dataSource="/model/wfl1001_node_action"/>
+            </a:dataSet>
+            <a:dataSet id="wfl1001_approvelist">
+                <a:datas dataSource="/model/wfl1001_approvelist"/>
+            </a:dataSet>
+            <a:dataSet id="wfl1001_wfl_instance_parameter_result_ds" loadData="true" model="wfl.WFL5010.wfl_workflow_instance_para"/>
+            <a:dataSet id="wfl1001_wfl_approve_record_result_ds" autoQuery="true" model="wfl.WFL5010.wfl_approve_record" queryUrl="${/request/@context_path}/autocrud/wfl.WFL5010.wfl_approve_record/query?instance_id=${/parameter/@instance_id}"/>
+            <a:dataSet id="wfl1001_wfl_instance_one_ds">
+                <a:datas dataSource="/model/wfl1001_instance_one"/>
+                <a:fields>
+                    <a:field name="workflow_code" readOnly="true"/>
+                    <a:field name="workflow_desc" readOnly="true"/>
+                    <a:field name="node_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:switch test="/model/wfl1001_approvelist/record/@service_url">
+                <a:case value="default">
+                    <a:form column="4" labelWidth="100" marginWidth="40">
+                        <a:textField name="workflow_code" bindTarget="wfl1001_wfl_instance_one_ds" prompt="工作流代码" typeCase="upper"/>
+                        <a:textField name="workflow_desc" bindTarget="wfl1001_wfl_instance_one_ds" prompt="工作流描述"/>
+                        <a:textField name="node_desc" bindTarget="wfl1001_wfl_instance_one_ds" prompt="节点描述"/>
+                    </a:form>
+                    <!-- <a:box>
+		                <a:button click="wfl1001_onCloseInstancePara" text="返回"/>
+		            </a:box> -->
+                    <a:table bindTarget="wfl1001_wfl_instance_parameter_result_ds" showhead="true">
+                        <a:columns>
+                            <a:column name="workflow_type_para_desc" align="center" prompt="描述" width="200"/>
+                            <a:column name="parameter_value" align="center" prompt="值" width="200"/>
+                        </a:columns>
+                    </a:table>
+                    <a:table id="wfl1001_wfl_approve_record_result_grid" bindTarget="wfl1001_wfl_approve_record_result_ds" marginWidth="40">
+                        <a:columns>
+                            <a:column name="create_date_fmt" align="center" prompt="审批时间" width="80"/>
+                            <a:column name="action_type" prompt="审批操作" renderer="wfl1001_actionTypeRenderer" width="60"/>
+                            <a:column name="node_desc" prompt="审批节点" width="100"/>
+                            <a:column name="approver" prompt="审批人" width="100"/>
+                            <a:column name="comment_text" prompt="审批意见" width="200"/>
+                            <a:column name="workflow_code" prompt="工作流代码" width="100"/>
+                            <a:column name="workflow_desc" prompt="工作流描述" width="100"/>
+                            <a:column name="node_sequence_num" prompt="节点编号" width="50"/>
+                        </a:columns>
+                    </a:table>
+                </a:case>
+                <a:case>
+                    <a:screen-include screen="${/model/wfl1001_approvelist/record/@service_url}"/>
+                    <a:table id="wfl1001_wfl_approve_record_result_grid2" bindTarget="wfl1001_wfl_approve_record_result_ds" marginWidth="40">
+                        <a:columns>
+                            <a:column name="create_date_fmt" align="center" prompt="审批时间" width="80"/>
+                            <a:column name="action_type" prompt="审批操作" renderer="wfl1001_actionTypeRenderer" width="60"/>
+                            <a:column name="node_desc" prompt="审批节点" width="100"/>
+                            <a:column name="approver" prompt="审批人" width="100"/>
+                            <a:column name="comment_text" prompt="审批意见" width="200"/>
+                            <a:column name="workflow_code" prompt="工作流代码" width="100"/>
+                            <a:column name="workflow_desc" prompt="工作流描述" width="100"/>
+                            <a:column name="node_sequence_num" prompt="节点编号" width="50"/>
+                        </a:columns>
+                    </a:table>
+                </a:case>
+            </a:switch>
+            <a:vBox>
+                <!-- <a:hBox>
+                    <a:textArea name="comment_text" id="wfl1001_comment_text_id" height="30" prompt="审批意见" width="900"/>
+                </a:hBox> -->
+                <!-- <a:hbox>
+                 <a:button click="wfl1001_onCloseInstancePara" text="返回"/>
+                </a:hbox> -->
+                <a:hBox>
+                    <a:box>
+                        <a:textArea name="comment_text" id="wfl1001_comment_text_id" height="40" prompt="审批意见" width="500"/>
+                    </a:box>
+                    <table id="wfl1001_showbutton" class="buttongroup">
+                        <tr>
+                            <!-- <td>
+                                <a:button class="buttongroup" click="wfl1001_onCloseInstancePara" text="返回"/>
+                            </td> --><![CDATA[
+                            
+                            
+                            
+                        ]]></tr>
+                    </table>
+                </a:hBox>
+            </a:vBox>
+        </a:screenBody>
+        <script><![CDATA[
+            function wfl1001_initButton(){
+                
+            	var node_action_ds = $('wfl1001_wfl_workflow_node_action_ds');
+            	
+            	var datalist = node_action_ds.getAll();
+            	
+            	for (var i=0, l=datalist.length;i<l;i++){
+            		var node_action = datalist[i];
+	                var table = document.getElementById("wfl1001_showbutton");
+	                var newTD = table.rows[0].insertCell(0);	                
+	                newTD.style.cssText='padding-right:15px';
+	                var buttonTpl = "<TABLE action_id='{action_id}'  class='item-btn' style=';width:60px;' id='{id}' cellSpacing='0'><TBODY><TR><TD class='item-btn-tl'><I></I></TD><TD class='item-btn-tc'></TD><TD class='item-btn-tr'><I></I></TD></TR><TR><TD class='item-btn-ml'><I></I></TD><TD class='item-btn-mc'><BUTTON type='button' hidefocus='true' atype='btn' title='' style='height:16px;' class=''><div style='line-height:16px;height:16px;'>{action_desc}</div></BUTTON></TD><TD class='item-btn-mr'><I></I></TD></TR><TR><TD class='item-btn-bl'><I></I></TD><TD class='item-btn-bc'></TD><TD class='item-btn-br'><I></I></TD></TR></TBODY></TABLE>";
+	                var btnid = 'btn_'+i;
+	                var bindaction_id = node_action.get('node_action_id');
+	                var bindaction_desc = node_action.get('node_action_desc'); 
+	                new Ext.Template(buttonTpl).insertFirst(newTD,{id:btnid,action_desc:bindaction_desc,action_id:bindaction_id});
+	                
+	                //根据动作类型，动态设置按钮的执行事件
+	                var action_type = node_action.get('action_type');	                
+	                switch(action_type){
+	                	case '1' :
+			                new Aurora.Button({"id":btnid,"listeners":{"click":wfl1001_onAgree.createDelegate(this,[node_action])},"height":16,"width":60,"required":false,"readonly":false});	                		
+	                		break;
+	                	case '2' :
+	                		new Aurora.Button({"id":btnid,"listeners":{"click":wfl1001_onRefuse.createDelegate(this,[node_action])},"height":16,"width":60,"required":false,"readonly":false});
+	                		break;
+	                	case '3' :
+	                		new Aurora.Button({"id":btnid,"listeners":{"click":wfl1001_onSkip.createDelegate(this,[node_action])},"height":16,"width":60,"required":false,"readonly":false});
+	                		break;
+	                	case '4' :
+	                		new Aurora.Button({"id":btnid,"listeners":{"click":wfl1001_onProcedure.createDelegate(this,[node_action])},"height":16,"width":60,"required":false,"readonly":false});
+	                		break;
+	                	default:
+	                		new Aurora.Button({"id":btnid,"listeners":{"click":wfl1001_onViewPage.createDelegate(this,[node_action])},"height":16,"width":60,"required":false,"readonly":false});
+	                }
+	           }
+            }
+            wfl1001_initButton();
+        ]]></script>
+    </a:view>
+</a:screen>

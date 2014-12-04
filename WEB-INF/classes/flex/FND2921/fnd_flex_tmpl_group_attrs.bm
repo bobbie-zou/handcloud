@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-12-10 下午2:59:36  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select t1.group_attribute_id,
+       t1.tmpl_group_id,
+       t1.attribute_code,
+       t1.attribute_desc,
+       t1.statistical_attribute,
+       t1.data_source,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc, fnd_flex_formats f
+         where sc.code_id = scv.code_id
+           and f.flex_format_id = t1.flex_format_id
+           and scv.code_value = t1.data_source
+           and sc.code = 'FND_ATTR_SET_DATA_SOURCE') as data_source_desc,
+       t1.display_sequence,
+       t1.flex_value_set_id,
+       t1.flex_format_id,
+       (select ffvs.flex_value_set_desc
+          from fnd_flex_value_sets_vl ffvs
+         where ffvs.flex_value_set_id = t1.flex_value_set_id) as flex_value_set_desc,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc, fnd_flex_formats f
+         where sc.code_id = scv.code_id
+           and f.flex_format_id = t1.flex_format_id
+           and scv.code_value = f.format_category
+           and sc.code = 'FLEX_FORMAT_CATEGORY') as format_category_desc,
+       (select f.display_example
+          from fnd_flex_formats f
+         where f.flex_format_id = t1.flex_format_id) as display_example,
+       t1.nullable_flag,
+       t1.enabled_flag
+  from fnd_flex_tmpl_group_attrs_vl t1 
+  #WHERE_CLAUSE#
+ order by t1.display_sequence asc]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+    				begin
+    				  fnd_flex_tmpl_groups_pkg.create_tmpl_group_attrs(
+    				                x_group_attribute_id    =>${@group_attribute_id},
+                                    p_tmpl_group_id         =>${@tmpl_group_id},
+                                    p_attribute_code        =>${@attribute_code},
+                                    p_statistical_attribute =>${@statistical_attribute},
+                                    p_description           =>${@attribute_desc},
+                                    p_data_source           =>${@data_source},
+                                    p_display_sequence      =>${@display_sequence},
+                                    p_flex_value_set_id     =>${@flex_value_set_id},
+                                    p_flex_format_id        =>${@flex_format_id},
+                                    p_nullable_flag         =>${@nullable_flag},
+					    			p_enabled_flag       	=>${@enabled_flag},
+                                    p_user_id               =>${/session/@user_id});
+    				  
+    				end;
+    			]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="group_attribute_id" dataType="java.lang.Long" input="false" output="true" outputPath="@attribute_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+    				begin
+    				  fnd_flex_tmpl_groups_pkg.modify_tmpl_group_attrs(
+    				   				p_group_attribute_id    =>${@group_attribute_id},
+                                    p_statistical_attribute =>${@statistical_attribute},
+                                    p_description           =>${@attribute_desc},
+                                    p_data_source           =>${@data_source},
+                                    p_display_sequence      =>${@display_sequence},
+                                    p_flex_value_set_id     =>${@flex_value_set_id},
+                                    p_flex_format_id        =>${@flex_format_id},
+                                    p_nullable_flag         =>${@nullable_flag},
+					    			p_enabled_flag       	=>${@enabled_flag},
+                                    p_user_id               =>${/session/@user_id});
+    				  
+    				end;
+    			]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="query_hook" queryExpression="(t1.attribute_code like &apos;%&apos;||${@query_hook}||&apos;%&apos; or t1.attribute_desc like &apos;%&apos;||${@query_hook}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="t1.tmpl_group_id=${@tmpl_group_id}"/>
+    </bm:data-filters>
+</bm:model>

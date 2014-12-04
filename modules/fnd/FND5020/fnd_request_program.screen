@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tangrunyu3837 $
+    $Date: 2014/02/21 05:33:11 $
+    $Revision: 1.4 $
+    $Purpose: “可执行定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="fnd5020_fnd_request_program_edit_link" url="${/request/@context_path}/modules/fnd/FND5020/fnd_request_program_insert.screen"/>
+        <a:link id="fnd5020_fnd_request_program_job_edit_link" url="${/request/@context_path}/modules/fnd/FND5020/fnd_request_program_job_edit.screen"/>
+        <script><![CDATA[
+        
+            function fnd5020_query(){
+                $('fnd5020_fnd_request_program_result_ds').query();
+            }
+			function fnd5020_reset(){
+				$('fnd5020_fnd_request_program_query_ds').reset();
+			}
+			
+			
+            function fnd5020_actionRenderer(value,record, name){
+                if (value){
+                    var window_id="fnd5020_fnd_request_program_create_window";
+                    var cycle_flag=record.get('cycle_flag');
+                    if (cycle_flag=='Y'){
+                        var path=$('fnd5020_fnd_request_program_job_edit_link').getUrl()+'?program_id='+value;
+                    }else{
+                        var path=$('fnd5020_fnd_request_program_edit_link').getUrl()+'?program_id='+value;
+                    }
+                    
+                    return "<a href=\"javascript:fnd5020_editProgram('"+window_id+"','"+path+"')\">${l:HAP_EDIT}</a>";
+                }else{
+                    return '';
+                }
+            }
+           
+           function fnd5020_editProgram(window_id,path) {
+                new Aurora.Window({
+                    id: window_id,
+                    url: path,
+                    title: '${l:PROMPT.DETAIL}',
+                    height:530,
+                    width:650
+            
+                });
+            }
+            
+           
+            function fnd5020_canedit(record, name) {
+                return record.isNew ? 'fnd5020_program_code_tf' : '';
+            }       
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd5020_enable_flag_ds" lookupCode="YES_OR_NO"/>
+            <a:dataSet id="fnd5020_cycle_flag_ds" lookupCode="YES_OR_NO"/>
+            <a:dataSet id="fnd5020_fnd_request_program_query_ds" model="fnd.FND5020.fnd_request_program">
+                <a:fields>
+                    <a:field name="enable_flag_display" displayField="code_value_name" options="fnd5020_enable_flag_ds" prompt="FND_REQUEST_INFO.ENABLE_FLAG" returnField="enable_flag" valueField="code_value"/>
+                    <a:field name="cycle_flag_desc" displayField="code_value_name" options="fnd5020_cycle_flag_ds" prompt="FND_REQUEST_PROGRAM.CYCLE_FLAG" returnField="cycle_flag" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd5020_fnd_request_program_result_ds" autoCount="true" autoQuery="true" fetchAll="false" model="fnd.FND5020.fnd_request_program" queryDataSet="fnd5020_fnd_request_program_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="enable_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="cycle_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="program_code" required="true"/>
+                    <a:field name="program_name" required="true"/>
+                    <a:field name="request_code" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="fnd.FND5020.fnd_request_info_lov" lovWidth="500" title="FND_CONCURRENT_REQUEST.REQUEST_CODE">
+                        <a:mapping>
+                            <a:map from="request_info_id" to="request_info_id"/>
+                            <a:map from="request_code" to="request_code"/>
+                            <a:map from="request_name" to="request_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="fnd5020_grid" style="margin-left:20px;" text="HAP_NEW" type="add" width="100"/>
+                <a:gridButton bind="fnd5020_grid" text="HAP_SAVE" type="save" width="100"/>
+                <a:gridButton bind="fnd5020_grid" text="HAP_CLEAR" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="fnd5020_request_program_query_form" bindTarget="fnd5020_fnd_request_program_query_ds" resultTarget="fnd5020_fnd_request_program_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox>
+                        <a:textField name="program_code" prompt="FND_REQUEST_PROGRAM.PROGRAM_CODE" typeCase="upper">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd5020_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="program_name" prompt="FND_REQUEST_PROGRAM.PROGRAM_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd5020_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="description" prompt="FND_REQUEST_PROGRAM.DESCRIPTION">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd5020_query"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody style="margin-left:8px">
+                    <a:hBox>
+                        <a:comboBox name="enable_flag_display" prompt="FND_REQUEST_INFO.ENABLE_FLAG">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd5020_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="cycle_flag_desc" prompt="FND_REQUEST_PROGRAM.CYCLE_FLAG">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd5020_query"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="fnd5020_grid" bindTarget="fnd5020_fnd_request_program_result_ds" marginHeight="130" marginWidth="40" navBar="true" width="750">
+                <a:columns>
+                    <a:column name="program_code" align="center" editor="fnd5020_program_code_tf" editorFunction="fnd5020_canedit" prompt="FND_REQUEST_PROGRAM.PROGRAM_CODE" sortable="true" width="80"/>
+                    <a:column name="program_name" align="left" editor="fnd5020_program_name_tf" prompt="FND_REQUEST_PROGRAM.PROGRAM_NAME" width="100"/>
+                    <a:column name="description" align="left" editor="fnd5020_description_tf" prompt="FND_REQUEST_PROGRAM.DESCRIPTION" width="150"/>
+                    <a:column name="request_code" align="left" editor="fnd5020_request_code_lov" prompt="FND_CONCURRENT_REQUEST.REQUEST_CODE" width="80"/>
+                    <a:column name="request_name" align="left" prompt="FND_CONCURRENT_REQUEST.REQUEST_NAME" width="100"/>
+                    <a:column name="cycle_flag" editor="fnd5020_cycle_flag_comboBox" prompt="FND_REQUEST_PROGRAM.CYCLE_FLAG" sortable="true" width="75"/>
+                    <a:column name="enable_flag" editor="fnd5020_enable_flag_comboBox" prompt="FND_REQUEST_INFO.ENABLE_FLAG" sortable="true" width="75"/>
+                    <a:column name="program_id" align="center" prompt="HAP_EDIT" renderer="fnd5020_actionRenderer" width="45"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd5020_program_code_tf"/>
+                    <a:textField id="fnd5020_program_name_tf"/>
+                    <a:textField id="fnd5020_description_tf"/>
+                    <a:checkBox id="fnd5020_enable_flag_comboBox"/>
+                    <a:checkBox id="fnd5020_cycle_flag_comboBox"/>
+                    <a:lov id="fnd5020_request_code_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

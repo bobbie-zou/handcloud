@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Robin  
+    $Date: 2011-6-1 下午03:57:43  
+    $Revision: 1.0  
+    $Purpose: 客户类型定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultwhereclause="fv.company_type in (1,2)" fetchAll="true" model="public.fnd_assign_company_list" rootpath="FND2505_companyinit"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="FND2505_ord_customer_types_assign_hct_link" url="${/request/@context_path}/modules/fnd/FND2505/ord_customer_types_assign_hct.screen"/>
+        <a:link id="FND2505_ord_customer_types_assign_batch_link" url="${/request/@context_path}/modules/fnd/FND2505/ord_system_customer_type_batch_company.screen"/>
+        <script><![CDATA[
+            var FND2505_current_company_id = '${/session/@default_company_id}';
+            var FND2505_current_company_desc = '${/session/@default_company_desc}';
+            
+            function FND2505_result_query(ds) {
+                FND2505_current_company_id = $('FND2505_customer_type_query_ds').getAt(0).get('company_id');
+                FND2505_current_company_desc = $('FND2505_customer_type_query_ds').getAt(0).get('company_desc');
+            }
+            
+            
+            function FND2505_result_add(ds, record, index) {
+                record.set('company_id', FND2505_current_company_id);
+                record.set('company_desc', FND2505_current_company_desc);
+            }
+            
+            function FND2505_codeEdit(record, name) {
+                if (record.isNew) {
+                    return 'FND2505_com_tf';
+                }
+                return '';
+            }
+            
+            function FND2505_queryComstomer() {
+                $('FND2505_customer_type_define_ds').query();
+            }
+            
+            
+            
+            function FND2505_allocate(value, record, name) {
+                if (!record.isNew) {
+                    var customer_type_id = record.get('customer_type_id');
+                    return '<a href="javascript:FND2505_ItemAllocate(' + customer_type_id + ')">${l:INV_SYSTEM_ITEM_TYPES.ALLOCATE}</a>';
+                }
+                return '';
+            }
+            
+            function FND2505_ItemAllocate(customer_type_id) {
+                new Aurora.Window({
+                    id: 'FND2505_ord_customer_types_assign_hct_window',
+                    url: $('FND2505_ord_customer_types_assign_hct_link').getUrl() + '?customer_type_id=' + customer_type_id,
+                    title: '${l:INV_SYSTEM_ITEM_TYPES.ALLOCATE}',
+                    height: 500,
+                    width: 650
+                });
+            }
+            
+            function FND2505_batch_assign_customer_type() {
+                var records = $('FND2505_customer_type_define_ds').getSelected();
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}');
+                    return false;
+                } else {
+                    for (var i = 0;i < records.length;i++) {
+                        if (records[i].isNew || records[i].dirty) {
+                            Aurora.showMessage('${l:PROMPT_MESSAGE}', '${l:WORK_FLOW_ACTION.EXIT_BEFORE_SAVE}', null, 230, 100);
+                            return false;
+                        }
+                    }
+            
+                    new Aurora.Window({
+                        id: 'FND2505_batch_assign_customer_type_id',
+                        url: $('FND2505_ord_customer_types_assign_batch_link').getUrl(),
+                        title: '${l:FND_SYS_VENDERS.BATCH_DISP_COMPANY}',
+                        width: 730,
+                        height: 530
+                    });
+            
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="FND2505_assign_company_ds">
+                <a:datas dataSource="/model/FND2505_companyinit"/>
+            </a:dataSet>
+            <a:dataSet id="FND2505_customer_type_query_ds" model="fnd.FND2505.ord_system_customer_types">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@default_company_id}"/>
+                    <a:field name="company_desc" defaultValue="${/session/@default_company_desc}" displayField="company_desc" options="FND2505_assign_company_ds" required="true" returnField="company_id" valueField="company_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="FND2505_customer_type_define_ds" autoCount="true" autoQuery="true" model="fnd.FND2505.ord_system_customer_types" queryDataSet="FND2505_customer_type_query_ds" selectable="true" submitUrl="${/request/@context_path}/modules/fnd/FND2505/ord_system_customer_types.svc">
+                <a:fields>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="customer_type_code" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="company_id" defaultValue="${/session/@default_company_id}"/>
+                    <a:field name="company_desc" defaultValue="${/session/@default_company_desc}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="FND2505_result_add"/>
+                    <a:event name="query" handler="FND2505_result_query"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="FND2505_customer_type_define_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="FND2505_customer_type_define_grid" type="save" width="100"/>
+                <a:gridButton bind="FND2505_customer_type_define_grid" type="clear" width="100"/>
+                <a:gridButton click="FND2505_batch_assign_customer_type" text="FND_SYS_VENDERS.BATCH_DISP_COMPANY"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="FND2505_customer_type_query_ds" resultTarget="FND2505_customer_type_define_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none;"/>
+                    <a:textField name="customer_type_code" bindTarget="FND2505_customer_type_query_ds" prompt="INV_SYSTEM_ITEM_TYPES.ITEM_TYPE_CODEII" typeCase="upper">
+                        <a:events>
+                            <a:event name="enterdown" handler="FND2505_queryComstomer"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="description" bindTarget="FND2505_customer_type_query_ds" prompt="FND_COMPANY_PROMPTS.DESCRIPTION">
+                        <a:events>
+                            <a:event name="enterdown" handler="FND2505_queryComstomer"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="company_desc" bindTarget="FND2505_customer_type_query_ds" prompt="FND_COMPANIES.COMPANY">
+                        <a:events>
+                            <a:event name="enterdown" handler="FND2505_queryComstomer"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="FND2505_customer_type_define_grid" bindTarget="FND2505_customer_type_define_ds" height="340" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="customer_type_code" align="center" editorFunction="FND2505_codeEdit" prompt="INV_SYSTEM_ITEM_TYPES.ITEM_TYPE_CODEII" width="100"/>
+                    <a:column name="description" align="center" editor="FND2505_com_tf" prompt="FND_COMPANY_PROMPTS.DESCRIPTION" width="200"/>
+                    <a:column name="company_desc" align="center" prompt="FND_COMPANIES.COMPANY" width="200"/>
+                    <a:column name="enabled_flag" align="center" editor="FND2505_enabled_flag_cb" prompt="FND_DIMENSION_VALUES.ENABLED_FLAG" width="100"/>
+                    <a:column name="allocateid" align="center" prompt="INV_SYSTEM_ITEM_TYPES.ALLOCATE" renderer="FND2505_allocate" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="FND2505_com_tf" typeCase="upper"/>
+                    <a:checkBox id="FND2505_enabled_flag_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

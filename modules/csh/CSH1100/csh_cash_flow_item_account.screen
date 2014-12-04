@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: likun1919 $
+    $Date: 2013/01/09 01:47:09 $
+    $Revision: 1.1.1.1 $
+    $Purpose: 现金流量表定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" model="csh.CSH1100.csh_cash_set_of_book" queryOrderBy="code" rootPath="set_of_book"/>
+    </a:init-procedure>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+
+            function backtype() {
+                $('cash_accounts_window').close();
+            }
+            
+            function accountCodeEdit(record, name) {
+                if (record.isNew) {
+                    return 'account_code_lov';
+                }
+                return '';
+            }
+            
+            function ok(){
+                return;
+            }
+            function cancelfun(){
+                var record=$('csh_cash_flow_items_account_result_ds').getCurrentRecord();
+                record.set('account_id','');
+                record.set('account_code','');
+                record.set('description','');
+                return;
+            }
+            function CSH1100_commit(lov, record) {
+                var account_id = record.get('account_id');
+                var records = $('csh_cash_flow_items_accounts_query_ds').getAll();
+                for (i = 0;i < records.length;i++) {
+                    var account_record = $('csh_cash_flow_items_accounts_query_ds').getAt(i);
+                    if (account_id == account_record.get('account_id')) {
+                            Aurora.showConfirm('${l:PROMPT}', '${l:PROMPT.PLEASE_CHECK}',null,cancelfun);
+                            return;
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="csh_cash_flow_items_accounts_query_ds" autoQuery="true" fetchAll="true" model="csh.CSH1100.csh_cash_set_of_book">
+                <a:fields><![CDATA[
+                ]]></a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh_cash_flow_items_account_result_ds" autoQuery="true" fetchAll="true" model="csh.CSH1100.csh_cash_accounts_query" queryDataSet="csh_cash_flow_items_query_ds" selectable="true" submitUrl="${/request/@context_path}/autocrud/csh.CSH1100.csh_cash_accounts_save/batch_update">
+                <a:fields>
+                    <a:field name="account_code" lovGridHeight="340" lovHeight="460" lovService="csh.CSH1100.csh_cash_flow_item_account_lov" lovWidth="540" required="true" title="CSH_CASH_ACCOUNTS.ACCOUNT_ID">
+                        <a:mapping>
+                            <a:map from="account_code" to="account_code"/>
+                            <a:map from="description" to="description"/>
+                            <a:map from="account_id" to="account_id"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <!-- <a:events>
+                    <a:event name="" handler=""/>
+                </a:events> -->
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" title="CSH_CASH_FLOW_ITEMS.TITLE" width="600">
+                <a:textField name="cash_flow_line_number" bindTarget="csh_cash_flow_items_query_ds" prompt="FND_COMPANIES.SET_OF_BOOKS_ID" width="150"/>
+                <a:textField name="description" bindTarget="csh_cash_flow_items_query_ds" prompt="SYS_PROMPTS.DESCRIPTION" width="150"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="backtype" text="PROMPT.RETURN" width="80"/>
+            </a:hBox>
+            <a:grid bindTarget="csh_cash_flow_items_account_result_ds" height="350" navBar="true" width="780">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="save"/>
+                    <a:button type="delete"/>
+                    <a:button type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="account_code" Prompt="CSH_CASH_ACCOUNTS.ACCOUNT_ID" editorFunction="accountCodeEdit" width="100"/>
+                    <a:column name="description" Prompt="CSH_WRITE_OFF_ACCOUNTS.ACCOUNT_NAME" width="200"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="account_code_lov">
+                        <a:events>
+                            <a:event name="commit" handler="CSH1100_commit"/>
+                        </a:events>
+                    </a:lov>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

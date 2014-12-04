@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2014-3-5 下午4:16:06  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="pur5320_po_maintain_link" url="${/request/@context_path}/modules/pur/PUR5320/pur_po_maintain.screen"/>
+        <script><![CDATA[
+            function pur5320_query(){
+                $('pur5320_po_headers_all_ds').query();   
+            }
+            
+            //维护
+            function pur5320_maintain_render(value, record, name) {
+                if (record.isNew) {
+                    return '';
+                }
+                return '<a href="javascript:pur3010_openDetail(' + record.get('pur_header_id') + ')">' + value + '</a>';
+            }
+            
+            function pur3010_openDetail(id) {
+                new Aurora.Window({
+                    id: 'pur53201_po_maintain_window',
+                    url: $('pur5320_po_maintain_link').getUrl() + '?pur_header_id=' + id,
+                    title: '${l:PUR_PURCHASE_ORDER.ORDER_MAINTAIN}',
+                    fullScreen: true
+                }).on('beforeclose', pur5320_query);
+            }
+            
+        
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5320_currency_ds" loadData="true" model="public.currency_list"/>
+            <!-- USER AUTHORITY COMPANY-->
+            <a:dataSet id="pur5320_userAuthorityCompany_ds" fetchAll="true" loadData="true" model="public.fnd_user_authority_company_query"/>
+            <a:dataSet id="pur5320_po_query_ds">
+                <a:fields>
+                    <a:field name="segment"/>
+                    <a:field name="company_id"/>
+                    <a:field name="company_name" displayField="company_full_name" options="pur5320_userAuthorityCompany_ds" prompt="PUR_VENDOR_INVITATIONS.COMPANY_ID" returnField="company_id" valueField="company_id"/>
+                    <a:field name="agent_name" autoComplete="true" autoCompleteField="agent_code" lovGridHeight="320" lovHeight="480" lovService="public.pur_buyers_lov" lovWidth="500" title="PUR_BUYERS_SERVICE.PUR_BUYERS_QUERY">
+                        <a:mapping>
+                            <a:map from="buyer_id" to="agent_id"/>
+                            <a:map from="buyer_code" to="agent_code"/>
+                            <a:map from="description" to="agent_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_name" autoComplete="true" autoCompleteField="vendor_code" lovGridHeight="330" lovHeight="450" lovService="pur.PUR7010.pur_vendors_by_user_authority_lov" lovWidth="500" title="VENDER_SEARCH">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="creation_date_from"/>
+                    <a:field name="creation_date_to"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur5320_po_headers_all_ds" autoCount="true" autoPageSize="true" autoQuery="false" model="pur.PUR5320.pur_headers_all" queryDataSet="pur5320_po_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="pur_header_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="pur5320_po_headers_all_grid" text="导出" type="excel" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="pur5320_po_query_ds" marginWidth="90" resultTarget="pur5320_po_headers_all_ds" style="border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="display_po_number" prompt="PUR_HEADERS_ALL.SEGMENT1">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5320_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="company_name" prompt="PUR_HEADERS_ALL.COMPANY">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5320_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:lov name="vendor_name" prompt="PUR_HEADERS_ALL.VENDOR_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5320_query"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody style="margin-left:8px">
+                    <a:hBox labelWidth="120">
+                        <a:lov name="agent_name" prompt="PUR_HEADERS_ALL.PUR_BUYER">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5320_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:datePicker name="creation_date_from" prompt="PROMPTS.CREATION_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5320_query"/>
+                            </a:events>
+                        </a:datePicker>
+                        <a:datePicker name="creation_date_to" prompt="PROMPTS.CREATION_DATE_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur5320_query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="pur5320_po_headers_all_ds_grid" autoAppend="false" bindTarget="pur5320_po_headers_all_ds" marginHeight="210" marginWidth="90" navBar="true">
+                <a:columns>
+                    <a:column name="srm_name_desc" align="center" lock="true" prompt="PUR_HEADERS_ALL.SRM_STATUS" width="50"/>
+                    <a:column name="display_po_number" align="center" lock="true" prompt="PUR_HEADERS_ALL.SEGMENT1" renderer="pur5320_maintain_render" sortable="true" width="60"/>
+                    <a:column name="vendor_code" align="center" lock="true" prompt="PUR_HEADERS_ALL.VENDOR_CODE" sortable="true" width="60"/>
+                    <a:column name="vendor_name" align="left" lock="true" prompt="PUR_HEADERS_ALL.VENDOR_NAME" sortable="true" width="80"/>
+                    <a:column name="vendor_site_name" align="center" lock="true" prompt="PUR_HEADERS_ALL.VENDOR_SITE" width="80"/>
+                    <a:column name="creation_date_desc" align="center" prompt="PUR_HEADERS_ALL.CREATION_DATE" sortable="true" width="70"/>
+                    <a:column name="type_lookup_desc" align="center" prompt="PUR_ORDER_HEADERS.ORDER_TYPE_ID" width="80"/>
+                    <a:column name="agent_name" align="center" prompt="PUR_HEADERS_ALL.PUR_BUYER" width="50"/>
+                    <a:column name="company_name" align="left" prompt="PUR_HEADERS_ALL.COMPANY" sortable="true" width="60"/>
+                    <a:column name="ship_to_organization_name" align="center" prompt="PUR_HEADERS_ALL.SHIP_TO_ORGANIZATION_ID" width="50"/>
+                    <a:column name="ship_to_location_name" align="center" prompt="PUR_HEADERS_ALL.SHIP_TO_LOCATION_ID" width="50"/>
+                    <a:column name="bill_to_location_name" align="center" prompt="PUR_HEADERS_ALL.BILL_TO_LOCATION_ID" width="50"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

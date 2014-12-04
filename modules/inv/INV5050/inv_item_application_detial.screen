@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace 
+    $Date: 2013-12-10 下午04:03:03  
+    $Revision: 1.0  
+    $Purpose: 物品主数据新建申请明细
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="inv5050_item_application_lns_create_link" url="${/request/@context_path}/modules/inv/INV5050/inv_item_application_lns_create.screen"/>
+        <a:link id="inv5050_item_application_lns_maintain_link" url="${/request/@context_path}/modules/inv/INV5050/inv_item_application_lns_maintain.screen"/>
+        <a:link id="inv5050_item_application_lns_category_add_link" url="${/request/@context_path}/modules/inv/INV5050/pur_purchase_category_tree_lov.screen"/>
+        <a:link id="inv2010_sys_item_attachment_file_download_link" url="${/request/@context_path}/atm_download.svc"/>
+        <a:link id="inv5050_item_application_lns_file_upload_link" url="${/request/@context_path}/attachment_file_upload.screen"/>
+        <script><![CDATA[
+        	function inv5050_item_code_renderer(value, record, name){
+        	    return '<a href="javascript:inv5050_item_application_lns_maintain('+record.get('item_application_line_id')+');">'+value+'</a>';
+        	}
+        	
+        	function inv5050_item_application_lns_maintain(item_application_line_id){
+        	    new Aurora.Window({
+        	        id:'inv5050_item_application_lns_maintain_win',
+        	        title:'物品主数据维护',
+        	        url:$('inv5050_item_application_lns_maintain_link').getUrl()+'?item_application_header_id=${/parameter/@item_application_header_id}&item_application_line_id='+item_application_line_id,
+        	        fullScreen:true
+        	    });
+        	    $('inv5050_item_application_lns_maintain_win').on('close', function(){
+	                $('inv5050_item_application_hds').setQueryParameter('item_application_header_id', '${/parameter/@item_application_header_id}');
+	                $('inv5050_item_application_hds').query();
+	                $('inv5050_item_application_lns').setQueryParameter('item_application_header_id', '${/parameter/@item_application_header_id}');
+	                $('inv5050_item_application_lns').query();
+        	    });
+        	}
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv5050_enabled_flag_ds" lookupCode="BID_EXPERT_STATUS"/>
+            <a:dataSet id="inv5050_item_application_hds" autoQuery="true" model="inv.inv_item_application_hds" queryUrl="${/request/@context_path}/autocrud/inv.inv_item_application_hds/query?item_application_header_id=${/parameter/@item_application_header_id}">
+                <a:fields>
+                    <a:field name="item_application_num" readOnly="true"/>
+                    <a:field name="application_date" readOnly="true"/>
+                    <a:field name="employee_name" readOnly="true"/>
+                    <a:field name="company_id"/>
+                    <a:field name="company_desc" lovHeight="500" lovService="inv.INV5050.get_user_authorization_company_lov" lovWidth="500" required="true" requiredMessage="公司不能为空" title="公司选择">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_desc" to="company_desc"/>
+                            <a:map from="position_id" to="position_id"/>
+                            <a:map from="position_desc" to="position_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="unit_desc" lovHeight="500" lovService="inv.INV5050.get_user_position_assigned_unit" lovWidth="500" required="true" requiredMessage="部门不能为空" title="部门选择">
+                        <a:mapping>
+                            <a:map from="unit_desc" to="unit_desc"/>
+                            <a:map from="unit_id" to="unit_id"/>
+                            <a:map from="position_id" to="position_id"/>
+                            <a:map from="position_desc" to="position_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="position_id"/>
+                    <a:field name="position_desc" lovHeight="500" lovWidth="500" required="true" requiredMessage="申请人岗位不能为空" title="岗位选择">
+                        <a:mapping>
+                            <a:map from="position_id" to="position_id"/>
+                            <a:map from="position_desc" to="position_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="primary_inv_org_id"/>
+                    <a:field name="primary_inv_org_desc" lovHeight="500" lovLabelWidth="100" lovService="inv.INV5050.inv_organization_lov" lovWidth="600" title="主库存组织选择">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="primary_inv_org_id"/>
+                            <a:map from="description" to="primary_inv_org_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="status" defaultValue="NEW"/>
+                    <a:field name="version_num" defaultValue="1.0"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv5050_item_application_lns" autoQuery="true" model="inv.inv_item_application_lns" queryUrl="${/request/@context_path}/autocrud/inv.inv_item_application_lns/query?item_application_header_id=${/parameter/@item_application_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="enabled_flag_display" displayField="code_value_name" options="inv5050_enabled_flag_ds" returnField="enabled_flag" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet title="物品主数据新建申请明细">
+                <a:hBox labelWidth="100" style="float:left;">
+                    <a:textField name="item_application_num" bindTarget="inv5050_item_application_hds" prompt="单据编号" readOnly="true" width="150"/>
+                    <a:textField name="application_date" bindTarget="inv5050_item_application_hds" prompt="申请日期" readOnly="true" width="150"/>
+                    <a:textField name="primary_inv_org_desc" bindTarget="inv5050_item_application_hds" prompt="组库存组织" readOnly="true" width="385"/>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:textField name="company_desc" bindTarget="inv5050_item_application_hds" prompt="公司" readOnly="true" width="150"/>
+                    <a:textField name="unit_desc" bindTarget="inv5050_item_application_hds" prompt="部门" readOnly="true" width="150"/>
+                    <a:textField name="employee_name" bindTarget="inv5050_item_application_hds" prompt="申请人" readOnly="true" width="150"/>
+                    <a:textField name="position_desc" bindTarget="inv5050_item_application_hds" prompt="申请人岗位" readOnly="true" width="150"/>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:textArea name="comments" bindTarget="inv5050_item_application_hds" prompt="备注" readOnly="true" width="850"/>
+                </a:hBox>
+            </a:fieldSet>
+            <a:grid id="inv5050_item_application_lns_grid" bindTarget="inv5050_item_application_lns" height="370" navBar="true" width="945">
+                <a:columns>
+                    <a:column name="item_code" align="center" prompt="物品代码" renderer="inv5050_item_code_renderer" width="150"/>
+                    <a:column name="item_name" prompt="物品描述" width="200"/>
+                    <a:column name="item_type_desc" align="center" prompt="物品类型" width="150"/>
+                    <a:column name="primary_inv_org_desc" align="center" prompt="主库存组织" renderer="Aurora.formatDate" width="250"/>
+                    <a:column name="enabled_flag_display" align="center" prompt="物品默认状态" width="100"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

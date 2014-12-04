@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ 报销单明细-分配行
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="exp.exp_report_line_readonly" rootpath="exprecord"/>
+        <a:model-query model="exp.exp_report_line_assin" rootpath="exprequ"/>
+        <a:model-query model="expm.exp_get_all_requisition_release" rootpath="expget"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+        function returnback(){
+        $('exp_report_line_readonly_window').close();
+        }
+        function doSum(datas,name){        		
+        		var sum = 0;
+                for(var i=0;i<datas.length;i++){
+                    var r = datas[i];
+                    var d = r.get(name);
+                    var n = parseFloat(d);
+                    if(!isNaN(n)){                        
+                        sum +=n;
+                    }
+                }
+                var total = (typeof(sum)=='undefined' ? '' : parseFloat(sum).toFixed('${/model/exprequ/record/@precision}'));                
+                return total ;
+        	}
+        function showdetail(){
+				var records=$('exp_report_line_assin_ds').getSelected();
+				if(records.length!=1){
+					Aurora.showMessage('${l:PROMPT}','${l:PROMPTS.PLEASE_SELECT_RIGHT}');
+					return;
+				}
+				if(!records[0].get('exp_requisition_dists_id')){
+					Aurora.showMessage('${l:PROMPT}','${l:PROMPTS.PLEASE_SAVE_ASSIGNMENT}');
+					return;
+				}
+				exp_requisition_dists_id=records[0].get('exp_requisition_dists_id');
+				$('exp_report_line_assign_detail_ds').setQueryParameter('line_id',exp_requisition_dists_id); 
+        		$('exp_report_line_assign_detail_ds').query(); 
+			}
+						    
+         function doSum(datas,name){        		
+        		var sum = 0;
+                for(var i=0;i<datas.length;i++){
+                    var r = datas[i];
+                    var d = r.get(name);
+                    var n = parseFloat(d);
+                    if(!isNaN(n)){                        
+                        sum +=n;
+                    }
+                }
+                var total = (typeof(sum)=='undefined' ? '' : parseFloat(sum).toFixed('${/model/expget/record/@precision}'));                
+                return total ;
+        	}		  
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="exp_report_readonly_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="expense_type_code" defaultValue="${/model/exprecord/record/@expense_type_code}" readOnly="true"/>
+                    <a:field name="expense_type_name" defaultValue="${/model/exprecord/record/@expense_type_name}" readOnly="true"/>
+                    <a:field name="expense_item_code" defaultValue="${/model/exprecord/record/@expense_item_code}" readOnly="true"/>
+                    <a:field name="req_item_name" defaultValue="${/model/exprecord/record/@req_item_name}" readOnly="true"/>
+                    <a:field name="line_amount" defaultValue="${/model/exprecord/record/@line_amount}" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="exp_report_line_assin_ds" selectable="true">
+                <a:datas dataSource="/model/exprequ"/>
+                <a:fields>
+                    <a:field name="exp_requisition_dists_id"/>
+                    <a:field name="description"/>
+                    <a:field name="period_num"/>
+                    <a:field name="price"/>
+                    <a:field name="primary_quantity"/>
+                    <a:field name="requisition_amount"/>
+                    <a:field name="requisition_functional_amount"/>
+                    <a:field name="exchange_rate"/>
+                    <a:field name="company_code"/>
+                    <a:field name="responsibility_center_code"/>
+                    <a:field name="unit_code"/>
+                    <a:field name="employee_code"/>
+                    <a:field name="position_id"/>
+                    <a:field name="position_id_display"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="exp_report_line_assign_detail_ds" model="expm.exp_get_all_requisition_release" pageSize="10" selectable="true" submitUrl="${/request/@context_path}/modules/expm/public/exp_requisition_release_save.svc"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" labelWidth="100" title="EXP_REPORT_LINE_ASSIGN.TITLE" width="750">
+                <a:box column="3" labelWidth="120">
+                    <a:hBox>
+                        <a:textField name="expense_type_code" bindTarget="exp_report_readonly_ds" prompt="EXP_REPORT_LINES.EXPENSE_TYPE_ID" width="40"/>
+                        <a:textField name="expense_type_name" bindTarget="exp_report_readonly_ds" width="80"/>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:textField name="expense_item_code" bindTarget="exp_report_readonly_ds" prompt="EXP_REPORT_LINES.EXPENSE_ITEM_ID" width="40"/>
+                        <a:textField name="req_item_name" bindTarget="exp_report_readonly_ds" width="80"/>
+                    </a:hBox>
+                    <a:textField name="line_amount" bindTarget="exp_report_readonly_ds" prompt="EXP_REPORT_LINES.REPORT_AMOUNT" width="80"/>
+                </a:box>
+            </a:form>
+            <a:grid bindTarget="exp_report_line_assin_ds" height="220" width="750">
+                <a:columns>
+                    <a:column name="description" prompt="EXP_REPORT_LINES.DESCRIPTION"/>
+                    <a:column name="period_num" prompt="EXP_REPORT_LINES.PERIOD_NAME"/>
+                    <a:column name="price" prompt="EXP_REPORT_LINES.PRICE"/>
+                    <a:column name="primary_quantity" prompt="EXP_REPORT_LINES.PRIMARY_QUANTITY"/>
+                    <a:column name="requisition_amount" footerRenderer="doSum" prompt="EXP_REPORT_LINES.REPORT_AMOUNT"/>
+                    <a:column name="requisition_functional_amount" footerRenderer="doSum" prompt="EXP_REPORT_LINES.REPORT_FUNCTIONAL_AMOUNT"/>
+                    <a:column name="exchange_rate" prompt="EXP_REPORT_LINES.EXCHANGE_RATE"/>
+                    <a:column name="company_code" prompt="EXP_REPORT_LINES.COMPANY_ID"/>
+                    <a:column name="responsibility_center_code" prompt="EXP_REPORT_LINES.RESPONSIBILITY_CENTER_ID"/>
+                    <a:column name="unit_code" prompt="EXP_REPORT_LINES.UNIT_ID"/>
+                    <a:column name="employee_code" prompt="EXP_REPORT_LINES.EMPLOYEE_ID"/>
+                    <a:column name="position_id_display" prompt="EXP_REPORT_LINES.POSITION_ID"/>
+                </a:columns>
+            </a:grid>
+            <a:box>
+                <a:hBox>
+                    <a:button click="showdetail" text="PROMPT.DETAIL"/>
+                    <a:button click="returnback" text="PROMPT.RETURN"/>
+                </a:hBox>
+            </a:box>
+            <a:grid bindTarget="exp_report_line_assign_detail_ds" height="220" navBar="true" width="750">
+                <a:columns>
+                    <a:column name="this_amount" prompt="EXP_REPORT_LINE_READONLY.THIS_AMOUNT"/>
+                    <a:column name="this_quantity" prompt="EXP_REPORT_LINE_READONLY.THIS_QUANTITY"/>
+                    <a:column name="exp_requisition_number" prompt="EXP_REQUISITION_HEADERS.EXP_REQUISITION_NUMBER"/>
+                    <a:column name="line_number" prompt="EXP_REQUISITION_LINES.LINE_NUMBER"/>
+                    <a:column name="used_amount" prompt="EXP_REPORT_LINE_ASSIGN.USED_QUANTITY"/>
+                    <a:column name="used_quantity" prompt="EXP_REPORT_LINE_ASSIGN.USED_QUANTITY"/>
+                    <a:column name="description" prompt="EXP_REQUISITION_LINES.DESCRIPTION"/>
+                    <a:column name="period_num" prompt="EXP_REQUISITION_LINES.PERIOD_NAME"/>
+                    <a:column name="exchange_rate" prompt="EXP_REQUISITION_LINES.EXCHANGE_RATE"/>
+                    <a:column name="price" prompt="EXP_REQUISITION_LINES.PRICE"/>
+                    <a:column name="primary_quantity" prompt="EXP_REQUISITION_LINES.PRIMARY_QUANTITY"/>
+                    <a:column name="requisition_amount" footerRenderer="doSum" prompt="EXP_REQUISITION_LINES.REQUISITION_AMOUNT"/>
+                    <a:column name="requisition_functional_amount" footerRenderer="doSum" prompt="EXP_REQUISITION_LINES.REQUISITION_FUNCTIONAL_AMOUNT"/>
+                    <a:column name="company_code" prompt="EXP_REQUISITION_LINES.COMPANY_ID"/>
+                    <a:column name="responsibility_center_code" prompt="EXP_REQUISITION_LINES.RESPONSIBILITY_CENTER_ID"/>
+                    <a:column name="unit_code" prompt="EXP_REQUISITION_LINES.UNIT_ID"/>
+                    <a:column name="employee_code" prompt="EXP_REQUISITION_LINES.EMPLOYEE_ID"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

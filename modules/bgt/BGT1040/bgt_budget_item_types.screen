@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: likun1919 $
+    $Date: 2013/01/09 01:47:00 $
+    $Revision: 1.1.1.1 $
+    $Purpose: 现金事物分类定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <script><![CDATA[
+        
+            function queryBudgetItemTypes(){
+                $('bgt_BudgetItemTypes_query_result_ds').query();
+            }
+            
+            function bgtBudgetItemTypesEdit(record,name){
+                if(record.isNew){
+                    if(name == 'budget_item_type_code'){
+                    	return 'code_tf';
+                    }
+                }
+                return '';
+            }
+            function whenNewRecord( dataSet, record,  index ){
+                    var data_set= $('bgt_org_set');
+	                var datasource = data_set.getAt(0);
+	            	if (datasource){
+	            		record.set('budget_org_id',datasource.get('bgt_org_id'));
+	                    record.set('bgt_org_code',datasource.get('bgt_org_code'));
+	                    record.set('budget_org_description',datasource.get('bgt_org_description'));
+	            	} else{
+	            		Aurora.showMessage('${l:PROMPT}', '${l:NO_BGT_ORG_WARNING}');
+	            		return false;
+	            	}
+            }
+            function submitChcek(ds){
+        		var submitRecords = ds.getJsonData(false);
+        		for (var i=0; i<submitRecords.length; i++){
+        			if (!submitRecords[i].budget_org_id){
+        				Aurora.showMessage('${l:PROMPT}', '${l:NO_BGT_ORG_WARNING}');
+        				return false;
+        			}
+        		}
+        	}
+            function reset(){
+            	$('bgt_BudgetItemTypes_query_ds').reset();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bgt_BudgetItemTypes_query_ds" model="bgt.bgt_budget_item_types"/>
+            <a:dataSet id="bgt_org_set" autoQuery="true" model="bgt.bgt_scenarios_org_ref"/>
+            <a:dataSet id="bgt_BudgetItemTypes_query_result_ds" autoQuery="true" fetchAll="false" model="bgt.bgt_budget_item_types" queryDataSet="bgt_BudgetItemTypes_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="budget_org_description" required="true"/>
+                    <a:field name="budget_item_type_code" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" unCheckedValue="N"/>
+                    <a:field name="budget_org_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="whenNewRecord"/>
+                    <a:event name="beforesubmit" handler="submitChcek"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" title="BGT_BUDGET_ITEM_TYPES.BGT_BUDGET_ITEM_TYPES_QUERY" width="600">
+                <a:textField name="budget_item_type_code" bindTarget="bgt_BudgetItemTypes_query_ds" prompt="BGT_BUDGET_ITEM_TYPES.BUDGET_ITEM_TYPE_CODE" width="150">
+                    <a:events>
+                        <a:event name="enterdown" handler="queryBudgetItemTypes"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="description" bindTarget="bgt_BudgetItemTypes_query_ds" prompt="BGT_BUDGET_ITEM_TYPES.DESCRIPTION" width="150">
+                    <a:events>
+                        <a:event name="enterdown" handler="queryBudgetItemTypes"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:hBox>
+                <a:button click="queryBudgetItemTypes" text="HAP_QUERY"/>
+                <a:button click="reset" text="HAP_RESET"/>
+            </a:hBox>
+            <a:grid bindTarget="bgt_BudgetItemTypes_query_result_ds" height="350" navBar="true" width="600">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="clear"/>
+                    <a:button type="save"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="budget_org_description" align="center"/>
+                    <a:column name="budget_item_type_code" align="center" editorFunction="bgtBudgetItemTypesEdit" width="150"/>
+                    <a:column name="description" align="left" editor="description_tf" width="200"/>
+                    <a:column name="enabled_flag" editor="enabled_flag_ckb" sortable="false" width="30"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="bgt_BudgetItemTypes_tf"/>
+                    <a:textField id="description_tf"/>
+                    <a:textField id="code_tf" typeCase="upper"/>
+                    <a:checkBox id="enabled_flag_ckb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

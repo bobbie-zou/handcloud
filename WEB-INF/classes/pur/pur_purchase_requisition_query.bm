@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: gaoyang  
+    $Date: 2011-10-13 上午8:38:02  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select * 
+from(  select h.pur_requisition_header_id,
+         h.pur_requisition_number,
+         h.requisition_date,
+         to_char(h.requisition_date,'yyyy-mm-dd') requisition_date_desc,
+         h.employee_id,
+         (select t.name
+            from exp_employees t
+           where t.employee_id = h.employee_id) employee_description,
+         h.currency_code,
+         (select currency_name from gld_currency_vl gld where gld.currency_code=h.currency_code)currency_name,
+         (select sum(l.requisition_amount)
+            from pur_requisition_lines l
+           where l.pur_requisition_header_id = h.pur_requisition_header_id) requisition_amount,
+         h.description,
+         h.requisition_status,
+         (select b.code_value_name
+            from sys_codes_vl a, sys_code_values_vl b
+           where a.code_id = b.code_id
+             and a.code = 'EXP_EXPENSE_REPORT_STATUS'
+             and b.code_value = h.requisition_status) requisition_status_desc,
+         h.release_status,
+         (select b.code_value_name
+            from sys_codes_vl a, sys_code_values_vl b
+           where a.code_id = b.code_id
+             and a.code = 'PUR_OPERATION_STATUS'
+             and b.code_value = h.release_status) release_status_desc,
+         h.pur_requisition_type_id,
+         (select p.description
+            from pur_requisition_types_vl p
+           where h.pur_requisition_type_id = p.requisition_type_id) pur_requisition_type_name  
+          from pur_requisition_headers h
+ where h.company_id =${/session/@company_id}
+  and  h.requisition_status in ('GENERATE','REJECTED','TAKEN_BACK')
+  and (exists (
+        select 1 from  pur_requisition_lines  l ,pur_requisition_dists d
+   where l.pur_requisition_header_id=h.pur_requisition_header_id
+   and   l.pur_requisition_line_id=d.pur_requisition_line_id
+   and  exp_document_authorities_pkg.exist_exp_doc_authorities('11',
+                                                                      (select employee_id
+                                                                         from sys_user
+                                                                        where user_id =${/session/@user_id}),
+                                                                      d.employee_id,
+                                                                    'MAINTENANCE',
+                                                                    ${/session/@user_id}) = 'Y'
+  )
+  
+       or h.created_by=${/session/@user_id})
+                 
+    ) v
+    #WHERE_CLAUSE#
+    order by v.pur_requisition_number desc, v.requisition_date desc
+    ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="employee_id" dataType="java.lang.Long" queryExpression="v.EMPLOYEE_ID = ${@employee_id}"/>
+        <bm:query-field name="requisition_date_from" dataType="java.sql.Date" queryExpression="requisition_date &gt;= ${@requisition_date_from}"/>
+        <bm:query-field name="requisition_date_to" dataType="java.sql.Date" queryExpression="requisition_date &lt;= ${@requisition_date_to}"/>
+        <bm:query-field name="requisition_number" dataType="java.lang.String" queryExpression="PUR_REQUISITION_NUMBER like ${@requisition_number}"/>
+        <bm:query-field name="currency_code" dataType="java.lang.String" queryExpression="CURRENCY_CODE = ${@currency_code}"/>
+        <bm:query-field name="requisition_type_id" dataType="java.lang.Long" queryExpression="PUR_REQUISITION_TYPE_ID = ${@requisition_type_id} "/>
+        <bm:query-field name="description" dataType="java.lang.String" queryExpression="DESCRIPTION like ${@description}"/>
+        <bm:query-field name="requisition_status" dataType="java.lang.String" queryExpression="REQUISITION_STATUS = ${@requisition_status}"/>
+        <bm:query-field name="release_status" dataType="java.lang.String" queryExpression="RELEASE_STATUS = ${@release_status}"/>
+    </bm:query-fields>
+</bm:model>

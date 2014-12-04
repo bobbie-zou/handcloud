@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-1-9 下午3:29:17  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="inv_organization_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="inv_organization_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="inv_organization_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="factory_calendar_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="negative_stock_allowed" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="allocation_rule" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="inv_price_control_method" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="summary_posting_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="address" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="count_doc_numbering_rules" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="pcs_transaction_type" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="pcl_transaction_type" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="goods_issue_slip_rule_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="business_unit_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="business_unit_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="business_group" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="data_source" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    UPDATE
+                        inv_warehouses p
+                    SET
+                        p.enabled_flag = 'N'
+                    WHERE
+                        p.inv_organization_id IN
+                        (SELECT
+                            t.inv_organization_id
+                        FROM
+                            inv_organizations t
+                        WHERE
+                            t.enabled_flag = 'N'
+                        );
+                    UPDATE
+                        inv_locations p
+                    SET
+                        p.enabled_flag = 'N'
+                    WHERE
+                        p.warehouse_id IN
+                        (SELECT
+                            t.warehouse_id
+                        FROM
+                            inv_warehouses t
+                        WHERE
+                            t.inv_organization_id IN
+                            (SELECT
+                                g.inv_organization_id
+                            FROM
+                                inv_organizations g
+                            WHERE
+                                g.enabled_flag = 'N'
+                            )
+                        );
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="business_group=${/session/@business_group}"/>
+    </bm:data-filters>
+</bm:model>

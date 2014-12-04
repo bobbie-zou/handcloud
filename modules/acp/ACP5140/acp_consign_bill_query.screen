@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-11 下午1:19:01  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="acp5140_consign_bill_edit_link" url="${/request/@context_path}/modules/acp/ACP5140/acp_consign_bill_edit.screen"/>
+        <a:link id="acp5140_operation_record_link" url="${/request/@context_path}/modules/acp/PUBLIC/acp_operation_record.screen"/>
+        <a:link id="acp5140_consign_bill_cancel_link" url="${/request/@context_path}/modules/acp/ACP5140/acp_consign_bill_cancel.svc"/>
+        <script><![CDATA[
+            function acp5140Query() {
+                $('acp5140_consign_bill_result_ds').query();
+            }
+            
+            function acp5140ConsignBillCancel() {
+                var result_ds = $('acp5140_consign_bill_result_ds');
+                var selected_recs = result_ds.getSelected();
+            
+                if (selected_recs.length > 0) {
+                    Aurora.showConfirm('提示', '确认取消？', function() {
+                        Aurora.Masker.mask(Ext.getBody(), '正在加载');
+            
+                        Aurora.request({
+                            url: $('acp5140_consign_bill_cancel_link').getUrl(),
+                            para: selected_recs.data,
+                            success: function() {
+                                Aurora.showMessage('提示', '已取消！', function() {
+                                    acp5140Query();
+                                });
+                            },
+                            failure: function() {
+                                return;
+                            },
+                            error: function() {
+                                return;
+                            }
+                        });
+            
+                        Aurora.Masker.unmask(Ext.getBody());
+                    });
+                }
+            }
+            
+            function acp5140ConsignBillResultRender(value, rec, name) {
+                var bill_header_id = rec.get('bill_header_id');
+                if (name == 'bill_number') {
+                    return '<a href="javascript:acp5140ConsignBillDetail(' + bill_header_id + ')">' + value + '</a>';
+                } else if (name == 'operation_record') {
+                    return '<a href="javascript:acp5140OperationRecord(' + bill_header_id + ')">操作记录</a>';
+                }
+            }
+            
+            function acp5140ConsignBillDetail(bill_header_id) {
+                new Aurora.Window({
+                    id: 'acp5140_consign_bill_edit_window',
+                    title: '寄销开票单维护',
+                    url: $('acp5140_consign_bill_edit_link').getUrl() + '?bill_header_id=' + bill_header_id,
+                    fullScreen: true
+                }).on('beforeclose', function() {
+                    acp5140Query();
+                });
+            }
+            
+            function acp5140OperationRecord(bill_header_id) {
+                new Aurora.Window({
+                    id: 'acp5140_operation_record_window',
+                    title: '操作记录',
+                    url: $('acp5140_operation_record_link').getUrl() + '?operation_table=ACP_CSGN_BILL_HEADERS&operation_table_id=' + bill_header_id,
+                    height: 450,
+                    width: 600
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp5140_consign_bill_query_ds">
+                <a:fields>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="company_full_name" lovGridHeight="320" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" title="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="acp5140_consign_bill_result_ds" autoCount="true" autoPageSize="true" model="acp.ACP5140.acp_consign_bill_query" queryDataSet="acp5140_consign_bill_query_ds" selectable="true"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="acp5140ConsignBillCancel" text="取消" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="acp5140_consign_bill_query_ds" resultTarget="acp5140_consign_bill_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="bill_number" bindTarget="acp5140_consign_bill_query_ds" prompt="开票单编号">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5140Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:lov name="company_desc" bindTarget="acp5140_consign_bill_query_ds" prompt="公司">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5140Query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="vendor_desc" bindTarget="acp5140_consign_bill_query_ds" prompt="供应商">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5140Query"/>
+                        </a:events>
+                    </a:lov>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:vBox labelWidth="100"/>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="acp5140_consign_bill_result_grid" bindTarget="acp5140_consign_bill_result_ds" marginHeight="130" marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="bill_number" align="left" prompt="寄销开票单编号" renderer="acp5140ConsignBillResultRender" sortable="true" width="60"/>
+                    <a:column name="company_code" align="left" prompt="公司编码" sortable="true" width="60"/>
+                    <a:column name="company_desc" align="left" prompt="公司名称" sortable="true" width="100"/>
+                    <a:column name="vendor_code" align="left" prompt="供应商编码" sortable="true" width="60"/>
+                    <a:column name="vendor_desc" align="left" prompt="供应商名称" sortable="true" width="100"/>
+                    <a:column name="vendor_site_desc" align="left" prompt="供应商地点" sortable="true" width="60"/>
+                    <a:column name="currency_code" align="left" prompt="币种" sortable="true" width="60"/>
+                    <a:column name="amount" align="right" prompt="可开票总额" sortable="true" width="80"/>
+                    <a:column name="status_desc" align="left" prompt="状态" sortable="true" width="60"/>
+                    <a:column name="create_user_name" align="left" prompt="创建人" sortable="true" width="60"/>
+                    <a:column name="creation_date" align="center" prompt="创建日期" sortable="true" width="60"/>
+                    <a:column name="released_date" align="center" prompt="发布日期" sortable="true" width="60"/>
+                    <a:column name="confirmed_date" align="center" prompt="确认日期" sortable="true" width="60"/>
+                    <a:column name="operation_record" align="center" prompt="操作记录" sortable="true" width="60"/>
+                    <a:column name="data_source" align="left" prompt="数据来源" sortable="true" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

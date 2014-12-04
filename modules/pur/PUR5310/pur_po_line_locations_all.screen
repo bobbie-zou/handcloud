@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2014-3-4 下午4:26:14  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <script><![CDATA[
+			function clone(obj) {
+			    // Handle the 3 simple types, and null or undefined
+			    if (null == obj || "object" != typeof obj) return obj;
+			
+			    // Handle Date
+			    if (obj instanceof Date) {
+			        var copy = new Date();
+			        copy.setTime(obj.getTime());
+			        return copy;
+			    }
+			
+			    // Handle Array
+			    if (obj instanceof Array) {
+			        var copy = [];
+			        var len = obj.length;
+			        for (var i = 0; i < len; ++i) {
+			            copy[i] = clone(obj[i]);
+			        }
+			        return copy;
+			    }
+			
+			    // Handle Object
+			    if (obj instanceof Object) {
+			        var copy = {};
+			        for (var attr in obj) {
+			            if (obj.hasOwnProperty(attr)) copy[attr] = clone(obj[attr]);
+			        }
+			        return copy;
+			    }
+			
+			    throw new Error("Unable to copy obj! Its type isn't supported.");
+			}
+		
+	
+			function pur531011_po_line_locations_ds_remove(ds,record,index){
+				var distribution_selected_ds=$('pur5310_req_distributions_selected_ds');
+                var removeRecord = distribution_selected_ds.find("req_distribution_id",record.get("req_distribution_id"));
+                
+                var header_record = $('pur53101_po_headers_ds').getAt(0);
+                var total_amount = Number(header_record.get('total_amount'));
+                total_amount = total_amount - Number(removeRecord.get('quantity')) * Number(removeRecord.get('decided_unit_price'));
+                header_record.set('total_amount',total_amount);
+                distribution_selected_ds.remove(removeRecord);
+                
+			}
+	
+			function pur531011_reback(){
+			 	$('pur531011_po_line_location_window').close();   
+			}
+	
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur531011_po_lines_ds"/>
+            <a:dataSet id="pur531011_po_line_locations_ds" selectable="true">
+                <a:events>
+                    <a:event name="remove" handler="pur531011_po_line_locations_ds_remove"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="pur531011_po_lines_grid" type="delete" width="100"/>
+                <a:toolbarButton click="pur531011_reback" text="返回" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox padding="0">
+                <a:vBox>
+                    <a:textField name="line_num" bindTarget="pur531011_po_lines_ds" prompt="行号" readOnly="true"/>
+                    <a:textField name="quantity" bindTarget="pur531011_po_lines_ds" prompt="数量" readOnly="true"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:textField name="item_code" bindTarget="pur531011_po_lines_ds" prompt="物料编码" readOnly="true"/>
+                    <a:textField name="unit_meas_lookup_code" bindTarget="pur531011_po_lines_ds" prompt="单位" readOnly="true"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:textField name="item_desc" bindTarget="pur531011_po_lines_ds" prompt="物料名称" readOnly="true"/>
+                    <a:textField name="decided_promised_date" bindTarget="pur531011_po_lines_ds" prompt="承诺日期" readOnly="true"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:comboBox name="item_category_desc" bindTarget="pur531011_po_lines_ds" prompt="采购品类" readOnly="true"/>
+                    <a:textField name="need_by_date" bindTarget="pur531011_po_lines_ds" prompt="需求日期" readOnly="true"/>
+                </a:vBox>
+            </a:hBox>
+        </a:defaultScreen>
+        <a:grid id="pur531011_po_lines_grid" bindTarget="pur531011_po_line_locations_ds" height="350" marginWidth="140" navBar="true">
+            <a:columns>
+                <a:column name="shipment_num" align="left" lock="true" prompt="发运号" width="50"/>
+                <a:column name="ship_to_organization_name" align="left" prompt="收货组织" width="100"/>
+                <a:column name="ship_to_location_name" align="left" prompt="交货地点" width="50"/>
+                <a:column name="quantity" align="left" prompt="数量" width="50"/>
+                <a:column name="unit_meas_lookup_code" align="left" prompt="单位" width="50"/>
+                <a:column name="decided_promised_date" align="left" prompt="承诺日期" width="60"/>
+                <a:column name="need_by_date" align="left" prompt="需求日期" renderer="Aurora.formatDate" width="60"/>
+            </a:columns>
+        </a:grid>
+        <script><![CDATA[
+        	function pur531011_init() {
+                var line_ds = $('pur531011_po_lines_ds');
+                var line_record = new Aurora.Record(clone($('pur5310_req_distributions_po_lines_ds').getCurrentRecord().data));
+                line_ds.add(line_record);
+                
+                var line_locations_ds = $('pur531011_po_line_locations_ds');
+                
+                var req_distributions_selected_ds = $('pur5310_req_distributions_selected_ds');
+                
+                var po_line_array = line_record.get('po_line_array');
+                
+                for(var i=0;i<po_line_array.length;i++){
+                	var selectedRecord = req_distributions_selected_ds.find("req_distribution_id",po_line_array[i]);
+                	if(!Aurora.isEmpty(selectedRecord)){
+	                    var newRecord = new Aurora.Record(clone(selectedRecord.data));
+	                    line_locations_ds.add(newRecord);
+                	}
+				}
+                
+            }
+            
+            Aurora.onReady(function(){
+                pur531011_init();
+            });
+        ]]></script>
+    </a:view>
+</a:screen>

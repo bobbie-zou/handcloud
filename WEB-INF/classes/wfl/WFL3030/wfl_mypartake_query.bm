@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="instance_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="INSTANCE_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID"/>
+        <bm:field name="company_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_NAME"/>
+        <bm:field name="workflow_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="WORKFLOW_ID"/>
+        <bm:field name="workflow_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="WORKFLOW_CODE"/>
+        <bm:field name="workflow_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="WORKFLOW_DESC"/>
+        <bm:field name="current_seq" databaseType="NUMBER" datatype="java.lang.Long" physicalName="CURRENT_SEQ"/>
+        <bm:field name="current_node_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CURRENT_NODE_DESC"/>
+        <bm:field name="status" databaseType="NUMBER" datatype="java.lang.Long" physicalName="STATUS"/>
+        <bm:field name="status_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="STATUS_DESC"/>
+        <bm:field name="last_approve_date" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="LAST_APPROVE_DATE"/>
+        <bm:field name="approve_user_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="APPROVE_USER_NAME"/>
+        <bm:field name="document_number" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DOCUMENT_NUMBER"/>
+        <bm:field name="display_read_only" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="can_cancel_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="graphic_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="GRAPHIC_ID"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t.instance_id,
+                    t.company_id,
+                    t.company_name,
+                    t.workflow_id,
+                    t.workflow_code,
+                    t.workflow_desc,
+                    t.current_seq,
+                    t.current_node_desc ,
+                    t.status,
+                    t.status_desc,
+                    t.last_approve_date,
+                    t.approve_user_name,
+                    t.document_number,
+                    NVL(t.display_read_only,'null') display_read_only,
+                    t.can_cancel_flag,
+                    NVL(
+                    (SELECT DISTINCT
+                        sgd.graphic_id
+                    FROM
+                        wfl_workflow_node wwn1,
+                        sys_graphics_detail sgd
+                    WHERE
+                        sgd.table_id(+)  = wwn1.node_id AND
+                        wwn1.workflow_id = t.workflow_id AND
+                        sgd.graphic_id  IS NOT NULL
+                    ),-1) graphic_id
+                FROM
+                    (SELECT
+                        wi.instance_id,
+                        wi.company_id,
+                        (SELECT
+                            f.company_code
+                            || '-'
+                            || f.company_short_name
+                        FROM
+                            fnd_companies_vl f
+                        WHERE
+                            f.company_id=wi.company_id
+                        ) AS company_name,
+                        (SELECT
+                            ww.workflow_id
+                        FROM
+                            wfl_workflow ww
+                        WHERE
+                            ww.workflow_id = wi.workflow_id
+                        )AS workflow_id,
+                        (SELECT
+                            ww.workflow_code
+                        FROM
+                            wfl_workflow ww
+                        WHERE
+                            ww.workflow_id = wi.workflow_id
+                        )AS workflow_code,
+                        (SELECT
+                            ww.workflow_desc
+                        FROM
+                            wfl_workflow ww
+                        WHERE
+                            ww.workflow_id = wi.workflow_id
+                        )AS workflow_desc,
+                        wi.current_seq,
+                        wfl_workflow_pkg.get_current_node_desc(wi.instance_id) AS current_node_desc,
+                        wi.status,
+                        (SELECT
+                            v.code_value_name
+                        FROM
+                            sys_codes sc,
+                            sys_code_values_vl v
+                        WHERE
+                            sc.code_id      = v.code_id AND
+                            sc.code         = 'WORKFLOW_STATUS' AND
+                            v.enabled_flag  = 'Y' AND
+                            sc.enabled_flag = 'Y' AND
+                            v.code_value    = TO_CHAR(wi.status)
+                        ) AS status_desc,
+                        (SELECT
+                            TO_CHAR(MAX(ar.creation_date),'yyyy-mm-dd hh24:mi:ss')
+                        FROM
+                            wfl_approve_record ar
+                        WHERE
+                            ar.instance_id = wi.instance_id
+                        ) AS last_approve_date,
+                        wfl_workflow_pkg.get_approve_user_name(wi.instance_id)AS approve_user_name,
+                        (SELECT
+                            j.parameter_value
+                        FROM
+                            wfl_workflow_type_parameter z,
+                            wfl_workflow_instance_para j
+                        WHERE
+                            z.parameter_code        ='DOCUMENT_NUMBER' AND
+                            z.workflow_type_para_id = j.workflow_type_para_id AND
+                            j.instance_id           = wi.instance_id
+                        ) document_number,
+                        (SELECT
+                            j.parameter_value
+                        FROM
+                            wfl_workflow_type_parameter z,
+                            wfl_workflow_instance_para j
+                        WHERE
+                            z.parameter_code        ='READ_ONLY_SCREEN' AND
+                            z.workflow_type_para_id = j.workflow_type_para_id AND
+                            j.instance_id           = wi.instance_id
+                        ) display_read_only,
+                        (SELECT
+                            wfl_core_pkg.can_cancel_instance( wi.instance_id, ${/session/@user_id} )
+                        FROM
+                            dual
+                        ) AS can_cancel_flag
+                    FROM
+                        wfl_workflow_instance wi
+                    WHERE
+                        (
+                            EXISTS
+                            (SELECT
+                                ar.instance_id
+                            FROM
+                                wfl_approve_record ar
+                            WHERE
+                                wi.instance_id = ar.instance_id AND
+                                ar.created_by  = ${/session/@user_id}
+                            UNION
+                            SELECT
+                                z.instance_id
+                            FROM
+                                wfl_workflow_instance z
+                            WHERE
+                                z.instance_id = wi.instance_id AND
+                                z.created_by  = ${/session/@user_id}
+                            ) OR
+                            wi.created_by = ${/session/@user_id}
+                        )
+                    ) t #WHERE_CLAUSE#
+                ORDER BY
+                    t.instance_id DESC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="document_number" queryExpression="t.document_number = ${@document_number}"/>
+        <bm:query-field name="workflow_id" queryExpression="t.workflow_id = ${@workflow_id}"/>
+        <bm:query-field name="company_id" queryExpression="t.company_id = ${@company_id}"/>
+        <bm:query-field name="status" queryExpression="t.status = ${@status}"/>
+    </bm:query-fields>
+</bm:model>

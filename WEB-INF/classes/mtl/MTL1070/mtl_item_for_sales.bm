@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangcheng6595
+    $Date: 2014/9/20    09:51 
+    $Revision: 1.0
+    $Purpose: 销售产品目录
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="item_id"/>
+        <bm:field name="item_code" prompt="INV_SYSTEM_ITEMS.ITEM_CODE"/>
+        <bm:field name="display_item_code" prompt="INV_SYSTEM_ITEMS.DISPLAY_ITEM_CODE"/>
+        <bm:field name="item_name_id"/>
+        <bm:field name="item_name" prompt="INV_SYSTEM_ITEMS.ITEM_NAME"/>
+        <bm:field name="for_purchase_flag"/>
+        <bm:field name="for_sales_flag"/>
+        <bm:field name="business_group"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        t.item_id,
+                        t.item_code,
+                        t.display_item_code,
+                        t.item_name_id,
+                        t.item_name,
+                        t.for_purchase_flag,
+                        t.for_sales_flag,
+                        t.business_group
+                    FROM
+                        mtl_system_items_vl t
+                    WHERE
+                        nvl(t.for_sales_flag,'N')='Y'
+                    ) #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+            	BEGIN
+            	    mtl_system_item_pkg.update_for_sales_flag_y(p_item_id => ${@item_id},
+            	    											p_user_id => ${/session/@user_id});
+            	END;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+            	BEGIN
+            	    mtl_system_item_pkg.update_for_sales_flag_n(p_item_id => ${@item_id}, 
+            	    											p_user_id => ${/session/@user_id});
+            	END;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="item_code_name" queryExpression="(item_code like &apos;%&apos;||${@item_code_name}||&apos;%&apos; or display_item_code like &apos;%&apos;||${@item_code_name}||&apos;%&apos; or item_name like &apos;%&apos;||${@item_code_name}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="business_group=${/session/@business_group}"/>
+    </bm:data-filters>
+</bm:model>

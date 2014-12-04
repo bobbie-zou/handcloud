@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: MinWang 
+    $Date: 2014-10-08 14:14:48 PM  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        fv.company_id,
+                        fv.business_group,
+                        fv.start_date_active,
+                        fv.end_date_active,
+                        fv.company_code,
+                        fv.company_short_name,
+                        fv.company_full_name,
+                        fv.company_type,
+                        fv.company_code
+                        || ' - '
+                        || fv.company_short_name code_name,
+                        (SELECT
+                            b.functional_currency_code
+                        FROM
+                            gld_set_of_books b
+                        WHERE
+                            fv.set_of_books_id = b.set_of_books_id
+                        ) functional_currency_code
+                    FROM
+                        fnd_companies_vl fv
+                    WHERE
+                        fv.start_date_active <= SYSDATE AND
+                        (
+                            fv.end_date_active IS NULL OR
+                            fv.end_date_active  > SYSDATE
+                        )
+                    ) v #WHERE_CLAUSE#
+                ORDER BY
+                    company_code
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="company_code" displayWidth="170" forDisplay="true" forQuery="true" prompt="COMPANY_CODE"/>
+        <bm:field name="company_short_name" displayWidth="200" forDisplay="true" forQuery="true" prompt="FND_COMPANIES.COMPANY_NAME"/>
+        <bm:field name="company_full_name" displayWidth="240" forDisplay="true" forQuery="true" prompt="FND_COMPANIES.COMPANY_FULL_NAME"/>
+        <bm:field name="company_id"/>
+        <bm:field name="functional_currency_code"/>
+        <bm:field name="code_name"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="company_type_flag" queryExpression="((${@company_type_flag} = &apos;Y&apos; and company_type in (1,2)) or ${@company_type_flag} = &apos;N&apos;)"/>
+        <bm:query-field name="code_name" queryExpression="(company_code like &apos;%&apos;||${@code_name}||&apos;%&apos; or company_short_name like &apos;%&apos;||${@code_name}||&apos;%&apos; or company_full_name like &apos;%&apos;||${@code_name}||&apos;%&apos;)"/>
+        <bm:query-field name="company_code" queryExpression="company_code like &apos;%&apos;||${@company_code}||&apos;%&apos;"/>
+        <bm:query-field name="company_short_name" queryExpression="company_short_name like &apos;%&apos;||${@company_short_name}||&apos;%&apos;"/>
+        <bm:query-field name="company_full_name" queryExpression="company_full_name like &apos;%&apos;||${@company_full_name}||&apos;%&apos;"/>
+        <!-- <bm:query-field name="business_group" queryExpression="v.business_group = ${/parameter/@business_group}"/> -->
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="(v.end_date_active is null or trunc(sysdate) between trunc(v.start_date_active) and trunc(v.end_date_active))"/>
+        <bm:data-filter expression="v.business_group = ${/parameter/@business_group}"/>
+    </bm:data-filters>
+    <!-- <bm:data-filters>  #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE#
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority only_user_authority="Y">
+        <authority-segment source_alias="v" source_name="company_id" type="COMPANY"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features> -->
+</bm:model>

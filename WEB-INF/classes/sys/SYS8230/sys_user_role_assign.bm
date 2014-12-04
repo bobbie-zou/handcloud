@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns1:model xmlns:ns2="aurora.database.local.oracle" xmlns:ns1="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features">
+    <ns1:fields>
+        <ns1:field name="user_role_group_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <ns1:field name="user_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <ns1:field name="role_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <ns1:field name="start_date" databaseType="DATE" datatype="java.util.Date" prompt="SYS_USER_ROLE_GROUPS.START_DATE"/>
+        <ns1:field name="end_date" databaseType="DATE" datatype="java.util.Date" prompt="SYS_USER_ROLE_GROUPS_BAKUP.END_DATE"/>
+        <ns1:field name="role_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <ns1:field name="role_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <ns1:field name="company_id" databaseType="BIGINT" datatype="java.lang.Long" prompt="SYS_USER_ROLE_GROUPS.COMPANY_ID"/>
+        <ns1:field name="company_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <ns1:field name="company_short_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </ns1:fields>
+    <ns1:query-fields>
+        <ns1:query-field name="user_id" queryExpression="user_id=${/parameter/@user_id}"/>
+    </ns1:query-fields>
+    <ns1:operations>
+        <ns1:operation name="query">
+            <ns1:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        r.user_role_group_id,
+                        r.user_id,
+                        r.role_id,
+                        r.start_date,
+                        r.end_date,
+                        ro.role_code,
+                        (SELECT
+                            description_text
+                        FROM
+                            fnd_descriptions
+                        WHERE
+                            description_id = ro.role_name_id AND
+                            LANGUAGE       = ${/session/@lang}
+                        ) AS role_name,
+                        r.company_id,
+                        fc.company_code,
+                        (SELECT
+                            description_text
+                        FROM
+                            fnd_descriptions
+                        WHERE
+                            description_id = fc.company_short_name_id AND
+                            LANGUAGE       = ${/session/@lang}
+                        ) AS company_short_name
+                    FROM
+                        sys_user_role_groups r,
+                        sys_role ro,
+                        fnd_companies fc
+                    WHERE
+                        r.role_id        = ro.role_id AND
+                        fc.company_id(+) = r.company_id
+                    ) #WHERE_CLAUSE#
+            ]]></ns1:query-sql>
+        </ns1:operation>
+        <ns1:operation name="insert">
+            <ns1:update-sql><![CDATA[
+                BEGIN
+                   sys_user_pkg.insert_sys_user_role_groups(p_user_role_group_id => ${@user_role_group_id},
+                   						   p_user_id => ${@user_id},
+                                           p_role_id => ${@role_id},
+                                           p_company_id => ${@company_id},
+                                           p_start_date => to_date(${@start_date},'yyyy-mm-dd'),
+                                           p_end_date => to_date(${@end_date},'yyyy-mm-dd'),
+                                           p_created_by => ${/session/@user_id});
+                END;
+            ]]></ns1:update-sql>
+            <ns1:parameters>
+                <ns1:parameter name="user_role_group_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@user_role_group_id"/>
+            </ns1:parameters>
+        </ns1:operation>
+        <ns1:operation name="update">
+            <ns1:update-sql><![CDATA[
+                BEGIN
+                   sys_user_pkg.update_sys_user_role_groups(p_user_role_group_id => ${@user_role_group_id},
+                                           p_role_id => ${@role_id},
+                                           p_company_id => ${@company_id},
+                                           p_start_date => to_date(${@start_date},'yyyy-mm-dd'),
+                                           p_end_date => to_date(${@end_date},'yyyy-mm-dd'),
+                                           p_last_updated_by => ${/session/@user_id});
+                END;
+            ]]></ns1:update-sql>
+        </ns1:operation>
+    </ns1:operations>
+</ns1:model>

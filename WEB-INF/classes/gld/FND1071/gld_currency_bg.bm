@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangcheng6595 $
+    $Date: 2014/09/21 16:17:34 $
+    $Revision: 1.0
+    $Purpose: 集团币种定义bm
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="bg_currency_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="currency_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="PROMPT.REFERENCE_CODE"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="business_group" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="business_unit_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="currency_name" prompt="PROMPT.REFERENCE_NAME"/>
+        <bm:field name="precision" prompt="GLD_CURRENCY.PRECISION"/>
+        <bm:field name="transaction_precision" prompt="GLD_CURRENCY.TRANSACTION_PRECISION"/>
+        <bm:field name="currency_symbol" prompt="GLD_CURRENCY.CURRENCY_SYMBOL"/>
+        <bm:field name="bg_enabled_flag" prompt="GLD_CURRENCY.ENABLED_FLAG"/>
+        <bm:field name="currency_code_def" prompt="GLD_CURRENCY.CURRENCY_CODE"/>
+        <bm:field name="currency_name_def" prompt="GLD_CURRENCY.CURRENCY_NAME"/>
+        <bm:field name="country_code_def" prompt="FND_COUNTRY_CODE.COUNTRY_CODE"/>
+        <bm:field name="country_name_def" prompt="GLD_CURRENCY.COUNTRY_NAME"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        t.bg_currency_id,
+                        t.currency_code,
+                        t.enabled_flag,
+                        t.business_group,
+                        t.company_id,
+                        t.business_unit_id,
+                        t.currency_name,
+                        t.precision,
+                        t.transaction_precision,
+                        t.currency_symbol,
+                        t.bg_enabled_flag,
+                        NULL AS currency_code_def,
+                        NULL AS currency_name_def,
+                        NULL AS country_code_def,
+                        NULL AS country_name_def
+                    FROM
+                        gld_currency_bg_v t
+                    ) #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                gld_currency_pkg.load_cloud_currency_data
+                (   p_business_group   =>${/session/@business_group},
+    				p_company_id       =>null,
+    				p_business_unit_id =>null,
+    				p_user_id          =>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                gld_currency_pkg.modify_gld_currency_bg
+                (
+                 	p_bg_currency_id   =>${@bg_currency_id},
+    			 	p_enabled_flag     =>${@bg_enabled_flag},
+    			 	p_user_id          =>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="currency_code" queryExpression="(currency_code like &apos;%&apos;||${@currency_code}||&apos;%&apos; or currency_code_def like &apos;%&apos;||${@currency_code}||&apos;%&apos;)"/>
+        <bm:query-field name="currency_name" queryExpression="(currency_name like &apos;%&apos;||${@currency_name}||&apos;%&apos; or currency_name_def like &apos;%&apos;||${@currency_name}||&apos;%&apos;)"/>
+        <bm:query-field name="country_name_def" queryExpression="description like &apos;%&apos;||${@country_name_def}||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="business_group=${/session/@business_group}"/>
+    </bm:data-filters>
+</bm:model>

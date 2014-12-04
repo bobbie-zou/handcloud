@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-6 下午1:17:06  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="xc_ve_profile_query_link" url="${/request/@context_path}/modules/xcve/XCVE5020/xc_ve_profile_query.screen"/>
+        <script><![CDATA[
+            function queryProfile() {
+                record = $('ve_profiles_ds').getCurrentRecord();
+                if (record.get('hide_scored') == 'Y') {
+                    $('score_ds').setQueryParameter('hide_scored', 'Y');
+                } else if (record.get('hide_scored') == 'N') {
+                    $('score_ds').setQueryParameter('hide_scored', 'N');
+                }
+                $('score_ds').query();
+            }
+            
+            function backToQuery() {
+                Aurora.go($('xc_ve_profile_query_link').getUrl());
+            }
+            
+            function refreshDs() {
+                queryProfile();
+            }
+            
+            function scoreValidate(record, name, value){
+                var score = parseFloat(record.get('score'));
+                var score_from = parseFloat(record.get('score_from'));
+                var score_to = parseFloat(record.get('score_to'));
+                
+                if(score > score_to || score < score_from){
+                    Aurora.showMessage('提示', '得分不能超过合理分值区间', function(){
+                        record.set('score', '');
+                    });
+                    return false;
+                }else{
+                    return true;
+                }
+            }
+            
+            function fillAll(){
+                new Aurora.Window({
+                    id:'noteFillWin',
+                    title:'填制内容',
+                    url:'${/request/@context_path}/modules/xcve/XCVE5020/xc_ve_profile_note_fill_in.screen',
+                    width:430,
+                    height:170
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="vendor_code" autoComplete="true" lovHeight="500" lovLabelWidth="110" lovService="xcve.XCVE5030.xc_ve_profile_adjust_req_vendor_lov?ve_profile_id=${/parameter/@ve_profile_id}" lovWidth="600" title="供应商信息">
+                        <a:mapping>
+                            <a:map from="user_name" to="vendor_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="detail_from" autoComplete="true" lovHeight="500" lovLabelWidth="110" lovService="xcve.XCVE5030.xc_ve_profile_adjust_req_cd_lov?ve_profile_id=${/parameter/@ve_profile_id}" lovWidth="600" title="考评细项信息">
+                        <a:mapping>
+                            <a:map from="detail_code" to="detail_from"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="detail_to" autoComplete="true" lovHeight="500" lovLabelWidth="110" lovService="xcve.XCVE5030.xc_ve_profile_adjust_req_cd_lov?ve_profile_id=${/parameter/@ve_profile_id}" lovWidth="600" title="考评细项信息">
+                        <a:mapping>
+                            <a:map from="detail_code" to="detail_to"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_group_from" autoComplete="true" lovHeight="500" lovLabelWidth="110" lovService="xcve.XCVE5030.xc_ve_profile_adjust_req_item_group_lov?ve_profile_id=${/parameter/@ve_profile_id}" lovWidth="600" title="物料组信息">
+                        <a:mapping>
+                            <a:map from="mtlgrp" to="item_group_from"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_group_to" autoComplete="true" lovHeight="500" lovLabelWidth="110" lovService="xcve.XCVE5030.xc_ve_profile_adjust_req_item_group_lov?ve_profile_id=${/parameter/@ve_profile_id}" lovWidth="600" title="物料组信息">
+                        <a:mapping>
+                            <a:map from="mtlgrp" to="item_group_to"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="ve_profiles_ds" autoQuery="true" model="xcve.XCVE5010.xc_ve_profiles" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE5010.xc_ve_profiles/query?company_id=${/session/@company_id}&amp;ve_profile_id=${/parameter/@ve_profile_id}">
+                <a:fields>
+                    <a:field name="company_id" readOnly="true"/>
+                    <a:field name="ve_profile_num" readOnly="true"/>
+                    <a:field name="status" readOnly="true"/>
+                    <a:field name="status_desc" readOnly="true"/>
+                    <a:field name="ve_profile_desc" readOnly="true"/>
+                    <a:field name="ve_template_id" readOnly="true"/>
+                    <a:field name="ve_template_id_desc" readOnly="true"/>
+                    <a:field name="period_name" readOnly="true"/>
+                    <a:field name="version_number" readOnly="true"/>
+                    <a:field name="estimate_date_from" readOnly="true"/>
+                    <a:field name="estimate_date_to" readOnly="true"/>
+                    <a:field name="hide_scored" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="position_unit_ds" autoQuery="true" model="xcve.XCVE5020.xc_ve_current_position_unit">
+                <a:fields>
+                    <a:field name="cur_position_desc" readOnly="true"/>
+                    <a:field name="cur_unit_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="score_ds" autoQuery="false" model="xcve.XCVE5010.xc_ve_profile_cd_score" pageSize="100" queryDataSet="query_ds" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE5010.xc_ve_profile_cd_score/query?ve_profile_id=${/parameter/@ve_profile_id}&amp;scoring_method=MANUAL&amp;hide_scored=Y&amp;authorization=Y">
+                <a:fields>
+                    <a:field name="vendor_name" readOnly="true"/>
+                    <a:field name="item_group_code" readOnly="true"/>
+                    <a:field name="detail_code" readOnly="true"/>
+                    <a:field name="detail_note" readOnly="true"/>
+                    <a:field name="scoring_method" readOnly="true"/>
+                    <a:field name="scoring_method_desc" readOnly="true"/>
+                    <a:field name="score" validator="scoreValidate"/>
+                    <a:field name="note"/>
+                    <a:field name="score_from" readOnly="true"/>
+                    <a:field name="score_to" readOnly="true"/>
+                    <a:field name="last_updated_by_desc" readOnly="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="refreshDs"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="4" labelWidth="90" title="供应商考评档案-填制" width="750">
+                <a:textField name="ve_profile_num" bindTarget="ve_profiles_ds" prompt="档案编号" width="100"/>
+                <a:textField name="ve_profile_desc" bindTarget="ve_profiles_ds" prompt="档案描述" width="100"/>
+                <a:textField name="period_name" bindTarget="ve_profiles_ds" prompt="考评月度" width="100"/>
+                <a:textField name="version_number" bindTarget="ve_profiles_ds" prompt="版本号" width="100"/>
+                <a:textField name="status_desc" bindTarget="ve_profiles_ds" prompt="档案状态" width="100"/>
+                <a:textField name="ve_template_id_desc" bindTarget="ve_profiles_ds" prompt="考评模板" width="100"/>
+                <a:textField name="estimate_date_from" bindTarget="ve_profiles_ds" prompt="考评日期从" renderer="Aurora.formatDate" width="100"/>
+                <a:textField name="estimate_date_to" bindTarget="ve_profiles_ds" prompt="考评日期到" renderer="Aurora.formatDate" width="100"/>
+                <a:textField name="cur_position_desc" bindTarget="position_unit_ds" prompt="当前岗位" width="100"/>
+                <a:textField name="cur_unit_desc" bindTarget="position_unit_ds" prompt="当前部门" width="100"/>
+                <a:label width="10"/>
+                <a:checkBox name="hide_scored" bindTarget="ve_profiles_ds" label="隐藏已评分项" width="100"/>
+                <a:lov name="vendor_code" bindTarget="query_ds" prompt="供应商编码" width="100"/>
+                <a:lov name="detail_from" bindTarget="query_ds" prompt="考评细项从" width="100"/>
+                <a:lov name="detail_to" bindTarget="query_ds" prompt="考评细项到" width="100"/>
+                <a:lov name="item_group_from" bindTarget="query_ds" prompt="物料组从" width="100"/>
+                <a:lov name="item_group_to" bindTarget="query_ds" prompt="物料组到" width="100"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="queryProfile" text="查询"/>
+                <a:button click="backToQuery" text="返回列表"/>
+            </a:hBox>
+            <a:hBox>
+                <a:button click="fillAll" text="全部填制"/>
+            </a:hBox>
+            <a:grid id="score_ds_grid" bindTarget="score_ds" height="400" navBar="true" width="750">
+                <a:toolBar>
+                    <a:button type="Save"/>
+                    <a:button type="excel"/>
+                    <a:button type="Customize"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="vendor_code" lock="true" prompt="供应商编码" sortable="true" width="100"/>
+                    <a:column name="vendor_name" lock="true" prompt="供应商描述" sortable="true" width="120"/>
+                    <a:column name="item_group_code" lock="true" prompt="物料组编码" sortable="true" width="120"/>
+                    <a:column name="item_group_desc" prompt="物料组描述" width="120"/>
+                    <!-- <a:column name="detail_code" lock="true" prompt="考评细项" sortable="true" width="100"/> -->
+                    <a:column name="detail_desc" prompt="考评细项描述" width="100"/>
+                    <a:column name="detail_note" prompt="细项评分标准" sortable="true" width="200"/>
+                    <a:column name="scoring_method_desc" align="center" prompt="评分方式" sortable="true" width="70"/>
+                    <a:column name="score" align="center" editor="scoreEditor" prompt="得分" sortable="true" width="70"/>
+                    <a:column name="note" align="center" editor="noteEditor" prompt="备注" sortable="true" width="70"/>
+                    <a:column name="score_from" align="right" prompt="合理分值从" sortable="true" width="80"/>
+                    <a:column name="score_to" align="right" prompt="合理分值到" sortable="true" width="80"/>
+                    <a:column name="last_updated_by_desc" prompt="最后更新人" sortable="true" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:numberField id="scoreEditor"/>
+                    <a:textField id="noteEditor"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-3-5 下午03:09:02  
+    $Revision: 1.0  
+    $Purpose: 网上发票预览 临时表头信息
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="h.invoice_num asc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    h.invoice_header_id,
+                    h.invoice_num,
+                    h.company_name,
+                    h.vendor_site_code,
+                    h.vendor_site_name,
+                    h.tax_type_id,
+                    h.tax_invoice_num,
+                    h.amount,
+                    h.tax_amount,
+                    h.invoice_amount,
+                    h.invoice_tax_amount,
+                    h.currency_code,
+                    h.rate_type,
+                    h.rate_date,
+                    h.rate,
+                    h.data_source
+                FROM
+                    acp_web_invoice_headers_temp h #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                  acp_web_invoice_pkg.save_web_invoice_headers(p_invoice_header_id => ${@invoice_header_id},
+				                                               p_amount => ${@amount},
+				                                               p_tax_amount => ${@tax_amount},
+				                                               p_tax_invoice_num => ${@tax_invoice_num},
+				                                               p_vendor_desc => ${@vendor_desc},
+				                                               p_vender_id => ${/session/@vendor_id},
+				                                               p_user_id => ${/session/@user_id});
+                                               
+               END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                  acp_web_invoice_pkg.del_temp_by_header_id(p_invoice_header_id => ${@invoice_header_id},
+				                                            p_vendor_id => ${/session/@vendor_id},
+				                                            p_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:parameters>
+                <bm:parameter name="last_flag" dataType="java.lang.String" input="false" output="true" outputPath="@last_flag"/>
+            </bm:parameters>
+            <bm:query-sql><![CDATA[
+                BEGIN
+                  acp_web_invoice_pkg.get_web_invoice_temp_flag(p_vendor_id => ${/session/@vendor_id},
+				                                                p_session_id => ${/session/@session_id},
+				                                                p_user_id => ${/session/@user_id},
+				                                                x_flag => ${@last_flag});
+               END;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="h.vendor_id =${/session/@vendor_id}"/>
+        <bm:data-filter expression="h.user_id =${/session/@user_id}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="invoice_header_id" queryExpression="h.invoice_header_id=${@invoice_header_id}"/>
+    </bm:query-fields>
+</bm:model>

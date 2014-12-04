@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: whumeister  
+    $Date: 2013-2-1 下午02:18:30  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    pt.transaction_id,
+                    pt.receipt_num,
+                    pt.transaction_date,
+                    (SELECT
+                        code_value_name
+                    FROM
+                        sys_code_values_v
+                    WHERE
+                        code       = 'INV_ASN_ACTION' AND
+                        code_value = pt.transaction_type
+                    ) AS transaction_type,
+                    pt.unit_of_measure,
+                    pt.quantity,
+                    pt.srm_unit_of_measure,
+                    pt.srm_quantity,
+                    pt.segment1 po_header_num,
+                    pt.release_num po_release_num,
+                    pt.line_num po_line_num,
+                    pt.shipment_num po_shipment_num,
+                    pt.distribution_num po_distribution_num,
+                    pt.primary_unit_of_measure,
+                    pt.primary_quantity,
+                    pt.organization_id,
+                    (SELECT
+                        o.description
+                    FROM
+                        inv_organizations_vl o
+                    WHERE
+                        o.data_source_id = pt.organization_id
+                    ) inv_organization_name
+                FROM
+                    pur_transactions pt #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:query-sql><![CDATA[
+                 declare v_batch_id  number;
+                BEGIN
+                  acp_bill_pkg.get_batch_id(x_batch_id => v_batch_id);
+                  
+                  acp_bill_pkg.set_batch_id(p_batch_id => v_batch_id,
+				                            p_bill_source_id => ${@bill_source_id},
+				                            p_user_id => ${/session/@user_id});
+				                            
+				  acp_bill_pkg.bill_create(p_batch_id => v_batch_id,
+				                           p_action_type => ${@action_type},
+				                           p_user_id => ${/session/@user_id});                          
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="bill_source_id" queryExpression="pt.bill_source_id = ${@bill_source_id}"/>
+    </bm:query-fields>
+</bm:model>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-10 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 送货单创建，送货单临时头数据
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="srv5110_asn_create_link" url="${/request/@context_path}/modules/srv/SRV5110/srv_asn_create.screen"/>
+        <a:link id="srv5110_asn_delete_link" url="${/request/@context_path}/modules/srv/SRV5110/srv_asn_header_temp_delete.svc"/>
+        <script><![CDATA[
+
+            function srv5110_asn_headers_back() {
+                $('srv5110_asn_header_window').close();
+            }
+            
+            function srv5110_asn_headers_query() {
+                $('srv5110_asn_headers_result_ds').query();
+            }
+            
+            function srv5110_headers_asn_number_render(value, record, name) {
+                return '<a href="javascript:srv5110_asn_go_create(' + record.get('asn_header_id') + ')">' + value + '</a>';
+            }
+            
+            function srv5110_asn_go_create(asn_header_id) {
+                new Aurora.Window({
+                    id: 'srv5110_asn_create_window',
+                    title: '${l:MODULES/inv/INV5010/INV_ASN_CREATE.SCREEN.TITLE}',
+                    url: $('srv5110_asn_create_link').getUrl() + '?asn_header_id=' + asn_header_id,
+                    fullScreen: true
+                });
+            }
+            
+            
+            function srv5110_asn_headers_delete() {
+                var list_ds = $('srv5110_asn_headers_result_ds');
+                var records = list_ds.getSelected();
+                if (records.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:INV_ASN_HEADERS.UNSELECT_ERROR}');
+                    return;
+                }
+                Aurora.showConfirm('${l:PROMPT}', '${l:INV5010.DELETE_NOTE}', function() {
+                    var datas = [];
+                    for (var i = 0;i < records.length;i++) {
+                        datas.push(records[i].data);
+                    }
+            
+                    Aurora.request({
+                        url: $('srv5110_asn_delete_link').getUrl(),
+                        para: datas,
+                        success: function(res) {
+                            srv5110_asn_delete_result(res.result.last_flag);
+            
+                        },
+                        failure: function(res) {
+                            srv5110_asn_delete_result(res.result.last_flag);
+                        },
+                        error: function(res) {
+                            srv5110_asn_delete_result(res.result.last_flag);
+                        },
+                        scope: this
+                    });
+                });
+            }
+            
+            function srv5110_asn_delete_result(last_flag) {
+                if (last_flag == 'Y') {
+                    srv5110_asn_headers_back();
+                    srv5110_query();
+                } else {
+                    srv5110_asn_headers_query();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="srv5110_asn_headers_result_ds" autoPageSize="true" autoQuery="true" model="srv.SRV5110.srv_asn_headers_temp" selectable="true">
+                <a:fields>
+                    <a:field name="asn_header_id"/>
+                    <a:field name="asn_number"/>
+                    <a:field name="company_name"/>
+                    <a:field name="vendor_site_name"/>
+                    <a:field name="ship_to_organization_name"/>
+                    <a:field name="location_name"/>
+                    <a:field name="data_source"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="srv5110_asn_headers_delete" style="margin-left:10px;" text="PROMPT.DELETE" width="100"/>
+            <a:toolbarButton click="srv5110_asn_headers_back" style="margin-left:10px;" text="PROMPT.RETURN" width="100"/>
+        </a:screenTopToolbar>
+        <a:grid id="srv5110_asn_headers_result_grid" bindTarget="srv5110_asn_headers_result_ds" marginHeight="40" marginWidth="50" navBar="true">
+            <a:columns>
+                <a:column name="asn_number" align="center" prompt="INV_ASN_HEADERS_TEMP.ASN_NUMBER" renderer="srv5110_headers_asn_number_render" width="80"/>
+                <a:column name="company_name" align="left" prompt="INV_ASN_HEADERS_TEMP.COMPANY_ID" width="120"/>
+                <a:column name="vendor_site_name" align="left" prompt="INV_ASN_HEADERS_TEMP.VENDOR_SITE_ID" width="150"/>
+                <a:column name="ship_to_organization_name" align="left" prompt="INV_ASN_HEADERS_TEMP.SHIP_TO_ORGANIZATION_ID" width="150"/>
+                <a:column name="location_name" align="left" prompt="INV_ASN_HEADERS_TEMP.LOCATION_ID" width="200"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

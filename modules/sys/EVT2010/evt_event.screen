@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qiuhaowen4053 $
+    $Date: 2013/06/21 01:57:12 $
+    $Revision: 1.3 $
+    $Purpose: “事件维护”模块的页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="evt_2010_event_notify_link" url="${/request/@context_path}/modules/sys/EVT2010/evt_event_notify.screen"/>
+        <a:link id="evt_2010_event_handle_link" url="${/request/@context_path}/modules/sys/EVT2010/evt_event_handle.screen"/>
+        <script><![CDATA[
+            function evt2010_queryEvent(){
+                $('evt_2010_event_result_ds').query();
+            }
+			function evt2010_resetEvent(){
+				$('evt_2010_event_query_ds').reset();
+			}
+            function evt2010_evnetHandleRenderer(value,record, name){
+                if (!record.isNew){
+                    var evtName=record.get('event_name');
+                    var url=$('evt_2010_event_handle_link').getUrl()+'?event_name='+evtName;
+                    var windowId="handleWindow";
+                    return "<a href=\"javascript:evt2010_editNotify('"+windowId+"','"+url+"','${l:EVT_EVENT.EVENT_PRO_MAIN}')\">${l:EVT_EVENT.EVENT_PRO_MAIN}</a>";
+                }
+                return '';
+            }
+
+            function evt2010_evnetNotifyRenderer(value,record, name){
+                if (!record.isNew){
+                    var evtName=record.get('event_name');
+                    var url=/*evt_event_notify.screen*/$('evt_2010_event_notify_link').getUrl()+'?event_name='+evtName;
+                    var windowId="notifyWindow";
+                    return "<a href=\"javascript:evt2010_editNotify('"+windowId+"','"+url+"','${l:EVT_EVENT.EVENT_MES_MAIN}')\">${l:EVT_EVENT.EVENT_MES_MAIN}</a>";
+                }
+                return '';
+            }
+
+            function evt2010_editNotify(windowId,urlString,title){
+                new Aurora.Window({id:windowId, url:urlString, title:title, height:400,width:580});
+            }
+
+            function evt2010_eventNameEditFunction(record,name){
+                if (record.isNew){
+                    return 'evt_2010_event_result_upper_tf';
+                }
+                return '';
+            }
+
+			function evt2010_reloadGrid(){
+				$('grid').onLoad();
+			}	
+
+			function evt2010_nameValidator(record,name,value){
+			    
+			    var nameMatcher = /^\w+$/;
+			    if(nameMatcher.test(value)){
+			        return true; 
+			    }else{
+			        record.set('event_name','');
+			    	return '${l:PROMPT.INPUT_INVALID}'; 
+			    }
+			}
+        
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="evt_2010_event_query_ds" model="sys.evt_event"/>
+            <a:dataSet id="evt_2010_event_result_ds" autoCount="true" autoQuery="true" fetchAll="false" model="sys.evt_event" queryDataSet="evt_2010_event_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="event_name" required="true" validator="evt2010_nameValidator"/>
+                    <a:field name="foundation_name" lovHeight="500" lovService="sys.EVT2010.sys_foundation_lov" lovWidth="500" prompt="SYS_FOUNDATIONS.FOUNDATION_NAME" title="SYS_FOUNDATIONS.FOUNDATION_NAME">
+                        <a:mapping>
+                            <a:map from="foundation_code" to="foundation_code"/>
+                            <a:map from="foundation_name" to="foundation_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="evt2010_reloadGrid"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="evt2010_grid" style="margin-left:20px;" type="add" width="100"/>
+            <a:gridButton bind="evt2010_grid" type="save" width="100"/>
+            <a:gridButton bind="evt2010_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="evt2010_evt_event_query_form" bindTarget="evt_2010_event_query_ds" resultTarget="evt_2010_event_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:textField style="width:100%;display:none"/>
+                <a:hBox>
+                    <a:textField name="event_name" typeCase="upper">
+                        <a:events>
+                            <a:event name="enterdown" handler="evt2010_queryEvent"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="event_desc">
+                        <a:events>
+                            <a:event name="enterdown" handler="evt2010_queryEvent"/>
+                        </a:events>
+                    </a:textField>
+                </a:hBox>
+            </a:formToolBar>
+        </a:queryForm>
+        <a:grid id="evt2010_grid" bindTarget="evt_2010_event_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="event_name" align="center" editorFunction="evt2010_eventNameEditFunction" sortable="true" width="200"/>
+                <a:column name="event_desc" align="left" editor="evt_2010_event_result_tf" sortable="true" width="200"/>
+                <a:column name="foundation_name" align="center" editor="evt_2010_event_result_lov" sortable="true" width="120"/>
+                <a:column name="enabled_flag" editor="evt_2010_event_result_cb" sortable="true" width="60"/>
+                <a:column name="evnet_process_edit" align="center" prompt="HAP_OPERATION" renderer="evt2010_evnetHandleRenderer"/>
+                <a:column name="evnet_msg_edit" align="center" prompt="EVT_EVENT.EVENT_MES_MAIN" renderer="evt2010_evnetNotifyRenderer"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="evt_2010_event_result_tf"/>
+                <a:textField id="evt_2010_event_result_upper_tf" typeCase="upper"/>
+                <a:checkBox id="evt_2010_event_result_cb"/>
+                <a:lov id="evt_2010_event_result_lov"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace 
+    $Date: 2013-12-20 下午03:59:12  
+    $Revision: 1.0  
+    $Purpose: 站内信权限定义-用户选择LOV
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+    select *
+      from (SELECT u.user_id,
+			       u.user_name,
+			       u.description,
+			       u.type,
+			       (select fd.description_text from sys_codes sc, sys_code_values scv, fnd_descriptions fd where sc.code = 'SYS_USER_TYPE' and scv.code_id = sc.code_id and scv.code_value = u.type and scv.code_value_name_id = fd.description_id and fd.language = userenv('LANG')) type_desc
+			  FROM sys_user u
+			 WHERE u.user_id <> ${/session/@user_id}
+			 	   AND u.frozen_flag = 'N'
+			 	   AND trunc(u.start_date) <= trunc(SYSDATE)
+                   AND (u.end_date IS NULL OR trunc(u.end_date) >= trunc(SYSDATE))
+                   AND client = ${/session/@client}
+			       AND NOT EXISTS (SELECT uc.user_id
+			          FROM fnd_msg_access_user_con uc
+			         WHERE uc.user_id = u.user_id
+			               AND uc.group_hds_id = ${@group_hds_id})) t
+               #WHERE_CLAUSE#
+               ORDER BY t.type,T.USER_NAME
+       		]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="user_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="user_name" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="FND.SYS_MESSAGE_USER_NAME"/>
+        <bm:field name="description" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="FND.SYS_MESSAGE_USER_DESCRIPTION"/>
+        <bm:field name="type" databaseType="VARCHAR2" datatype="java.lang.String" prompt="SYS_USER.TYPE"/>
+        <bm:field name="type_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" prompt="SYS_USER.TYPE"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="user_name" queryExpression="user_name like &apos;%&apos;||upper(${@user_name})||&apos;%&apos;"/>
+        <bm:query-field name="description" queryExpression="description like &apos;%&apos;||${@description}||&apos;%&apos;"/>
+        <bm:query-field name="type" queryExpression="type = ${@type}"/>
+    </bm:query-fields>
+</bm:model>

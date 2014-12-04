@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-12 下午2:15:39  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="entrustment_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="entrustment_header_number" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="round" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="version" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="title" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="status" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="status_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="applicant_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="applicant_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="application_date" databaseType="DATE" datatype="java.util.Date"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="company_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="inv_organization_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="inv_organization_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="using_company_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="using_company_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="using_company_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="entrustment_type_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="entrustment_type_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="suggested_bidding_method" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="suggested_bidding_method_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="authorized_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="authorized_flag_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="complete_date" databaseType="DATE" datatype="java.util.Date"/>
+        <bm:field name="margin_required_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="bidder_qualified_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        h.entrustment_header_id,
+                        h.entrustment_header_number,
+                        h.round,
+                        h.version,
+                        h.title,
+                        h.status,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_v scv
+                        WHERE
+                            scv.code                    = 'BID_ENTRUSTMENT_STATUS' AND
+                            scv.code_enabled_flag       = 'Y' AND
+                            scv.code_value_enabled_flag = 'Y' AND
+                            scv.code_value              = h.status
+                        ) AS status_desc,
+                        h.applicant_id,
+                        (SELECT e.name FROM exp_employees e WHERE e.employee_id = h.applicant_id
+                        ) AS applicant_desc,
+                        h.application_date,
+                        h.company_id,
+                        (SELECT
+                            fc.company_short_name
+                        FROM
+                            fnd_companies_vl fc
+                        WHERE
+                            fc.company_id = h.company_id
+                        ) AS company_desc,
+                        h.inv_organization_id,
+                        (SELECT
+                            io.description
+                        FROM
+                            inv_organizations_vl io
+                        WHERE
+                            io.inv_organization_id = h.inv_organization_id
+                        ) AS inv_organization_desc,
+                        h.using_company_id,
+                        (SELECT
+                            fc.company_code
+                        FROM
+                            fnd_companies_vl fc
+                        WHERE
+                            fc.company_id = h.using_company_id
+                        ) AS using_company_code,
+                        (SELECT
+                            fc.company_full_name
+                        FROM
+                            fnd_companies_vl fc
+                        WHERE
+                            fc.company_id = h.using_company_id
+                        ) AS using_company_desc,
+                        h.entrustment_type_id,
+                        (SELECT
+                            bet.entrustment_type_desc
+                        FROM
+                            bid_entrustment_types_vl bet
+                        WHERE
+                            bet.entrustment_type_id = h.entrustment_type_id
+                        ) AS entrustment_type_desc,
+                        h.suggested_bidding_method,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_v scv
+                        WHERE
+                            scv.code                    = 'BID_BIDDING_METHODS' AND
+                            scv.code_enabled_flag       = 'Y' AND
+                            scv.code_value_enabled_flag = 'Y' AND
+                            scv.code_value              = h.suggested_bidding_method
+                        ) AS suggested_bidding_method_desc,
+                        h.authorized_flag,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_v scv
+                        WHERE
+                            scv.code                    = 'YES_NO' AND
+                            scv.code_enabled_flag       = 'Y' AND
+                            scv.code_value_enabled_flag = 'Y' AND
+                            scv.code_value              = h.authorized_flag
+                        ) AS authorized_flag_desc,
+                        h.complete_date,
+                        h.margin_required_flag,
+                        h.bidder_qualified_flag
+                    FROM
+                        bid_entrustment_headers h
+                    WHERE
+                        h.status               IN ('SUBMITTED') AND
+                        h.company_id IN
+                        (SELECT
+                            c.company_id
+                        FROM
+                            fnd_auth_company_v c
+                        WHERE
+                            c.session_id = ${/session/@session_id}
+                        ) AND
+                        h.inv_organization_id IN
+                        (SELECT
+                            o.inv_organization_id
+                        FROM
+                            fnd_auth_inv_org_v o
+                        WHERE
+                            o.session_id = ${/session/@session_id}
+                        )
+                    ) t #WHERE_CLAUSE#
+                ORDER BY
+                    entrustment_header_number DESC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field field="entrustment_header_number" queryExpression="entrustment_header_number like &apos;%&apos;||${@entrustment_header_number}||&apos;%&apos;"/>
+        <bm:query-field name="application_date_from" queryExpression="application_date &gt;= to_date(${@application_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="application_date_to" queryExpression="application_date &lt;= to_date(${@application_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+        <bm:query-field name="complete_date_from" queryExpression="complete_date &gt;= to_date(${@complete_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="complete_date_to" queryExpression="complete_date &lt;= to_date(${@complete_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+        <bm:query-field field="entrustment_type_id" queryOperator="="/>
+        <bm:query-field field="applicant_id" queryOperator="="/>
+        <bm:query-field field="suggested_bidding_method" queryOperator="="/>
+        <bm:query-field field="company_id" queryOperator="="/>
+        <bm:query-field field="inv_organization_id" queryOperator="="/>
+        <bm:query-field field="using_company_id" queryOperator="="/>
+        <bm:query-field field="margin_required_flag" queryOperator="="/>
+        <bm:query-field field="bidder_qualified_flag" queryOperator="="/>
+        <bm:query-field field="authorized_flag" queryOperator="="/>
+        <bm:query-field field="status" queryOperator="="/>
+        <bm:query-field field="entrustment_header_id" queryOperator="="/>
+    </bm:query-fields>
+</bm:model>

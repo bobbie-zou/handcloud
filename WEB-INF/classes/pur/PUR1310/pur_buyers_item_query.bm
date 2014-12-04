@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        pb.BUYER_ID,
+                        pb.BUYER_CODE,
+                        pb.description,
+                        pb.USER_ID,
+                        pb.client,
+                        pb.data_source,
+                        pb.data_source_id,
+                        pb.data_source_code,
+                        pb.data_source_name,
+                        (SELECT
+                            su.user_name
+                        FROM
+                            sys_user su
+                        WHERE
+                            su.user_id = pb.user_id
+                        ) user_name,
+                        pb.enabled_flag,
+                        pb.flex_appl_relevance_id,
+                        (
+                            CASE
+                                WHEN pb.enabled_flag='Y' AND
+                                    EXISTS
+                                    (SELECT
+                                        1
+                                    FROM
+                                        pur_company_buyers pcb
+                                    WHERE
+                                        pcb.buyer_id    =pb.BUYER_id AND
+                                        pcb.enabled_flag='Y'
+                                    )
+                                THEN 'Y'
+                                ELSE 'N'
+                            END)AS company_flag
+                    FROM
+                        pur_buyers_vl pb
+                    ORDER BY
+                        pb.BUYER_CODE
+                    ) v #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="buyer_code"/>
+        <bm:field name="description"/>
+        <bm:field name="buyer_id"/>
+        <bm:field name="user_id"/>
+        <bm:field name="user_name"/>
+        <bm:field name="enabled_flag"/>
+        <bm:field name="flex_appl_relevance_id"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="buyer_code" queryExpression="buyer_code like &apos;%&apos;||${@buyer_code}||&apos;%&apos;"/>
+        <bm:query-field field="description" queryExpression="description like &apos;%&apos;||${@description}||&apos;%&apos;"/>
+        <bm:query-field name="quick_value" queryExpression="(buyer_code like &apos;%&apos;||upper(${@quick_value})||&apos;%&apos; or description like &apos;%&apos;||${@quick_value}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority client_alias="v" client_name="client"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

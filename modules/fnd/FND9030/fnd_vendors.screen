@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-4-24 下午2:00:07  
+    $Revision: 1.0  
+    $Purpose: 核心企业
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <a:link id="fnd9030_vendor_systems_link" url="${/request/@context_path}/modules/fnd/FND9030/fnd_vendor_systems.screen"/>
+        <a:link id="fnd9030_vendor_licence_link" url="${/request/@context_path}/modules/fnd/FND9030/fnd_vendor_licence.screen"/>
+        <a:link id="fnd9030_vendor_init_link" model="fnd.FND9030.pur_vendors" modelaction="execute"/>
+        <script><![CDATA[
+            function fnd9030_queryService() {
+                $('fnd9030_vendor_result_ds').query($('fnd9030_vendor_result_ds').currentPage);
+            }
+            
+            //核企系统
+            
+            
+            function fnd9030_vendor_systems_renderer(value, record, name) {
+                var check_init_vendors_flag = record.get('check_init_vendors_flag');
+                if (check_init_vendors_flag == 'Y') {
+                    var vendor_id = record.get('vendor_id');
+                    return '<a href="javascript:fnd9030_open_vendor_system(\'' + vendor_id + '\')">${l:FND_VENDOR_SYSTEMS.TITLE}</a>';
+                }
+            }
+            
+            //打开核企系统页面
+            
+            
+            function fnd9030_open_vendor_system(vendor_id) {
+                new Aurora.Window({
+                    id: 'fnd9030_vendor_systems_window',
+                    url: $('fnd9030_vendor_systems_link').getUrl() + '?vendor_id=' + vendor_id,
+                    title: '${l:FND_VENDOR_SYSTEMS.TITLE}',
+                    height: 510,
+                    width: 1020
+                });
+            }
+            
+            
+            
+            function fnd9030_vendor_licences_renderer(value, record, name) {
+                var check_init_vendors_flag = record.get('check_init_vendors_flag');
+                if (check_init_vendors_flag == 'Y') {
+                    var vendor_id = record.get('vendor_id');
+                    return '<a href="javascript:fnd9030_open_vendor_licence(' + vendor_id + ')">${l:FND_CLIENTS.DISTRIBUTE_LICENCE}</a>';
+                }
+            }
+            
+            //打开核企系统页面
+            
+            
+            function fnd9030_open_vendor_licence(vendor_id) {
+                new Aurora.Window({
+                    id: 'fnd9030_vendor_licence_window',
+                    url: $('fnd9030_vendor_licence_link').getUrl() + '?vendor_id=' + vendor_id,
+                    title: '${l:FND_CLIENTS.DISTRIBUTE_LICENCE}',
+                    height: 450,
+                    width: 820
+                });
+            }
+            
+            //初始化vendor管理员
+            
+            
+            function fnd9030_initFun() {
+                var records = $('fnd9030_vendor_result_ds').getSelected();
+                if (records.length != 1) {
+                    Aurora.showMessage("${l:PROMPT}", "${l:PROMPT.PLEASE_SELECT_ONE}");
+                    return;
+                } else {
+                    var record = records[0];
+                    Aurora.request({
+                        url: $('fnd9030_vendor_init_link').getUrl(),
+                        para: {
+                            vendor_id: record.get('vendor_id')
+                        },
+                        success: function(res) {
+                            fnd9030_queryService();
+                            Aurora.showMessage("${l:PROMPT}", "${l:FND_CLIENTS.INIT_CLIENT_ADMIN_SUCCESS}");
+                        },
+                        scope: this
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd9030_vendor_query_ds" model="fnd.FND9030.pur_vendors">
+                <a:fields>
+                    <a:field name="vendor_code" prompt="PUR_SYS_VENDOR_BASICS.VENDOR_CODE"/>
+                    <a:field name="short_name" prompt="PUR_SYS_VENDOR_BASICS.FULL_NAME"/>
+                    <a:field name="full_name" prompt="PUR_VENDORS.SHORT_NAME_ID"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd9030_vendor_result_ds" autoCount="true" autoQuery="true" model="fnd.FND9030.pur_vendors" queryDataSet="fnd9030_vendor_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="vendor" prompt="FND_vendorS.vendor" required="true"/>
+                    <a:field name="vendor_full_name" prompt="FND_vendorS.vendor_FULL_NAME" required="true"/>
+                    <a:field name="vendor_short_name" prompt="FND_vendorS.vendor_SHORT_NAME" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="PROMPT.ENABLED_FLAG" uncheckedValue="N"/>
+                    <a:field name="comments" prompt="PROMPTS.COMMENTS"/>
+                    <a:field name="vendor_admin_name" prompt="FND_vendorS.vendor_ADMIN_NAME"/>
+                    <a:field name="contact_email" prompt="FND_vendor_SYSTEMS.CONNECT_EMAIL" required="true"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="fnd9030_initFun" text="FND_CLIENTS.INIT_CLIENT_ADMIN" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd9030_vendor_query_ds" resultTarget="fnd9030_vendor_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="vendor_code" bindTarget="fnd9030_vendor_query_ds">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9030_queryService"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="short_name" bindTarget="fnd9030_vendor_query_ds">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9030_queryService"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="full_name" bindTarget="fnd9030_vendor_query_ds">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9030_queryService"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="fnd9030_vendor_result_grid" bindTarget="fnd9030_vendor_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="vendor_code" align="center" prompt="VENDER_CODE" width="100"/>
+                    <a:column name="version" align="center" prompt="PUR_SYS_VENDOR_BASICS.VERSION_NUM" width="50"/>
+                    <a:column name="full_name" prompt="PUR_SYS_VENDOR_BASICS.FULL_NAME" width="150"/>
+                    <a:column name="short_name" prompt="PUR_SYSTEM_VENDERS.SHORT_NAME" width="100"/>
+                    <a:column name="vendor_category_desc" align="center" prompt="PUR_VENDORS.VENDOR_CATEGORY" width="100"/>
+                    <a:column name="national_organization_code" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE" width="100"/>
+                    <a:column name="business_license_number" prompt="PUR_VENDORS.BUSINESS_LICENSE_NUMBER" width="100"/>
+                    <a:column name="registered_country_name" prompt="PUR_VENDORS.REGISTERED_COUNTRY_CODE" width="80"/>
+                    <a:column name="registered_province_desc" prompt="PUR_VENDORS.REGISTERED_PROVINCE_ID" width="80"/>
+                    <a:column name="registered_city_desc" prompt="PUR_VENDORS.REGISTERED_CITY_ID" width="80"/>
+                    <a:column name="vendor_admin_name" prompt="FND_VENDOR_SYSTEMS.ADMIN_NAME" width="80"/>
+                    <a:column name="vendor_system" renderer="fnd9030_vendor_systems_renderer" width="80"/>
+                    <a:column name="vendor_licence" renderer="fnd9030_vendor_licences_renderer" width="80"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

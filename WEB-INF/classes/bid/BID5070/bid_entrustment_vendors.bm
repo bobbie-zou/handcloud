@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-3-18 下午01:17:33  
+    $Revision: 1.0  
+    $Purpose: 招标委托投标供应商表
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	 select rownum*10 line_serial_num,
+            	 		bev.line_bidder_id,
+                        bev.bidder_id original_vendor_id,
+                        pv.segment1 original_vendor_code,
+                        pv.vendor_name original_vendor_name,
+                        bev.entrustment_header_id,
+                       -- bev.altered_flag,
+                        bev.winning_bidder_flag,
+                        bev.created_by,
+                        bev.creation_date,
+                        bev.last_updated_by,
+                        bev.last_update_date,
+                        bev.flex_appl_relevance_id
+                   from bid_entrustment_ln_bidders bev,po_vendors pv
+									 #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:query-sql><![CDATA[
+            begin
+                bid_vendor_alt_apply_pkg.insert_alteration_line(p_alteration_header_id  =>${../../@alteration_header_id},
+                                                                p_original_vendor_id    =>${@original_vendor_id},
+                                                                p_replaced_by_vendor_id =>${@new_vendor_id},
+                                                                p_alter_mode            =>${@alter_mode},
+                                                                p_node                  =>${@comments},
+                                                                p_user_id               =>${/session/@user_id},
+                                                                x_alteration_line_id    =>${@alteration_line_id});
+            end;                               
+            ]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter name="alteration_line_id" dataType="java.lang.Long" input="false" output="true" outputPath="@alteration_line_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+            begin
+                bid_vendor_alt_apply_pkg.update_alteration_line(p_alteration_line_id    =>${@alteration_line_id},
+                                                                p_original_vendor_id    =>${@original_vendor_id},
+                                                                p_replaced_by_vendor_id =>${@new_vendor_id},
+                                                                p_alter_mode            =>${@alter_mode},
+                                                                p_node                  =>${@comments},
+                                                                p_user_id               =>${/session/@user_id});
+            end;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="entrustment_header_id" queryExpression="bev.entrustment_header_id=${@entrustment_header_id}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="bev.bidder_id = pv.vendor_id"/>
+    </bm:data-filters>
+</bm:model>

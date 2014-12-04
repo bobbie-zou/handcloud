@@ -1,0 +1,837 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-10 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 送货单查询-供应方，入口页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="inv7020_asn_receive_detail_link" url="${/request/@context_path}/modules/inv/INV7020/inv_asn_receive_detail.screen"/>
+        <a:link id="inv7020_asn_operation_record_link" url="${/request/@context_path}/modules/inv/INV7020/inv_asn_operation_record.screen"/>
+        <a:link id="inv7020_asn_print_link" url="${/request/@context_path}/modules/inv/INV7020/inv_asn_print.screen"/>
+        <a:link id="inv7020_asn_print_insert_link" url="${/request/@context_path}/modules/inv/INV7020/inv_asn_print.svc"/>
+        <a:link id="inv7020_asnDocumentView_link" url="${/request/@context_path}/modules/inv/PUBLIC/inv_asn_document_vendor_view.screen"/>
+        <script><![CDATA[
+            var inv7020_tab_index = 0;
+            var inv7020_click_index_h = '-1';
+            var inv7020_click_index_l = '-1';
+            var inv7020_tree_div = [];
+            
+            function inv7020_query() {
+                var ds = $('inv7020_asn_query_result_ds');
+                ds.query();
+            }
+            
+            function inv7020_operation_records_render(value, record, name) {
+                return '<a href="javascript:inv7020_go_operation_records(' + record.get('asn_line_id') + ');">${l:MODULES/INV/INV5020/INV_ASN_OPERATION_RECORD.SCREEN.TITLE}</a>';
+            }
+            
+            function inv7020_go_operation_records(asn_line_id) {
+                new Aurora.Window({
+                    id: 'inv7020_asn_operation_record_win',
+                    title: '${l:MODULES/INV/INV5020/INV_ASN_OPERATION_RECORD.SCREEN.TITLE}',
+                    url: $('inv7020_asn_operation_record_link').getUrl() + '?asn_line_id=' + asn_line_id,
+                    height: 450,
+                    width: 600
+                });
+            
+            }
+            
+            //按单打印操作
+            
+            function inv7020_asn_header_query_print() {
+                var ds = $('inv7020_asn_header_query_result_selected_ds');
+                var records = ds.getAll();
+                if (records.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '请至少选择一行数据');
+                    return false;
+                }
+                var datas = [];
+                for (var i = 0;i < records.length;i++) {
+                    datas.push(records[i].data);
+                }
+                Aurora.Masker.mask(Ext.getBody());
+                Aurora.request({
+                    url: $('inv7020_asn_print_insert_link').getUrl(),
+                    para: datas,
+                    success: function(res) {
+                        window.open($('inv7020_asn_print_link').getUrl(), '_blank');
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    error: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+            
+            //按明细行打印操作
+            
+            function inv7020_asn_query_print() {
+                var ds = $('inv7020_asn_query_result_selected_ds');
+                var records = ds.getAll();
+                if (records.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '请至少选择一行数据');
+                    return false;
+                }
+                var datas = [];
+                for (var i = 0;i < records.length;i++) {
+                    datas.push(records[i].data);
+                }
+                Aurora.Masker.mask(Ext.getBody());
+                Aurora.request({
+                    url: $('inv7020_asn_print_insert_link').getUrl(),
+                    para: datas,
+                    success: function(res) {
+                        window.open($('inv7020_asn_print_link').getUrl(), '_blank');
+            
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    error: function(res) {
+                        Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+            
+            //按单查询，勾选时的操作
+            
+            function inv7020_asn_header_query_result_select(ds, record) {
+                var select_ds = $('inv7020_asn_header_query_result_selected_ds');
+                var result_record = select_ds.find('asn_header_id', record.get('asn_header_id'));
+                if (Aurora.isEmpty(result_record)) {
+                    select_ds.create();
+                    var select_record = select_ds.getCurrentRecord();
+                    select_record.set('asn_header_id', record.get('asn_header_id'));
+                }
+            }
+            
+            //按单查询，去掉选时的操作
+            
+            function inv7020_asn_header_query_result_unselect(ds, record) {
+                var select_ds = $('inv7020_asn_header_query_result_selected_ds');
+                var result_record = select_ds.find('asn_header_id', record.get('asn_header_id'));
+                if (!Aurora.isEmpty(result_record)) {
+                    select_ds.remove(result_record);
+                }
+            }
+            
+            //按明细行查询，勾选时的操作
+            
+            function inv7020_asn_query_result_select(ds, record) {
+                var select_ds = $('inv7020_asn_query_result_selected_ds');
+                var result_record = select_ds.find('asn_line_id', record.get('asn_line_id'));
+                if (Aurora.isEmpty(result_record)) {
+                    select_ds.create();
+                    var select_record = select_ds.getCurrentRecord();
+                    select_record.set('asn_line_id', record.get('asn_line_id'));
+                    select_record.set('asn_header_id', record.get('asn_header_id'));
+                }
+            }
+            
+            //按明细行查询，去掉选时的操作
+            
+            function inv7020_asn_query_result_unselect(ds, record) {
+                var select_ds = $('inv7020_asn_query_result_selected_ds');
+                var result_record = select_ds.find('asn_line_id', record.get('asn_line_id'));
+                if (!Aurora.isEmpty(result_record)) {
+                    select_ds.remove(result_record);
+                }
+            }
+            
+            //查询时的操作
+            
+            function inv7020_asn_codes_grid_render(grid) {
+                var ds = $('inv7020_asn_query_result_ds');
+                var list_ds = $('inv7020_asn_query_result_selected_ds');
+                var records = list_ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var asn_line_id = records[i].get('asn_line_id');
+                    var result_record = ds.find('asn_line_id', asn_line_id);
+                    if (!Aurora.isEmpty(result_record)) {
+                        ds.select(result_record);
+                    }
+                }
+            }
+            
+            //送货单头查询
+            
+            function inv7020_asnHeader_query() {
+                $('inv7020_asn_header_result_ds').query();
+            }
+            
+            //送货单
+            
+            function inv7020_asnHeaderGridRenderer(value, record, name) {
+                if (name == 'asn_number') {
+                    return '<a href="javascript:inv7020_asnDocumentView_open(' + record.get('asn_header_id') + ');">' + value + '</a>';
+                }
+            
+                if (name == 'process_status_name') {
+                    if (record.get('process_status') == 'SUCCESSED') {
+                        return '<div style="background:#00DD00;">' + value + '</div>';
+                    } else {
+                        return '<div>' + value + '</div>';
+                    }
+                }
+                if (name == 'warning' && (record.get('process_status') == 'FAILED' || record.get('cancel_process_status') == 'FAILED')) {
+                    var header_id = record.get('asn_header_id');
+                    return '<div style="font-size: 16px;color: #e74c3c;"><a href="javascript:inv7020_showMessage(' + header_id + ')" style="font-size: 16px;color: #e74c3c;"><i class="fa fa-warning"></i></><div>';
+                }
+            }
+            
+            function inv7020_showMessage(header_id) {
+                //if(record.get('')){}
+                var result = $('inv7020_asn_header_result_ds').getAll();
+                var process_status;
+                var cancel_process_status;
+                var error_message;
+                var cancel_message;
+                for (var i = 0;i < result.length;i++) {
+                    if (result[i].get('asn_header_id') == header_id) {
+                        process_status = result[i].get('process_status');
+                        cancel_process_status = result[i].get('cancel_process_status');
+                        error_message = result[i].get('process_message');
+                        cancel_message = result[i].get('cancel_process_message');
+                    }
+                }
+                if (Aurora.isEmpty(error_message)) {
+                    error_message = '';
+                }
+                if (Aurora.isEmpty(cancel_message)) {
+                    cancel_message = '';
+                }
+                if (process_status == 'FAILED') {
+                    Aurora.showMessage('提示', error_message, null, 600, 300);
+                } else if (cancel_process_status == 'FAILED') {
+                    Aurora.showMessage('提示', cancel_message, null, 600, 300);
+                }
+            }
+            
+            function inv7020_asnDocumentView_open(asn_header_id) {
+                new Aurora.Window({
+                    id: 'inv_asn_document_view_window',
+                    title: '${l:INV_ASN_HEDER_DETAIL_TITLE}',
+                    url: $('inv7020_asnDocumentView_link').getUrl() + '?asn_header_id=' + asn_header_id,
+                    fullScreen: true
+                });
+            }
+            
+            //查找tree的父节点
+            
+            function inv7020_find_father(code) {
+                var tree_ds = $('inv7020_asn_query_parameter_tree_ds');
+                var all = tree_ds.getAll();
+                for (var i = 0;i < all.length;i++) {
+                    if (all[i].data.query_code == code) {
+                        return all[i].data.parent_query_code;
+                    }
+                }
+            }
+            
+            //是否有子节点
+            
+            function inv7020_find_son(code) {
+                var tree_ds = $('inv7020_asn_query_parameter_tree_ds');
+                var all = tree_ds.getAll();
+                for (var i = 0;i < all.length;i++) {
+                    if (all[i].data.parent_query_code == code) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            function inv7020_query_set_null() {
+                var query_ds;
+                if (inv7020_tab_index == 0) {
+                    query_ds = $('inv7020_asn_header_query_ds').getAt(0);
+                } else if (inv7020_tab_index == 1) {
+                    query_ds = $('inv7020_asn_query_ds').getAt(0);
+                }
+                query_ds.set('status', '');
+                query_ds.set('process_status', '');
+                query_ds.set('cancel_process_status', '');
+                query_ds.set('cancel_process_status1', '');
+                query_ds.set('can_print', '');
+                query_ds.set('close_flag', '');
+            }
+            
+            //显示隐藏打印按钮
+            
+            function inv7020_diable_or_enable_print_btn(mode) {
+                //显示
+                if (mode == 1) {
+                    if (inv7020_tab_index == 0) {
+                        $('inv7020_asn_header_print_btn').enable();
+                    } else if (inv7020_tab_index == 1) {
+                        $('inv7020_asn_line_print_btn').enable();
+                    }
+                } else if (mode == 2) {
+                    if (inv7020_tab_index == 0) {
+                        $('inv7020_asn_header_print_btn').disable();
+                    } else if (inv7020_tab_index == 1) {
+                        $('inv7020_asn_line_print_btn').disable();
+                    }
+                }
+            }
+            
+            /* function inv7020_tree_query() {
+             var tree_ds = $('inv7020_asn_query_parameter_tree_ds');
+             var query_ds = $('inv7020_asn_header_query_ds').getAt(0);
+             var all = tree_ds.getAll();
+             var check_amount = 0;
+             var i;
+             inv7020_query_set_null();
+             if (inv7020_tab_index == 0) {
+             query_ds = $('inv7020_asn_header_query_ds').getAt(0);
+             } else if (inv7020_tab_index == 1) {
+             query_ds = $('inv7020_asn_query_ds').getAt(0);
+             }
+             for (i = 0;i < all.length;i++) {
+             if (all[i].data.checked == 'Y' && inv7020_find_son(all[i].data.query_code)) {
+             query_ds.set('status_tree', '1');
+             if (all[i].data.query_code == 'SEND_SUCCESSED') {
+             query_ds.set('send_successed', all[i].data.query_code);
+             inv7020_diable_or_enable_print_btn(1);
+             }
+             if (all[i].data.query_code == 'SEND_WAITING') {
+             query_ds.set('send_waiting', all[i].data.query_code);
+             inv7020_diable_or_enable_print_btn(2);
+             }
+             if (all[i].data.query_code == 'SEND_FAILED') {
+             query_ds.set('send_failed', all[i].data.query_code);
+             inv7020_diable_or_enable_print_btn(2);
+             }
+             if (all[i].data.query_code == 'PART_RECEIVE') {
+             query_ds.set('status', all[i].data.query_code);
+             inv7020_diable_or_enable_print_btn(1);
+             }
+             if (all[i].data.query_code == 'ALL_RECEIVE') {
+             query_ds.set('status1', all[i].data.query_code);
+             query_ds.set('cancel_process_status_name3', '-1');
+             inv7020_diable_or_enable_print_btn(1);
+             }
+             if (all[i].data.query_code == 'SUCCESSED') {
+             query_ds.set('cancel_process_status_name', all[i].data.query_code);
+             inv7020_diable_or_enable_print_btn(2);
+             }
+             if (all[i].data.query_code == 'WAITING') {
+             query_ds.set('cancel_process_status_name1', all[i].data.query_code);
+             inv7020_diable_or_enable_print_btn(2);
+             }
+             if (all[i].data.query_code == 'FAILED') {
+             query_ds.set('cancel_process_status_name2', all[i].data.query_code);
+             inv7020_diable_or_enable_print_btn(2);
+             }
+             if (all[i].data.query_code == 'CLOSED') {
+             query_ds.set('status2', all[i].data.query_code);
+             inv7020_diable_or_enable_print_btn(2);
+             }
+             if (all[i].data.query_code == 'CAN_PRINT') {
+             query_ds.set('can_print', all[i].data.query_code);
+             inv7020_diable_or_enable_print_btn(1);
+             }
+             check_amount++;
+             }
+             }
+             if (inv7020_tab_index == 0) {
+             $('inv7020_asn_header_result_ds').query();
+             } else if (inv7020_tab_index == 1) {
+             $('inv7020_asn_query_result_ds').query();
+             }
+             } */
+            
+            function inv7020_treeGrid_renderer(value, record, name) {
+                var index = $('inv7020_asn_query_parameter_tree_ds').indexOf(record);
+                var id = "inv7020_" + index;
+                inv7020_tree_div.push(id);
+                return '<div id="' + id + '" >' + value + '</div>';
+            }
+            
+            function inv7020_tree_click(grid, row, record) {
+                var query_ds;
+                var check_amount = 0;
+                var i;
+                var id;
+                if (inv7020_tab_index == 0) {
+                    query_ds = $('inv7020_asn_header_query_ds').getAt(0);
+                    inv7020_click_index_h = $('inv7020_asn_query_parameter_tree_ds').indexOf(record);
+                    id = "inv7020_" + inv7020_click_index_h;
+                } else if (inv7020_tab_index == 1) {
+                    query_ds = $('inv7020_asn_query_ds').getAt(0);
+                    inv7020_click_index_l = $('inv7020_asn_query_parameter_tree_ds').indexOf(record);
+                    id = "inv7020_" + inv7020_click_index_l;
+                }
+                //设置被选中div背景色为红色
+                document.getElementById(id).style.color = "#FF0000";
+                //设置没被选中div背景色为红色
+                for (i = 0;i < inv7020_tree_div.length;i++) {
+                    if (inv7020_tree_div[i] != id) {
+                        document.getElementById(inv7020_tree_div[i]).style.color = "#000000";
+                    }
+                }
+                inv7020_query_set_null();
+                if (inv7020_find_son(record.get('query_code')) || record.get('query_code') == 'ALL') {
+                    if (record.get('query_code') == 'ALL') {
+                        inv7020_diable_or_enable_print_btn(1);
+                    }
+                    if (record.get('query_code') == 'SEND_SUCCESSED') {
+                        query_ds.set('process_status', 'SUCCESSED');
+                        inv7020_diable_or_enable_print_btn(1);
+                    }
+                    if (record.get('query_code') == 'SEND_WAITING') {
+                        query_ds.set('process_status', 'WAITING');
+                        inv7020_diable_or_enable_print_btn(2);
+            
+                    }
+                    if (record.get('query_code') == 'SEND_FAILED') {
+                        query_ds.set('process_status', 'FAILED');
+                        inv7020_diable_or_enable_print_btn(2);
+                    }
+                    if (record.get('query_code') == 'PART_RECEIVE') {
+                        query_ds.set('status', record.get('query_code'));
+                        inv7020_diable_or_enable_print_btn(1);
+                    }
+                    if (record.get('query_code') == 'ALL_RECEIVE') {
+                        query_ds.set('status', 'ALL_CLOSE');
+                        query_ds.set('cancel_process_status', '-1');
+                        inv7020_diable_or_enable_print_btn(1);
+                    }
+                    if (record.get('query_code') == 'SUCCESSED') {
+                        query_ds.set('cancel_process_status1', record.get('query_code'));
+                        inv7020_diable_or_enable_print_btn(2);
+                    }
+                    if (record.get('query_code') == 'WAITING') {
+                        query_ds.set('cancel_process_status1', record.get('query_code'));
+                        inv7020_diable_or_enable_print_btn(2);
+                    }
+                    if (record.get('query_code') == 'FAILED') {
+                        query_ds.set('cancel_process_status1', record.get('query_code'));
+                        inv7020_diable_or_enable_print_btn(2);
+                    }
+                    if (record.get('query_code') == 'CLOSED') {
+                        if (inv7020_tab_index == 0) {
+                            query_ds.set('status', 'ALL_CLOSE');
+                        } else if (inv7020_tab_index == 1) {
+                            query_ds.set('close_flag', 'Y');
+                        }
+                        inv7020_diable_or_enable_print_btn(2);
+                    }
+                    if (record.get('query_code') == 'CAN_PRINT') {
+                        query_ds.set('can_print', record.get('query_code'));
+                        inv7020_diable_or_enable_print_btn(1);
+                    }
+                    if (inv7020_tab_index == 0) {
+                        $('inv7020_asn_header_result_ds').query();
+                    } else if (inv7020_tab_index == 1) {
+                        $('inv7020_asn_query_result_ds').query();
+                    }
+                }
+            }
+            
+            function inv7020_tabpanel_select(tabPanel, index, tab) {
+                var click_index;
+                if (index == 0) {
+                    click_index = inv7020_click_index_h;
+                } else if (index == 1) {
+                    click_index = inv7020_click_index_l;
+                }
+                for (var i = 0;i < inv7020_tree_div.length;i++) {
+                    if (inv7020_tree_div[i] != 'inv7020_' + click_index) {
+                        document.getElementById(inv7020_tree_div[i]).style.color = "#000000";
+                    }
+                }
+                if (click_index != '-1') {
+                    document.getElementById('inv7020_' + click_index).style.color = "#FF0000"; 
+                    //换页时锁定光标位置
+                    $('inv7020_asn_query_parameter_tree_ds').locate(click_index + 1);
+                }else {
+                    $('inv7020_asn_query_parameter_tree_ds').locate(1);
+                }
+                inv7020_tab_index = index;
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv7020_asn_query_parameter_tree_ds" loadData="true" model="inv.INV7020.inv_asn_query_parameter_tree"/>
+            <a:dataSet id="inv7020_asn_process_status_list_ds" autoCreate="true">
+                <a:datas>
+                    <a:record name="导入成功" value="SUCCESSED"/>
+                    <a:record name="等待导入" value="WAITING"/>
+                    <a:record name="正在导入" value="IMPORTED"/>
+                    <a:record name="导入失败" value="FAILED"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="inv7020_asn_headers_status" lookupCode="INV_ASN_HEADERS_STATUS"/>
+            <a:dataSet id="inv7020_asn_query_result_selected_ds">
+                <a:fields>
+                    <a:field name="asn_line_id"/>
+                    <a:field name="asn_header_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv7020_asn_header_query_result_selected_ds">
+                <a:fields>
+                    <a:field name="asn_header_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv7020_asn_query_ds">
+                <a:fields>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_full_name" lovHeight="500" lovService="public.fnd_cooperative_company_by_supply_lov" lovWidth="500" title="FND_COMPANIES.QUERY">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="ship_to_organization_name" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovLabelWidth="100" lovService="public.inv_organizations_lov_by_client_business_group" lovWidth="540" title="收货组织">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="ship_to_organization_id"/>
+                            <a:map from="inv_organization_name" to="ship_to_organization_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="business_unit_name" autoComplete="true" autoCompleteField="business_unit_name" lovHeight="500" lovLabelWidth="100" lovService="public.fnd_business_unit_lov_by_client_business_group" lovWidth="540" title="业务单元">
+                        <a:mapping>
+                            <a:map from="business_unit_id" to="business_unit_id"/>
+                            <a:map from="business_unit_name" to="business_unit_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="header_status" displayField="code_value_name" options="inv7020_asn_headers_status" returnField="status" valueField="code_value"/>
+                    <a:field name="vendor_site_name" autoComplete="true" autoCompleteField="site_name" lovHeight="470" lovLabelWidth="100" lovService="public.pur_vendor_sites_lov?business_group=${/session/@business_group}" lovWidth="900" title="发货地点">
+                        <a:mapping>
+                            <a:map from="vendor_site_id" to="vendor_site_id"/>
+                            <a:map from="site_name" to="vendor_site_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_code" autoComplete="true" autoCompleteField="item_code" lovGridHeight="320" lovHeight="500" lovService="inv.INV5010.inv_items_lov_by_client_business_group" lovWidth="1000" title="物料">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_name" to="item_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="on_the_way_qty_view" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="exclude_all_close" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv7020_asn_query_result_ds" autoCount="true" autoPageSize="true" autoQuery="false" model="inv.INV7020.inv_asn_query" queryDataSet="inv7020_asn_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="cancel_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="close_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="select" handler="inv7020_asn_query_result_select"/>
+                    <a:event name="unselect" handler="inv7020_asn_query_result_unselect"/>
+                </a:events>
+            </a:dataSet>
+            <!-- 送货单头查询DS -->
+            <a:dataSet id="inv7020_asn_header_query_ds">
+                <a:fields>
+                    <a:field name="header_status" displayField="code_value_name" options="inv7020_asn_headers_status" returnField="status" valueField="code_value"/>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_full_name" lovHeight="500" lovService="public.fnd_cooperative_company_by_supply_lov" lovWidth="500" title="我的客户">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="ship_to_organization_name" autoComplete="true" autoCompleteField="inv_organization_name" lovHeight="500" lovLabelWidth="100" lovService="public.inv_organizations_lov_by_client_business_group" lovWidth="540" title="收货组织">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="ship_to_organization_id"/>
+                            <a:map from="inv_organization_name" to="ship_to_organization_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="exclude_all_close" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="process_status_display" displayField="name" options="inv7020_asn_process_status_list_ds" returnField="process_status" valueField="value"/>
+                </a:fields>
+            </a:dataSet>
+            <!-- 送货单头结果DS-->
+            <a:dataSet id="inv7020_asn_header_result_ds" autoCount="true" autoPageSize="true" autoQuery="false" model="inv.INV7020.inv_asn_header_query" queryDataSet="inv7020_asn_header_query_ds" selectable="true">
+                <a:events>
+                    <a:event name="select" handler="inv7020_asn_header_query_result_select"/>
+                    <a:event name="unselect" handler="inv7020_asn_header_query_result_unselect"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:hBox>
+                <a:vBox>
+                    <!-- <a:toolbarButton click="inv7020_tree_query" text="查询" width="100"/> -->
+                    <a:treeGrid id="inv7020_asn_query_parameter_tree_ds_grid" bindTarget="inv7020_asn_query_parameter_tree_ds" expandField="expand" height="365" idField="query_code" marginHeight="92" parentField="parent_query_code" sequenceField="sequence" showCheckBox="false" width="200">
+                        <a:columns>
+                            <a:column name="query_name" align="left" prompt="状态" renderer="inv7020_treeGrid_renderer" width="180"/>
+                        </a:columns>
+                        <a:events>
+                            <a:event name="rowclick" handler="inv7020_tree_click"/>
+                        </a:events>
+                    </a:treeGrid>
+                </a:vBox>
+                <a:tabPanel marginHeight="92" marginWidth="275">
+                    <a:tabs>
+                        <a:tab prompt="INV_ASN_HEADER_QUERY_TITLE" width="130">
+                            <a:hBox style="margin-top:10px;margin-left:20px">
+                                <a:gridButton bind="inv7020_asn_header_grid" className="item-rbtn-blue button-excel" type="excel" width="100"/>
+                                <a:toolbarButton id="inv7020_asn_header_print_btn" click="inv7020_asn_header_query_print" text="PROMPT.PRINT" width="100"/>
+                            </a:hBox>
+                            <a:queryForm bindTarget="inv7020_asn_header_query_ds" defaultQueryField="journal_num" resultTarget="inv7020_asn_header_result_ds" style="border:none">
+                                <a:formToolBar>
+                                    <a:hBox labelWidth="100">
+                                        <a:textField name="asn_number" bindTarget="inv7020_asn_header_query_ds" prompt="INV_ASN_HEADERS.ASN_NUMBER">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_asnHeader_query"/>
+                                            </a:events>
+                                        </a:textField>
+                                        <a:lov name="company_name" bindTarget="inv7020_asn_header_query_ds" prompt="我的客户">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_asnHeader_query"/>
+                                            </a:events>
+                                        </a:lov>
+                                        <!--  <a:comboBox name="process_status_display" bindTarget="inv7020_asn_header_query_ds" prompt="导入状态">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_asnHeader_query"/>
+                                            </a:events>
+                                        </a:comboBox> -->
+                                    </a:hBox>
+                                </a:formToolBar>
+                                <a:formBody>
+                                    <a:hBox labelWidth="100">
+                                        <a:datePicker name="creation_date_from" bindTarget="inv7020_asn_header_query_ds" prompt="INV_ASN_HEADERS.CREATION_DATE_FROM">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_asnHeader_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <a:datePicker name="creation_date_to" bindTarget="inv7020_asn_header_query_ds" prompt="INV_ASN_HEADERS.CREATION_DATE_TO">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_asnHeader_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <a:lov name="ship_to_organization_name" bindTarget="inv7020_asn_header_query_ds" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_asnHeader_query"/>
+                                            </a:events>
+                                        </a:lov>
+                                    </a:hBox>
+                                    <a:hBox labelWidth="100">
+                                        <a:datePicker name="expected_date_from" bindTarget="inv7020_asn_header_query_ds" prompt="INV_ASN_HEADERS.EXPECTED_DATE_FROM">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_asnHeader_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <a:datePicker name="expected_date_to" bindTarget="inv7020_asn_header_query_ds" prompt="INV_ASN_HEADERS.EXPECTED_DATE_TO">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_asnHeader_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <!-- <a:comboBox name="header_status" bindTarget="inv7020_asn_header_query_ds" prompt="单据状态">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_asnHeader_query"/>
+                                            </a:events>
+                                        </a:comboBox> -->
+                                    </a:hBox>
+                                    <a:hBox labelWidth="100">
+                                        <a:datePicker name="ship_date_from" bindTarget="inv7020_asn_header_query_ds" prompt="INV_ASN_HEADERS.SHIP_DATE_FROM">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_asnHeader_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <a:datePicker name="ship_date_to" bindTarget="inv7020_asn_header_query_ds" prompt="INV_ASN_HEADERS.SHIP_DATE_TO">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_asnHeader_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <!-- <a:checkBox name="exclude_all_close" bindTarget="inv7020_asn_header_query_ds" label="排除已完全收货单据" style="margin-left:50px;" width="130"/> -->
+                                    </a:hBox>
+                                </a:formBody>
+                            </a:queryForm>
+                            <a:grid id="inv7020_asn_header_grid" autoAppend="false" bindTarget="inv7020_asn_header_result_ds" marginHeight="235" marginWidth="294" navBar="true" style="margin-top:5px;">
+                                <a:columns>
+                                    <a:column name="warning" align="center" renderer="inv7020_asnHeaderGridRenderer" width="25"/>
+                                    <!-- <a:column name="header_status" align="center" prompt="单据状态" width="40"/>
+                                    <a:column name="process_status_name" align="center" prompt="导入状态" renderer="inv7020_asnHeaderGridRenderer" width="40"/>
+                                    <a:column name="process_message" align="left" prompt="错误信息" width="70"/>
+                                    <a:column name="cancel_process_status_name" align="center" prompt="取消反馈状态" width="40"/>
+                                    <a:column name="cancel_process_message" align="center" prompt="取消错误信息" width="70"/> -->
+                                    <a:column name="asn_number" align="left" prompt="INV_ASN_HEADERS.ASN_NUMBER" renderer="inv7020_asnHeaderGridRenderer" width="90"/>
+                                    <a:column name="asn_type_name" align="left" prompt="送货单类型" width="60"/>
+                                    <a:column name="company_name" align="left" prompt="客户名称" width="90"/>
+                                    <a:column name="creation_date_fmt" align="left" prompt="创建日期" width="65"/>
+                                    <a:column name="ship_date_fmt" align="left" prompt="INV_ASN_HEADERS.SHIP_DATE" width="65"/>
+                                    <a:column name="expected_date_fmt" align="left" prompt="INV_ASN_HEADERS.EXPECTED_DATE" width="70"/>
+                                    <!-- <a:column name="comments" align="left" prompt="INV_ASN_HEADERS.HEADER_DESC" width="150"/> -->
+                                    <a:column name="location_name" align="left" prompt="INV_ASN_HEADERS.LOCATION_ID" width="90"/>
+                                    <a:column name="ship_to_organization_name" align="left" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID" width="120"/>
+                                </a:columns>
+                            </a:grid>
+                        </a:tab>
+                        <a:tab prompt="INV_ASN_LOCATION_QUERY_TITLE" width="130">
+                            <a:hBox style="margin-top:10px;margin-left:20px">
+                                <a:gridButton bind="inv7020_asn_query_grid" className="item-rbtn-blue button-excel" type="excel" width="100"/>
+                                <a:toolbarButton id="inv7020_asn_line_print_btn" click="inv7020_asn_query_print" text="PROMPT.PRINT" width="100"/>
+                            </a:hBox>
+                            <a:queryForm bindTarget="inv7020_asn_query_ds" defaultQueryField="journal_num" resultTarget="inv7020_asn_query_result_ds" style="border:none">
+                                <a:formToolBar>
+                                    <a:hBox labelWidth="100">
+                                        <a:textField name="asn_number" bindTarget="inv7020_asn_query_ds" prompt="INV_ASN_HEADERS.ASN_NUMBER">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:textField>
+                                        <a:textField name="order_num" bindTarget="inv7020_asn_query_ds" prompt="INV_ASN_LINES.SEGMENT1">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:textField>
+                                        <a:lov name="company_name" bindTarget="inv7020_asn_query_ds" prompt="我的客户 ">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:lov>
+                                    </a:hBox>
+                                </a:formToolBar>
+                                <a:formBody>
+                                    <a:hBox labelWidth="100">
+                                        <a:datePicker name="creation_date_from" bindTarget="inv7020_asn_query_ds" prompt="INV_ASN_HEADERS.CREATION_DATE_FROM">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <a:datePicker name="creation_date_to" bindTarget="inv7020_asn_query_ds" prompt="INV_ASN_HEADERS.CREATION_DATE_TO">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <a:lov name="item_code" bindTarget="inv7020_asn_query_ds" prompt="物料">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:lov>
+                                    </a:hBox>
+                                    <a:hBox labelWidth="100">
+                                        <a:datePicker name="ship_date_from" bindTarget="inv7020_asn_query_ds" prompt="INV_ASN_HEADERS.SHIP_DATE_FROM">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <a:datePicker name="ship_date_to" bindTarget="inv7020_asn_query_ds" prompt="INV_ASN_HEADERS.SHIP_DATE_TO">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <!-- <a:comboBox name="header_status" bindTarget="inv7020_asn_query_ds" prompt="STATUS">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:comboBox> -->
+                                    </a:hBox>
+                                    <a:hBox labelWidth="100">
+                                        <a:datePicker name="expected_date_from" bindTarget="inv7020_asn_query_ds" prompt="INV_ASN_HEADERS.EXPECTED_DATE_FROM">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <a:datePicker name="expected_date_to" bindTarget="inv7020_asn_query_ds" prompt="INV_ASN_HEADERS.EXPECTED_DATE_TO">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:datePicker>
+                                        <a:lov name="vendor_site_name" bindTarget="inv7020_asn_query_ds" lovHeight="500" lovWidth="500" prompt="发货地点">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:lov>
+                                    </a:hBox>
+                                    <a:hBox labelWidth="100">
+                                        <a:textField name="line_num" bindTarget="inv7020_asn_query_ds" prompt="订单行号">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:textField>
+                                        <a:textField name="shipment_num" bindTarget="inv7020_asn_query_ds" prompt="发运号">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:textField>
+                                        <a:textField name="release_num" bindTarget="inv7020_asn_query_ds" prompt="发放号">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:textField>
+                                    </a:hBox>
+                                    <a:hBox labelWidth="100">
+                                        <a:lov name="ship_to_organization_name" bindTarget="inv7020_asn_query_ds" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:lov>
+                                        <a:textField name="agent_name" bindTarget="inv7020_asn_query_ds" prompt="INV_ASN_LINES.AGENT_ID">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="inv7020_query"/>
+                                            </a:events>
+                                        </a:textField>
+                                        <!-- <a:checkBox name="exclude_all_close" bindTarget="inv7020_asn_query_ds" label="排除已完全收货单据" style="margin-left:50px;" width="130"/> -->
+                                        <a:checkBox name="on_the_way_qty_view" bindTarget="inv7020_asn_query_ds" label="仅查看在途单据" style="margin-left:50px;" width="120"/>
+                                    </a:hBox>
+                                </a:formBody>
+                            </a:queryForm>
+                            <a:grid id="inv7020_asn_query_grid" autoAppend="false" bindTarget="inv7020_asn_query_result_ds" marginHeight="235" marginWidth="294" navBar="true" style="margin-top:5px;">
+                                <a:columns>
+                                    <a:column name="asn_number" align="left" prompt="INV_ASN_HEADERS.ASN_NUMBER" sortable="true" width="100"/>
+                                    <a:column name="asn_line_num" align="left" prompt="行号" sortable="true" width="30"/>
+                                    <a:column name="cancel_flag" align="center" prompt="已取消" width="40"/>
+                                    <a:column name="close_flag" align="center" prompt="已关闭" width="40"/>
+                                    <a:column name="require_item_code" align="left" prompt="客户物品编码" sortable="true" width="75"/>
+                                    <a:column name="require_item_name" align="left" prompt="客户物品名称" sortable="true" width="100"/>
+                                    <a:column name="supply_item_code" align="left" prompt="物品编码" sortable="true" width="75"/>
+                                    <a:column name="supply_item_name" align="left" prompt="物品名称" sortable="true" width="100"/>
+                                    <a:column name="company_name" align="left" prompt="客户名称" sortable="true" width="100"/>
+                                    <a:column name="po_num" align="left" prompt="INV_ASN_LINES.SEGMENT1" sortable="true" width="80"/>
+                                    <a:column name="line_status" align="left" prompt="发货状态" sortable="true" width="50"/>
+                                    <a:column name="ship_quantity" align="right" prompt="INV_ASN_LINES.SHIP_QUANTITY" renderer="Aurora.formatNumber" width="50"/>
+                                    <a:column name="uom_name" align="left" prompt="INV_ASN_LINES.UNIT_MEAS_LOOKUP_CODE" width="50"/>
+                                    <!-- <a:column name="unit_price" align="right" prompt="单价" renderer="Aurora.formatNumber" width="50"/> -->
+                                    <a:column name="line_receive_status" align="left" prompt="接收状态" width="40"/>
+                                    <a:column name="receive_quantity" align="right" prompt="已接收" renderer="Aurora.formatNumber" width="40"/>
+                                    <a:column name="on_the_way_quantity" align="right" prompt="在途" renderer="Aurora.formatNumber" width="40"/>
+                                    <!-- <a:column name="return_vendor_quantity" align="right" prompt="已退回" renderer="Aurora.formatNumber" width="40"/> -->
+                                    <!-- <a:column name="line_deliver_status" align="left" prompt="入库状态" width="40"/> -->
+                                    <!-- <a:column name="deliver_quantity" align="right" prompt="已入库" renderer="Aurora.formatNumber" width="40"/> -->
+                                    <!-- <a:column name="inspection_pending_quantity" align="right" prompt="待检" renderer="Aurora.formatNumber" width="40"/> -->
+                                    <!-- <a:column name="return_receive_quantity" align="right" prompt="退至接收" renderer="Aurora.formatNumber" width="40"/> -->
+                                    <a:column name="lots_num" align="left" prompt="INV_ASN_LINES_TEMP.LOTS_NUM" width="80"/>
+                                    <a:column name="lots_validity_date" align="left" prompt="INV_ASN_LINES_TEMP.LOTS_VALIDITY_DATE" renderer="Aurora.formatDate" width="80"/>
+                                    <a:column name="serial_num" align="left" prompt="INV_ASN_LINES_TEMP.SERIAL_NUM" width="80"/>
+                                    <a:column name="invoice_num" align="left" prompt="INV_ASN_LINES_TEMP.INVOICE_NUM" width="80"/>
+                                    <a:column name="release_num" align="left" prompt="INV_ASN_LINES.RELEASE_NUM" width="60"/>
+                                    <a:column name="line_num" align="left" prompt="INV_ASN_LINES.LINE_NUM" sortable="true" width="30"/>
+                                    <a:column name="shipment_num" align="left" prompt="INV_ASN_LINES.SHIPMENT_NUM" width="30"/>
+                                    <a:column name="reversion_num" align="left" prompt="INV_ASN_LINES.REVERSION_NUM" width="50"/>
+                                    <a:column name="creation_date_fmt" align="left" prompt="创建日期" sortable="true" width="60"/>
+                                    <a:column name="ship_date_fmt" align="left" prompt="INV_ASN_HEADERS.SHIP_DATE" sortable="true" width="60"/>
+                                    <a:column name="expected_date_fmt" align="left" prompt="INV_ASN_HEADERS.EXPECTED_DATE" sortable="true" width="60"/>
+                                    <a:column name="need_by_date" align="left" prompt="INV_ASN_LINES.NEED_BY_DATE" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                                    <a:column name="promised_date" align="left" prompt="PUR_LINE_LOCATIONS_ALL.PROMISED_DATE" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                                    <a:column name="vendor_site_name" align="left" prompt="发货地点" width="100"/>
+                                    <a:column name="agent_name" align="left" prompt="INV_ASN_LINES.AGENT_ID" width="60"/>
+                                    <a:column name="location_name" align="left" prompt="INV_ASN_HEADERS.LOCATION_ID" width="100"/>
+                                    <a:column name="ship_to_organization_name" align="left" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID" width="100"/>
+                                    <a:column name="comments" align="left" prompt="送货单行备注" width="120"/>
+                                </a:columns>
+                                <a:events>
+                                    <a:event name="render" handler="inv7020_asn_codes_grid_render"/>
+                                </a:events>
+                            </a:grid>
+                        </a:tab>
+                    </a:tabs>
+                    <a:events>
+                        <a:event name="select" handler="inv7020_tabpanel_select"/>
+                    </a:events>
+                </a:tabPanel>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

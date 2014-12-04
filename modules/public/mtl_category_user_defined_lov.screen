@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-7-7 下午2:26:51  
+    $Revision: 1.0  
+    $Purpose: 自主品类树形选择页面（公用页面）,针对LOV弹出页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        
+            //记录首位置
+            var local_index = 0;
+            
+            //数组记录查询到的结果在dataset中的row
+            var row_list = [];
+            
+            //是否初始化定位数组
+            var local_flag = false;
+            
+            //初始化定位数组
+            function initRowList(para) {
+                //获取dataset数据
+                var records = $('public_mtl_category_user_defined_tree_result_ds').getAll();
+                //对dataset进行遍历
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    //判断是否包含当前查询字符，且当前index不等于全局变量local_index
+                    if (record.get('category_code').indexOf(para) != -1 || record.get('category_name').indexOf(para) != -1) {
+                        //记录当前指针
+                        local_index = $('public_mtl_category_user_defined_tree_result_ds').indexOf(record) + 1;
+                        //定位行
+                        row_list.push(local_index);
+                    }
+                }
+                local_flag = true;
+            }
+            
+            //查询dataset更新事件
+            function public_mtlCategoryUserDefinedTreeQueryDsUpdate(ds, record, name, value, oldvalue) {
+                $('public_mtl_category_user_defined_tree_query_ds').getCurrentRecord().dirty = false;
+                if (name == 'category_code_name') {
+                    //查询条件改变，重置全局定位变量
+                    local_index = 0;
+                    row_list = [];
+                    local_flag = false;
+                }
+            }
+            
+            //采购品类tree查询按钮执行方法
+            function public_mtlCategoryUserDefinedTreeQuery() {
+                //获取查询字符串
+                var para = $('public_mtl_category_user_defined_tree_query_ds').getCurrentRecord().get('category_code_name');
+                if (para != undefined && !Ext.isEmpty(para)) {
+                    //判断是否初始化定位数组
+                    if (!local_flag) {
+                        initRowList(para);
+                    }
+                    if (row_list.length > 0) {
+                        //定位至当前数组位置
+                        $('public_mtl_category_user_defined_tree_result_ds').locate(row_list[local_index]);
+                        //数组当前指针+1
+                        if (local_index < row_list.length - 1) {
+                            local_index++;
+                        } else {
+                            //若当前指针超过数组长度，从0开始
+                            local_index = 0;
+                        }
+                    }
+                }
+            }
+            
+            function public_mtlCategoryUserDefinedTreeResultDsGridDblclick(grid, record, row, name){
+                //if(record.get('category_level') == '3'){ //只能选择第三级的品类
+	                $('${/parameter/@lovid}').commit(record);
+                //}
+            }
+           
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="public_mtl_category_user_defined_tree_query_ds">
+                <a:events>
+                    <a:event name="update" handler="public_mtlCategoryUserDefinedTreeQueryDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="public_mtl_category_user_defined_tree_result_ds" fetchAll="true" loadData="true" model="public.mtl_category_user_defined_tree_query"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:vBox>
+                <a:form row="1">
+                    <a:textField name="category_code_name" bindTarget="public_mtl_category_user_defined_tree_query_ds" emptyText="品类代码/品类名称" width="370"/>
+                    <a:toolbarButton click="public_mtlCategoryUserDefinedTreeQuery" style="margin-left:10px;" text="HAP_QUERY" width="100"/>
+                </a:form>
+                <a:treeGrid id="public_mtl_category_user_defined_tree_result_ds_grid" bindTarget="public_mtl_category_user_defined_tree_result_ds" height="380" idField="category_udf_id" parentField="parent_category_udf_id" showCheckBox="false" width="500">
+                    <a:columns>
+                        <a:column name="category_name" prompt="MTL_CATEGORIES_USER_DEFINED.CATEGORY_NAME_ID" width="380"/>
+                        <a:column name="category_code" align="center" prompt="MTL_CATEGORIES_USER_DEFINED.CATEGORY_CODE" width="100"/>
+                    </a:columns>
+                    <a:events>
+                        <a:event name="dblclick" handler="public_mtlCategoryUserDefinedTreeResultDsGridDblclick"/>
+                    </a:events>
+                </a:treeGrid>
+            </a:vBox>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

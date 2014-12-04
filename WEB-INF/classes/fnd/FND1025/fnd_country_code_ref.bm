@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="c" baseTable="fnd_country_code">
+    <bm:fields>
+        <bm:field name="country_code" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_COUNTRY_CODE.COUNTRY_CODE"/>
+        <bm:field name="relevance_country_code" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_COUNTRY_CODE_REF.RELEVANCE_COUNTRY_CODE"/>
+        <bm:field name="country_name" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_COUNTRY_CODE.DESCRIPTION"/>
+        <bm:field name="enabled_flag" prompt="PROMPT.ENABLED_FLAG"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+           select *from ( select c.country_code,
+       c.description country_name,
+       f.relevance_country_code,
+       nvl(f.enabled_flag, 'Y') enabled_flag
+  from fnd_country_code_vl c,(select f.country_code, f.relevance_country_code,enabled_flag from fnd_country_code_ref f
+  		where f.relevance_object_type =
+       nvl2(${/session/@vendor_id}, 'VENDOR', 'CLIENT')
+   and f.relevance_object_code =
+       nvl2(${/session/@vendor_id},
+             (select v.vendor_code
+                from pur_vendors v
+               where v.vendor_id = ${/session/@vendor_id}),
+             ${/session/@client})) f
+ where c.country_code = f.country_code(+)
+		    )v
+		  #WHERE_CLAUSE#
+		 ORDER BY country_code
+            
+            
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+             declare
+            v_object_type varchar2(30);
+            v_object_code varchar2(30);
+            BEGIN
+            if ${/session/@vendor_id} is null then
+            	v_object_type := 'CLIENT';
+            	v_object_code := ${/session/@client};
+            else
+            	v_object_type := 'VENDOR';
+                select v.vendor_code
+                into v_object_code
+                from pur_vendors v
+               where v.vendor_id = ${/session/@vendor_id};
+            end if;
+            
+  fnd_country_code_pkg.relevance_country_code(p_country_code   => ${@country_code},
+                                   p_relevance_object_type  =>v_object_type,
+                                   p_relevance_object_code  =>v_object_code,
+                                   p_relevance_country_code => ${@relevance_country_code},
+                                   p_enabled_flag           => ${@enabled_flag},
+                                   p_user_id                => ${/session/@user_id});
+                                   
+END;
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+             declare
+            v_object_type varchar2(30);
+            v_object_code varchar2(30);
+            BEGIN
+            if ${/session/@vendor_id} is null then
+            	v_object_type := 'CLIENT';
+            	v_object_code := ${/session/@client};
+            else
+            	v_object_type := 'VENDOR';
+                select v.vendor_code
+                into v_object_code
+                from pur_vendors v
+               where v.vendor_id = ${/session/@vendor_id};
+            end if;
+            
+  fnd_country_code_pkg.relevance_country_code(p_country_code   => ${@country_code},
+                                   p_relevance_object_type  =>v_object_type,
+                                   p_relevance_object_code  =>v_object_code,
+                                   p_relevance_country_code => ${@relevance_country_code},
+                                   p_enabled_flag           => ${@enabled_flag},
+                                   p_user_id                => ${/session/@user_id});
+END;
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="country_code" queryExpression="country_code like &apos;%&apos;||${@country_code}||&apos;%&apos;"/>
+        <bm:query-field name="country_name" queryExpression="country_name like &apos;%&apos;||${@country_name}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

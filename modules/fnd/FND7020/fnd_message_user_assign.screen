@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace 
+    $Date: 2013-12-20 下午03:59:12  
+    $Revision: 1.0  
+    $Purpose: 站内信权限定义-只分配内部用户
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="fnd7020_access_group_assign_to_internal_link" model="fnd.FND7020.access_assign_to_all_internal" modelaction="execute"/>
+        <a:link id="fnd7020_access_group_assign_to_external_link" model="fnd.FND7020.access_assign_to_all_external" modelaction="execute"/>
+        <script><![CDATA[
+        	function fnd7020_fnd_message_user_editfunction(record, name){
+        	    if(record.isNew){
+        	        return 'fnd7020_fnd_message_user_assign_grid_lov';
+        	    }else{
+        	        return '';
+        	    }
+        	}
+        	
+        	function fnd7020_fnd_message_user_assign_ds_ss_handler(){
+        	    $('fnd7020_fnd_message_user_assign_ds').setQueryParameter('group_hds_id', '${/parameter/@group_hds_id}');
+        	    $('fnd7020_fnd_message_user_assign_ds').query();
+        	}
+        	
+        	function fnd7020_fnd_message_user_assign_to_internal(){
+        	    Aurora.request({
+        	        url:$('fnd7020_access_group_assign_to_internal_link').getUrl(),
+        	        para:{
+        	            'group_hds_id':'${/parameter/@group_hds_id}'
+        	        },
+        	        success:function(){
+        	            fnd7020_fnd_message_user_assign_ds_ss_handler();
+        	        },
+        	        scope:this
+        	    });
+        	}
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd7020_fnd_message_user_assign_ds" autoCount="true" autoQuery="true" model="fnd.FND7020.fnd_msg_access_user_con" queryUrl="${/request/@context_path}/autocrud/fnd.FND7020.fnd_msg_access_user_con/query?group_hds_id=${/parameter/@group_hds_id}" selectable="true">
+                <a:fields>
+                    <a:field name="group_hds_id" defaultValue="${/parameter/@group_hds_id}"/>
+                    <a:field name="user_code" lovHeight="500" lovService="fnd.FND7020.get_sys_user_lov?type=INTERNAL&amp;group_hds_id=${/parameter/@group_hds_id}" lovWidth="500" required="true" title="FND_MESSAGE.USER_SELECTION">
+                        <a:mapping>
+                            <a:map from="user_id" to="user_id"/>
+                            <a:map from="user_name" to="user_code"/>
+                            <a:map from="description" to="user_name"/>
+                            <a:map from="type_desc" to="user_type"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="fnd7020_fnd_message_user_assign_ds_ss_handler"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton bind="fnd7020_fnd_message_user_assign_grid" type="add" width="100"/>
+                <a:gridButton bind="fnd7020_fnd_message_user_assign_grid" type="save" width="100"/>
+                <a:gridButton bind="fnd7020_fnd_message_user_assign_grid" type="delete" width="100"/>
+                <a:toolbarButton click="fnd7020_fnd_message_user_assign_to_internal" text="FND7020.ASSING_ALL_INTERNAL" width="100"/>
+            </a:screenTopToolbar>
+            <a:fieldSet labelWidth="100" row="1" title="FND.FND_MESSAGE_ACCESS_BELONG_TO">
+                <a:label name="access_group_code" bindTarget="fnd_msg_access_hds_ds" prompt="FND_MSG_ACCESS_GROUP_HDS.ACCESS_GROUP_CODE" width="120"/>
+                <a:label name="access_group_name" bindTarget="fnd_msg_access_hds_ds" prompt="FND_MSG_ACCESS_GROUP_HDS.ACCESS_GROUP_NAME" width="120"/>
+            </a:fieldSet>
+            <a:grid id="fnd7020_fnd_message_user_assign_grid" bindTarget="fnd7020_fnd_message_user_assign_ds" height="365" navBar="true" width="550">
+                <a:columns>
+                    <a:column name="user_code" align="center" editorFunction="fnd7020_fnd_message_user_editfunction" prompt="FND.SYS_MESSAGE_USER_NAME" width="150"/>
+                    <a:column name="user_name" prompt="FND.SYS_MESSAGE_USER_DESCRIPTION" width="150"/>
+                    <a:column name="user_type" align="center" prompt="SYS_USER.TYPE" width="120"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="fnd7020_fnd_message_user_assign_grid_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

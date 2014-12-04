@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013年12月10日 下午4:49:26  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="bid5150_turn_over_entrustment_link" model="bid.BID5150.bid_turn_over" modelaction="execute"/>
+        <div/>
+        <script><![CDATA[
+            function bid5150EntrustmentTurnOverConfirm() {
+                var turn_over_ds = $('bid5150_turn_over_ds');
+                var header_ds = $('bid5150_edit_entustment_header_ds');
+            
+                if (!turn_over_ds.validate()) {
+                    return;
+                }
+            
+                var rec = turn_over_ds.getCurrentRecord();
+                var header_rec = header_ds.getCurrentRecord();
+            
+                Aurora.showConfirm('提示', '确认转交？', function() {
+                    Aurora.Masker.mask($('bid5150_entrustment_turn_over_window').wrap, '正在加载...');
+            
+                    Aurora.request({
+                        url: $('bid5150_turn_over_entrustment_link').getUrl(),
+                        para: {
+                            'entrustment_header_id': '${/parameter/@entrustment_header_id}',
+                            'round': header_rec.get('round'),
+                            'version': header_rec.get('version'),
+                            'status': '${/parameter/@status}',
+                            'tender_agent_id': rec.get('tender_agent_id')
+                        },
+                        success: function() {
+                            Aurora.showMessage('提示', '已转交!', function() {
+                                $('bid5150_entrustment_turn_over_window').close();
+                                $('bid5150_operation_window').close();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+            
+                    Aurora.Masker.unmask($('bid5150_entrustment_turn_over_window').wrap);
+                });
+            }
+            
+            function bid5150EntrustmentTurnOverCancel() {
+                $('bid5150_entrustment_turn_over_window').close();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5150_turn_over_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="tender_agent_id"/>
+                    <a:field name="tender_agent_desc" autoComplete="true" autoCompleteField="employee_name" lovGridHeight="320" lovHeight="450" lovService="bid.public.bid_tender_agents_lov?not_current_user=Y" lovWidth="500" required="true" title="招标员">
+                        <a:mapping>
+                            <a:map from="employee_id" to="tender_agent_id"/>
+                            <a:map from="employee_code" to="tender_agent_code"/>
+                            <a:map from="employee_name" to="tender_agent_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid5150EntrustmentTurnOverConfirm" text="转交" width="100"/>
+                <a:toolbarButton click="bid5150EntrustmentTurnOverCancel" text="取消" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox>
+                <a:lov name="tender_agent_desc" bindTarget="bid5150_turn_over_ds" prompt="招标员"/>
+            </a:hBox>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

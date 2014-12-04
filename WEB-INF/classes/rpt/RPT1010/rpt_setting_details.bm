@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-10-14 下午8:26:16  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="RPT_SETTING_LINES">
+    <bm:fields>
+        <bm:field name="flex_value_set_code"/>
+        <bm:field name="flex_value_code"/>
+        <bm:field name="rpt_code"/>
+        <bm:field name="rpt_name"/>
+        <bm:field name="rpt_header_id"/>
+        <bm:field name="rpt_detail_id"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="rpt_code" queryExpression="t1.rpt_code = ${@rpt_code}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t1.flex_value_set_code,
+                    DECODE(t1.flex_value_set_code,'1_CREATION_DATE',to_char(sysdate-to_date(t1.flex_value_code,'YYYY-MM-DD')),t1.flex_value_code) flex_value_code,
+                    t1.rpt_code,
+                    t1.rpt_name,
+                    t1.rpt_header_id,
+                    t1.rpt_detail_id
+                FROM
+                    (SELECT
+                        sd.flex_value_set_code,
+                        sd.flex_value_code,
+                        sh.rpt_code,
+                        sh.rpt_name,
+                        sh.rpt_header_id,
+                        sd.rpt_detail_id
+                    FROM
+                        rpt_setting_details sd,
+                        rpt_setting_lines sl,
+                        rpt_setting_headers sh
+                    WHERE
+                        sl.rpt_line_id    = sd.rpt_line_id AND
+                        sl.enable_flag    = 'Y' AND
+                        sh.rpt_header_id  = sl.rpt_header_id AND
+                        sh.business_group = 'BG00000001' AND
+                        sh.rpt_code       = ${@rpt_code}
+                    ) t1
+                ORDER BY
+                    t1.flex_value_set_code
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                   update rpt_setting_details sd
+                      set sd.flex_value_code = to_char(sysdate,'yyyy-mm-dd'),
+                          sd.LAST_UPDATE_DATE = sysdate,
+                          sd.LAST_UPDATED_BY = ${/session/@user_id}
+                   where sd.rpt_detail_id = ${@rpt_detail_id}
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

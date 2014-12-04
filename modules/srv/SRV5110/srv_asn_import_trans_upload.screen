@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2014-7-2 下午3:03:13  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="srv.SRV5110.get_sys_import_head_id" rootPath="header"/>
+        <a:import-excel header_id="${/model/header/record/@header_id}" separator="," status_field="/parameter/@ImportSuccess" template_code="ASNIMPORT" user_id="${/session/@user_id}"/>
+        <a:model-query defaultWhereClause="header_id=${/model/header/record/@header_id} and TEMPLATE_CODE = &apos;ASNIMPORT&apos;" model="srv.SRV5110.srv_asn_import_get_status" rootPath="status"/>
+        <a:model-query autoCount="false" defaultWhereClause="header_id=${/model/header/record/@header_id} order by line_id" fetchAll="true" model="srv.SRV5110.srv_asn_import_get_fnd_data" rootPath="importData"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="srv51103_asn_import_link" url="${/request/@context_path}/modules/srv/SRV5110/srv_asn_import.screen"/>
+        <a:link id="srv51103_asn_import_save_data_link" url="${/request/@context_path}/modules/srv/SRV5110/srv_asn_import_save_data.svc"/>
+        <script><![CDATA[
+    		function srv51103_loadComplete(){
+				
+    			if ('${/model/status/record/@status}' == 'NEW'){
+    				var importData		= $('srv51103_fnd_data_ds').getAll();
+	    			var param			= {};
+	    			var saveData		= [];
+	    			var errorData		= "";
+	    			var importFlag		= true;
+	    			param['batch_id']	= '${/parameter/@batch_id}';
+	    			// for(var i=1; i<importData.length; i++){
+	    				// var lineErrorFlag	= true;
+	    				// if (importData[i].get('attribute_1') && importData[i].get('attribute_2') && importData[i].get('attribute_3') 
+	    					// && importData[i].get('attribute_4')&& importData[i].get('attribute_5')&& importData[i].get('attribute_6')
+	    					// && importData[i].get('attribute_7')&& importData[i].get('attribute_8')&& importData[i].get('attribute_9'))
+	    				// {
+	    				// } else{
+	    					// errorData  += importData[i].get('line_id') + ",";
+	    					// importFlag 	= false;
+	    				// }
+	    			// }
+	    			if (importFlag) {
+	    				for(var i=1; i<importData.length; i++){
+		    				var lineData	= {};
+		    				lineData['batch_id']					= '${/parameter/@batch_id}';
+		    				lineData['line_sequence']				= importData[i].get('attribute_1');
+		    				lineData['item_code']		= importData[i].get('attribute_2');
+		    				lineData['company_code']	= importData[i].get('attribute_4');
+		    				lineData['segment1']		= importData[i].get('attribute_6');
+		    				lineData['line_num']					= importData[i].get('attribute_7');
+		    				lineData['shipment_num']				= importData[i].get('attribute_8');
+		    				lineData['ship_quantity']				= importData[i].get('attribute_9');
+		    				lineData['ship_date']				= importData[i].get('attribute_10');
+		    				lineData['expected_date']				= importData[i].get('attribute_11');
+		    				lineData['lots_num']				= importData[i].get('attribute_12');
+		    				lineData['lots_validity_date']				= importData[i].get('attribute_13');
+		    				lineData['invoice_num']				= importData[i].get('attribute_14');
+		    				lineData['serial_num']				= importData[i].get('attribute_15');
+		    				lineData['line_desc']				= importData[i].get('attribute_16');
+		    				
+		    				saveData.push(lineData);
+		    			}
+	    				param['details']	 = saveData;
+		    			Aurora.request({
+		    				url		: $('srv51103_asn_import_save_data_link').getUrl(),
+		    				para	: param,
+		    				success	: function(){
+		    					Ext.get('srv51103_failure_form').setStyle('display','none');
+		    					Ext.get('srv51103_success_form').setStyle('visibility','visible');
+		    				},
+		    				scope	: this
+		    			});
+	    			} else {
+	    				errorData	 = errorData.substr(0, errorData.length-1);
+	    				Ext.get('srv51103_success_form').setStyle('display','none');
+	    				Ext.get('srv51103_failure_form').setStyle('visibility','visible');
+	    				$('srv51103_error_ds').setQueryParameter('errorData', errorData);
+	    				$('srv51103_error_ds').query();
+	    			}
+    			} else {
+    				Ext.get('srv51103_success_form').setStyle('display','none');
+    				Ext.get('srv51103_failure_form').setStyle('visibility','visible');
+    			}
+    		}
+    		function srv51101_view(){
+    			window.location.href = $('srv51103_asn_import_link').getUrl();
+    			//window.close();
+    		}
+    		function srv51101_back(){
+    			window.location.href = $('srv51103_asn_import_link').getUrl();
+    		}
+	  	]]></script>
+        <a:dataSets>
+            <a:dataSet id="srv51103_fnd_data_ds">
+                <a:datas dataSource="/model/importData"/>
+            </a:dataSet>
+            <a:dataSet id="srv51103_error_ds" autoCount="true" model="srv.SRV5110.srv_asn_import_get_error_data">
+                <a:fields>
+                    <a:field name="line_sequence" prompt="WORKFLOW_APPR.SEQ_NUMBER"/>
+                    <!-- <a:field name="category_name" prompt="物品类型"/> -->
+                    <a:field name="item_code" prompt="INV_ASN_LINES_TEMP.ITEM_CODE"/>
+                    <a:field name="company_code" prompt="INV_ASN_HEADERS.COMPANY_CODE"/>
+                    <a:field name="segment1" prompt="INV_ASN_LINES_TEMP.SEGMENT1"/>
+                    <a:field name="line_num" prompt="INV_ASN_LINES_TEMP.LINE_NUM"/>
+                    <a:field name="shipment_num" prompt="INV_ASN_LINES_TEMP.SHIPMENT_NUM"/>
+                    <a:field name="ship_quantity" prompt="INV_ASN_LINES_TEMP.SHIP_QUANTITY"/>
+                    <a:field name="ship_date" prompt="INV_ASN_HEADERS.SHIP_DATE"/>
+                    <a:field name="expected_date" prompt="INV_ASN_HEADERS_TEMP.EXPECTED_DATE"/>
+                    <a:field name="lots_num" prompt="INV_ASN_LINES_TEMP.LOTS_NUM"/>
+                    <a:field name="lots_validity_date" prompt="INV_ASN_LINES_TEMP.LOTS_VALIDITY_DATE"/>
+                    <a:field name="invoice_num" prompt="INV_ASN_LINES_TEMP.INVOICE_NUM"/>
+                    <a:field name="serial_num" prompt="INV_ASN_LINES_TEMP.SERIAL_NUM"/>
+                    <a:field name="line_desc" prompt="INV_ASN_LINES.LINE_DESC"/>
+                    <a:field name="batch_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form id="srv51103_success_form" style="visibility:hidden" title="IMPORT_SUCCESS" width="400">
+                <a:button click="srv51101_view" text="PROMPT.VIEW"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="srv51101_back" text="HAP_BACK"/>
+            </a:hBox>
+            <a:form id="srv51103_failure_form" height="400" style="visibility:hidden" title="ERROR_MESSAGE" width="980">
+                <a:grid bindTarget="srv51103_error_ds" height="340" navBar="true" width="980">
+                    <a:columns>
+                        <a:column name="line_sequence" align="right" width="80"/>
+                        <!-- <a:column name="category_name" align="center" width="100"/> -->
+                        <a:column name="item_code" align="center" width="100"/>
+                        <a:column name="company_code" align="center" width="100"/>
+                        <a:column name="segment1" align="center" width="100"/>
+                        <a:column name="line_num" align="center" width="60"/>
+                        <a:column name="shipment_num" align="center" width="60"/>
+                        <a:column name="ship_quantity" align="right" width="80"/>
+                        <a:column name="ship_date" align="center" width="80"/>
+                        <a:column name="expected_date" align="center" width="80"/>
+                        <a:column name="lots_num" align="center" width="100"/>
+                        <a:column name="lots_validity_date" align="center" width="80"/>
+                        <a:column name="invoice_num" align="center" width="100"/>
+                        <a:column name="serial_num" align="center" width="100"/>
+                        <a:column name="line_desc" align="center" width="100"/>
+                    </a:columns>
+                </a:grid>
+            </a:form>
+        </a:screenBody>
+        <script><![CDATA[
+	  		srv51103_loadComplete();
+	  	]]></script>
+    </a:view>
+</a:screen>

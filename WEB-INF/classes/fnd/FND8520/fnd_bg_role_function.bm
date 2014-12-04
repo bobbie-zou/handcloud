@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <!-- <bm:fields>
+        <bm:field name="bg_role_function_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="business_group_code" databaseType="VARCHAR" datatype="java.lang.String"/>
+        <bm:field name="role_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="function_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="function_code" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_FUNCTION.FUNCTION_CODE"/>
+        <bm:field name="function_name" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_FUNCTION.FUNCTION_NAME"/>
+        <bm:field name="start_date" datatype="java.sql.Date" prompt="FND8520.BG_ROLE_FUNCTION_START_DATE"/>
+        <bm:field name="end_date" datatype="java.sql.Date" prompt="FND8520.BG_ROLE_FUNCTION_END_DATE"/>
+    </bm:fields> -->
+    <!-- <bm:query-fields>
+        <bm:query-field name="role_id" queryExpression="t1.role_id = ${@role_id}"/>
+    </bm:query-fields> -->
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    bgrf.bg_role_function_id,
+                    NVL(bgrf.business_group,${/session/@business_group}) business_group,
+                    NVL(bgrf.role_id, ${/parameter/@role_id}) role_id,
+                    DECODE(bgrf.role_id, NULL, 'N', 'Y') AS checked,
+                    bgrf.start_date,
+                    bgrf.end_date,
+                    fv.*
+                FROM
+                    fnd_bg_role_function bgrf,
+                    (SELECT
+                        a.function_id,
+                        a.function_code,
+                        a.function_name,
+                        a.parent_function_id,
+                        a.sequence,
+                        'N' AS expanded,
+                        '3' AS level_num
+                    FROM
+                        sys_function_vl a
+                    WHERE
+                        a.function_id IN
+                        (SELECT
+                            bgf.function_id
+                        FROM
+                            fnd_business_group_function bgf
+                        WHERE
+                            bgf.business_group=${/session/@business_group}
+                        )
+                    UNION ALL
+                    SELECT
+                        b.function_id,
+                        b.function_code,
+                        b.function_name,
+                        b.parent_function_id,
+                        b.sequence,
+                        'N' AS expanded,
+                        '2' AS level_num
+                    FROM
+                        sys_function_vl b
+                    WHERE
+                        b.function_id IN
+                        (SELECT
+                            a.parent_function_id
+                        FROM
+                            sys_function_vl a
+                        WHERE
+                            a.function_id IN
+                            (SELECT
+                                bgf.function_id
+                            FROM
+                                fnd_business_group_function bgf
+                            WHERE
+                                bgf.business_group=${/session/@business_group}
+                            )
+                        )
+                    UNION ALL
+                    SELECT
+                        c.function_id,
+                        c.function_code,
+                        c.function_name,
+                        c.parent_function_id,
+                        c.sequence,
+                        'N' AS expanded,
+                        '1' AS level_num
+                    FROM
+                        sys_function_vl c
+                    WHERE
+                        c.function_id IN
+                        (SELECT
+                            b.parent_function_id
+                        FROM
+                            sys_function_vl b
+                        WHERE
+                            b.function_id IN
+                            (SELECT
+                                a.parent_function_id
+                            FROM
+                                sys_function_vl a
+                            WHERE
+                                a.function_id IN
+                                (SELECT
+                                    bgf.function_id
+                                FROM
+                                    fnd_business_group_function bgf
+                                WHERE
+                                    bgf.business_group=${/session/@business_group}
+                                )
+                            )
+                        )
+                    ) fv
+                WHERE
+                    fv.function_id  = bgrf.function_id(+) AND
+                    bgrf.role_id(+) = ${/parameter/@role_id}
+            ]]></bm:query-sql>
+        </bm:operation>
+        <!-- <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="bg_role_function_id" input="false" output="true" outputPath="@bg_role_function_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+	            begin
+	            	fnd_bg_function_pkg.insert_bg_role_function(p_business_group 	   => ${/session/@business_group},
+	            													 p_role_id         	   => ${@role_id},
+									                                 p_function_id         => ${@function_id},
+									                                 p_start_date          => to_date(${@start_date},'YYYY-MM-DD'),
+									                                 p_end_date            => to_date(${@end_date},'YYYY-MM-DD'),
+									                                 p_session_user_id     => ${/session/@user_id},
+									                                 p_bg_role_function_id => ${@bg_role_function_id});
+	            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation> -->
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+	            begin
+	            	fnd_bg_function_pkg.save_bg_role_function(p_business_group 	    => ${/session/@business_group},
+	            											  p_role_id         	=> ${@role_id},
+									                          p_function_id         => ${@function_id},
+									                          p_start_date          => to_date(${@start_date},'YYYY-MM-DD'),
+									                          p_end_date            => to_date(${@end_date},'YYYY-MM-DD'),
+									                          p_checked_flag        => ${@checked},
+									                          p_session_user_id     => ${/session/@user_id});
+	            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation>
+        <!--  <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    fnd_bg_function_pkg.delete_bg_role_function(p_bg_role_function_id => ${@bg_role_function_id}, 
+                    												 p_session_user_id 	   => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation> -->
+    </bm:operations>
+</bm:model>

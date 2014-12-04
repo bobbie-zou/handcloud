@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tony  
+    $Date: 2013-5-3 下午5:02:35  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="blt.BLT1010.blt_bulletin_list" rootPath="bulletin_info"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="blt1010_blt_attachment_file_upload_link" url="${/request/@context_path}/attachment_file_upload.screen"/>
+        <a:link id="blt1010_blt_query_link" url="${/request/@context_path}/modules/blt/BLT1010/blt_bulletin_query.screen"/>
+        <a:link id="blt1010_blt_edit_link" url="${/request/@context_path}/modules/blt/BLT1010/blt_bulletin_edit.screen"/>
+        <script charset="utf-8" src="${/request/@context_path}/kindeditor/kindeditor-min.js"><![CDATA[ ]]></script>
+        <script charset="utf-8" src="${/request/@context_path}/kindeditor/lang/zh_CN.js"><![CDATA[ ]]></script>
+        <script><![CDATA[
+            var blt1010_contentEditor;
+            KindEditor.ready(function(K) {
+                blt1010_contentEditor = K.create('textarea[id="context_id"]', {
+                    width: '100%',
+                    allowFileManager: true,
+                    uploadJson: '${/request/@context_path}/upload_json.jsp',
+                    fileManagerJson: '${/request/@context_path}/file_manager_json.jsp'
+                });
+            });
+            
+            function blt1010_date_Validator(record, name, value) {
+                if (name == 'date_from_desc' || name == 'date_to_desc') {
+                    var date_from_desc = record.get('date_from_desc');
+                    var date_to_desc = record.get('date_to_desc');
+                    if (typeof(date_to_desc) != 'undefined' && !Ext.isEmpty(date_to_desc)) {
+                        if (!blt1010_compareDate(date_from_desc, date_to_desc)) {
+                            return '${l:BLT.START_END_DATE_VALI_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function blt1010_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function blt1010_return_query() {
+                // var url = $('blt1010_blt_query_link').getUrl();
+                // window.open(url, '_self');
+                window.close();
+            }
+            
+            function blt1010_save() {
+                var blt1010_bulletin_list_ds = $('blt1010_bulletin_list_ds');
+                var record = blt1010_bulletin_list_ds.getCurrentRecord();
+                record.set('bulletin_context', blt1010_contentEditor.html());
+                var bulletin_context_view = blt1010_contentEditor.text().replace(/<(img|embed).*>/ig, '').substr(0, 500);
+                record.set('bulletin_context_view', bulletin_context_view);
+                if (!blt1010_bulletin_list_ds.validate()) {
+                    return;
+                }
+                Aurora.request({
+                    url: '${/request/@context_path}/autocrud/blt.BLT1010.blt_bulletin_list/update',
+                    para: record.data,
+                    success: function(res) {
+                        var bulletin_id = res.result.bulletin_id;
+                        var url = $('blt1010_blt_edit_link').getUrl() + '?bulletin_id=' + bulletin_id;
+                        window.open(url, '_self');
+                    },
+                    scope: this
+                });
+            }
+            
+            function blt1010_release() {
+                var blt1010_bulletin_list_ds = $('blt1010_bulletin_list_ds');
+                var record = blt1010_bulletin_list_ds.getCurrentRecord();
+                if (record.dirty) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:BLT.PLEASE_SAVE_DATE}');
+                    return;
+                }
+                var bulletin_id = record.get('bulletin_id');
+                if (!Ext.isEmpty(bulletin_id)) {
+                    var confirm = new Aurora.showConfirm("${l:PROMPT}", "${l:BLT_BULLETIN.SURE_RELEASED}", function() {
+                        confirm.close();
+                        Aurora.Masker.mask(Ext.getBody(), '${l:BLT_BULLETIN.LOAD}');
+                        blt1010_doRelease(record.get('bulletin_id'));
+                    });
+                }
+            }
+            
+            function blt1010_doRelease(id) {
+                Aurora.request({
+                    url: '${/request/@context_path}/autocrud/blt.BLT1010.blt_bulletin_list/execute',
+                    para: {
+                        bulletin_id: id
+                    },
+                    success: function() {
+                        Aurora.Masker.unmask(Ext.getBody());
+                        Aurora.showMessage('${l:PROMPT}', '${l:BLT_BULLETIN.RELEASED_SUCCEED}');
+                        blt1010_return_query();
+                    },
+                    failure: Aurora.Masker.unmask(Ext.getBody()),
+                    error: Aurora.Masker.unmask(Ext.getBody()),
+                    scope: this
+                });
+            }
+            
+            function blt1010_uploadFile() {
+                var blt1010_bulletin_list_ds = $('blt1010_bulletin_list_ds');
+                var record = blt1010_bulletin_list_ds.getCurrentRecord();
+                var bulletin_id = record.get('bulletin_id');
+                if (!Ext.isEmpty(bulletin_id)) {
+                    new Aurora.Window({
+                        url: $('blt1010_blt_attachment_file_upload_link').getUrl() + '?pkvalue=' + bulletin_id + '&table_name=BLT_BULLETIN_LIST',
+                        title: '${l:HAP_UPLOAD_TITLE}',
+                        id: 'blt1010_bulletin_upload_file_window',
+                        width: 850,
+                        height: 500
+                    });
+                }
+            
+            }
+            
+            function blt1010_update_submitsuccess(ds) {
+                Aurora.showMessage('${l:PROMPT}', '${l:BLT.MODIFY_SUCCESS}');
+                $('blt1010_bulletin_list_ds').query();
+            }
+            
+            function blt1010_list_load(ds) {
+                var record = ds.getAt(0);
+            	
+                if (record.get('bulletin_category') == 'HOMEPAGE_BULLETIN') {
+                    record.getField('bulletin_type_desc').setReadOnly(false);
+                    record.getField('bulletin_type_desc').setRequired(true);
+                    record.getField('object_category_desc').setRequired(false);
+                } else if (record.get('bulletin_category') == 'LOGINED_BULLETIN') {
+                    record.getField('bulletin_type_desc').setReadOnly(true);
+                    record.getField('bulletin_type_desc').setRequired(false);
+                    record.getField('object_category_desc').setRequired(true);
+                }
+            
+            }
+            
+            function blt1010_list_update(ds, record, name, value, oldvalue) {
+                if (name == 'bulletin_category') {
+                    if (value == 'HOMEPAGE_BULLETIN') {
+                        record.set('bulletin_type_desc', '');
+                        record.set('bulletin_type', '');
+                        record.set('object_category', '');
+                        record.set('object_category_desc', '');
+                        record.getField('bulletin_type_desc').setReadOnly(false);
+                        record.getField('bulletin_type_desc').setRequired(true);
+                        record.getField('object_category_desc').setRequired(false);
+                    } else if (value == 'LOGINED_BULLETIN') {
+                        var records = $('blt1010_bulletin_object_category_ds').getAll();
+                        var object_category_desc='';
+                        var temp_record;
+                        if (Aurora.isEmpty('${/session/@business_group}')) {
+                            //云级管理员只能发给全体用户
+                            for (i = 0;i < records.length;i++) {
+                                temp_record = records[i];
+                                if (temp_record.get('code_value') == 'ALL') {
+                                    object_category_desc = temp_record.get('code_value_name');
+                                }
+                            }
+                            record.set('object_category', 'ALL');
+                            record.set('object_category_desc', object_category_desc);
+                        } else {
+                            //集团管理员只能发给集团用户
+                            for (i = 0;i < records.length;i++) {
+                                temp_record = records[i];
+                                if (temp_record.get('code_value') == 'BUSINESS_GROUP') {
+                                    object_category_desc = temp_record.get('code_value_name');
+                                    break;
+                                }
+                            }
+                            record.set('object_category', 'BUSINESS_GROUP');
+                            record.set('object_category_desc', object_category_desc);
+                        }
+                        record.set('bulletin_type_desc', '');
+                        record.set('bulletin_type', '');
+                        record.getField('bulletin_type_desc').setReadOnly(true);
+                        record.getField('bulletin_type_desc').setRequired(false);
+                        record.getField('object_category_desc').setRequired(true);
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="blt1010_bulletin_object_category_ds" lookupCode="BLT_BULLETIN_OBJECT_CATEGORY"/>
+            <a:dataSet id="blt1010_blt_category_ds" lookupCode="BLT_BULLETIN_CATEGORY"/>
+            <a:dataSet id="blt1010_blt_type_ds" lookupCode="BLT_BULLETIN_TYPE"/>
+            <a:dataSet id="blt1010_bulletin_list_ds">
+                <a:datas dataSource="/model/bulletin_info"/>
+                <a:fields>
+                    <a:field name="bulletin_context_view"/>
+                    <a:field name="bulletin_id" defaultValue="${/parameter/@bulletin_id}"/>
+                    <a:field name="bulletin_title" required="true"/>
+                    <a:field name="bulletin_category"/>
+                    <a:field name="bulletin_category_desc" displayField="code_value_name" options="blt1010_blt_category_ds" prompt="BLT_BULLETIN_LIST.BULLETIN_CATEGORY" required="true" returnField="bulletin_category" valueField="code_value"/>
+                    <a:field name="bulletin_type"/>
+                    <a:field name="bulletin_type_desc" displayField="code_value_name" options="blt1010_blt_type_ds" prompt="BLT_BULLETIN_LIST.BULLETIN_TYPE" readOnly="true" returnField="bulletin_type" valueField="code_value"/>
+                    <a:field name="date_from_desc" required="true" validator="blt1010_date_Validator"/>
+                    <a:field name="date_to_desc" validator="blt1010_date_Validator"/>
+                    <a:field name="bulletin_context" required="true"/>
+                    <a:field name="created_by"/>
+                    <a:field name="created_by_desc" readOnly="true"/>
+                    <a:field name="status"/>
+                    <a:field name="status_desc" readOnly="true"/>
+                    <a:field name="object_category_desc" displayField="code_value_name" options="blt1010_bulletin_object_category_ds" prompt="BLT_BULLETIN.BULLETIN_OBJECT_CATEGORY" readOnly="true" required="true" returnField="object_category" valueField="code_value"/>
+                    <a:field name="object_category"/>
+                    <a:field name="creation_date_desc" readOnly="true"/>
+                    <a:field name="last_update_date_desc" readOnly="true"/>
+                    <a:field name="release_date_desc" readOnly="true"/>
+                    <a:field name="attachment_id"/>
+                </a:fields>
+                <a:events>
+                    <!-- <a:event name="submitsuccess" handler="blt1010_update_submitsuccess"/> -->
+                    <a:event name="load" handler="blt1010_list_load"/>
+                    <a:event name="update" handler="blt1010_list_update"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton id="bld1010_save_btn" click="blt1010_save" text="PROMPT.SAVE"/>
+            <a:gridButton click="blt1010_return_query" text="PROMPT.RETURN"/>
+            <a:gridButton id="blt1010_release_btn" click="blt1010_release" text="BLT.RELEASE"/>
+            <a:gridButton id="blt1010_upload_btn" click="blt1010_uploadFile" text="ATM.UPLOAD_ATTACHMENT"/>
+        </a:screenTopToolbar>
+        <a:fieldSet marginWidth="500" style="margin-top:10px;margin-bottom:10px;">
+            <a:vBox>
+                <a:hBox labelWidth="100">
+                    <a:textField name="bulletin_title" bindTarget="blt1010_bulletin_list_ds" prompt="BLT_BULLETIN_LIST.BULLETIN_TITLE" width="666"/>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:comboBox name="bulletin_category_desc" bindTarget="blt1010_bulletin_list_ds" prompt="BLT_BULLETIN_LIST.BULLETIN_CATEGORY"/>
+                    <a:comboBox name="bulletin_type_desc" bindTarget="blt1010_bulletin_list_ds" prompt="BLT_BULLETIN_LIST.BULLETIN_TYPE"/>
+                    <a:comboBox name="object_category_desc" bindTarget="blt1010_bulletin_list_ds" prompt="BLT_BULLETIN_LIST.OBJECT_CATEGORY"/>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:datePicker name="date_from_desc" bindTarget="blt1010_bulletin_list_ds" prompt="BLT_BULLETIN_LIST.DATE_FROM" renderer="Aurora.formatDate"/>
+                    <a:datePicker name="date_to_desc" bindTarget="blt1010_bulletin_list_ds" prompt="BLT_BULLETIN_LIST.DATE_TO" renderer="Aurora.formatDate"/>
+                </a:hBox>
+            </a:vBox>
+        </a:fieldSet>
+        <a:textArea name="bulletin_context" id="context_id" bindTarget="blt1010_bulletin_list_ds" prompt="BLT_BULLETIN_LIST.BULLETIN_CONTEXT" style="width:700px;height:350px;visibility:hidden;"/>
+    </a:view>
+</a:screen>

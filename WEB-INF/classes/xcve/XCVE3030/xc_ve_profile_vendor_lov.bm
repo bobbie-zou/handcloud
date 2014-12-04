@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-5 下午3:16:48  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="vendor_id"/>
+        <bm:field name="vendor_srm_code" displayWidth="120" forDisplay="true" forQuery="true" prompt="SRM编码"/>
+        <bm:field name="vendor_erp_code" displayWidth="70" forDisplay="true" physicalName="VENDER_ERP_CODE" prompt="ERP编码"/>
+        <bm:field name="vendor_name" displayWidth="200" forDisplay="true" forQuery="true" prompt="供应商描述"/>
+        <bm:field name="vendor_type_name" displayWidth="100" forDisplay="true" physicalName="VENDER_TYPE_NAME" prompt="供应商类型"/>
+        <bm:field name="score" databaseType="NUMBER" datatype="java.lang.Double" displayWidth="80" forDisplay="true" physicalName="SCORE" prompt="基础总分"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+				select s.vendor_id,
+				       u.user_name vendor_srm_code,
+				       r.vender_erp_code vendor_erp_code,
+				       r.company_full_name vendor_name,
+				       (select t.vender_type_name
+				          from hsp_inv_vender_type t
+				         where t.vender_type_code = r.vender_type) vendor_type_name,
+				       s.score
+				  from sys_user            u,
+				       hsp_sys_vender_reg  r,
+				       xc_ve_profile_score s
+				 #WHERE_CLAUSE#
+				 group by s.vendor_id,
+				          u.user_name,
+				          r.vender_erp_code,
+				          r.company_full_name,
+				          r.vender_type,
+				          s.score
+				 order by u.user_name
+    		]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="u.user_id=s.vendor_id and r.user_id=s.vendor_id and s.ve_profile_id=${@ve_profile_id}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="item_group_id" queryExpression="s.item_group_id = ${@item_group_id}"/>
+        <bm:query-field field="vendor_srm_code" queryExpression="u.user_name like &apos;%&apos;||${@vendor_srm_code}||&apos;%&apos;"/>
+        <bm:query-field field="vendor_name" queryExpression="r.company_full_name like &apos;%&apos;||${@vendor_name}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

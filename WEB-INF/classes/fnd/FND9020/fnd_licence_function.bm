@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-4-24 下午7:32:51  
+    $Revision: 1.0  
+    $Purpose: licence定义，分配功能BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.function_id,
+                    v.function_code,
+                    v.function_name,
+                    v.function_level,
+                    v.parent_function_id,
+                    v.parent_function_name,
+                    v.licence_id,
+                    v.checked,
+                    v.sequence,
+                    v.expanded
+                FROM
+                    (SELECT
+                        fv.function_id,
+                        fv.function_code,
+                        fv.description AS function_name,
+                        fv.function_level,
+                        fv.parent_function_id,
+                        (SELECT
+                            pfv.description
+                        FROM
+                            sys_function_vl pfv
+                        WHERE
+                            pfv.function_id = fv.parent_function_id
+                        )AS parent_function_name,
+                        lf.licence_id,
+                        DECODE(lf.licence_function_id, NULL, 'N', 'Y') AS checked,
+                        NVL(lf.sequence_num, fv.sequence) AS sequence,
+                        NVL(lf.expanded, 'N') AS expanded
+                    FROM
+                        sys_function_vl fv,
+                        fnd_licence_function lf
+                    WHERE
+                        fv.function_id   = lf.function_id(+) AND
+                        lf.licence_id(+) = ${/parameter/@licence_id}
+                    ) v
+                ORDER BY
+                    v.sequence
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  fnd_licence_pkg.save_fnd_licence_function
+				  	(
+				  		p_licence_id			=> ${@licence_id},
+				  		p_function_id			=> ${@function_id},
+				  		p_checked				=> ${@checked},
+				  		p_sequence_num			=> ${@sequence},
+				  		p_user_id   			=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

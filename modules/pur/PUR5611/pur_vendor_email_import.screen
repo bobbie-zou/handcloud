@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: FelixDru
+    $Date: 2014-10-13 上午10:55:29  
+    $Revision: 1.0  
+    $Purpose: 供应商邮箱导入
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.imp_template_code = &apos;PUR_VENDOR_EMAIL_IMPORT&apos;" fetchAll="true" model="public.get_fnd_excel_import_template" rootPath="import_template"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="pur5611_vendor_email_import_upload_link" url="${/request/@context_path}/modules/pur/PUR5611/pur_vendor_email_import_upload.screen"/>
+        <a:link id="pur5611_vendor_email_import_error_link" url="${/request/@context_path}/modules/pur/PUR5611/pur_vendor_email_import_error.screen"/>
+        <a:link id="pur5611_vendor_email_import_temp_data_submit_link" model="pur.PUR5611.pur5611_vendor_email_import_submit_temp_data" modelaction="execute"/>
+        <a:link id="pur5611_vendor_email_import_temp_data_check_link" model="pur.PUR5611.pur5611_vendor_email_import_check_temp_data" modelaction="execute"/>
+        <a:link id="pur5611_vendor_emial_excel_import_template_uploadtimes_link" model="public.get_fnd_excel_import_template" modelaction="execute"/>
+        <script><![CDATA[
+            var isUpload = false;
+            var isChecked = false;
+            var isSubmit = false;
+            
+            function pur5611_vendorEmailImportLoadData() {
+                new Aurora.Window({
+                    id: 'pur5611_vendor_email_import_upload_link_window',
+                    url: $('pur5611_vendor_email_import_upload_link').getUrl(),
+                    title: '${l:PUR5611_VENDOR_IMPORT.BATCH_IMPORT}',
+                    width: 450,
+                    height: 300
+                });
+            }
+            
+            function pur5611_vendorEmailImportCheckData() {
+                var allData = $('pur5611_vendor_email_import_temp_ds').getAll();
+                if (allData.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PUR5611_VENDOR_IMPORT.NO_DATA_TO_IMPORT}');
+                    return;
+                } else {
+                    if (!$('pur5611_vendorEmailComapny_ds').validate()) {
+                        return;
+                    }
+                    var external_system_id = $('pur5611_vendorEmailComapny_ds').getAt(0).get('external_system_id');
+                    isChecked = true;
+                    Aurora.request({
+                        url: $('pur5611_vendor_email_import_temp_data_check_link').getUrl(),
+                        para: {
+                            'external_system_id': external_system_id
+                        },
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:PUR5611_VENDOR_IMPORT.CHECK_SUCCESS}');
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function pur5611_vendorEmailImportSubmitData() {
+                var allData = $('pur5611_vendor_email_import_temp_ds').getAll();
+                var errorLines = $('pur5611_vendor_email_import_error_ds').getAll().length;
+                if (allData.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PUR5611_VENDOR_IMPORT.NO_DATA_TO_SUBMIT}');
+                } else {
+                    if (errorLines > 0) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PUR5611_VENDOR_IMPORT.CHECK_DATA_SUCCESS_TO_SUBMIT}');
+                        return;
+                    } else {
+                        if (!$('pur5611_vendorEmailComapny_ds').validate()) {
+                            return;
+                        }
+                        var external_system_id = $('pur5611_vendorEmailComapny_ds').getAt(0).get('external_system_id');
+                        Aurora.request({
+                            url: $('pur5611_vendor_email_import_temp_data_submit_link').getUrl(),
+                            para: {
+                                'external_system_id': external_system_id
+                            },
+                            success: function() {
+                                Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SUBMIT_SUCCESS}', function() {
+                                    $('pur5611_vendor_email_import_error_ds').query();
+                                    $('pur5611_vendor_email_import_temp_ds').query();
+                                });
+                            },
+                            scope: this
+                        });
+                    }
+                }
+            }
+            
+            function pur5611_vendorEmailImportErrorData() {
+                new Aurora.Window({
+                    id: 'pur5611_vendor_email_import_error_link_window',
+                    url: $('pur5611_vendor_email_import_error_link').getUrl(),
+                    title: '${l:PUR5611_VENDOR_IMPORT.IMPORT_ERROR_INFO}',
+                    width: 930,
+                    height: 450
+                });
+            }
+            
+            function pur5611_vendorEmailImportTempDsLoad(ds) {
+                var length = ds.getAll().length;
+                if (length > 0) {
+                    isUpload = true;
+                }
+            }
+            
+            function pur5611_vendorEmailImportRrrorDsLoad(ds) {
+                var error_lines = ds.getAll().length;
+                if (error_lines > 0) {
+                    isChecked = true;
+                }
+            }
+            
+            function pur5611_vendorEmailImportTemplateDownload() {
+                var attachment_id = '${/model/import_template/record/@attachment_id}';
+                if (attachment_id == undefined || Aurora.isEmpty(attachment_id)) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PUR5611_VENDOR_IMPORT.NO_IMPORT_TEMPLATE_TO_DOWNLOAD}');
+                    return;
+                } else {
+                    Aurora.request({
+                        url: $('pur5611_vendor_emial_excel_import_template_uploadtimes_link').getUrl(),
+                        para: {
+                            imp_template_code: 'PUR_VENDOR_EMAIL_IMPORT'
+                        },
+                        success: function() {
+                            document.getElementById('attachment_id').value = attachment_id;
+                            document.downloadform.submit();
+                        },
+                        scope: this
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <!-- External System-->
+            <a:dataSet id="pur5611_vendorEmail_externalSystem_ds" fetchAll="true" loadData="true" model="pur.PUR5611.fnd_bg_external_system_query"/>
+            <a:dataSet id="pur5611_vendorEmailComapny_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="external_system_id"/>
+                    <a:field name="external_system_name" displayField="external_system_name" options="pur5611_vendorEmail_externalSystem_ds" prompt="PUR5611_VENDOR_IMPORT.EXTERNAL_SYSTEM" required="true" returnField="external_system_id" valueField="external_system_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur5611_vendor_email_import_error_ds" autoCount="true" autoQuery="true" model="pur.PUR5611.pur5611_vendor_email_import_error">
+                <a:events>
+                    <a:event name="load" handler="pur5611_vendorEmailImportRrrorDsLoad"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur5611_vendor_email_import_temp_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="pur.PUR5611.pur5611_vendor_email_import_query">
+                <a:events>
+                    <a:event name="load" handler="pur5611_vendorEmailImportTempDsLoad"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur5611_vendorEmailImportTemplateDownload" style="margin-left:20px;" text="PROMPT.DOWNLOAD_IMPORT_TEMPLATE" width="100"/>
+                <a:toolbarButton click="pur5611_vendorEmailImportLoadData" style="margin-left:20px;" text="PROMPT.LOADDATA" width="100"/>
+                <a:toolbarButton click="pur5611_vendorEmailImportCheckData" style="margin-left:20px;" text="PROMPT.CHECK" width="100"/>
+                <a:toolbarButton id="pur5611_vendorEmailImportSubmitData_btn" click="pur5611_vendorEmailImportSubmitData" style="margin-left:20px;" text="PROMPT.SUBMIT" width="100"/>
+                <a:toolbarButton id="pur5611_vendorEmailImportErrorData_btn" click="pur5611_vendorEmailImportErrorData" style="margin-left:20px;" text="PROMPT.ERROR" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox style="margin-top:10px;margin-left:20px">
+                <a:comboBox name="external_system_name" bindTarget="pur5611_vendorEmailComapny_ds" width="150"/>
+                <label for="male"><![CDATA[${l:PUR5611_VENDOR_IMPORT.PLEASE_CHOOSE_COMPANY}]]></label>
+            </a:hBox>
+            <a:grid id="pur5611_vendor_email_import_temp_ds_grid" autoAppend="false" bindTarget="pur5611_vendor_email_import_temp_ds" marginHeight="100" marginWidth="70" navBar="true" style="margin-top:5px;">
+                <a:columns>
+                    <a:column name="line_number" align="center" lock="true" prompt="PROMPT.LINE_NUMBER" width="30"/>
+                    <a:column name="es_vendor_code" align="left" prompt="PUR_VENDORS.VENDOR_CODE" width="120"/>
+                    <a:column name="es_vendor_name" align="left" prompt="PUR_VENDORS.FULL_NAME_ID" width="120"/>
+                    <a:column name="email" align="left" prompt="PUR_VENDORS.OFFICIAL_EMAIL" width="120"/>
+                    <a:column name="domestic_foreign_relation_desc" align="left" prompt="PUR_SYSTEM_VENDERS.INTERNATIONAL_RELATION" width="120"/>
+                    <a:column name="tax_id_number" align="left" prompt="PUR_VENDORS.TAX_ID_NUMBER" width="120"/>
+                    <a:column name="d_b_code" align="left" prompt="PUR_VENDORS.D_B_CODE" width="120"/>
+                </a:columns>
+            </a:grid>
+            <form name="downloadform" action="${/request/@context_path}/atm_download.svc" enctype="multipart/form-data" method="get" style="display:none;">
+                <input name="attachment_id" id="attachment_id" type="hidden"/>
+            </form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,783 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-25 下午7:34:51  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="pur.PUR5120.pur_rfx_header_init" rootPath="pur51202_rfx_header_init_source"/>
+        <a:model-query fetchAll="true" model="public.pur_rfx_types_list" rootPath="pur51202_rfx_types_source"/>
+        <a:model-query fetchAll="true" model="public.csh_payment_methods_list" rootPath="pur51202_payment_methods_source"/>
+        <a:model-query fetchAll="true" model="public.currency_list" rootPath="pur51202_currency_source"/>
+        <a:model-query fetchAll="true" model="public.fnd_tax_type_code_lov" rootPath="pur51202_tax_type_code_source"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="pur51202_rfx_manual_maintain_link" url="${/request/@context_path}/modules/pur/PUR5130/pur_rfx_manual_maintain.screen"/>
+        <a:link id="pur51202_rfx_create_link" url="${/request/@context_path}/modules/pur/PUR5120/pur_rfx_create.svc"/>
+        <script><![CDATA[
+            function pur51202_rfx_headers_ds_update(ds, record, name, value, oldvalue) {
+            
+                if (name == "unique_template_flag") {
+                    var unique_template_flag = value;
+                    if (unique_template_flag == 'Y') {
+                        record.getMeta().getField('template_desc').setRequired(true);
+                        record.getMeta().getField('template_desc').setReadOnly(false);
+                    } else {
+                        record.set('template_id', '');
+                        record.set('template_desc', '');
+                        record.getMeta().getField('template_desc').setRequired(false);
+                        record.getMeta().getField('template_desc').setReadOnly(true);
+                    }
+            
+                } else if (name == "rfx_category") {
+                    pur51202_set_rfx_header_rules(record, value);
+                } else if (name == "company_id") {
+                    var item_records = $("pur51202_rfx_ln_items_ds").getAll();
+                    for (var i = 0;i < item_records.length;i++) {
+                        item_records[i].set('company_id', value);
+                    }
+                } else if (name == "currency_code" || name == "functional_currency_code") {
+                    var functional_currency_code = record.get('functional_currency_code');
+                    var currency_code = record.get('currency_code');
+                    if (functional_currency_code != currency_code) {
+                        record.getMeta().getField('exchange_rate').setRequired(true);
+                        record.getMeta().getField('exchange_rate').setReadOnly(false);
+                    } else {
+                        record.set('exchange_rate', 1);
+                        record.getMeta().getField('exchange_rate').setRequired(false);
+                        record.getMeta().getField('exchange_rate').setReadOnly(true);
+                    }
+                } else if (name == "tax_included_flag") {
+                    record.set('tax_type_id', '');
+                    record.set('tax_type_code', '');
+                    record.set('tax_type_desc', '');
+                    record.set('tax_type_rate', '');
+                    if (value == 'Y') {
+                        record.getMeta().getField('tax_type_desc').setRequired(true);
+                        record.getMeta().getField('tax_type_desc').setReadOnly(false);
+                    } else {
+                        record.getMeta().getField('tax_type_desc').setRequired(true);
+                        record.getMeta().getField('tax_type_desc').setReadOnly(false);
+                    }
+                }
+            }
+            
+            function pur51202_rfx_headers_ds_load(dataSet) {
+                var record = dataSet.getCurrentRecord();
+                var unique_template_flag = record.get('unique_template_flag');
+                if (unique_template_flag == 'Y') {
+                    record.getMeta().getField('template_desc').setRequired(true);
+                    record.getMeta().getField('template_desc').setReadOnly(false);
+                } else {
+                    record.get('template_id', '');
+                    record.get('template_desc', '');
+                    record.getMeta().getField('template_desc').setRequired(false);
+                    record.getMeta().getField('template_desc').setReadOnly(true);
+                }
+            
+                if (!Aurora.isEmpty('${/parameter/@rfx_header_id}')) {
+                    record.getMeta().getField('rfx_type_desc').setReadOnly(true);
+                }
+            
+                pur51202_set_rfx_header_rules(record, record.get('rfx_category'));
+            
+                var functional_currency_code = record.get('functional_currency_code');
+                var currency_code = record.get('currency_code');
+                if (functional_currency_code != currency_code) {
+                    record.getMeta().getField('exchange_rate').setRequired(true);
+                    record.getMeta().getField('exchange_rate').setReadOnly(false);
+                } else {
+                    record.set('exchange_rate', 1);
+                    record.getMeta().getField('exchange_rate').setRequired(false);
+                    record.getMeta().getField('exchange_rate').setReadOnly(true);
+                }
+            
+                var tax_included_flag = record.get('tax_included_flag');
+                if (tax_included_flag == 'Y') {
+                    record.getMeta().getField('tax_type_desc').setRequired(true);
+                    record.getMeta().getField('tax_type_desc').setReadOnly(false);
+                } else {
+                    record.getMeta().getField('tax_type_desc').setRequired(true);
+                    record.getMeta().getField('tax_type_desc').setReadOnly(false);
+                }
+                if (Aurora.isEmpty(record.get("tax_included_flag"))) {
+                    record.set("tax_included_flag", 'N');
+                }
+            }
+            
+            function pur51202_set_rfx_header_rules(record, rfx_category) {
+                if (rfx_category == 'RFA') { //竞价单
+                    record.getMeta().getField('auction_direction_desc').setRequired(true);
+                    record.getMeta().getField('auction_direction_desc').setReadOnly(false);
+            
+                    record.getMeta().getField('auction_rule_desc').setRequired(true);
+                    record.getMeta().getField('auction_rule_desc').setReadOnly(false);
+            
+                    record.getMeta().getField('open_rule_desc').setRequired(true);
+                    record.getMeta().getField('open_rule_desc').setReadOnly(false);
+            
+                    record.getMeta().getField('ranking_rule_desc').setRequired(true);
+                    record.getMeta().getField('ranking_rule_desc').setReadOnly(false);
+            
+                    record.getMeta().getField('auction_ranking_desc').setRequired(true);
+                    record.getMeta().getField('auction_ranking_desc').setReadOnly(false);
+                } else { //不为竞价单
+                    record.set('auction_direction', '');
+                    record.set('auction_direction_desc', '');
+                    record.getMeta().getField('auction_direction_desc').setRequired(false);
+                    record.getMeta().getField('auction_direction_desc').setReadOnly(true);
+            
+                    record.set('auction_rule', '');
+                    record.set('auction_rule_desc', '');
+                    record.getMeta().getField('auction_rule_desc').setRequired(false);
+                    record.getMeta().getField('auction_rule_desc').setReadOnly(true);
+            
+                    record.set('open_rule', '');
+                    record.set('open_rule_desc', '');
+                    record.getMeta().getField('open_rule_desc').setRequired(false);
+                    record.getMeta().getField('open_rule_desc').setReadOnly(true);
+            
+                    record.set('ranking_rule', '');
+                    record.set('ranking_rule_desc', '');
+                    record.getMeta().getField('ranking_rule_desc').setRequired(false);
+                    record.getMeta().getField('ranking_rule_desc').setReadOnly(true);
+            
+                    record.set('auction_ranking', '');
+                    record.set('auction_ranking_desc', '');
+                    record.getMeta().getField('auction_ranking_desc').setRequired(false);
+                    record.getMeta().getField('auction_ranking_desc').setReadOnly(true);
+                }
+            
+            }
+            
+            function pur51202_rfx_header_check(record) {
+                var open_rule = record.get('open_rule');
+                var ranking_rule = record.get('ranking_rule');
+                var auction_ranking = record.get('auction_ranking');
+                if ((open_rule == 'OPEN_IDENTITY_HIDDEN_QUOTN' || open_rule == 'OPEN_IDENTITY_OPEN_QUOTN') && ranking_rule == 'ANONYMOUS_AUCTION') {
+                    alert('${l:PUR5120.ANONYMOUS_UNSELECT}');
+                    return false;
+                }
+                if (auction_ranking == 'HIDDEN_RANKING' && open_rule != 'HIDDEN_IDENTITY_HIDDEN_QUOTN') {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PUR5120.ONLY_HIDDEN_CAN_SELECT}');
+                    return false;
+                }
+                return true;
+            }
+            
+            function pur51202_rfx_create() {
+                var header_ds = $('pur51202_rfx_headers_ds');
+                var item_ds = $('pur51202_rfx_ln_items_ds');
+                var vendor_ds = $('pur51202_rfx_ln_vendors_ds');
+                var attachments_ds = $('pur51202_rfx_ln_attachments');
+                var header_record = header_ds.getCurrentRecord();
+                header_record.set('data_source', 'MANUAL');
+                if (!header_ds.validate()) {
+                    return;
+                }
+                if (!item_ds.validate()) {
+                    return;
+                }
+                if (!vendor_ds.validate()) {
+                    return;
+                }
+                if (!attachments_ds.validate()) {
+                    return;
+                }
+            
+                if (!pur51202_rfx_header_check(header_record)) {
+                    return;
+                }
+            
+                var data = header_record.data;
+                if (Aurora.isEmpty(header_record.get('rfx_header_id'))) {
+                    data._status = 'insert';
+                } else {
+                    data._status = 'update';
+                }
+            
+                data['items'] = item_ds.getJsonData();
+                data['vendors'] = vendor_ds.getJsonData();
+                data['attachments'] = attachments_ds.getJsonData();
+                pur51202_mask();
+                Aurora.request({
+                    url: $('pur51202_rfx_create_link').getUrl(),
+                    para: data,
+                    success: function(result) {
+                        pur51202_unmask();
+                        var rfx_header_id = result.result.rfx_header_id;
+                        Aurora.showMessage('${l:PROMPT}', '${l:PUR5120.RFX_CREATION_SUCCESSFULLY}',function(){
+							new Aurora.Window({
+				        	    id:'pur51302_rfx_manual_maintain_window',
+				        	    title:'${l:MODULES/PUR/PUR5130/PUR_RFX_MANUAL_MAINTAIN.SCREEN.TITLE}',
+				        	    url:$('pur51202_rfx_manual_maintain_link').getUrl()+'?rfx_header_id='+rfx_header_id,
+				        	    fullScreen:true
+				        	});   
+				        	pur51202_reback();
+                        });
+                        
+                    },
+                    failure: function() {
+                        pur51202_unmask();
+                        return;
+                    },
+                    error: function() {
+                        pur51202_unmask();
+                        return;
+                    }
+                });
+            }
+            
+            function pur51202_window_reload() {
+                var url = $('pur51202_rfx_manual_maintain_link').getUrl();
+            
+                var header_record = $('pur51202_rfx_headers_ds').getCurrentRecord();
+                var rfx_header_id = header_record.get('rfx_header_id');
+                url += '?rfx_header_id=' + rfx_header_id;
+                url += '&created_flag=' + '${/parameter/@created_flag}';
+                
+                //window.location.href=url;
+                var items = $('mainTab').items;
+                var index;
+                for (var i=0;i<items.length;i++){
+                    var item=items[i];
+                    if(item.ref==document.getElementById('MAIN_screen_name').value){
+                        index=i;
+                        break;
+                    }
+                }
+                $('mainTab').reloadTab(index,url);
+            }
+            
+            
+            function pur51202_reback() {
+                $('pur51202_rfx_manual_create_window').close();
+            }
+            
+            function pur51202_rfx_ln_items_ds_load(ds) {
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var company_id = records[i].get('company_id');
+                    var inv_organization_id = records[i].get('inv_organization_id');
+                    var item_category_id = records[i].get('item_category_id');
+                    if (!Aurora.isEmpty(company_id)) {
+                        records[i].getField('inv_organization_desc').setLovPara('company_id', company_id);
+                    }
+                    if (!Aurora.isEmpty(inv_organization_id)) {
+                        records[i].getField('item_code').setLovPara('inv_organization_id', inv_organization_id);
+                    }
+                    if (!Aurora.isEmpty(item_category_id)) {
+                        records[i].getField('item_code').setLovPara('item_category_id', item_category_id);
+                    }
+                }
+            }
+            
+            function pur51202_rfx_ln_items_grid_cellclick(grid, row, name, record) {
+                var company_id = record.get('company_id');
+                if (name == 'item_code') {
+                    record.getField('item_code').setLovPara('company_id', company_id);
+                    var item_category_id = record.get('item_category_id');
+                    if (Aurora.isEmpty(item_category_id)) {
+                        record.getField('item_code').setLovPara('item_category_id', null);
+                    } else {
+                        record.getField('item_code').setLovPara('item_category_id', item_category_id);
+                    }
+                }
+            }
+            
+            function pur51202_rfx_ln_items_ds_update(ds, record, name, value, oldvalue) {
+                if (name == "company_id") {
+                    record.set('inv_organization_id', '');
+                    record.set('inv_organization_code', '');
+                    record.set('inv_organization_desc', '');
+                    record.getField('inv_organization_desc').setLovPara('company_id', value);
+                } else if (name == "inv_organization_id") {
+                    record.set('item_id', '');
+                    record.set('item_code', '');
+                    record.set('item_desc', '');
+                    record.getField('item_code').setLovPara('inv_organization_id', value);
+                } else if (name == "item_category_id") {}
+            }
+            
+            function pur51202_rfx_ln_items_ds_add(ds, record, index) {
+                var company_id = $('pur51202_rfx_headers_ds').getCurrentRecord().get('company_id');
+                if (Aurora.isEmpty(company_id)) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PUR5120.COMPANY_ITEM_SELECT}');
+                    return false;
+                }
+                record.set('company_id', company_id);
+                record.set('line_number', (index + 1) * 10);
+            }
+            
+            function pur51202_rfx_ln_items_ef(record, name) {
+                if (name == "item_category_desc") {
+                    var item_id = record.get('item_id');
+                    if (Aurora.isEmpty(item_id)) {
+                        return 'pur51202_item_category_desc_lov';
+                    }
+                    return '';
+                }
+            }
+            
+            function pur51202_rfx_ln_vendors_ds_load(ds) {
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var vendor_id = records[i].get('vendor_id');
+                    if (!Aurora.isEmpty(vendor_id)) {
+                        records[i].getField('contact_person').setLovPara('vendor_id', vendor_id);
+                    }
+                }
+            }
+            
+            function pur51202_rfx_ln_vendors_ds_update(ds, record, name, value, oldvalue) {
+                if (name == "vendor_id") {
+                    record.set('contact_id', '');
+                    record.set('contact_person', '');
+                    record.set('contact_mobile', '');
+                    record.set('e_mail', '');
+                    record.getField('contact_person').setLovPara('vendor_id', value);
+                }
+            }
+            
+            function pur51202_rfx_ln_vendors_ds_beforecreate(ds, object) {
+                var rfx_method = $('pur51202_rfx_headers_ds').getCurrentRecord().get('rfx_method');
+                if (rfx_method == 'OPEN') {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PUR5120.OPEN_RFX_VENDOR_REMAIN}');
+                    return false;
+                }
+                return true;
+            }
+            
+            function pur51202_mask() {
+            	Aurora.Masker.mask($('pur51202_rfx_manual_create_window').wrap, '${l:LOADING}');
+            }
+            
+            function pur51202_unmask() {
+                Aurora.Masker.unmask($('pur51202_rfx_manual_create_window').wrap);
+            }
+            
+            //上传附件
+            
+            function pur51202_atch_num_rd(value, record, name) {
+                var ds = $('pur51202_rfx_ln_attachments');
+                var line_num = ds.indexOf(record);
+            
+                return (line_num + 1) * 10;
+            
+            }
+            
+            function pur51202_upload_render(value, record, name) {
+                var atm_line_id = record.get('atm_line_id');
+                if (!record.isNew && atm_line_id) {
+                    return '<a href="javascript:pur51202_upload_file(' + atm_line_id + ')">${l:UPLOADFILE.SCREEN.TITLE}</a>';
+                }
+            }
+            
+            function pur51202_upload_file(id) {
+                var url = "${/request/@context_path}/uploadFile.screen?table_name=FND_ATM_LINES&header_id=" + id;
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:ATM.UPLOAD_ATTCHMENT}',
+                    id: 'pur51202_upload_window',
+                    width: 850,
+                    height: 500
+                }).on('beforeclose', function() {
+                    $('pur51202_rfx_ln_attachments').query();
+                });
+            }
+            
+            //比较两个日期的大小
+            
+            function pur51202_compareDate(start, end) {
+            
+                if (typeof(start) == 'string') {
+                    start = new Date(start.replace(/-/g, "/"));
+                }
+            
+                if (typeof(end) == 'string') {
+                    end = new Date(end.replace(/-/g, "/"));
+                }
+            
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            //发布日期校验
+            
+            function pur51202_release_dateValidator(record, name, value) {
+                if (name == 'feedback_start_time' || name == 'feedback_end_time') {
+                    var start = record.get('feedback_start_time');
+                    var end = record.get('feedback_end_time');
+            
+                    if ( !! end) {
+                        if (!pur51202_compareDate(start, end)) {
+                            return '${l:PUR5120.QUOTATION_START_END_DATE_ERROR}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            
+            function pur51202_vendors_grid_cellclick(grid, row, name, record) {
+                var head_record = $('pur51202_rfx_headers_ds').getCurrentRecord();
+                var company_id = head_record.get('company_id');
+                if (name == 'vendor_code') {
+                    record.getField('vendor_code').setLovPara('company_id', company_id);
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur51202_rfx_category_ds" lookupCode="PUR_RFX_CATEGORY"/>
+            <a:dataSet id="pur51202_rfx_method_ds" lookupCode="PUR_RFX_METHOD"/>
+            <a:dataSet id="pur51202_rfx_auction_direction_ds" lookupCode="PUR_RFX_AUCTION_DIRECTION"/>
+            <a:dataSet id="pur51202_rfx_auction_rule_ds" lookupCode="PUR_RFX_AUCTION_RULE"/>
+            <a:dataSet id="pur51202_rfx_open_rule_ds" lookupCode="PUR_RFX_OPEN_RULE"/>
+            <a:dataSet id="pur51202_rfx_ranking_rule_ds" lookupCode="PUR_RFX_RANKING_RULE"/>
+            <a:dataSet id="pur51202_rfx_auction_ranking_ds" lookupCode="PUR_RFX_AUCTION_RANKING"/>
+            <!-- <a:dataSet id="pur51202_pur_ln_type_ds" lookupCode="PUR_REQ_LINE_PURCHASE_TYPE"/> -->
+            <a:dataSet id="pur51202_pur_ln_type_ds" autoQuery="true" loadData="true" model="pur.public.pur_line_type"/>
+            <a:dataSet id="pur51202_rfx_types_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/pur51202_rfx_types_source"/>
+            </a:dataSet>
+            <a:dataSet id="pur51202_payment_method_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/pur51202_payment_methods_source"/>
+            </a:dataSet>
+            <a:dataSet id="pur51202_currency_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/pur51202_currency_source"/>
+            </a:dataSet>
+            <a:dataSet id="pur51202_tax_type_code_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/pur51202_tax_type_code_source"/>
+            </a:dataSet>
+            <a:dataSet id="pur51202_rfx_headers_ds" model="pur.PUR5120.pur_rfx_headers" queryUrl="${/request/@context_path}/autocrud/pur.PUR5120.pur_rfx_headers/query?rfx_header_id=${/parameter/@rfx_header_id}">
+                <a:datas dataSource="/model/pur51202_rfx_header_init_source"/>
+                <a:fields>
+                    <a:field name="rfx_header_id"/>
+                    <a:field name="data_source" defaultValue="MANUAL"/>
+                    <a:field name="rfx_number" readOnly="true"/>
+                    <a:field name="company_id"/>
+                    <a:field name="company_desc" lovGridHeight="320" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" required="true" title="PUR_REQ_HEADERS.COMPANY_NAME">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_short_name" to="company_desc"/>
+                            <a:map from="functional_currency_code" to="functional_currency_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="rfx_type_id"/>
+                    <a:field name="rfx_type_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="public.pur_rfx_types_lov" lovWidth="500" required="true" title="PUR5120.RFX_TYPE">
+                        <a:mapping>
+                            <a:map from="rfx_type_id" to="rfx_type_id"/>
+                            <a:map from="rfx_type_desc" to="rfx_type_desc"/>
+                            <a:map from="rfx_category" to="rfx_category"/>
+                            <a:map from="rfx_category_desc" to="rfx_category_desc"/>
+                            <a:map from="default_auction_rule" to="auction_rule"/>
+                            <a:map from="default_auction_rule_desc" to="auction_rule_desc"/>
+                            <a:map from="default_rfx_method" to="rfx_method"/>
+                            <a:map from="default_rfx_method_desc" to="rfx_method_desc"/>
+                            <a:map from="default_auction_direction" to="auction_direction"/>
+                            <a:map from="default_auction_direction_desc" to="auction_direction_desc"/>
+                            <a:map from="default_open_rule" to="open_rule"/>
+                            <a:map from="default_open_rule_desc" to="open_rule_desc"/>
+                            <a:map from="default_ranking_rule" to="ranking_rule"/>
+                            <a:map from="default_ranking_rule_desc" to="ranking_rule_desc"/>
+                            <a:map from="default_auction_ranking" to="auction_ranking"/>
+                            <a:map from="default_auction_ranking_desc" to="auction_ranking_desc"/>
+                            <a:map from="default_template_id" to="template_id"/>
+                            <a:map from="default_template_desc" to="template_desc"/>
+                            <a:map from="unique_template_flag" to="unique_template_flag"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="rfx_category_desc" readOnly="true"/>
+                    <a:field name="title" required="true"/>
+                    <a:field name="template_id"/>
+                    <a:field name="template_desc" lovGridHeight="320" lovHeight="500" lovService="public.fnd_flex_seg_table_template_lov?appl_table_name=PUR_RFX_HEADERS" lovWidth="500" readOnly="true" title="PUR_RFX_HEADERS.TEMPLATE_ID">
+                        <a:mapping>
+                            <a:map from="template_id" to="template_id"/>
+                            <a:map from="template_desc" to="template_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="rfx_method"/>
+                    <a:field name="rfx_method_desc" displayField="code_value_name" options="pur51202_rfx_method_ds" required="true" returnField="rfx_method" valueField="code_value"/>
+                    <a:field name="auction_direction"/>
+                    <a:field name="auction_direction_desc" displayField="code_value_name" options="pur51202_rfx_auction_direction_ds" returnField="auction_direction" valueField="code_value"/>
+                    <a:field name="auction_rule"/>
+                    <a:field name="auction_rule_desc" displayField="code_value_name" options="pur51202_rfx_auction_rule_ds" returnField="auction_rule" valueField="code_value"/>
+                    <a:field name="open_rule"/>
+                    <a:field name="open_rule_desc" displayField="code_value_name" options="pur51202_rfx_open_rule_ds" returnField="open_rule" valueField="code_value"/>
+                    <a:field name="ranking_rule"/>
+                    <a:field name="ranking_rule_desc" displayField="code_value_name" options="pur51202_rfx_ranking_rule_ds" returnField="ranking_rule" valueField="code_value"/>
+                    <a:field name="auction_ranking"/>
+                    <a:field name="auction_ranking_desc" displayField="code_value_name" options="pur51202_rfx_auction_ranking_ds" returnField="auction_ranking" valueField="code_value"/>
+                    <a:field name="payment_method_id"/>
+                    <a:field name="payment_method_desc" displayField="payment_method_desc" options="pur51202_payment_method_ds" required="true" returnField="payment_method_id" valueField="payment_method_id"/>
+                    <a:field name="currency_code"/>
+                    <a:field name="currency_desc" displayField="currency_name" options="pur51202_currency_ds" required="true" returnField="currency_code" valueField="currency_code">
+                        <a:mapping>
+                            <a:map from="currency_name" to="currency_desc"/>
+                            <a:map from="currency_code" to="currency_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="exchange_rate" readOnly="true"/>
+                    <a:field name="tax_included_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="tax_type_id"/>
+                    <a:field name="tax_type_desc" displayField="description" options="pur51202_tax_type_code_ds" prompt="PUR5120.TAX_TYPE" required="true" valueField="tax_type_id">
+                        <a:mapping>
+                            <a:map from="tax_type_id" to="tax_type_id"/>
+                            <a:map from="tax_type_code" to="tax_type_code"/>
+                            <a:map from="description" to="tax_type_desc"/>
+                            <a:map from="tax_type_rate" to="tax_type_rate"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="tax_type_rate"/>
+                    <a:field name="place_of_delivery"/>
+                    <a:field name="round" readOnly="true"/>
+                    <a:field name="status_desc" readOnly="true"/>
+                    <a:field name="feedback_range"/>
+                    <a:field name="created_by"/>
+                    <a:field name="created_by_desc" readOnly="true"/>
+                    <a:field name="creation_date_desc" readOnly="true"/>
+                    <a:field name="issued_date_desc" readOnly="true"/>
+                    <a:field name="feedback_start_time" required="true" validator="pur51202_release_dateValidator"/>
+                    <a:field name="feedback_end_time" required="true" validator="pur51202_release_dateValidator"/>
+                    <a:field name="comments"/>
+                    <a:field name="unique_template_flag"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur51202_rfx_headers_ds_update"/>
+                    <a:event name="load" handler="pur51202_rfx_headers_ds_load"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur51202_rfx_ln_items_ds" autoQuery="true" bindName="items" bindTarget="pur51202_rfx_headers_ds" fetchAll="true" model="pur.PUR5120.pur_rfx_ln_items" queryUrl="${/request/@context_path}/autocrud/pur.PUR5120.pur_rfx_ln_items/query?rfx_header_id=${/parameter/@rfx_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="rfx_line_item_id"/>
+                    <a:field name="data_source" defaultValue="MANUAL"/>
+                    <a:field name="auto_create_distribute" defaultValue="Y"/>
+                    <a:field name="line_number"/>
+                    <a:field name="company_id"/>
+                    <a:field name="inv_organization_id"/>
+                    <a:field name="inv_organization_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="500" lovService="public.inv_organizations_lov" lovWidth="500" required="true" title="PUR_RFX_LN_ITEMS.INV_ORGANIZATION_ID">
+                        <a:mapping>
+                            <a:map from="organization_id" to="inv_organization_id"/>
+                            <a:map from="organization_name" to="inv_organization_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_category_id"/>
+                    <a:field name="item_category_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="500" lovService="public.inv_item_categories_lov" lovWidth="500" required="true" title="PUR5120.ITEM_CATEGORY">
+                        <a:mapping>
+                            <a:map from="item_category_id" to="item_category_id"/>
+                            <a:map from="item_category_desc" to="item_category_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_id"/>
+                    <a:field name="item_code" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="600" lovService="public.inv_system_items_lov" lovWidth="800" title="PUR_RFX_LN_ITEMS.ITEM_CODE">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_desc" to="item_desc"/>
+                            <a:map from="item_category_id" to="item_category_id"/>
+                            <a:map from="item_category_desc" to="item_category_desc"/>
+                            <a:map from="item_category_code" to="item_category_code"/>
+                            <a:map from="uom" to="uom_code"/>
+                            <a:map from="uom_desc" to="uom_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_desc" required="true"/>
+                    <a:field name="item_note"/>
+                    <a:field name="item_parameter_config"/>
+                    <a:field name="quantity" required="true"/>
+                    <a:field name="uom_code"/>
+                    <a:field name="uom_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="350" lovHeight="500" lovService="public.fnd_uom_codes_lov" lovWidth="500" required="true" title="PUR_RFX_LN_ITEMS.UOM_CODE">
+                        <a:mapping>
+                            <a:map from="uom_code" to="uom_code"/>
+                            <a:map from="uom_desc" to="uom_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="need_by_date" required="true"/>
+                    <a:field name="pur_ln_type"/>
+                    <a:field name="pur_ln_type_desc" displayField="line_type" options="pur51202_pur_ln_type_ds" required="true" returnField="pur_ln_type" valueField="line_type_id"/>
+                    <!-- <a:field name="pur_ln_type_desc" displayField="code_value_name" options="pur51202_pur_ln_type_ds" required="true" returnField="pur_ln_type" valueField="code_value"/> -->
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur51202_rfx_ln_items_ds_update"/>
+                    <a:event name="load" handler="pur51202_rfx_ln_items_ds_load"/>
+                    <a:event name="add" handler="pur51202_rfx_ln_items_ds_add"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur51202_rfx_ln_vendors_ds" autoQuery="true" model="pur.PUR5120.pur_rfx_ln_vendors" queryUrl="${/request/@context_path}/autocrud/pur.PUR5120.pur_rfx_ln_vendors/query?rfx_header_id=${/parameter/@rfx_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="vendor_id"/>
+                    <a:field name="vendor_code" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="public.pur_vendors_lov" lovWidth="500" required="true" title="PUR5120.VENDOR">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_name" to="vendor_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_desc"/>
+                    <a:field name="contact_id"/>
+                    <a:field name="contact_person" autoComplete="true" autoCompleteField="linkman_name" lovGridHeight="320" lovHeight="450" lovService="public.pur_sys_vendor_cantacts_lov" lovWidth="800" title="PUR_RFX_LN_VENDORS.CONTACT_PERSON">
+                        <a:mapping>
+                            <a:map from="contact_id" to="contact_id"/>
+                            <a:map from="linkman_name" to="contact_person"/>
+                            <a:map from="mobile_phone" to="contact_mobile"/>
+                            <a:map from="email" to="e_mail"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="contact_mobile"/>
+                    <a:field name="e_mail"/>
+                    <a:field name="sms_schicken_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur51202_rfx_ln_vendors_ds_update"/>
+                    <a:event name="load" handler="pur51202_rfx_ln_vendors_ds_load"/>
+                    <a:event name="beforecreate" handler="pur51202_rfx_ln_vendors_ds_beforecreate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur51202_rfx_ln_attachments" autoQuery="true" bindTarget="pur51202_rfx_headers_ds" model="public.fnd_atm_lines" queryUrl="${/request/@context_path}/autocrud/public.fnd_atm_lines/query?source_table_name=PUR_RFX_HEADERS&amp;source_pk_value=${/parameter/@rfx_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="atm_line_id"/>
+                    <a:field name="line_number"/>
+                    <a:field name="atm_desc"/>
+                    <a:field name="source_table_name" defaultValue="PUR_RFX_HEADERS"/>
+                    <a:field name="source_pk_value" defaultValue="${/parameter/@rfx_header_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <!-- <a:dataSet id="pur51202_rfx_ln_attachments"/> -->
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur51202_rfx_create" style="margin-left:20px;" text="PUR5120.CREATE" width="100"/>
+                <a:toolbarButton id="pur51202_reback_button" click="pur51202_reback" text="HAP_BACK" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox padding="0">
+                <a:vBox>
+                    <a:textField name="rfx_number" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.RFX_NUMBER" readOnly="true"/>
+                    <a:textField name="title" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.TITLE"/>
+                    <a:comboBox name="open_rule_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.OPEN_RULE"/>
+                    <a:comboBox name="currency_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.CURRENCY_CODE"/>
+                    <a:textField name="round" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.ROUND"/>
+                    <a:dateTimePicker name="feedback_start_time" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.FEEDBACK_START_TIME"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:lov name="company_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.COMPANY_ID"/>
+                    <a:comboBox name="rfx_method_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.RFX_METHOD"/>
+                    <a:comboBox name="ranking_rule_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.RANKING_RULE"/>
+                    <a:numberField name="exchange_rate" allowNegative="false" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.EXCHANGE_RATE"/>
+                    <a:textField name="created_by_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.CREATED_BY"/>
+                    <a:dateTimePicker name="feedback_end_time" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.FEEDBACK_END_TIME"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:lov name="rfx_type_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.RFX_TYPE_ID"/>
+                    <a:comboBox name="auction_direction_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.AUCTION_DIRECTION"/>
+                    <a:comboBox name="auction_ranking_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.AUCTION_RANKING"/>
+                    <a:checkBox name="tax_included_flag" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.TAX_INCLUDED_FLAG"/>
+                    <a:textField name="creation_date_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.CREATION_DATE"/>
+                    <a:lov name="template_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.TEMPLATE_ID"/>
+                </a:vBox>
+                <a:vBox>
+                    <a:textField name="rfx_category_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.RFX_CATEGORY"/>
+                    <a:comboBox name="auction_rule_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.AUCTION_RULE"/>
+                    <a:comboBox name="payment_method_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.PAYMENT_METHOD_ID"/>
+                    <a:comboBox name="tax_type_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR5120.TAX_TYPE"/>
+                    <a:textField name="status_desc" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.STATUS"/>
+                    <a:textField name="place_of_delivery" bindTarget="pur51202_rfx_headers_ds" prompt="PUR_RFX_HEADERS.PLACE_OF_DELIVERY"/>
+                </a:vBox>
+            </a:hBox>
+            <a:hBox padding="0">
+                <a:vBox>
+                    <a:textArea name="comments" bindTarget="pur51202_rfx_headers_ds" height="60" marginWidth="360" prompt="PUR_RFX_HEADERS.COMMENTS"/>
+                </a:vBox>
+            </a:hBox>
+            <a:tabPanel height="400" marginWidth="130">
+                <a:tabs>
+                    <a:tab prompt="PUR5120.ITEM_DETIAL">
+                        <a:grid id="pur51202_rfx_ln_items_grid" bindTarget="pur51202_rfx_ln_items_ds" height="350" marginWidth="140" navBar="true" showRowNumber="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <!-- <a:column name="line_number" align="left" lock="true" prompt="行号" width="30"/> -->
+                                <a:column name="pur_ln_type_desc" align="left" editor="pur51202_pur_ln_type_desc_cb" lock="true" prompt="PUR_RFX_LN_ITEMS.PUR_LN_TYPE" width="50"/>
+                                <a:column name="inv_organization_desc" align="left" editor="pur51202_inv_organization_desc_lov" prompt="PUR_RFX_LN_ITEMS.INV_ORGANIZATION_ID" width="100"/>
+                                <a:column name="item_category_desc" align="left" editorFunction="pur51202_rfx_ln_items_ef" prompt="PUR5120.ITEM_CATEGORY" width="100"/>
+                                <a:column name="item_code" align="left" editor="pur51202_item_code_lov" prompt="PUR_RFX_LN_ITEMS.ITEM_CODE" width="80"/>
+                                <a:column name="item_desc" align="left" editor="pur51202_item_desc_tf" prompt="PUR_RFX_LN_ITEMS.ITEM_DESC" width="100"/>
+                                <a:column name="item_note" align="left" editor="pur51202_item_note_tf" prompt="PUR_RFX_LN_ITEMS.ITEM_NOTE" width="100"/>
+                                <a:column name="item_parameter_config" align="left" editor="pur51202_item_parameter_config_tf" prompt="PUR_RFX_LN_ITEMS.ITEM_PARAMETER_CONFIG" width="60"/>
+                                <a:column name="quantity" align="left" editor="pur51202_item_quantity_nf" prompt="PUR_RFX_LN_ITEMS.QUANTITY" width="40"/>
+                                <a:column name="feedback_range" align="left" editor="pur51202_feedback_range_nf" prompt="PUR_RFX_LN_ITEMS.FEEDBACK_RANGE" width="40"/>
+                                <a:column name="uom_desc" align="left" editor="pur51202_uom_desc_lov" prompt="PUR_RFX_LN_ITEMS.UOM_CODE" width="40"/>
+                                <a:column name="need_by_date" align="left" editor="pur51202_item_need_by_date_dp" prompt="PUR_RFX_LN_ITEMS.NEED_BY_DATE" renderer="Aurora.formatDate" width="60"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="pur51202_item_note_tf"/>
+                                <a:comboBox id="pur51202_pur_ln_type_desc_cb"/>
+                                <a:lov id="pur51202_inv_organization_desc_lov"/>
+                                <a:lov id="pur51202_item_category_desc_lov"/>
+                                <a:lov id="pur51202_item_code_lov"/>
+                                <a:lov id="pur51202_uom_desc_lov"/>
+                                <a:textField id="pur51202_item_parameter_config_tf"/>
+                                <a:textField id="pur51202_item_desc_tf"/>
+                                <a:numberField id="pur51202_item_quantity_nf" allowNegative="false"/>
+                                <a:datePicker id="pur51202_item_need_by_date_dp"/>
+                                <a:numberField id="pur51202_feedback_range_nf"/>
+                            </a:editors>
+                            <a:events>
+                                <a:event name="cellclick" handler="pur51202_rfx_ln_items_grid_cellclick"/>
+                            </a:events>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="PUR5120.VENDOR_LIST">
+                        <a:grid id="pur51202_vendors_grid" bindTarget="pur51202_rfx_ln_vendors_ds" height="350" marginWidth="140" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="vendor_code" align="left" editor="pur51202_vendor_code_lov" prompt="PUR_RFX_LN_VENDORS.VENDOR_CODE" width="100"/>
+                                <a:column name="vendor_desc" align="left" prompt="PUR_RFX_LN_VENDORS.VENDOR_DESC" width="150"/>
+                                <a:column name="contact_person" align="left" editor="pur51202_contact_person_lov" prompt="PUR_RFX_LN_VENDORS.CONTACT_PERSON" width="100"/>
+                                <a:column name="contact_mobile" align="left" prompt="PUR_RFX_LN_VENDORS.CONTACT_MOBILE" width="100"/>
+                                <a:column name="e_mail" align="left" prompt="PUR_RFX_LN_VENDORS.E_MAIL" width="100"/>
+                                <a:column name="sms_schicken_flag" align="center" editor="pur51202_sms_schicken_flag_ck" prompt="PUR_RFX_LN_VENDORS.SMS_SCHICKEN_FLAG" width="100"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="pur51202_vendor_code_lov"/>
+                                <a:lov id="pur51202_contact_person_lov"/>
+                                <a:checkBox id="pur51202_sms_schicken_flag_ck" checkedValue="Y" uncheckedValue="N"/>
+                            </a:editors>
+                            <a:events>
+                                <a:event name="cellclick" handler="pur51202_vendors_grid_cellclick"/>
+                            </a:events>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="PUR5120.ATM_FILE_LIST">
+                        <a:grid id="pur51202_atch_grid" bindTarget="pur51202_rfx_ln_attachments" height="350" marginWidth="140" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="line_number" align="center" prompt="FND_ATM_LINES.LINE_NUMBER" renderer="pur51202_atch_num_rd" width="50"/>
+                                <a:column name="atm_file" align="left" prompt="FND_ATM_LINES.ATM_FILE" width="300"/>
+                                <a:column name="atm_desc" align="left" editor="pur51202_atch_desc_tf" prompt="FND_ATM_LINES.ATM_DESC" width="150"/>
+                                <a:column name="upload_user_desc" align="center" prompt="FND_ATM_LINES.UPLOAD_USER_NAME" width="100"/>
+                                <a:column name="upload_date" align="center" prompt="FND_ATM_LINES.UPLOAD_DATE" width="100"/>
+                                <a:column align="center" prompt="UPLOADFILE.SCREEN.TITLE" renderer="pur51202_upload_render" width="100"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="pur51202_atch_desc_tf" maxLength="500"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

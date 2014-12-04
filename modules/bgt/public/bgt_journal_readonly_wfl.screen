@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:c="aurora.application.action" xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc" trace="true">
+    <a:init-procedure>
+        <a:model-query model="bgt.bgt_journal_head_approve" rootpath="bgt_header_info"/>
+        <a:model-query model="bgt.bgt_journal_update_dimension" rootPath="dimension_init"/>
+        <a:model-query model="bgt.bgt_journal_update_dimension_line" rootPath="dimension_line_init"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function loadComplete() {
+                $('line_data_ds').query();
+            }
+            
+            function lineDataLoadFunction() {
+                var records = $('bgt_journal_line').getAll();
+                var lineRecords = $('line_data_ds').getAll();
+                for (var i = 0;i < records.length;i++) {
+                    for (var j = 0;j < lineRecords.length;j++) {
+                        records[i].set(lineRecords[j].get('dimension_code'), lineRecords[j].get('value_description'));
+                    }
+                }
+            }
+            
+            function lineDataLoadFun() {
+                var records = $('bgt_journal_line').getAll();
+            
+                if (records.length == 0) {
+                    return;
+                }
+                var headRecord = $('dimension_ds').getAt(0);
+                headRecord.set('d12', records[0].get('e12'));
+                headRecord.set('d13', records[0].get('e13'));
+                headRecord.set('d14', records[0].get('e14'));
+                headRecord.set('d15', records[0].get('e15'));
+                headRecord.set('d12_display', records[0].get('d12'));
+                headRecord.set('d13_display', records[0].get('d13'));
+                headRecord.set('d14_display', records[0].get('d14'));
+                headRecord.set('d15_display', records[0].get('d15'));
+            
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bgt_header_info">
+                <a:datas datasource="/model/bgt_header_info"/>
+                <a:fields>
+                    <a:field name="budget_journal_number" readOnly="true"/>
+                    <a:field name="version_desc" readOnly="true"/>
+                    <a:field name="budget_structure_desc" readOnly="true"/>
+                    <a:field name="scenario_desc" readOnly="true"/>
+                    <a:field name="period_set_desc" readOnly="true"/>
+                    <a:field name="period_strategy_desc" readOnly="true"/>
+                    <a:field name="status_desc" readOnly="true"/>
+                    <a:field name="period_name" readOnly="true"/>
+                    <a:field name="period_quarter" readOnly="true"/>
+                    <a:field name="period_year" readOnly="true"/>
+                    <a:field name="journal_header_notes" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd.fnd_uom_codes_ds" loadData="true" model="fnd.fnd_uom_codes"/>
+            <a:dataSet id="bgt_gld_currency_v1" loadData="true" model="gld.gld_currency_vl">
+                <a:fields>
+                    <a:field name="functional_currency_code"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="bgt_journal_line" loadData="true" model="bgt.bgt_journal_line_update" pageSize="980">
+                <a:fields>
+                    <a:field name="description" prompt="BGT_JOURNAL_LINES.BUDGET_ITEM_ID"/>
+                    <a:field name="company_name" prompt="BGT_JOURNAL_LINES.COMPANY_ID"/>
+                    <a:field name="responsibility_center_name" prompt="FND_RESPONSIBILITY_CENTERS.RESPONSIBILITY_CENTER_NAME"/>
+                    <a:field name="line_period_year" prompt="BGT_JOURNAL_ALHEADERS.PERIOD_YEAR"/>
+                    <a:field name="line_period_quarter" prompt="BGT_JOURNAL_HEADERS.PERIOD_QUARTER"/>
+                    <a:field name="line_period_name" prompt="BGT_JOURNAL_HEADERS.PERIOD_NAME"/>
+                    <a:field name="exchange_rate_type" prompt="BGT_JOURNAL_INTERFACE.EXCHANGE_RATE_TYPE"/>
+                    <a:field name="currency_name" prompt="BGT_JOURNAL_LINES.CURRENCY"/>
+                    <a:field name="sys_code_values_v" prompt="BGT_JOURNAL_LINES.EXCHANGE_RATE_QUOTATION"/>
+                    <a:field name="exchange_rate" Prompt="BGT_JOURNAL_LINES.EXCHANGE_RATE"/>
+                    <a:field name="amount" Prompt="BGT_JOURNAL_LINES.AMOUNT"/>
+                    <a:field name="functional_amount" Prompt="BGT_JOURNAL_LINES.FUNCTIONAL_AMOUNT"/>
+                    <a:field name="quantity" prompt="BGT_JOURNAL_LINES.QUANTITY"/>
+                    <a:field name="uom" Prompt="BGT_JOURNAL_LINES.UOM"/>
+                    <a:field name="journal_lines_notes" prompt="BGT_JOURNAL_LINES.JOURNAL_LINES_NOTES"/>
+                    <a:field name="journal_header_id"/>
+                    <a:field name="journal_line_id"/>
+                    <a:placeHolder id="dimension_line_ds_place"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="dimension_ds" autoCreate="true">
+                <a:fields>
+                    <a:placeHolder id="dimension_ds_place"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="line_data_ds" fetchAll="true" model="bgt.bgt_journal_dimension_line_data" queryUrl="${/request/@context_path}/autocrud/bgt.bgt_journal_dimension_line_data/query?head_id=${/parameter/@head_id}">
+                <a:events>
+                    <a:event name="load" handler="lineDataLoadFunction"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form row="1" title="BGT_JOURNAL_READONLY.TITLE1" width="960">
+                <a:label name="budget_journal_number" bindTarget="bgt_header_info" prompt="BGT_JOURNAL_HEADERS.BUDGET_JOURNAL_NUMBER" width="120"/>
+                <a:label name="version_desc" bindTarget="bgt_header_info" prompt="BGT_JOURNAL_HEADERS.VERSION_ID" width="120"/>
+                <a:label name="budget_structure_desc" bindTarget="bgt_header_info" prompt="BGT_JOURNAL_HEADERS.BUDGET_STRUCTURE_ID" width="120"/>
+                <a:label name="scenario_desc" Prompt="BGT_JOURNAL_HEADERS.SCENARIO_ID" bindTarget="bgt_header_info" width="120"/>
+            </a:form>
+            <a:form column="3" row="2" title="BGT_JOURNAL_READONLY.TITLE2" width="960">
+                <a:label name="period_set_desc" bindTarget="bgt_header_info" prompt="BGT_BUDGET_STRUCTURES.PERIOD_SET_CODE" width="120"/>
+                <a:label name="period_strategy_desc" bindTarget="bgt_header_info" prompt="BGT_JOURNAL_QUERY.PERIOD_STRATEGY_DESC" width="120"/>
+                <a:label name="status_desc" bindTarget="bgt_header_info" prompt="BGT_JOURNAL_HEADERS.STATUS" width="120"/>
+                <a:label name="period_name" bindTarget="bgt_header_info" prompt="BGT_JOURNAL_HEADERS.PERIOD_NAME" width="120"/>
+                <a:label name="period_quarter" bindTarget="bgt_header_info" prompt="BGT_JOURNAL_HEADERS.PERIOD_QUARTER" width="120"/>
+                <a:label name="period_year" bindTarget="bgt_header_info" prompt="BGT_JOURNAL_HEADERS.PERIOD_YEAR" width="120"/>
+            </a:form>
+            <a:form title="BGT_JOURNAL_READONLY.TITLE3" width="960">
+                <a:label name="journal_header_notes" bindTarget="bgt_header_info" prompt="BGT_JOURNAL_HEADERS.JOURNAL_HEADER_NOTES" width="120"/>
+            </a:form>
+            <a:form title="BGT_JOURNAL_READONLY.TITLE4" width="960">
+                <a:placeHolder id="dimension_form_place"/>
+            </a:form>
+            <a:grid bindTarget="bgt_journal_line" height="250" width="960">
+                <a:toolBar>
+                    <a:label/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="company_name" align="center"/>
+                    <a:column name="responsibility_center_name" align="center"/>
+                    <a:column name="description" align="center"/>
+                    <a:column name="line_period_name" align="center"/>
+                    <a:column name="line_period_quarter" align="center"/>
+                    <a:column name="line_period_year" align="center"/>
+                    <a:column name="currency_name" align="center"/>
+                    <a:column name="exchange_rate_type" align="center"/>
+                    <a:column name="sys_code_values_v" align="center"/>
+                    <a:column name="exchange_rate" align="right"/>
+                    <a:column name="amount" align="right"/>
+                    <a:column name="functional_amount" align="right"/>
+                    <a:column name="quantity" align="right"/>
+                    <a:column name="uom" align="center"/>
+                    <a:column name="journal_lines_notes" align="left"/>
+                    <a:placeHolder id="dimension_line_grid_place"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+        <script><![CDATA[
+        	
+        		loadComplete();
+        	    lineDataLoadFun();
+        	    
+        ]]></script>
+    </a:view>
+    <a:view-config>
+        <c:create-config targetId="dimension_ds_place">
+            <p:loop nullable="true" source="/model/dimension_init">
+                <c:process-config>
+                    <a:field name="${@dimension_code}_display" defaultValue="${@value_description}" prompt="${@description}" readOnly="true"/>
+                    <a:field name="${@dimension_code}" defaultValue="${@default_dim_value_id}" readOnly="true"/>
+                </c:process-config>
+            </p:loop>
+        </c:create-config>
+        <c:create-config targetId="dimension_form_place">
+            <p:loop nullable="true" source="/model/dimension_init">
+                <c:process-config>
+                    <a:label name="${@dimension_code}_display" bindTarget="dimension_ds"/>
+                </c:process-config>
+            </p:loop>
+        </c:create-config>
+        <c:create-config targetId="dimension_line_ds_place">
+            <p:loop nullable="true" source="/model/dimension_line_init">
+                <c:process-config>
+                    <a:field name="${@dimension_code}" prompt="${@description}" readOnly="true"/>
+                </c:process-config>
+            </p:loop>
+        </c:create-config>
+        <c:create-config targetId="dimension_line_grid_place">
+            <p:loop nullable="true" source="/model/dimension_line_init">
+                <c:process-config>
+                    <a:column name="${@dimension_code}" align="center"/>
+                </c:process-config>
+            </p:loop>
+        </c:create-config>
+    </a:view-config>
+</a:screen>

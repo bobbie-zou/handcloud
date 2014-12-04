@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-5-17 下午05:13:35  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="bid6020_preliminary_evaluation_confirm_link" url="${/request/@context_path}/modules/bid/BID6020/bid_preliminary_evaluation.svc"/>
+        <script><![CDATA[
+            function bid6020PreliminaryEvaluationRender(value, record, name) {
+                if (name == 'min_price_weight') {
+                    return value + '%';
+                }
+            }
+            
+            function bid6020PreliminaryEvaluationConfirm() {
+                Aurora.showConfirm('提示', '确认所选投标方预中标？', function() {
+                    Aurora.Masker.mask($('bid6020_entrustment_detail_window').wrap, '正在加载');
+                    
+                    var entrustment_header_ds = $('bid6020_entrustment_header_ds');
+                    var entrustment_rec = entrustment_header_ds.getCurrentRecord();
+                    var selected_data = [];
+            
+                    var records = $('bid6020_bidding_docm_selected_ds').getAll();
+                    for (var i = 0;i < records.length;i++) {
+                        selected_data.push(records[i].data);
+                    }
+            
+                    Aurora.request({
+                        url: $('bid6020_preliminary_evaluation_confirm_link').getUrl(),
+                        para: {
+                            'entrustment_header_id': entrustment_rec.get('entrustment_header_id'),
+                            'round': entrustment_rec.get('round'),
+                            'version': entrustment_rec.get('version'),
+                            'status': entrustment_rec.get('status'),
+                            'selected': selected_data
+                        },
+                        success: function(res) {
+                            Aurora.showMessage('提示', '已确认！', function() {
+                                $('bid6020_preliminary_evaluation_window').close();
+                                $('bid6020_entrustment_detail_window').close();
+                            });
+                        },
+                        scope: this
+                    });
+                    
+                    Aurora.Masker.unmask($('bid6020_entrustment_detail_window').wrap);
+                }, function() {});
+            }
+            
+            function bid6020PreliminaryEvaluationCancel() {
+                $('bid6020_preliminary_evaluation_window').close();
+            }
+        ]]></script>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid6020PreliminaryEvaluationConfirm" text="确认" width="100"/>
+                <a:toolbarButton click="bid6020PreliminaryEvaluationCancel" text="取消" width="100"/>
+            </a:screenTopToolbar>
+            <a:grid id="bid6020_preliminary_evaluation_grid" bindTarget="bid6020_bidding_docm_selected_ds" height="320" navBar="false" width="750">
+                <a:columns>
+                    <a:column name="bidder_code" align="left" prompt="投标方编码" width="120"/>
+                    <a:column name="bidder_desc" align="left" prompt="投标方名称" width="150"/>
+                    <a:column name="bidder_user_desc" align="left" prompt="投标人" width="80"/>
+                    <a:column name="sum_unit_price" align="right" prompt="投标方总价" width="80"/>
+                    <a:column name="min_price_weight" align="right" prompt="最低价比重" renderer="bid6020PreliminaryEvaluationRender" width="80"/>
+                    <a:column name="bidding_score" align="right" prompt="总分" width="80"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

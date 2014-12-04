@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-12-23 下午7:00:40  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t.*,
+                    TRUNC((t.total_liabilities * 100 / DECODE(t.total_assets, 0, NULL, t.total_assets)), 2) asset_liability_ratio,
+                    TRUNC((t.current_assets * 100 / DECODE(t.current_liabilities, 0, NULL, t.current_liabilities)), 2) current_ratio,
+                    TRUNC((t.net_profit * 100 * 2 / DECODE((t.total_liabilities +
+                    (SELECT
+                        t1.total_liabilities
+                    FROM
+                        (SELECT
+                            rownum rn,
+                            p.*
+                        FROM
+                            (SELECT
+                                f.*
+                            FROM
+                                pur_register_vendor_finance f
+                            WHERE
+                                f.vendor_id = ${@vendor_id}
+                            ORDER BY
+                                f.year_period DESC
+                            ) p
+                        ) t1
+                    WHERE
+                        t1.rn = t.rn + 1
+                    )), 0, NULL, (t.total_liabilities +
+                    (SELECT
+                        t1.total_liabilities
+                    FROM
+                        (SELECT
+                            rownum rn,
+                            p.*
+                        FROM
+                            (SELECT
+                                f.*
+                            FROM
+                                pur_register_vendor_finance f
+                            WHERE
+                                f.vendor_id = ${@vendor_id}
+                            ORDER BY
+                                f.year_period DESC
+                            ) p
+                        ) t1
+                    WHERE
+                        t1.rn = t.rn + 1
+                    )))), 2) total_asset_earning_ratio,
+                    TRUNC((t.net_profit * 100 * 2 / DECODE(((t.total_assets - t.total_liabilities) +
+                    (SELECT
+                        (t1.total_assets - t1.total_liabilities)
+                    FROM
+                        (SELECT
+                            rownum rn,
+                            p.*
+                        FROM
+                            (SELECT
+                                f.*
+                            FROM
+                                pur_register_vendor_finance f
+                            WHERE
+                                f.vendor_id = ${@vendor_id}
+                            ORDER BY
+                                f.year_period DESC
+                            ) p
+                        ) t1
+                    WHERE
+                        t1.rn = t.rn + 1
+                    )), 0, NULL, ((t.total_assets - t.total_liabilities) +
+                    (SELECT
+                        (t1.total_assets - t1.total_liabilities)
+                    FROM
+                        (SELECT
+                            rownum rn,
+                            p.*
+                        FROM
+                            (SELECT
+                                f.*
+                            FROM
+                                pur_register_vendor_finance f
+                            WHERE
+                                f.vendor_id = ${@vendor_id}
+                            ORDER BY
+                                f.year_period DESC
+                            ) p
+                        ) t1
+                    WHERE
+                        t1.rn = t.rn + 1
+                    )))), 2) net_asset_earning_ratio
+                FROM
+                    (SELECT
+                        rownum rn,
+                        p.*
+                    FROM
+                        (SELECT
+                            f.*
+                        FROM
+                            pur_register_vendor_finance f
+                        WHERE
+                            f.vendor_id = ${@vendor_id}
+                        ORDER BY
+                            f.year_period DESC
+                        ) p
+                    ) t
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

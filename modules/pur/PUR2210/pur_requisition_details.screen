@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tony  
+    $Date: 2013-7-16 上午9:15:01  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="h.pur_requisition_header_id=${/parameter/@pur_requisition_header_id}" model="pur.PUR2210.pur_requisition_hds" rootPath="head_data"/>
+        <s:server-script import="fnd_flex_dynamic_tools.js"/>
+        <s:server-script import="fnd_flex_dynamic_page_main.js"/>
+        <s:server-script import="fnd_flex_dynamic_grid_expanded.js"/>
+    </a:init-procedure>
+    <a:view>
+        <flex-segment dataset="pur2210_req_ln_ds" grid="pur2210_item_gird" headerIdPath="/parameter/@pur_requisition_header_id" headerTableName="PUR_REQUISITION_HDS" pageType="query" templateFieldName="template_id" type="grid_expanded"/>
+        <a:link id="pur2210_show_logs_link" url="${/request/@context_path}/modules/pur/PUR2210/pur_req_operate_log.screen"/>
+        <script><![CDATA[
+            function pur2210_return() {
+                $('pur2210_edit_window').close();
+            }
+            
+            function pur2210_upload(value, record, name) {
+                var pur_requisition_line_id = record.get('pur_requisition_line_id');
+                if (!record.isNew && pur_requisition_line_id) {
+                    return '<a href="javascript:bid5100_upload_file(' + pur_requisition_line_id + ')">下载</a>';
+                }
+            }
+            
+            function bid5100_upload_file(id) {
+                var url = "${/request/@context_path}/modules/public/downloadFile.screen?table_name=PUR_REQUISITION_LNS&header_id=" + id;
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                    id: 'pur2210_upload_window',
+                    width: 850,
+                    height: 500
+                }).on('beforeclose', function() {
+                    $('pur2210_req_ln_ds').query();
+                });
+            }
+            
+            function pur2210_format_number(value, decimalprecision) {
+                if (Ext.isEmpty(value)) return '';
+            
+                value = String(value).replace(/,/g, '');
+                if (isNaN(value)) return '';
+                if (decimalprecision || decimalprecision === 0)
+            
+            
+                var point_value = value.split('.');
+                var in_length = (point_value.length == 2) ? '.' + point_value[1] : '';
+            
+            
+                if (in_length.length - 1 < decimalprecision) {
+            
+                    decimalprecision = in_length.length - 1
+                };
+                if (in_length.length == 0) {
+                    decimalprecision = 0;
+                }
+            
+                value = Number(value).toFixed(decimalprecision);
+            
+                var ps = value.split('.');
+                var sub = (ps.length == 2) ? '.' + ps[1] : '';
+            
+            
+                var whole = ps[0];
+                var r = /(\d+)(\d{3})/;
+                while (r.test(whole)) {
+                    whole = whole.replace(r, '$1' + ',' + '$2');
+                }
+            
+                Math.round()
+                v = whole + sub;
+                return v;
+            }
+            
+            function pur2210_formatNumber_render(value, record, name) {
+                return pur2210_format_number(value, 8);
+            }
+            
+            function pur2210_show_log() {
+                var pur_requisition_header_id = '${/parameter/@pur_requisition_header_id}';
+                var url = $('pur2210_show_logs_link').getUrl() + '?pur_requisition_header_id=' + pur_requisition_header_id;
+                new Aurora.Window({
+                    url: url,
+                    title: '操作记录',
+                    id: 'pur2210_show_log',
+                    fullScreen: true
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="currency_list_ds" fetchAll="true" loadData="true" model="public.currency_list"/>
+            <a:dataSet id="pur2210_pur_ln_type_ds" lookupCode="PUR_REQ_LINE_PURCHASE_TYPE"/>
+            <a:dataSet id="pur2210_req_hd_ds" autoQuery="true" model="pur.PUR2210.pur_requisition_hds" queryUrl="${/request/@context_path}/autocrud/pur.PUR2210.pur_requisition_hds/query?pur_requisition_header_id=${/parameter/@pur_requisition_header_id}">
+                <a:fields>
+                    <a:field name="note" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur2210_req_ln_ds" autoCount="true" autoQuery="true" fetchAll="true" model="pur.PUR2210.pur_requisition_lns" queryUrl="${/request/@context_path}/autocrud/pur.PUR2210.pur_requisition_lns/query?pur_requisition_header_id=${/parameter/@pur_requisition_header_id}"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur2210_show_log" text="操作记录" width="100"/>
+                <a:gridButton bind="pur2210_item_gird" type="excel" width="100"/>
+                <a:toolbarButton click="pur2210_return" text="返回" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="pur_requisition_num" bindTarget="pur2210_req_hd_ds" prompt="采购申请单号" readOnly="true" width="250"/>
+                <a:label name="company_desc" bindTarget="pur2210_req_hd_ds" prompt="公司" readOnly="true" width="250"/>
+                <a:label name="unit_desc" bindTarget="pur2210_req_hd_ds" prompt="需求部门" readOnly="true" width="250"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="pur_requisition_type_desc" bindTarget="pur2210_req_hd_ds" prompt="申请类型" readOnly="true" width="250"/>
+                <a:label name="template_desc" bindTarget="pur2210_req_hd_ds" prompt="模板" readOnly="true" width="250"/>
+                <a:label name="currency_desc" bindTarget="pur2210_req_hd_ds" prompt="币种" readOnly="true" width="250"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="requisition_date" bindTarget="pur2210_req_hd_ds" prompt="申请日期" readOnly="true" width="250"/>
+                <a:label name="requisition_person" bindTarget="pur2210_req_hd_ds" prompt="申请人" readOnly="true" width="250"/>
+                <a:label name="requisition_status_desc" bindTarget="pur2210_req_hd_ds" prompt="申请状态" readOnly="true" width="250"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="requisition_functional_amount" bindTarget="pur2210_req_hd_ds" prompt="本币金额" readOnly="true" renderer="Aurora.formatMoney" width="250"/>
+                <a:label name="demand_pool_finished_desc" bindTarget="pur2210_req_hd_ds" prompt="寻源状态" readOnly="true" width="250"/>
+            </a:hBox>
+            <!-- <a:hBox labelWidth="150" padding="0">
+                <a:textArea name="note" bindTarget="pur2210_req_hd_ds" height="60" marginWidth="500" prompt="备注"/>
+            </a:hBox> -->
+            <a:hBox labelWidth="150" padding="0">
+                <a:label prompt="公告摘要" width="0"/>
+                <div style="width:900px;"><![CDATA[
+                    ${/model/head_data/record/@note}
+                    ]]></div>
+            </a:hBox>
+            <a:grid id="pur2210_item_gird" bindTarget="pur2210_req_ln_ds" height="350" marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="line_number" align="center" prompt="行号" width="40"/>
+                    <a:column name="demand_pool_finished_desc" align="center" prompt="寻源状态" width="60"/>
+                    <a:column name="pur_ln_type_desc" align="center" prompt="采购类型" width="80"/>
+                    <a:column name="need_by_date" align="center" prompt="需求日期" renderer="Aurora.formatDate" width="80"/>
+                    <a:column name="item_category_desc" align="left" prompt="物料分类" width="80"/>
+                    <a:column name="item_code" align="center" prompt="物料编码" width="60"/>
+                    <a:column name="item_desc" align="left" prompt="物料描述" width="150"/>
+                    <a:column name="item_note" align="left" prompt="物料说明" width="150"/>
+                    <a:column name="parameter_config" align="left" prompt="参数配置" width="150"/>
+                    <a:column name="inv_org_desc" align="left" prompt="收货组织" width="80"/>
+                    <a:column name="suggested_vendor_desc" align="left" prompt="建议供应商" width="120"/>
+                    <a:column name="primary_quantity" align="right" prompt="数量" width="80"/>
+                    <a:column name="uom_desc" align="left" prompt="单位" width="50"/>
+                    <a:column name="currency_code_desc" align="center" prompt="币种" width="60"/>
+                    <a:column name="entered_price" align="right" prompt="建议单价" renderer="pur2210_formatNumber_render" width="100"/>
+                    <a:column name="exchange_rate" align="right" prompt="汇率" width="50"/>
+                    <a:column name="quotation_tax_flag" align="left" prompt="含税" width="40"/>
+                    <a:column name="tax_code" align="left" prompt="税率代码" width="50"/>
+                    <a:column name="tax_rate" align="right" prompt="税率（%）" width="50"/>
+                    <a:column name="net_amount" align="right" prompt="税前金额" renderer="Aurora.formatMoney" width="100"/>
+                    <a:column name="tax_amount" align="right" prompt="税额" renderer="Aurora.formatMoney" width="100"/>
+                    <a:column name="entered_amount" align="right" prompt="总金额" renderer="Aurora.formatMoney" width="100"/>
+                    <a:column name="functional_amount" align="right" prompt="本币金额" renderer="Aurora.formatMoney" width="100"/>
+                    <a:column name="note" align="left" prompt="备注" width="150"/>
+                    <a:column name="atm_file" align="left" prompt="附件名" width="150"/>
+                    <a:column align="center" prompt="附件下载" renderer="pur2210_upload" width="80"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

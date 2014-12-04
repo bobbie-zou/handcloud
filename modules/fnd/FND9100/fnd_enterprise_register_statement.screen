@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua  
+    $Date: 2013-8-15 下午6:24:37  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="fnd.FND9100.fnd_company_registed_query" rootPath="company_data"/>
+    </a:init-procedure>
+    <a:view template="default">
+        <a:link id="fnd_enterprise_register_choose_link" url="${/request/@context_path}/modules/fnd/FND9100/fnd_enterprise_register_choose.screen"/>
+        <a:link id="fnd_enterprise_register_read_statement_link" model="fnd.FND9100.fnd_company_registed" modelaction="update"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/boostrapv3/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/boostrapv3/css/bootstrap-theme.min.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/font-awesome/css/font-awesome.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/style.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/main.css" rel="stylesheet" type="text/css"/>
+        <script><![CDATA[
+            
+            //dataset加载
+            
+            function fnd_enterprise_register_load_handler(ds) {
+                var record = ds.getCurrentRecord();
+                if (!Aurora.isEmpty(record)) {
+                    if (record.get('statement_read_flag') == 'Y') {
+                        $('pur_confirm_bt').enable();
+                    } else if (record.get('statement_read_flag') == 'N') {
+                        $('pur_confirm_bt').disable();
+                    }
+                }
+            
+            }
+            
+            function fnd_enterprise_read_flag_handler(checkbox, newValue, oldValue) {
+                var record = $('fnd_enterprise_ds').getCurrentRecord();
+                if (record.get('statement_read_flag') == 'Y') {
+                    $('pur_confirm_bt').enable();
+                } else if (record.get('statement_read_flag') == 'N') {
+                    $('pur_confirm_bt').disable();
+                }
+            }
+            
+            //下一步
+            
+            function pur_vendor_register_next() {
+                var ds = $('fnd_enterprise_ds');
+                var record = ds.getCurrentRecord();
+                Aurora.request({
+                    url: $('fnd_enterprise_register_read_statement_link').getUrl(),
+                    para: record.data,
+                    success: function(res) {
+                        var param = {};
+                        param['company_registed_id'] = '${/parameter/@company_registed_id}';
+                        Aurora.post($('fnd_enterprise_register_choose_link').getUrl(), param);
+                    },
+                    scope: this
+                });
+            }
+            
+            //自动查询处理
+            
+           Aurora.onReady(function() {
+                var company_registed_id= '${/model/company_data/record/@company_registed_id}';
+                if (Ext.isEmpty(company_registed_id)) {
+                    var win = Aurora.showMessage('${l:PROMPT.ERROR}', '${l:PUR5610.ILLEGAL_VISIT_GO_TO_INDEX}', function() {
+                        window.location.href = '${/request/@context_path}';
+                    });
+                    setTimeout(function() {
+                        win.close();
+                        window.location.href = '${/request/@context_path}';
+                    }, 3000);
+                }
+                if (company_registed_id) {
+                    Aurora.request({
+                        url: '${/request/@context_path}/autocrud/fnd.FND9100.fnd_company_registed/execute',
+                        para: {
+                            company_registed_id:company_registed_id
+                        },
+                        success: function(res) {
+                            var visit_feedback = res.result.visit_feedback;
+                            if (visit_feedback == 'SUCCESS') {
+                                return '';
+                            } else if (visit_feedback == 'ERROR') {
+                                var win = Aurora.showMessage('${l:PROMPT.ERROR}', '${l:PUR5610.ILLEGAL_VISIT_GO_TO_INDEX}', function() {
+                                    window.location.href = '${/request/@context_path}';
+                                });
+                                setTimeout(function() {
+                                    win.close();
+                                    window.location.href = '${/request/@context_path}';
+                                }, 3000);
+                            }
+                        },
+                        scope: this
+                    });
+                }
+            });
+            
+            //上一步
+            
+            function fnd_enterprise_register_reject() {
+                window.location.href = '${/request/@context_path}';
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd_enterprise_ds" model="fnd.FND9100.fnd_company_registed">
+                <a:datas dataSource="/model/company_data"/>
+                <a:fields>
+                    <a:field name="company_registed_id"/>
+                    <a:field name="statement_read_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd_enterprise_read_flag_handler"/>
+                    <a:event name="load" handler="fnd_enterprise_register_load_handler"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <div class="login-header">
+            <ul class="main-menu">
+                <div class="container">
+                    <div id="logo">
+                        <a href="${/request/@context_path}/" style="cursor:hand">
+                            <img src="${/request/@context_path}/index/images/HandIcon.png" style="height: 50px;"/>
+                        </a>
+                    </div>
+                </div>
+            </ul>
+        </div>
+        <div class="container">
+            <div class="row login-row-tp">
+                <center>
+                    <ul id="progress-bar">
+                        <li>
+                            <div class="step finished"><![CDATA[1]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.EMAIL}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step active"><![CDATA[2]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.READ_REG_INSTRUCTIONS}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step unfinished"><![CDATA[3]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.CHOOSE}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step unfinished"><![CDATA[4]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.ENTERPRISE_INPUT}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step unfinished"><![CDATA[5]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.LEGAL_REPRESENTATIVE}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step unfinished"><![CDATA[6]]></div>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.PENDING_APPROVAL}]]></div>
+                        </li>
+                    </ul>
+                </center>
+            </div>
+            <div class="row terms">
+                <h3><![CDATA[SRM云服务条款及声明]]></h3>
+                <p><![CDATA[1、SRM云服务内容]]></p>
+                <p><![CDATA[SRM云，为了大型企业通过简单的平台注册即将本企业内的多套系统数据进行汇总及平台性的统一管理，同时优化与供应商的关系、交易。除此之外，通过平台进行交易数据的抓取、分析，作为供应商数据及权限的屏蔽‘墙’，实现企业与供应商间关系的增值飞跃。]]></p>
+                <p><![CDATA[2、条款生效]]></p>
+                <p><![CDATA[以任何方式进入SRM云网站即表示您自愿同意并且已经与上海汉得信息技术股份有限公司订立本协议，您已经知悉本协议的各项条款和/或条件，且您承诺您有权订立和履行本协议，自订立本协议之日起本协议即生效，本协议即成为对您构成合法、有效、有约束力及可执行的协议，您自愿接受本协议的条款和/或条件(以下简称“条款”)的约束。上海汉得信息技术股份有限公司可随时自行全权决定更改“条款”，您应在第一次登录后仔细阅读修订后的“条款”，并有权选择停止或继续使用“服务”；一旦您继续使用“服务”，则表示您已接受经修订的“条款”，当您与上海汉得信息技术股份有限公司发生争议时，应以最新的服务协议为准。除另行明确声明外，任何使“服务”范围扩大或功能增强的新内容均受本协议约束。除非经上海汉得信息技术股份有限公司的授权高层管理人员签订书面协议，本协议不得另行作出修订。]]></p>
+                <p><![CDATA[3、SRM云的客户主体资格]]></p>
+                <p><![CDATA[SRM云的“服务”仅供依法注册成立且在公司登记机关登记的具备法人资格的独立企业法人使用，并且该企业必须依法注册为本网站的会员。如不符合本项条件，请勿使用“服务”。上海汉得信息技术股份有限公司可随时自行全权决定拒绝向任何人士提供“服务”。“服务”不会提供给被暂时或永久中止资格的SRM云会员。]]></p>
+                <p><![CDATA[4、注册义务]]></p>
+                <p><![CDATA[如您在SRM云网站注册，您同意：(a) 根据会员注册页面所刊载的会员资料表格的要求，提供关于贵公司的真实、准确、完整和反映当前情况的资料（包括但不限于企业营业执照、组织机构代码证及税务登记证等文件）；(b) 维持并及时更新会员资料，使其保持真实、准确、完整和反映当前情况。倘若您提供任何不真实、不准确、不完整或不能反映当前情况的资料，或上海汉得信息技术股份有限公司有合理理由怀疑该等资料不真实、不准确、不完整或不能反映当前情况，上海汉得信息技术股份有限公司有权暂停或终止您的注册身份及资料，并拒绝您在目前或将来对“服务”（或其任何部分）以任何形式使用。如您代表一家公司或其他法律主体在本公司登记，则您声明和保证，您有权使该公司或其他法律主体受本协议“条款”约束。]]></p>
+                <p><![CDATA[5、会员注册名、密码]]></p>
+                <p><![CDATA[在登记过程中，平台将以系统邮件形式向您提供会员注册名和密码。您须自行负责对您的会员注册名和密码保密，且须对您在会员注册名和密码下发生的所有活动承担责任。您同意：(a) 如发现任何人未经授权使用您的会员注册名或密码，或发生违反保密规定的任何其他情况，您会立即通知上海汉得信息技术股份有限公司；及 (b) 确保您在每个上网时段结束时，以正确步骤离开网站。上海汉得信息技术股份有限公司不能也不会对因您未能遵守本款规定而发生的任何损失或损毁负责。]]></p>
+                <p><![CDATA[6、收费]]></p>
+                <p><![CDATA[本公司保留在根据第1条通知您后，收取“服务”费用的权利。您因进行交易、向本公司获取有偿服务或接触本公司服务器而发生的所有应纳税赋，以及相关硬件、软件、通讯、网络服务及其他方面的费用均由您自行承担。本公司保留在无须发出书面通知，仅在SRM云网站公示的情况下，暂时或永久地更改或停止部分或全部“服务”的权利。]]></p>
+                <p><![CDATA[7、SRM云仅为提供SRM云服务的平台]]></p>
+                <p><![CDATA[本公司网站仅作为SRM云服务的平台。但是，本公司不能保证您提供各项信息的真实性、准确性、完整性；亦不能控制您信息的安全或合法性以及其他各方登陆本网站履行相关义务的能力。本公司不能也不会控制相关方能否履行协议义务。此外，您应注意到由于硬盘损毁、网络黑客等技术原因导致您上传至本网站的信息损毁的风险是客观存在的。]]></p>
+                <p><![CDATA[8、您的资料]]></p>
+                <p><![CDATA[“您的资料”包括您在注册、上传过程中、在任何公开信息场合或通过任何电子邮件形式，向本公司或其他用户提供的任何资料，包括数据、文本、软件、音乐、声响、照片、图画、影像、词句或其他材料。您应对“您的资料”负全部责任，而本公司仅作为您在网上发布和刊登“您的资料”的被动渠道。但是，倘若本公司认为“您的资料”可能使本公司承担任何法律或道义上的责任，或可能使本公司（全部或部分地）失去本公司的互联网服务供应商或其他供应商的服务，或您未在SRM云规定的期限内登录或再次登录网站，则本公司可自行全权决定对“您的资料”采取本公司认为必要或适当的任何行动，包括但不限于删除该类资料。您应保证提交SRM云的素材、对SRM云“服务”的使用及使用SRM云“服务”所产生的成果未侵犯任何第三方的合法权益。如有第三方基于侵犯版权、侵犯第三人之权益或违反中国法律法规或其他适用的法律等原因而向上海汉得信息技术股份有限公司提起索赔、诉讼或可能向其提起诉讼，则您应赔偿上海汉得信息技术股份有限公司因此承担的费用或损失，并使上海汉得信息技术股份有限公司完全免责。如果第三方机构或个人对您使用SRM云“服务”及其相关素材的知识产权归属提出质疑或投诉，您有责任出具相关知识产权证明材料，并配合上海汉得信息技术股份有限公司相关投诉处理工作。您特此保证，您对提交给SRM云的“您的资料”拥有全部权利，包括全部版权。您确认，SRM云没有责任去认定或决定您提交给本公司的资料哪些是应当受到保护的，对享有“服务”的其他用户使用“您的资料”，本公司也不必负责。]]></p>
+                <p><![CDATA[您同意，“您的资料”：a. 不会有欺诈成份，与售卖伪造或盗窃无涉；b. 不会侵犯任何第三方对该资料享有的物权，或版权、专利、商标、商业秘密或其他知识产权，或隐私权、名誉权；c. 不会违反任何法律、法规、条例或规章（包括但不限于关于规范出口管理、贸易配额、保护消费者、不正当竞争或虚假广告的法律、法规、条例或规章）；d. 不会含有诽谤（包括商业诽谤）、非法恐吓或非法骚扰的内容；e. 不会含有淫秽、或包含任何儿童色情内容；f. 不会含有蓄意毁坏、恶意干扰、秘密地截取或侵占任何系统、数据或个人资料的任何病毒、伪装破坏程序、电脑蠕虫、定时程序炸弹或其他电脑程序；g. 不会直接或间接与下述各项货物或服务连接，或包含对下述各项货物或服务的描述：(i) 本协议项下禁止的货物或服务；或 (ii) 您无权连接或包含的货物或服务。]]></p>
+                <p><![CDATA[此外，您同意不会：在与任何连锁信件、大量胡乱邮寄的电子邮件、滥发电子邮件或任何复制或多余的信息有关的方面使用“服务”；(i) 未经其他人士同意，利用“服务”收集其他人士的电子邮件地址及其他资料；或利用“服务”制作虚假的电子邮件地址，或以其他形式试图在发送人的身份或信息的来源方面误导其他人士。除SRM云明示许可外，不得修改、翻译、改编、出租、转许可、在信息网络上传播或转让SRM云提供的软件，也不得逆向工程、反编译或试图以其他方式发现SRM云提供的软件的源代码。若的“服务”涉及第三方软件之许可使用的，您同意遵守相关的许可协议的约束。除SRM云明示同意外，不将所购买的“服务”或其中的部分如磁盘空间等再次出售或出租；不建立或利用有关设备、配置运行与所购“服务”无关的程序或进程，导致大量占用SRM云云计算资源（如云服务器、网络带宽、存储空间等）所组成的平台（以下简称“云平台”）中服务器内存、CPU或者网络带宽资源，给SRM云或者SRM云的其他用户的网络、服务器（包括但不限于本地及外地和国际的网络、服务器等）、产品/应用等带来严重的负荷，影响SRM云与国际互联网或者SRM云与特定网络、服务器及SRM云内部的通畅联系，或者导致SRM云平台产品与服务或者SRM云的其他用户网站所在的服务器宕机、死机或者用户基于云平台的产品/应用不可访问等；不进行任何破坏或试图破坏网络安全的行为（包括但不限于钓鱼，黑客，网络诈骗，网站或空间中含有或涉嫌散播：病毒、木马、恶意代码，及通过虚拟主机对其他网站、主机进行涉嫌攻击行为如扫描、嗅探、ARP欺骗、DOS等）；不进行任何改变或试图改变SRM云提供的系统配置或破坏系统安全的行为；不从事其他违法、违约或违反SRM云规则的行为。如SRM云发现您违反上述条款的约定，有权根据情况采取相应的处理措施，包括但不限于立即终止服务、中止服务或删除相应信息等。您对自己行为（如自行安装的软件和进行的操作）所引起的结果承担全部责任。您对自己存放在SRM云平台上的数据以及进入和管理SRM云平台上各类产品与服务的口令、密码的完整性和保密性负责。因您维护不当或保密不当致使上述数据、口令、密码等丢失或泄漏所引起的一切损失和后果均由您自行承担。您了解SRM云无法保证其所提供的服务毫无瑕疵（如SRM云安全产品并不能保证您的硬件或软件的绝对安全），但SRM云承诺不断提升服务质量及服务水平。所以您同意：即使SRM云提供的服务存在瑕疵，但上述瑕疵是当时行业技术水平所无法避免的，其将不被视为SRM云违约。您同意和SRM云一同合作解决上述瑕疵问题。您对自己存放在SRM云平台上的数据以及进入和管理SRM云平台上各类产品与服务的口令、密码的完整性和保密性负责。因您维护不当或保密不当致使上述数据、口令、密码等丢失或泄漏所引起的一切损失和后果均由您自行承担。]]></p>
+                <p><![CDATA[9、您授予本公司的许可使用权]]></p>
+                <p><![CDATA[您授予本公司独家的、全球通用的、永久的、免费的许可使用权利（并有权在多个层面对该权利进行再授权），使本公司有权（全部或部分）地使用、复制、修订、改写、发布、翻译、分发、执行和展示“您的资料”或制作其派生作品，和/或以现在已知或日后开发的任何形式、媒体或技术，将“您的资料”纳入其他作品内。]]></p>
+                <p><![CDATA[10、隐私]]></p>
+                <p><![CDATA[保护用户隐私是SRM云的原则。SRM云保证不对外公开或向第三方提供用户注册的企业的资料，及用户在使用服务时存储的非公开内容，但下列情况除外：事先获得用户的明确授权；按照相关司法机构或政府主管部门的要求。请注意，您一旦自愿地在SRM云交易地点披露“您的资料”，该等资料即可能被其他人士获取和使用。]]></p>
+                <p><![CDATA[11、保密]]></p>
+                <p><![CDATA[保密资料指由一方向另一方披露的所有技术及非技术信息（包括但不限于产品资料，产品计划，价格，财务及营销规划，业务战略，客户信息，客户数据，研发，软件硬件，API应用数据接口，技术说明，设计，特殊公式，特殊算法等）。]]></p>
+                <p><![CDATA[本协议任何一方同意对获悉的对方之上述保密资料予以保密，并严格限制接触上述保密信息的员工遵守本条之保密义务。除非国家机关依法强制要求或上述保密资料已经进入公有领域外，接受保密资料的一方不得对外披露。]]></p>
+                <p><![CDATA[本协议双方明确认可各自用户信息和业务数据等是各自的重要资产及重点保密信息。本协议双方同意尽最大的努力保护上述保密信息等不被披露。一旦发现有上述保密信息泄露事件，双方应合作采取一切合理措施避免或者减轻损害后果的产生。]]></p>
+                <p><![CDATA[本条款不因本协议的终止而失效。]]></p>
+                <p><![CDATA[12、终止或访问限制]]></p>
+                <p><![CDATA[您同意，在SRM云未向您收费的情况下，SRM云可自行全权决定以任何理由（包括但不限于SRM云认为您已违反本协议的字面意义和精神，或您以不符合本协议的字面意义和精神的方式行事，或未经SRM云同意，将SRM云用于其他商业目的，或您在超过90天的时间内未以您的账号及密码登录网站）单方面中断或终止向您提供“服务”而无需通知您，即终止您的“服务”密码、账户（或其任何部分）或您对“服务”的使用，并删除和丢弃您在使用“服务”中提交的“您的资料”。您同意，在SRM云向您收费的情况下，SRM云应基于合理的怀疑且经电子邮件通知的情况下实施上述终止服务的行为。SRM云同时可自行全权决定，在发出通知或不发出通知的情况下，随时停止提供“服务”或其任何部分。您同意，根据本协议的任何规定终止您使用“服务”之措施可在不发出事先通知的情况下实施，并承认和同意，SRM云可立即使您的账户无效，或撤销您的账户以及在您的账户内的所有相关资料和档案，和/或禁止您进一步接入该等档案或“服务”。账号终止后，SRM云没有义务为您保留原账号中或与之相关的任何信息，或转发任何未曾阅读或发送的信息给您或第三方。此外，您同意，SRM云不会就终止您接入“服务”而对您或任何第三者承担任何责任。第11、14、15、16和22各条应在本协议终止后继续有效。]]></p>
+                <p><![CDATA[如因系统维护或升级的需要而需暂停网络服务、服务功能的调整，SRM云将尽可能事先在网站上进行通告。]]></p>
+                <p><![CDATA[13、违反条款的后果]]></p>
+                <p><![CDATA[在不限制其他补救措施的前提下，发生下述任一情况，本公司可立即发出警告，暂时中止、永久中止或终止您的会员资格，删除您的任何现有信息，以及您在网站上展示的任何其他资料：(i) 您违反本协议；(ii) 本公司无法核实或鉴定您向本公司提供的任何资料；或 (iii) 本公司相信您的行为可能会使您、本公司用户或通过本公司或本公司网站提供服务的第三方服务供应商发生任何法律责任。在不限制任何其他补救措施的前提下，倘若发现您从事涉及本公司网站的诈骗活动，SRM云可暂停或终止您的账户。]]></p>
+                <p><![CDATA[14、服务“按现状”提供]]></p>
+                <p><![CDATA[本公司不能随时预见到任何技术上的问题或其他困难。该等困难可能会导致数据损失或其他服务中断。为此，您明确理解和同意，您使用“服务”的风险由您自行承担。SRM云明确声明不作出任何种类的所有明示或暗示的保证，包括但不限于关于安全性、适用于某一特定用途和无侵权行为等方面的保证。SRM云对下述内容不作保证：(i)“服务”会符合您的要求；(ii)“服务”不会中断，且适时、安全和不带任何错误；(iii) 通过使用“服务”而可能获取的结果将是准确或可信赖的；及 (iv) 您通过“服务”而获取的任何其他服务、资料或其他材料将符合您的预期。通过使用“服务”而下载或以其他形式获取任何材料是由您自行全权决定进行的，且与此有关的风险由您自行承担，对于因您下载任何该等材料而发生的您的电脑系统的任何损毁或任何数据损失，您将自行承担责任。您从SRM云或通过或从“服务”获取的任何口头或书面意见或资料，均不产生未在本协议内明确载明的任何保证。]]></p>
+                <p><![CDATA[本协议任何一方违约均须依法承担违约责任。]]></p>
+                <p><![CDATA[您理解，鉴于计算机、互联网的特殊性，下述情况不属于SRM云违约：SRM云在进行服务器配置、维护时，需要短时间中断服务；由于Internet上的通路阻塞造成您网站访问速度下降。如果因SRM云原因造成您不能正常使用SRM云“服务”的，SRM云以小时为单位向您赔偿损失，即连续达1小时不能正常提供服务的，延长一小时的服务期（以此类推）。如果因SRM云原因造成您连续72小时不能正常使用服务的，您可以终止接受服务并可以要求赔偿损失，但非SRM云控制之内的原因引起的除外。在任何情况下，SRM云均不对任何间接性、后果性、惩罚性、偶然性、特殊性的损害，包括您使用SRM云“服务”而遭受的利润损失承担责任（即使您已被告知该等损失的可能性）。在任何情况下，SRM云对本协议所承担的违约赔偿责任总额不超过向您收取的违约所涉服务之年服务费总额的25%。]]></p>
+                <p><![CDATA[15、责任范围]]></p>
+                <p><![CDATA[您明确理解和同意，SRM云不对因下述任一情况而发生的任何损害赔偿承担责任，包括但不限于利润、商誉、使用、数据等方面的损失或其他无形损失的损害赔偿 (无论SRM云是否已被告知该等损害赔偿的可能性)：(i) 使用或未能使用“服务”；(ii) 因通过或从“服务”购买或获取任何货物、样品、数据、资料或服务，或通过或从“服务”接收任何信息或缔结任何交易所产生的获取替代货物和服务的费用；(iii) 未经批准接入或更改您的传输资料或数据；(iv) 任何第三者对“服务”的声明或关于“服务”的行为；或 (v) 因任何原因而引起的与“服务”有关的任何其他事宜，包括疏忽。]]></p>
+                <p><![CDATA[16、赔偿]]></p>
+                <p><![CDATA[您同意，因您违反本协议或经在此提及而纳入本协议的其他文件，或因您违反了法律或侵害了第三方的权利，而使第三方对上海汉得信息技术股份有限公司及其子公司、分公司、董事、职员、代理人提出索赔要求（包括司法费用和其他专业人士的费用），您必须赔偿给上海汉得信息技术股份有限公司及其分公司、董事、职员、代理人，使其等免遭损失。]]></p>
+                <p><![CDATA[另外，您需保证：您在本协议履行期间应遵守全部中国法律、法规和规章；如果SRM云因您的任何触犯中国法律法规的行为而承受任何损失或损害，您应该采取所有行动使上海汉得信息技术股份有限公司免于承担责任，并对由此产生的全部损失和损害对用户承担赔偿责任。]]></p>
+                <p><![CDATA[17、遵守法律]]></p>
+                <p><![CDATA[您应遵守与您使用“服务”以及提供相关信息有关的所有相关的法律、法规、条例和规章。]]></p>
+                <p><![CDATA[18、广告和金融服务]]></p>
+                <p><![CDATA[您如打算通过“服务”创设或参与与任何公司、股票行情、投资或证券有关的任何服务；或通过“服务”收取或要求与任何公司、股票行情、投资或证券有关的任何新闻信息、警戒性信息或其他资料；或通过“服务”与金融机构进行合作；您需与相关的第三方自行商洽并签订相关协议。敬请注意，SRM云不会就通过“服务”传送的任何该等资料的准确性、有用性或可用性、可获利性负责或承担任何责任，且不会对根据该等资料而作出的任何交易或投资决策负责或承担任何责任。]]></p>
+                <p><![CDATA[19、链接]]></p>
+                <p><![CDATA[“服务”或第三方均可提供与其他万维网网站或资源的链接。由于SRM云并不控制该等网站和资源，您承认并同意，SRM云并不对该等外在网站或资源的可用性负责，且不认可该等网站或资源上或可从该等网站或资源获取的任何内容、宣传、产品、服务或其他材料，也不对其等负责或承担任何责任。您进一步承认和同意，对于任何因使用或信赖从此类网站或资源上获取的此类内容、宣传、产品、服务或其他材料而造成（或声称造成）的任何直接或间接损失，SRM云均不承担责任。]]></p>
+                <p><![CDATA[20、通知]]></p>
+                <p><![CDATA[除非另有明确规定，任何通知应以电子邮件形式发送，（就SRM云而言）电子邮件地址为sales@vhand-china.com，（就您而言）发送到您在登记过程中向SRM云提供的电子邮件地址，或有关方指明的该等其他地址。在电子邮件发出二十四（24）小时后，通知应被视为已送达，除非发送人被告知相关电子邮件地址已作废。或者，本公司可通过邮资预付挂号邮件并要求回执的方式，将通知发到您在登记过程中向SRM云提供的地址。在该情况下，在付邮当日三（3）天后通知被视为已送达。]]></p>
+                <p><![CDATA[21、不可抗力]]></p>
+                <p><![CDATA[对于因本公司合理控制范围以外的原因，包括但不限于自然灾害、罢工或骚乱、物质短缺或定量配给、暴动、战争行为、政府行为、通讯或其他设施故障或严重伤亡事故等，致使本公司延迟或未能履约的，SRM云不对您承担任何责任。]]></p>
+                <p><![CDATA[22、其他规定]]></p>
+                <p><![CDATA[本协议取代您和SRM云先前就相同事项订立的任何书面或口头协议。本协议各方面应受中华人民共和国大陆地区法律的管辖。倘若本协议任何规定被裁定为无效或不可强制执行，该项规定应被撤销，而其余规定应予执行。条款标题仅为方便参阅而设，并不以任何方式界定、限制、解释或描述该条款的范围或限度。本公司未就您或其他人士的某项违约行为采取行动，并不表明本公司撤回就任何继后或类似的违约事件采取行动的权利。]]></p>
+                <p><![CDATA[23、诉讼]]></p>
+                <p><![CDATA[因本协议或本公司服务所引起或与其有关的任何争议应向上海市浦东新区人民法院提起诉讼，并以中华人民共和国法律为管辖法律。]]></p>
+                <p><![CDATA[24、其他声明]]></p>
+                <p><![CDATA[（1）本网站包含之所有内容：文本、图形、LOGO、创意及软件等之所有权归属SRM云及本网站的内容/信息提供者，受中国及国际版权法的保护。对本网站上所有内容之复制（包括收集、组合和重新组合），本网站享有排他权并受中国及国际版权法的保护。在本网站上的内容和软件可以用作信息获取网上交易及网上拍卖的信息资源，对本网站该等内容的任何其他使用，包括再造、修改、发布、转发、再版、演示或播出被严格禁止。]]></p>
+                <p><![CDATA[（2）SRM云及其他SRM云的图形、图片、图表、声音、创意、LOGO和服务名称、标识均受相关法律保护，该商标、专有名称、标识等不能在任何非属SRM云的产品或服务上进行容易在客户中引起混淆或引起歧义的使用，或以任何曲解或诋毁SRM云之形式使用。]]></p>
+                <p><![CDATA[（3）SRM云及其任何组成部分不得被再造、复制、抄袭、交易，或为任何未经SRM云允许的商业目的所使用。如果SRM云确定客户行为违法或有损其网站和企业的利益，则SRM云和其关联企业将保留，包括但不限于拒绝提供服务、冻结会员专有账户、和/或取消订单的权利。]]></p>
+                <p><![CDATA[（4）SRM云允许访问客户进行注册并在SRM云上使用各项服务。若您的注册信息不真实，我们将随时删除相关信息或无限时中止您的各项服务，而不必事先取得您的同意，亦无义务事后通知到您。]]></p>
+                <p><![CDATA[（5）SRM云上的链接服务可以直接进入其他站点，这些链接的站点不受SRM云的控制，SRM云对任何与本站链接网站的内容不负责任。]]></p>
+                <p><![CDATA[（6）SRM云和他的关联企业尊重他人之知识产权。如果您确认您的作品以某种方式被抄袭，该行为触犯了中国及国际版权法，请向SRM云做版权投诉。]]></p>
+                <p><![CDATA[（7）SRM云对本网站上所有内容包括但不限于网站运营或本网站上的信息、内容、材料或产品，不提供明示或暗示的担保。由所适用法律许可，SRM云否认所有明示或暗示的担保，包括但不限于为特定目的做的商务暗示担保。SRM云对任何损失或任何由于使用或不能使用本网站而引起的损失，包括但不限于直接的，间接的，偶然的、惩罚性的和引发的损失，不承担责任。]]></p>
+                <p><![CDATA[（8）下面的条款和前面所述的条款均适用于本网站上的论坛，讨论组，聊天组，公告板和任何在网站上发生有相互影响作用区域的行为。网上用户使用、进入或参与上述区域或网站上的任何其他具有相互影响作用区域，则表示同意所有这些条款。本网站不能也没有甄别所有网站用户提供的内容。但本网站保留对本网站上内容的监控权，并对本网站认为具有危害性，引起争议性的或违反本操作规则的其他内容进行删除的权利。为了提供满足本网站用户需求的高价值信息的服务，并避免本网站用户遭受因对他人权利的不实、恶意攻击或其他有害陈述而引起的损失，本网站有必要建立下列操作规则以避免本网站之被滥用：]]></p>
+                <p><![CDATA[当您使用本网站服务时，您不可以：]]></p>
+                <p><![CDATA[1）粘贴或传播任何非法的，具有威胁性的，诽谤性的，贬损的，报复的、亵渎的或任何其他法律禁止的信息，包括但不限于传播任何煽动性鼓励犯罪的，或违反公民义务或任何其他违反地方法规、国家法律、法规或国际法律、惯例或公约的内容；]]></p>
+                <p><![CDATA[2）粘贴或传播任何散布任何他人的私人事件，粘贴或传播带有病毒，或任何带有贬损或损害性特征的内容；]]></p>
+                <p><![CDATA[3）粘贴或传播任何可能侵害其他人财`产权利的数据、图形或程序，包括以非法形式使用未经注册的版权文本、图形或程序，商业秘密及其他保密信息、商标、服务标识等；]]></p>
+                <p><![CDATA[4）以任何形式干扰本网站的其他用户。]]></p>
+                <p><![CDATA[（9）SRM云由上海汉得信息技术股份有限公司运营和控制，适用中华人民共和国法律。我们保留随时更改我们的网站和上述免责及条款的权利。]]></p>
+            </div>
+            <div class="row content-bottom">
+                <center>
+                    <a:hBox labelWidth="200">
+                        <a:checkBox name="statement_read_flag" bindTarget="fnd_enterprise_ds" label="PUR5610_VENDOR_REG.AGREE" width="200">
+                            <a:events>
+                                <a:event name="change" handler="fnd_enterprise_read_flag_handler"/>
+                            </a:events>
+                        </a:checkBox>
+                        <a:button id="pur_confirm_bt" className="item-btn-default" click="pur_vendor_register_next" disabled="true" text="PUR5150.AGREE" width="60"/>
+                        <a:button className="item-btn-default" click="fnd_enterprise_register_reject" text="PROMPT.REJECT" width="60"/>
+                    </a:hBox>
+                </center>
+            </div>
+        </div>
+        <div class="register-bottom text-center">
+            <p><![CDATA[${l:HAND_COMPANY_SITE_INFO} ${l:HAND_COMPANY_CONTACT_INFO} ${l:HAND_COMPANY_ICP_INFO} Copyright Hand China Co.,Ltd.]]></p>
+        </div>
+    </a:view>
+</a:screen>

@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-1-16 下午02:52:41  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <script><![CDATA[
+        //验证库位表字段的有效性
+            
+            function fnd3020_locationValidator(record, name, value) {
+                if (name == 'location_code') {
+                    //验证库位代码的长度不能超过30
+                    if (fnd3020_getLength(value) >= 30) {
+                        return '${l:FND3020.LOCATION_CODE_OVERLENGTH}';
+                    }
+                } else if (name == 'location_name') {
+                    //验证库位名称的长度不能超过1000
+                    if (fnd3020_getLength(value) >= 1000) {
+                        return '${l:FND3020.LOCATION_NAME_OVERLENGTH}';
+                    }
+                }
+                return true;
+            }
+            
+            //返回字符串真实长度
+            
+            function fnd3020_getLength(str) {
+                var realLength = 0,
+                    len = 0,
+                    charCode = -1;
+                if (!Aurora.isEmpty(str)) {
+                    len = str.length;
+                }
+                for (var i = 0;i < len;i++) {
+                    charCode = str.charCodeAt(i);
+                    if (charCode >= 0 && charCode <= 128) {
+                        realLength += 1;
+                    } else {
+                        realLength += 3;
+                    }
+                }
+                return realLength;
+            }
+            
+            
+            function fnd3020_location_result_onQuery(ds) {
+                //触发查询事件时，锁住按钮
+                $('fnd3020_location_grid_addButton').disable();
+                $('fnd3020_location_grid_saveButton').disable();
+                $('fnd3020_location_grid_clearButton').disable();
+            }
+            
+            function fnd3020_location_result_onLoad(ds) {
+                //触发加载数据事件时，解锁按钮
+                $('fnd3020_location_grid_addButton').enable();
+                $('fnd3020_location_grid_saveButton').enable();
+                $('fnd3020_location_grid_clearButton').enable();
+            }
+            
+            function fnd3020_location_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+            }
+            
+            function fnd3020_gridEditorFunction(record, name) {
+                var dataSource = record.get('data_source');
+                if (name == 'location_code') {
+                    if (record.isNew) {
+                        return 'fnd3020_location_code_tf';
+                    }
+                } else if (name == 'location_name') {
+                    if (dataSource == 'SRM'||record.isNew) {
+                        return 'fnd3020_location_name_tf';
+                    }
+                } else if (name == 'warehouse_code_name') {
+                    if (dataSource == 'SRM'||record.isNew) {
+                        return 'fnd3020_lov';
+                    }
+                } else if (name == 'enabled_flag') {
+                    if (dataSource == 'SRM'||record.isNew) {
+                        return 'fnd3020_enabled_flag_ckb';
+                    }
+                }
+                return '';
+            }
+            
+            
+            function fnd3020_queryType() {
+                $('fnd3020_result_ds').query();
+            }
+            
+            function fnd3020_grid_cellclick(grid, row, name, record) {
+                /* var company_id = record.get('company_id');
+                if (name == 'warehouse_name') {
+                    record.getField('warehouse_name').setLovPara('company_id', company_id);
+                } */
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd3020_assign_business_unit_ds" loadData="true" model="public.fnd_business_unit_list"/>
+            <a:dataSet id="fnd3020_data_source_ds" loadData="true" lookupCode="DATA_SOURCE"/>
+            <a:dataSet id="fnd3020_query_ds">
+                <a:fields>
+                    <a:field name="data_source" displayField="code_value_name" options="fnd3020_data_source_ds" returnField="data_source" valueField="code_value"/>
+                    <a:field name="business_unit_id"/>
+                    <a:field name="business_unit_code"/>
+                    <a:field name="business_unit_name" autoComplete="true" autoCompleteField="business_unit_name" labelWidth="200" lovHeight="490" lovService="public.fnd_business_unit_lov" lovWidth="540" title="PROMPT.BUSINESS_UNIT">
+                        <a:mapping>
+                            <a:map from="business_unit_id" to="business_unit_id"/>
+                            <a:map from="business_unit_code" to="business_unit_code"/>
+                            <a:map from="business_unit_name" to="business_unit_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd3020_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="fnd.FND3020.inv_locations" queryDataSet="fnd3020_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="location_id"/>
+                    <a:field name="location_code" required="true" validator="fnd3020_locationValidator"/>
+                    <a:field name="location_name" required="true" validator="fnd3020_locationValidator"/>
+                    <a:field name="inv_organization_id"/>
+                    <a:field name="inv_organization_name"/>
+                    <a:field name="warehouse_id"/>
+                    <a:field name="warehouse_name"/>
+                    <a:field name="warehouse_code_name" autoComplete="true" autoCompleteField="warehouse_code_name" lovHeight="474" lovService="public.inv_warehouse_lov" lovWidth="500" required="true" title="INV_FND.INV_WAREHOUSE_LOV_TITLE">
+                        <a:mapping>
+                            <a:map from="warehouse_id" to="warehouse_id"/>
+                            <a:map from="warehouse_code_name" to="warehouse_code_name"/>
+                            <a:map from="warehouse_name" to="warehouse_name"/>
+                            <a:map from="inv_organization_name" to="inv_organization_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="location_define"/>
+                    <a:field name="data_source" defaultValue="SRM"/>
+                    <a:field name="business_unit_id"/>
+                    <a:field name="business_unit_code"/>
+                    <a:field name="business_unit_name" autoComplete="true" autoCompleteField="business_unit_name" labelWidth="200" lovHeight="490" lovService="public.fnd_business_unit_lov" lovWidth="540" required="true" title="PROMPT.BUSINESS_UNIT">
+                        <a:mapping>
+                            <a:map from="business_unit_id" to="business_unit_id"/>
+                            <a:map from="business_unit_code" to="business_unit_code"/>
+                            <a:map from="business_unit_name" to="business_unit_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd3020_location_result_onLoad"/>
+                    <a:event name="query" handler="fnd3020_location_result_onQuery"/>
+                    <a:event name="submitsuccess" handler="fnd3020_location_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton id="fnd3020_location_grid_addButton" bind="fnd3020_grid" style="margin-left:20px;" type="add" width="100"/>
+            <a:gridButton id="fnd3020_location_grid_saveButton" bind="fnd3020_grid" type="save" width="100"/>
+            <a:gridButton id="fnd3020_location_grid_clearButton" bind="fnd3020_grid" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:screenBody>
+            <a:queryForm id="fnd3020_query_form" bindTarget="fnd3020_query_ds" resultTarget="fnd3020_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="location_code" bindTarget="fnd3020_query_ds" prompt="INV_LOCATIONS.LOCATION_CODE" typeCase="upper">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd3020_queryType"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="location_name" bindTarget="fnd3020_query_ds" prompt="INV_LOCATIONS.LOCATION_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd3020_queryType"/>
+                            </a:events>
+                        </a:textField>
+                        <a:lov name="business_unit_name" bindTarget="fnd3020_query_ds" prompt="FND_BUSINESS_UNITS.BUSINESS_UNIT_NAME_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd3020_queryType"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:comboBox name="data_source" prompt="INV_ORGANIZATIONS.DATA_SOURCE">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd3020_queryType"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="fnd3020_grid" bindTarget="fnd3020_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="location_code" align="left" editorFunction="fnd3020_gridEditorFunction" prompt="INV_LOCATIONS.LOCATION_CODE" width="120"/>
+                    <a:column name="location_name" align="left" editorFunction="fnd3020_gridEditorFunction" prompt="INV_LOCATIONS.LOCATION_NAME" width="120"/>
+                    <a:column name="warehouse_code_name" align="left" editorFunction="fnd3020_gridEditorFunction" prompt="INV_WAREHOUSES.WAREHOUSE" width="120"/>
+                    <a:column name="inv_organization_name" align="left" prompt="INV_ORGANIZATIONS.INV_ORGANIZATION" width="150"/>
+                    <a:column name="business_unit_name" align="left" prompt="FND_BUSINESS_UNITS.BUSINESS_UNIT_NAME_ID" width="150"/>
+                    <a:column name="data_source" align="left" prompt="INV_ORGANIZATIONS.DATA_SOURCE" width="60"/>
+                    <a:column name="enabled_flag" align="left" editor="fnd3020_enabled_flag_ckb" prompt="INV_ORGANIZATIONS.ENABLED_FLAG" width="60"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="fnd3020_lov"/>
+                    <a:textField id="fnd3020_location_code_tf" typeCase="upper"/>
+                    <a:textField id="fnd3020_location_name_tf"/>
+                    <a:checkBox id="fnd3020_enabled_flag_ckb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

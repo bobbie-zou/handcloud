@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: likun  
+    $Date: 2013-1-25 下午04:17:24  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="l.asn_line_num asc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    l.asn_line_id,
+                    l.asn_line_num,
+                    l.segment1,
+                    l.line_num,
+                    l.item_name,
+                    l.unit_price,
+                    l.unit_meas_lookup_code,
+                    l.shipment_num,
+                    l.ship_quantity,
+                    l.receive_quantity,
+                    l.ship_quantity-l.receive_quantity AS hid_quantity,
+                    l.ship_quantity-l.receive_quantity AS quantity
+                FROM
+                    inv_asn_headers h,
+                    inv_asn_lines l #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+    			begin
+    			  inv_asn_pkg.receive_inv_asn(p_asn_line_id => ${@asn_line_id},
+				                              p_batch_id => ${/parameter/@batch_id},
+				                              p_quantity => ${@quantity},
+				                              p_user_id => ${/session/@user_id});
+               end;
+    		]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="h.asn_header_id=l.asn_header_id"/>
+        <bm:data-filter expression="h.asn_number=nvl(${@asn_number},h.asn_number)"/>
+        <bm:data-filter expression="h.asn_barcode=nvl(${@asn_barcode},h.asn_barcode)"/>
+        <bm:data-filter expression="l.segment1=nvl(${@segment1},l.segment1)"/>
+        <bm:data-filter expression="l.process_flag=&apos;N&apos;"/>
+        <bm:data-filter expression="l.status=&apos;NEW&apos; or l.status=&apos;PARTIALLY RECEIVED&apos;"/>
+    </bm:data-filters>
+</bm:model>

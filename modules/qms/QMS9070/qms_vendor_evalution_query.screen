@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Ace  
+    $Date: 2013-11-25 下午02:58:04  
+    $Revision: 1.0  
+    $Purpose: 潜在供应商评审查询
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view template="default">
+        <a:link id="qms_9070_vendor_evalution_create_link" url="${/request/@context_path}/modules/qms/QMS9070/qms_vendor_evalution_creat.screen"/>
+        <a:link id="qms_9070_vendor_evalution_maintain_link" url="${/request/@context_path}/modules/qms/QMS9070/qms_vendor_evalution_maintain.screen"/>
+        <a:link id="qms9070_vendor_evalution_submit_link" model="qms.QMS9070.vendor_evalution_submit" modelaction="insert"/>
+        <a:link id="qms9070_vendor_evalution_status_update_link" url="${/request/@context_path}/modules/qms/QMS9070/qms_vendor_evalution_status_maintain.screen"/>
+        <script><![CDATA[
+			//潜在供应商评审单创建
+			function qms9070_vendor_evalution_req_create(){
+			    new Aurora.Window({
+			        id:'qms9070_vendor_evalution_create_win',
+			        title:'潜在供应商评审报告',
+			        url:$('qms_9070_vendor_evalution_create_link').getUrl(),
+			        width:'1010',
+			        height:'650'
+			    });
+			}
+			
+			//查询函数
+			function qms9070_vendor_evalution_query(){
+			    $('qms9070_qms_vendor_evalution_result_ds').query();
+			}
+			
+			//评审单代码渲染函数
+			function qms9070_vendor_evalution_code_renderer(value, record, name){
+			    var status = record.get('status');
+			    if(status == 'NEW'){
+			    	return '<a href="javascript:qms9070_vendor_evalution_detial('+record.get('evalution_hds_id')+');">'+value+'</a>';
+			    }else{
+			    	return '<a href="javascript:qms9070_vendor_evalution_status_maintain('+record.get('evalution_hds_id')+');">'+value+'</a>';
+			    }
+			}
+			
+			function qms9070_vendor_evalution_status_maintain(evalution_hds_id){
+			    new Aurora.Window({
+			        id:'qms9070_vendor_evalution_status_maintain_win',
+			        title:'潜在供应商评审报告',
+			        url:$('qms9070_vendor_evalution_status_update_link').getUrl()+'?evalution_hds_id='+evalution_hds_id,
+			        width:'1010',
+			        height:'650'
+			    });
+			    $('qms9070_vendor_evalution_status_maintain_win').on('close', function(){
+			        qms9070_vendor_evalution_query();
+			    });
+			}
+			
+			function qms9070_vendor_evalution_detial(evalution_hds_id){
+			    new Aurora.Window({
+			        id:'qms9070_vendor_evalution_maintain_win',
+			        title:'潜在供应商评审报告',
+			        url:$('qms_9070_vendor_evalution_maintain_link').getUrl()+'?evalution_hds_id='+evalution_hds_id,
+			        width:'1010',
+			        height:'650'
+			    });
+			    $('qms9070_vendor_evalution_maintain_win').on('close', function(){
+			        qms9070_vendor_evalution_query();
+			    });
+			}
+			
+			function qms9070_vendor_evalution_submit_batch(){
+			    var records = $('qms9070_qms_vendor_evalution_result_ds').getSelected();
+			    if(records.length > 0){
+			        var ds = $('qms9070_vendor_evalution_submit_ds');
+			        ds.removeAll();
+			        for(var i = 0; i < records.length; i++){
+			            ds.create();
+			            var record = ds.getCurrentRecord();
+			            record.set('evalution_hds_id', records[i].get('evalution_hds_id'));
+			        }
+			        ds.submit();
+			    }else{
+			        Aurora.showMessage('${l:PROMPT}', '尚未选择任何行!');
+			        return;
+			    }
+			}
+			
+			function qms9070_vendor_evalution_submit_ss_handler(){
+			    Aurora.showMessage('${l:PROMPT}', '发布成功!', function(){
+	                qms9070_vendor_evalution_query();
+	            });
+	            return;
+			}
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="qms9070_vendor_evalution_submit_ds" model="qms.QMS9070.vendor_evalution_submit">
+                <a:fields>
+                    <a:field name="evalution_hds_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="qms9070_vendor_evalution_submit_ss_handler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="qms9070_vendor_evalution_finish_status_ds" lookupCode="QMS_VENDOR_EVALUTION_FINISH_STATUS"/>
+            <a:dataSet id="qms9070_vendor_evalution_result_ds" lookupCode="QMS_VENDOR_EVALUTION_RESULT"/>
+            <a:dataSet id="qms9070_qms_vendor_evalution_query_ds"/>
+            <a:dataSet id="qms9070_qms_vendor_evalution_result_ds" model="qms.QMS9070.qms_vendor_evalution_query" selectable="true"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="qms9070_vendor_evalution_req_create" style="margin-left:20px;" text="创建" width="100"/>
+                <a:toolbarButton click="qms9070_vendor_evalution_submit_batch" style="margin-left:20px;" text="发布" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="pur5410_pur_requisition_query_form" bindTarget="qms9070_qms_vendor_evalution_query_ds" resultTarget="qms9070_qms_vendor_evalution_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="evalution_code" bindTarget="qms9070_qms_vendor_evalution_query_ds" prompt="评审报告编号"/>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody style="margin-left:8px">
+                    <a:hBox labelWidth="120">
+                        <a:datePicker name="requisition_date_from" prompt="PUR_REQUISITION_LNS.REQUISITION_DATE_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="qms9070_vendor_evalution_query"/>
+                            </a:events>
+                        </a:datePicker>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="qms9070_qms_vendor_evalution_result_grid" bindTarget="qms9070_qms_vendor_evalution_result_ds" marginHeight="140" marginWidth="60" navBar="true">
+                <a:columns>
+                    <a:column name="evalution_code" align="center" prompt="单据编号" renderer="qms9070_vendor_evalution_code_renderer" width="120"/>
+                    <a:column name="company_name" align="center" prompt="公司" width="120"/>
+                    <a:column name="evalution_result" align="center" prompt="评审结果" width="120"/>
+                    <a:column name="vendor_code" align="center" prompt="供应商编码" width="120"/>
+                    <a:column name="vendor_name" align="center" prompt="供应商名称" width="120"/>
+                    <a:column name="item_type" align="center" prompt="零件类别" width="120"/>
+                    <a:column name="evalution_person" align="center" prompt="审核人" width="120"/>
+                    <a:column name="evalution_date" align="center" prompt="审核日期" renderer="Aurora.formatDate" width="120"/>
+                    <a:column name="created_by_name" align="center" prompt="创建人" width="100"/>
+                    <a:column name="create_date" align="center" prompt="创建日期" width="100"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

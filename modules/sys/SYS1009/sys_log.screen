@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="sys1009_sys_log_show_all_trace_flag_link" url="${/request/@context_path}/modules/sys/SYS1009/sys_log_show_all_trace_flag.svc"/>
+        <a:link id="sys1009_sys_log_cancel_all_trace_flag_link" url="${/request/@context_path}/modules/sys/SYS1009/sys_log_cancel_all_trace_flag.svc"/>
+        <a:link id="sys1009_sys_log_set_all_trace_flag_link" url="${/request/@context_path}/modules/sys/SYS1009/sys_log_set_all_trace_flag.svc"/>
+        <script><![CDATA[
+            function sys1009_onCheckBoxChange(checkbox, newValue, oldValue) {
+                var record = $('sys1009_log_status').getCurrentRecord();
+                var url = record.get('service_name');
+                if (!url) {
+                    Aurora.showErrorMessage('${l:PROMPT.ERROR}', '${l:PROMPT.URL_CAN_NOT_BE_NULL}')
+                    return false;
+                }
+                if ('Y' == newValue) {
+                    sys1009_enableTrace(url);
+                } else {
+                    sys1009_diableTrace(url);
+                }
+            
+            }
+            
+            function sys1009_enableTrace(url) {
+                sys1009_setTrace(url, 'true');
+            }
+            
+            function sys1009_diableTrace(url) {
+                sys1009_setTrace(url, 'false');
+            }
+            
+            function sys1009_setTrace(url, flag) {
+                var parameters = {
+                    "url": url,
+                    "flag": flag
+                };
+                Aurora.request({
+                    url: '${/request/@context_path}/set_trace_flag.svc',
+                    para: parameters,
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.OPERATION_SUCCESS}');
+                    },
+                    scope: this
+                });
+            }
+            
+            function sys1009_showTraceFlag(url) {
+                var record = $('sys1009_log_status').getCurrentRecord();
+                var parameters = {
+                    "url": url
+                };
+                Aurora.request({
+                    url: '${/request/@context_path}/show_trace_flag.svc',
+                    para: parameters,
+                    success: function(res) {
+                        var status = res.result['status'];
+                        if (true == status) {
+                            record.set('status', 'Y');
+                        } else {
+                            record.set('status', 'N');
+                        }
+                    },
+                    scope: this
+                });
+            }
+            
+            function sys1009_onUpdate(ds, record, name, value) {
+                if (name == 'service_name') {
+                    sys1009_showTraceFlag(value);
+                }
+            }
+            
+            function sys1009_enableAllonUpdate(checkbox, newValue, oldValue) {
+                var flag = 'false';
+                if ('Y' == newValue) {
+                    flag = 'true';
+                }
+                Aurora.request({
+                    url: /*sys_log_set_all_trace_flag.svc*/
+                    $('sys1009_sys_log_set_all_trace_flag_link').getUrl(),
+                    para: {
+                        "flag": flag
+                    },
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.OPERATION_SUCCESS}');
+                    },
+                    scope: this
+                });
+            }
+            
+            function sys1009_cancel_all_trace_flag(d, ds) {
+                Aurora.request({
+                    url: /*sys_log_cancel_all_trace_flag.svc*/
+                    $('sys1009_sys_log_cancel_all_trace_flag_link').getUrl(),
+                    para: {},
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.OPERATION_SUCCESS}');
+                    },
+                    scope: this
+                });
+            }
+            
+            function sys1009_queryRecipientType() {
+                $('sys1009_function_tree_ds').query();
+            }
+            
+            function sys1009_save() {
+                $('sys1009_function_tree_ds').submit();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys1009_log_status">
+                <a:datas>
+                    <a:record service_name="" status="false"/>
+                </a:datas>
+                <a:events>
+                    <a:event name="update" handler="sys1009_onUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys1009_sys1009_enabled_all_dataset" autoCreate="true">
+                <a:datas>
+                    <a:record flag="N"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="sys1009_parameter_static_ds" autoCreate="true">
+                <a:datas>
+                    <a:record base_dir="" file_ext="screen"/>
+                    <a:record base_dir="" file_ext="svc"/>
+                    <a:record base_dir="web-inf/classes" file_ext="bm"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="sys1009_parameter_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="file_ext" displayField="file_ext" options="sys1009_parameter_static_ds" valueField="file_ext">
+                        <a:mapping>
+                            <a:map from="file_ext" to="file_ext"/>
+                            <a:map from="base_dir" to="base_dir"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="base_dir" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys1009_function_tree_ds" autoCount="false" fetchAll="true" queryDataSet="sys1009_parameter_ds" queryUrl="${/request/@context_path}/modules/sys/SYS1009/sys_log_get_config.svc" submitUrl="${/request/@context_path}/modules/sys/SYS1009/sys_log_set_config.svc">
+                <a:fields>
+                    <a:field name="trace_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="base_dir" readOnly="true"/>
+                    <a:field name="name" readOnly="true"/>
+                    <a:field name="path" readOnly="true"/>
+                    <a:field name="parent" readOnly="true"/>
+                    <a:field name="parent_path" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <script><![CDATA[
+            function sys1009_init() {
+                Aurora.request({
+                    url: /*sys_log_show_all_trace_flag.svc*/$('sys1009_sys_log_show_all_trace_flag_link').getUrl(),
+                    para: {},
+                    success: function(res) {
+                        var status = res.result['status'];
+                        if (true == status) {
+                            $('sys1009_enabled_all_dataset').getCurrentRecord().set('flag', 'Y');
+                        }
+                    },
+                    scope: this
+                });
+            }
+            sys1009_init();]]></script>
+        <a:screenBody>
+            <a:tabPanel id="sys1009_tabpanel" height="580" marginHeight="50" width="960">
+                <a:tabs>
+                    <a:tab prompt="PROMPT.SYSTEM">
+                        <a:form row="2" title="L.LOG" width="600">
+                            <a:hBox>
+                                <a:textField name="service_name" bindTarget="sys1009_log_status" prompt="PROMPT.URL" width="390"/>
+                                <a:checkBox name="status" bindTarget="sys1009_log_status" prompt="PROMPT.ENABLED_FLAG">
+                                    <a:events>
+                                        <a:event name="change" handler="sys1009_onCheckBoxChange"/>
+                                    </a:events>
+                                </a:checkBox>
+                            </a:hBox>
+                            <a:hBox labelWidth="120">
+                                <a:checkBox name="flag" bindTarget="sys1009_enabled_all_dataset" checkedValue="Y" prompt="SYSTEM_LOG.ENABLED_ALL_RESOURCE" uncheckedValue="N">
+                                    <a:events>
+                                        <a:event name="change" handler="sys1009_enableAllonUpdate"/>
+                                    </a:events>
+                                </a:checkBox>
+                            </a:hBox>
+                        </a:form>
+                    </a:tab>
+                    <a:tab prompt="PROMPT.DETAIL">
+                        <a:form column="2" labelWidth="100" title="PROMPT.DETAIL" width="600">
+                            <a:comboBox name="file_ext" bindTarget="sys1009_parameter_ds" prompt="PROMPT.FILE_TYPE"/>
+                            <a:textField name="base_dir" bindTarget="sys1009_parameter_ds" prompt="PROMPT.DIRECTORY"/>
+                        </a:form>
+                        <a:hBox>
+                            <a:button click="sys1009_queryRecipientType" text="HAP_QUERY"/>
+                            <a:button click="sys1009_save" text="HAP_SAVE"/>
+                            <a:button click="sys1009_cancel_all_trace_flag" text="SYSTEM_LOG.CLEAR_ALL_RESOURCE_FLAG"/>
+                        </a:hBox>
+                        <a:treeGrid id="sys1009_functionTreeGrid" bindTarget="sys1009_function_tree_ds" expandField="_expanded" height="400" idField="path" parentField="parent_path" sequenceField="path" showCheckBox="true" width="800">
+                            <a:columns>
+                                <a:column name="name" prompt="PROMPT.URL" width="600"/>
+                                <a:column name="trace_flag" align="right" editor="sys1009_grid_cb" prompt="PROMPT.ENABLED_FLAG" width="100"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:numberField id="sys1009_grid_nf"/>
+                                <a:checkBox id="sys1009_grid_cb"/>
+                            </a:editors>
+                        </a:treeGrid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

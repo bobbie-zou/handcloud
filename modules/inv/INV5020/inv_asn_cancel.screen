@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-10 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 送货单取消，入口页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="inv5020_asn_cancel_link" url="${/request/@context_path}/modules/inv/INV5020/inv_asn_cancel.svc"/>
+        <a:link id="inv5020_asnDocumentView_link" url="${/request/@context_path}/modules/inv/PUBLIC/inv_asn_document_vendor_view.screen"/>
+        <script><![CDATA[
+            var inv5020_tree_div = [];
+            
+            function inv5020_query() {
+                $('inv5020_asn_cancel_result_ds').query();
+            }
+            
+            function inv5020_inv_asn_header_go_cancel() {
+                var ds = $('inv5020_asn_cancel_result_ds');
+                var records = ds.getSelected();
+                var datas = [];
+                if (records.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:INV_ASN_HEADERS.UNSELECT_ERROR}');
+                    return;
+                }
+                Aurora.showConfirm('${l:PROMPT}', '${l:INV5020_CANCEL_NOTE}', function() {
+                    for (var i = 0;i < records.length;i++) {
+                        var data = {
+                            'asn_header_id': records[i].get('asn_header_id')
+                        };
+                        datas.push(data);
+                    }
+                    Aurora.Masker.mask(Ext.getBody());
+                    Aurora.request({
+                        url: $('inv5020_asn_cancel_link').getUrl(),
+                        para: datas,
+                        success: function(res) {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            Aurora.showMessage('${l:PROMPT}', '取消请求已提交，请耐心等待远程系统反馈，若取消导入失败单据，则立即生效!', function() {
+                                ds.query();
+                            });
+                        },
+                        failure: function(res) {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        error: function(res) {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        scope: this
+                    });
+                });
+            }
+            
+            //送货单
+            
+            function inv5020_asnDocumentView_render(value, record, name) {
+                if (name == 'asn_number') {
+                    return '<a href="javascript:inv5020_asnDocumentView_open(' + record.get('asn_header_id') + ');">' + value + '</a>';
+                }
+            
+                if (name == 'process_status_name') {
+                    if (record.get('process_status') == 'SUCCESSED') {
+                        return '<div style="background:#00DD00;">' + value + '</div>';
+                    } else {
+                        return '<div>' + value + '</div>';
+                    }
+                }
+                if (name == 'warning' && (record.get('process_status') == 'FAILED' || record.get('cancel_process_status') == 'FAILED')) {
+                    var header_id = record.get('asn_header_id');
+                    return '<div style="font-size: 16px;color: #e74c3c;"><a href="javascript:inv5020_showMessage(' + header_id + ')" style="font-size: 16px;color: #e74c3c;"><i class="fa fa-warning"></i></><div>';
+                }
+            }
+            
+            function inv5020_showMessage(header_id) {
+                var result = $('inv5020_asn_cancel_result_ds').getAll();
+                var process_status;
+                var cancel_process_status;
+                var error_message;
+                var cancel_message;
+                for (var i = 0;i < result.length;i++) {
+                    if (result[i].get('asn_header_id') == header_id) {
+                        process_status = result[i].get('process_status');
+                        cancel_process_status = result[i].get('cancel_process_status');
+                        error_message = result[i].get('process_message');
+                        cancel_message = result[i].get('cancel_process_message');
+                    }
+                }
+                if (Aurora.isEmpty(error_message)) {
+                    error_message = '';
+                }
+                if (Aurora.isEmpty(cancel_message)) {
+                    cancel_message = '';
+                }
+                if (process_status == 'FAILED') {
+                    Aurora.showMessage('提示', error_message, null, 600, 300);
+                } else if (cancel_process_status == 'FAILED') {
+                    Aurora.showMessage('提示', cancel_message, null, 600, 300);
+                }
+            }
+            
+            function inv5020_asnDocumentView_open(asn_header_id) {
+                new Aurora.Window({
+                    id: 'inv_asn_document_view_window',
+                    title: '${l:INV_ASN_HEDER_DETAIL_TITLE}',
+                    url: $('inv5020_asnDocumentView_link').getUrl() + '?asn_header_id=' + asn_header_id,
+                    fullScreen: true
+                });
+            }
+            //查找tree的父节点
+            
+            function inv5020_find_father(code) {
+                var tree_ds = $('inv5020_asn_query_parameter_tree_ds');
+                var all = tree_ds.getAll();
+                for (var i = 0;i < all.length;i++) {
+                    if (record.get('query_code') == code) {
+                        return all[i].data.parent_query_code;
+                    }
+                }
+            }
+            
+            //是否有子节点
+            
+            function inv5020_find_son(code) {
+                var tree_ds = $('inv5020_asn_query_parameter_tree_ds');
+                var all = tree_ds.getAll();
+                for (var i = 0;i < all.length;i++) {
+                    if (all[i].data.parent_query_code == code) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            function inv5020_query_set_null() {
+                var query_ds = $('inv5020_asn_cancel_query_ds').getAt(0);
+                query_ds.set('status', '');
+                query_ds.set('process_status', '');
+                query_ds.set('cancel_process_status', '');
+                query_ds.set('cancel_process_status1', '');
+                query_ds.set('can_print', '');
+                query_ds.set('close_flag', '');
+            }
+            //显示隐藏打印按钮
+            
+            /*             function inv5020_diable_or_enable_print_btn(mode) {
+             //显示
+             if (mode == 1) {
+             if (inv5020_tab_index == 0) {
+             $('inv5020_asn_header_print_btn').enable();
+             } else if (inv5020_tab_index == 1) {
+             $('inv5020_asn_line_print_btn').enable();
+             }
+             } else if (mode == 2) {
+             if (inv5020_tab_index == 0) {
+             $('inv5020_asn_header_print_btn').disable();
+             } else if (inv5020_tab_index == 1) {
+             $('inv5020_asn_line_print_btn').disable();
+             }
+             }
+             } */
+            
+            function inv5020_treeGrid_renderer(value, record, name) {
+                var index = $('inv5020_asn_query_parameter_tree_ds').indexOf(record);
+                var id = "inv5020_" + index;
+                inv5020_tree_div.push(id);
+                return '<div id="' + id + '" >' + value + '</div>';
+            }
+            var inv5020_click_index;
+            
+            function inv5020_tree_click(grid, row, record) {
+                var query_ds = $('inv5020_asn_cancel_query_ds').getAt(0);
+                var check_amount = 0;
+                var i;
+                var id;
+                inv5020_click_index = $('inv5020_asn_query_parameter_tree_ds').indexOf(record);
+                id = "inv5020_" + inv5020_click_index;
+                //设置被选中div背景色为红色
+                document.getElementById(id).style.color = "#FF0000";
+                //设置没被选中div背景色为红色
+                for (i = 0;i < inv5020_tree_div.length;i++) {
+                    if (inv5020_tree_div[i] != id) {
+                        document.getElementById(inv5020_tree_div[i]).style.color = "#000000";
+                    }
+                }
+                inv5020_query_set_null();
+            
+                if (inv5020_find_son(record.get('query_code')) || record.get('query_code') == 'ALL') {
+                    if (record.get('query_code') == 'ALL') {
+                        //inv5020_diable_or_enable_print_btn(1);
+                    }
+            
+                    if (record.get('query_code') == 'SEND_SUCCESSED') {
+                        query_ds.set('process_status', 'SUCCESSED');
+                        //inv5020_diable_or_enable_print_btn(1);
+                    }
+                    if (record.get('query_code') == 'SEND_WAITING') {
+                        query_ds.set('process_status', 'WAITING');
+                        //inv5020_diable_or_enable_print_btn(2);
+            
+                    }
+                    if (record.get('query_code') == 'SEND_FAILED') {
+                        query_ds.set('process_status', 'FAILED');
+                        //inv5020_diable_or_enable_print_btn(2);
+                    }
+                    if (record.get('query_code') == 'PART_RECEIVE') {
+                        query_ds.set('status', record.get('query_code'));
+                        //inv5020_diable_or_enable_print_btn(1);
+                    }
+                    if (record.get('query_code') == 'ALL_RECEIVE') {
+                        query_ds.set('status', 'ALL_CLOSE');
+                        query_ds.set('cancel_process_status', '-1');
+                        //inv5020_diable_or_enable_print_btn(1);
+                    }
+                    if (record.get('query_code') == 'SUCCESSED') {
+                        query_ds.set('cancel_process_status1', record.get('query_code'));
+                        //inv5020_diable_or_enable_print_btn(2);
+                    }
+                    if (record.get('query_code') == 'WAITING') {
+                        query_ds.set('cancel_process_status1', record.get('query_code'));
+                        //inv5020_diable_or_enable_print_btn(2);
+                    }
+                    if (record.get('query_code') == 'FAILED') {
+                        query_ds.set('cancel_process_status1', record.get('query_code'));
+                        //inv5020_diable_or_enable_print_btn(2);
+                    }
+                    if (record.get('query_code') == 'CLOSED') {
+                        query_ds.set('status', 'ALL_CLOSE');
+                    }
+                    $('inv5020_asn_cancel_result_ds').query();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv5020_asn_query_parameter_tree_ds" loadData="true" model="inv.INV5020.inv_asn_query_parameter_tree"/>
+            <a:dataSet id="inv5020_asn_cancel_query_ds">
+                <a:fields>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_full_name" lovHeight="500" lovService="public.fnd_cooperative_company_by_supply_lov" lovWidth="500" title="FND_COMPANIES.QUERY">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="ship_to_organnization_name" autoComplete="true" autoCompleteField="inv_organization_name" lovHeight="502" lovLabelWidth="100" lovService="public.inv_organizations_lov" lovWidth="540" title="INV_ASN_HEADERS_TEMP.SHIP_TO_ORGANIZATION_ID">
+                        <a:mapping>
+                            <a:map from="inv_organization_id" to="ship_to_organnization_id"/>
+                            <a:map from="inv_organization_name" to="ship_to_organnization_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_site_name_dis" lovHeight="470" lovService="public.pur_vendor_sites_lov?business_group=${/session/@business_group}" lovWidth="900" title="发货地点">
+                        <a:mapping>
+                            <a:map from="vendor_site_id" to="vendor_site_id"/>
+                            <a:map from="site_name" to="vendor_site_name_dis"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_name" autoComplete="true" autoCompleteField="item_name" lovGridHeight="320" lovHeight="500" lovService="public.mtl_item_mapping_require_lov" lovWidth="1000" title="我的物料">
+                        <a:mapping>
+                            <a:map from="item_id" to="item_id"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_name" to="item_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv5020_asn_cancel_result_ds" autoCount="true" autoPageSize="true" model="inv.INV5020.inv_asn_cancel" queryDataSet="inv5020_asn_cancel_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="asn_line_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="inv5020_inv_asn_header_go_cancel" text="PROMPT.CANCEL" width="100"/>
+                <a:gridButton bind="inv5020_asn_cancel_grid" className="item-rbtn-blue button-excel" type="excel" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox padding="0">
+                <a:treeGrid id="inv5020_asn_query_parameter_tree_ds_grid" bindTarget="inv5020_asn_query_parameter_tree_ds" expandField="expand" idField="query_code" marginHeight="120" parentField="parent_query_code" sequenceField="sequence" showCheckBox="false" width="200">
+                    <a:columns>
+                        <a:column name="query_name" align="left" prompt="状态" renderer="inv5020_treeGrid_renderer" width="180"/>
+                    </a:columns>
+                    <a:events>
+                        <a:event name="rowclick" handler="inv5020_tree_click"/>
+                    </a:events>
+                </a:treeGrid>
+                <a:vBox padding="0" style="margin-left:5px">
+                    <a:queryForm bindTarget="inv5020_asn_cancel_query_ds" defaultQueryField="journal_num" resultTarget="inv5020_asn_cancel_result_ds" style="width:100%;">
+                        <a:formToolBar>
+                            <a:hBox labelWidth="100">
+                                <a:textField name="asn_number" bindTarget="inv5020_asn_cancel_query_ds" prompt="INV_ASN_HEADERS.ASN_NUMBER">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:textField>
+                                <!-- <a:textField name="order_num" bindTarget="inv5020_asn_cancel_query_ds" prompt="INV_ASN_LINES.SEGMENT1">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:textField> -->
+                                <a:lov name="company_name" bindTarget="inv5020_asn_cancel_query_ds" prompt="我的客户">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:hBox>
+                        </a:formToolBar>
+                        <a:formBody>
+                            <a:hBox labelWidth="100">
+                                <a:datePicker name="creation_date_from" bindTarget="inv5020_asn_cancel_query_ds" prompt="INV_ASN_HEADERS.CREATION_DATE_FROM">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:datePicker>
+                                <a:datePicker name="creation_date_to" bindTarget="inv5020_asn_cancel_query_ds" prompt="INV_ASN_HEADERS.CREATION_DATE_TO">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:datePicker>
+                                <!-- <a:lov name="item_name" bindTarget="inv5020_asn_cancel_query_ds" prompt="物料">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:lov> -->
+                            </a:hBox>
+                            <a:hBox labelWidth="100">
+                                <a:datePicker name="expected_date_from" bindTarget="inv5020_asn_cancel_query_ds" prompt="INV_ASN_HEADERS.EXPECTED_DATE_FROM">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:datePicker>
+                                <a:datePicker name="expected_date_to" bindTarget="inv5020_asn_cancel_query_ds" prompt="INV_ASN_HEADERS.EXPECTED_DATE_TO">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:datePicker>
+                                <a:lov name="ship_to_organnization_name" bindTarget="inv5020_asn_cancel_query_ds" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:hBox>
+                            <a:hBox labelWidth="100">
+                                <a:datePicker name="ship_date_from" bindTarget="inv5020_asn_cancel_query_ds" prompt="INV_ASN_HEADERS.SHIP_DATE_FROM">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:datePicker>
+                                <a:datePicker name="ship_date_to" bindTarget="inv5020_asn_cancel_query_ds" prompt="INV_ASN_HEADERS.SHIP_DATE_TO">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:datePicker>
+                                <a:lov name="vendor_site_name_dis" bindTarget="inv5020_asn_cancel_query_ds" prompt="发货地点">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="inv5020_query"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:hBox>
+                        </a:formBody>
+                    </a:queryForm>
+                    <a:grid id="inv5020_asn_cancel_grid" autoAppend="false" bindTarget="inv5020_asn_cancel_result_ds" marginHeight="183" marginWidth="295" navBar="true" style="margin-top:10px;">
+                        <a:columns>
+                            <a:column name="warning" align="center" renderer="inv5020_asnDocumentView_render" width="25"/>
+                            <!-- <a:column name="header_status" align="center" prompt="单据状态" width="40"/>
+                            <a:column name="process_status_name" align="center" prompt="导入状态" renderer="inv5020_asnDocumentView_render" width="40"/>
+                            <a:column name="process_message" align="left" prompt="错误信息" width="70"/>
+                            <a:column name="cancel_process_status_name" align="center" prompt="取消反馈状态" width="40"/> -->
+                            <a:column name="asn_number" align="left" prompt="INV_ASN_HEADERS.ASN_NUMBER" renderer="inv5020_asnDocumentView_render" width="90"/>
+                            <a:column name="asn_type_name" align="left" prompt="送货单类型" width="70"/>
+                            <a:column name="company_name" align="left" prompt="客户名称" width="150"/>
+                            <a:column name="creation_date_fmt" align="left" prompt="创建日期" width="70"/>
+                            <a:column name="ship_date_fmt" align="left" prompt="INV_ASN_HEADERS.SHIP_DATE" width="70"/>
+                            <a:column name="expected_date_fmt" align="left" prompt="INV_ASN_HEADERS.EXPECTED_DATE" width="70"/>
+                            <!-- <a:column name="comments" align="left" prompt="INV_ASN_HEADERS.HEADER_DESC" width="150"/> -->
+                            <a:column name="location_name" align="left" prompt="INV_ASN_HEADERS.LOCATION_ID" width="90"/>
+                            <a:column name="ship_to_organization_name" align="left" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID" width="120"/>
+                        </a:columns>
+                    </a:grid>
+                    <!-- <a:grid id="inv5020_asn_cancel_grid" bindTarget="inv5020_asn_cancel_result_ds" marginHeight="180" marginWidth="48" navBar="true">
+                <a:columns>
+                    <a:column name="asn_number" align="left" prompt="INV_ASN_HEADERS.ASN_NUMBER" sortable="true" width="80"/>
+                    <a:column name="asn_line_num" align="left" prompt="行号" sortable="true" width="30"/>
+                    <a:column name="require_item_code" align="left" prompt="客户物品编码" sortable="true" width="60"/>
+                    <a:column name="require_item_name" align="left" prompt="客户物品名称" sortable="true" width="100"/>
+                    <a:column name="supply_item_code" align="left" prompt="我的产品编码" sortable="true" width="60"/>
+                    <a:column name="supply_item_name" align="left" prompt="我的产品名称" sortable="true" width="100"/>
+                    <a:column name="company_name" align="left" prompt="客户名称" sortable="true" width="100"/>
+                    <a:column name="po_num" align="left" prompt="INV_ASN_LINES.SEGMENT1" sortable="true" width="80"/>
+                    <a:column name="line_num" align="left" prompt="INV_ASN_LINES.LINE_NUM" sortable="true" width="30"/>
+                    <a:column name="shipment_num" align="left" prompt="INV_ASN_LINES.SHIPMENT_NUM" width="30"/>
+                    <a:column name="ship_quantity" align="right" prompt="INV_ASN_LINES.SHIP_QUANTITY" renderer="Aurora.formatNumber" width="40"/>
+                    <a:column name="uom_name" align="left" prompt="INV_ASN_LINES.UNIT_MEAS_LOOKUP_CODE" width="50"/>
+                    <a:column name="receive_quantity" align="right" prompt="已接收" renderer="Aurora.formatNumber" width="40"/>
+                    <a:column name="on_the_way_quantity" align="right" prompt="在途" renderer="Aurora.formatNumber" width="40"/>
+                    <a:column name="return_vendor_quantity" align="right" prompt="已退回" renderer="Aurora.formatNumber" width="40"/>
+                    <a:column name="lots_num" align="left" prompt="INV_ASN_LINES_TEMP.LOTS_NUM" width="80"/>
+                    <a:column name="lots_validity_date" align="left" prompt="INV_ASN_LINES_TEMP.LOTS_VALIDITY_DATE" renderer="Aurora.formatDate" width="80"/>
+                    <a:column name="invoice_num" align="left" prompt="INV_ASN_LINES_TEMP.INVOICE_NUM" width="80"/>
+                    <a:column name="serial_num" align="left" prompt="INV_ASN_LINES_TEMP.SERIAL_NUM" width="80"/>
+                    <a:column name="creation_date_fmt" align="left" prompt="创建日期" sortable="true" width="80"/>
+                    <a:column name="ship_date_fmt" align="left" prompt="INV_ASN_HEADERS.SHIP_DATE" sortable="true" width="80"/>
+                    <a:column name="expected_date_fmt" align="left" prompt="INV_ASN_HEADERS.EXPECTED_DATE" sortable="true" width="80"/>
+                    <a:column name="need_by_date" align="left" prompt="INV_ASN_LINES.NEED_BY_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                    <a:column name="promised_date" align="left" prompt="PUR_LINE_LOCATIONS_ALL.PROMISED_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                    <a:column name="reversion_num" align="left" prompt="INV_ASN_LINES.REVERSION_NUM" width="50"/>
+                    <a:column name="release_num" align="left" prompt="INV_ASN_LINES.RELEASE_NUM" width="60"/>
+                    <a:column name="vendor_site_name" align="left" prompt="发货地点" width="100"/>
+                    <a:column name="agent_name" align="left" prompt="INV_ASN_LINES.AGENT_ID" width="60"/>
+                    <a:column name="location_name" align="left" prompt="INV_ASN_HEADERS.LOCATION_ID" width="100"/>
+                    <a:column name="ship_to_organization_name" align="left" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID" width="100"/>
+                    <a:column name="line_desc" align="left" prompt="INV_ASN_LINES.LINE_DESC" width="120"/>
+                </a:columns>
+            </a:grid> -->
+                </a:vBox>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure><![CDATA[
+    
+	]]></a:init-procedure>
+    <a:view>
+        <a:link id="exp1110_exp_com_obj_companies_link" url="${/request/@context_path}/modules/exp/EXP1110/exp_unit_obj_batch_assign_all.svc"/>
+        <script><![CDATA[
+            
+            function exp1110_assignUnit() {
+                var typeRecordsData = $('exp1110_exp_org_unit_groups_result_ds').getJsonData(true);
+                var companyRecordsData = $('EXP1110_system_company_assign_unit_ds').getJsonData(true);
+                var param = {};
+                if (companyRecordsData.length == 0) {
+                    Aurora.showInfoMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}', null, 250, 100);
+                    return;
+                }
+                for(var i = 0 ; i < typeRecordsData.length ; i ++){
+                    var rs = typeRecordsData[i];
+                    rs['detail2'] = companyRecordsData;
+                }
+                
+    			param['detail1'] = typeRecordsData;
+    			
+                Aurora.request({
+                    url: $('exp1110_exp_com_obj_companies_link').getUrl(),
+                    para: param,
+                    success: exp1110_backFunction,
+                    scope: this
+                });
+            }
+            
+             function exp1110_backFunction() {
+                $('exp1110_exp_org_unit_groups_result_ds').query();
+                $('EXP1110_csh_sob_payment_unit_batch_id').close();
+            }
+            
+            
+            function exp1110_queryCompany() {
+                $('EXP1110_system_company_assign_unit_ds').query();
+            }
+            
+            //重置查询条件
+            
+            function exp1110_resetRequisition() {
+                $('EXP1012_batch_query_ds').reset();
+            }
+            
+            
+            function exp1110_back() {
+                $('EXP1110_csh_sob_payment_unit_batch_id').close();
+            }
+            
+      
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="EXP1012_batch_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="unit_code_from_display" lovGridHeight="300" lovHeight="460" lovService="exp.EXP1110.exp_unit_group_relations_unit_lov_by_sql?company_id=${/parameter/@company_id}" lovWidth="500" title="ACP_INVOICE_LINES.UNIT_ID">
+                        <a:mapping>
+                            <a:map from="unit_id" to="unit_id"/>
+                            <a:map from="unit_code" to="unit_code_from"/>
+                            <a:map from="code_name" to="unit_code_from_display"/>
+                            <a:map from="company_code" to="company_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="unit_code_to_display" lovGridHeight="300" lovHeight="460" lovService="exp.EXP1110.exp_unit_group_relations_unit_lov_by_sql?company_id=${/parameter/@company_id}" lovWidth="500" title="ACP_INVOICE_LINES.UNIT_ID">
+                        <a:mapping>
+                            <a:map from="unit_id" to="unit_id"/>
+                            <a:map from="unit_code" to="unit_code_to"/>
+                            <a:map from="code_name" to="unit_code_to_display"/>
+                            <a:map from="company_code" to="company_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_id" defaultValue="${/parameter/@company_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="EXP1110_system_company_assign_unit_ds" autoQuery="true" model="exp.EXP1110.exp_unit_assign_batch_lov" queryDataSet="EXP1012_batch_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="unit_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form title="PROMPT.BATCH_DISP_UNIT" width="520">
+                <a:vBox>
+                    <a:hBox>
+                        <a:lov name="unit_code_from_display" bindTarget="EXP1012_batch_query_ds" prompt="FND_UNIT.UNIT_FROM"/>
+                        <a:lov name="unit_code_to_display" bindTarget="EXP1012_batch_query_ds" prompt="FND_UNIT.UNIT_TO"/>
+                    </a:hBox>
+                </a:vBox>
+            </a:form>
+            <a:hBox>
+                <a:button click="exp1110_queryCompany" text="HAP_QUERY"/>
+                <a:button click="exp1110_resetRequisition" text="HAP_RESET"/>
+            </a:hBox>
+            <a:hBox>
+                <a:button click="exp1110_assignUnit" text="CSH2011_ADD"/>
+                <a:button click="exp1110_back" text="HAP_BACK"/>
+            </a:hBox>
+            <a:grid bindTarget="EXP1110_system_company_assign_unit_ds" height="330" navBar="true" width="520">
+                <a:columns>
+                    <a:column name="unit_code" Width="130" align="center" prompt="EXP_ORG_UNIT.UNIT_CODE"/>
+                    <a:column name="org_unit_description" Width="200" prompt="EXP_ORG_UNIT.ORG_UNIT_DESCRIPTION"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

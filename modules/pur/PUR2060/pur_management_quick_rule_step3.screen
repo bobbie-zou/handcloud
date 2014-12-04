@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-7-4 上午9:16:06  
+    $Revision: 1.0  
+    $Purpose: 采购品类管理规则，快速创建规则第三步
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="pur2060_link_pur_management_quick_rule_complete" url="${/request/@context_path}/modules/pur/PUR2060/pur_management_quick_rule_complete.svc"/>
+        <script><![CDATA[
+        
+            //取消按钮调用的方法，返回到管理规则定义页面
+            function pur2060_quickRuleStep3ToManagementRule() {
+                pur2060_quickRuleStep1ToManagementRule();
+                pur2060_quickRuleStep2ToQuickRuleStep1();
+                pur2060_quickRuleStep3ToQuickRuleStep2();
+            }
+            
+            //返回上一步按钮调用的方法，返回到第一步采购品类定义的页面
+            function pur2060_quickRuleStep3ToQuickRuleStep2() {
+                $('pur2060_link_pur_management_quick_rule_step3_window').close();
+            }
+            
+            //快速创建管理规则明细数据更改事件调用的方法
+            function pur2060_onPurQuickManagementRuleDetailDsUpdate(ds, record, name, value, oldValue) {
+            
+                //集中采购、区域集采、分散集采 三者互斥
+                if (name == "overall_flag") {
+                    if (value == "Y") {
+                        record.set('dispersed_flag', 'N');
+                        record.set('minor_flag', 'N');
+                    }
+                }
+            
+                if (name == "dispersed_flag") {
+                    if (value == "Y") {
+                        record.set('overall_flag', 'N');
+                        record.set('minor_flag', 'N');
+                    }
+                }
+            
+                if (name == "minor_flag") {
+                    if (value == "Y") {
+                        record.set('dispersed_flag', 'N');
+                        record.set('overall_flag', 'N');
+                    }
+                }
+            
+                //需求管理规则
+                if (name == "req_management_rule") {
+                    record.set('req_manage_org_name', null);
+                    record.set('req_manage_org_id', null);
+                    record.set('req_agency_org_name', null);
+                    record.set('req_agency_org_id', null);
+            
+                    //自主管理
+                    if (value == "SELF_MANAGEMENT") {
+                        record.getMeta().getField('req_manage_org_name').setRequired(false);
+                        record.getMeta().getField('req_manage_org_name').setReadOnly(true);
+                        record.getMeta().getField('req_agency_org_name').setReadOnly(true);
+            
+                        //统一管理
+                    } else if (value == "UNIFIED_MANAGEMENT") {
+                        record.getMeta().getField('req_manage_org_name').setRequired(true);
+                        record.getMeta().getField('req_manage_org_name').setReadOnly(false);
+                        record.getMeta().getField('req_agency_org_name').setReadOnly(false);
+            
+                    } else {
+                        record.getMeta().getField('req_manage_org_name').setRequired(true);
+                        record.getMeta().getField('req_manage_org_name').setReadOnly(false);
+                        record.getMeta().getField('req_agency_org_name').setReadOnly(false);
+                    }
+                }
+            
+                //执行管理规则
+                if (name == "pur_management_rule") {
+                    record.set('pur_manage_org_name', null);
+                    record.set('pur_manage_org_id', null);
+                    record.set('pur_agency_org_name', null);
+                    record.set('pur_agency_org_id', null);
+            
+                    //自主管理
+                    if (value == "SELF_MANAGEMENT") {
+                        record.getMeta().getField('pur_manage_org_name').setRequired(false);
+                        record.getMeta().getField('pur_manage_org_name').setReadOnly(true);
+                        record.getMeta().getField('pur_agency_org_name').setReadOnly(true);
+            
+                        //统一管理
+                    } else if (value == "UNIFIED_MANAGEMENT") {
+                        record.getMeta().getField('pur_manage_org_name').setRequired(true);
+                        record.getMeta().getField('pur_manage_org_name').setReadOnly(false);
+                        record.getMeta().getField('pur_agency_org_name').setReadOnly(false);
+            
+                    } else {
+                        record.getMeta().getField('pur_manage_org_name').setRequired(true);
+                        record.getMeta().getField('pur_manage_org_name').setReadOnly(false);
+                        record.getMeta().getField('pur_agency_org_name').setReadOnly(false);
+                    }
+                }
+            }
+            
+            
+            //完成快速规则创建
+            function pur2060_completeQuickRule() {
+            
+                //保存时数据的校验
+                if ($('pur2060_pur_quick_management_rule_detail_ds').validate()) {
+            
+                    //获取规则明细数据信息
+                    var record = $('pur2060_pur_quick_management_rule_detail_ds').getCurrentRecord();
+                    
+                    //校验全局集采，分散集采，零星采购三个中必须有一个打勾
+                    if(record.get('overall_flag')=="N"&&record.get('dispersed_flag')=="N"&&record.get('minor_flag')=="N"){
+                        Aurora.showMessage('${l:PROMPT}','${l:PUR_MANAGEMENT_QUICK_RULE_STEP3.QUESTION_DESC}!');
+                        return false;
+                    }
+            
+                    var datas = {
+                        overall_flag: record.get('overall_flag'),
+                        dispersed_flag: record.get('dispersed_flag'),
+                        minor_flag: record.get('minor_flag'),
+                        quota_manage_type: record.get('quota_manage_type'),
+                        req_management_rule: record.get('req_management_rule'),
+                        req_manage_org_id: record.get('req_manage_org_id'),
+                        req_agency_org_id: record.get('req_agency_org_id'),
+                        pur_management_rule: record.get('pur_management_rule'),
+                        pur_manage_org_id: record.get('pur_manage_org_id'),
+                        pur_agency_org_id: record.get('pur_agency_org_id')
+                    };
+            
+                    //设置采购品类和公司的数组数据
+                    datas['category'] = g_category_array;
+                    datas['company'] = g_company_array;
+            
+                    //提交AjAX请求
+                    Aurora.showConfirm('${l:PROMPT}', '${l:PROMPT.SURE_TO_COMPLETE_CREATE}', function() {
+                        $('pur2060_completeQuickRule_btn').disable();
+                        Aurora.request({
+                            url: $('pur2060_link_pur_management_quick_rule_complete').getUrl(),
+                            para: datas,
+                            success: function() {
+	                            $('pur2060_completeQuickRule_btn').enable();
+                                Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.CREATE_COMPLETENESS}', pur2060_quickRuleStep3ToManagementRule);
+                            },
+                            failure: function() {
+	                            $('pur2060_completeQuickRule_btn').enable();
+	                        },
+	                        error: function(){
+	                            $('pur2060_completeQuickRule_btn').enable();
+	                        },
+                            scope: this
+                        });
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur2060_req_management_rule_list_ds" lookupCode="PUR_MANAGEMENT_RULES"/>
+            <a:dataSet id="pur2060_pur_management_rule_list_ds" lookupCode="PUR_MANAGEMENT_RULES"/>
+            <a:dataSet id="pur2060_pur_management_detail_quota_type_list_ds" lookupCode="INV_ITEM_QUOTA_TYPE"/>
+            <a:dataSet id="pur2060_pur_quick_management_rule_detail_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="overall_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="dispersed_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="minor_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="req_management_rule_display" displayField="code_value_name" options="pur2060_req_management_rule_list_ds" required="true" requiredMessage="PUR_MANAGEMENT_QUICK_RULE_STEP3.REQ_MANAGEMENT_RULE_DISPLAY" returnField="req_management_rule" valueField="code_value"/>
+                    <a:field name="quota_manage_type_display" displayField="code_value_name" options="pur2060_pur_management_detail_quota_type_list_ds" prompt="INV_SYS_ITEMS.QUOTA_MANAGE_TYPE" returnField="quota_manage_type" valueField="code_value"/>
+                    <a:field name="req_manage_org_name" autoComplete="true" autoCompleteField="pur_organization_name" lovGridHeight="350" lovHeight="500" lovService="public.pur_organization_lov" lovWidth="550" required="true" requiredMessage="PUR_MANAGEMENT_QUICK_RULE_STEP3.REQ_MANAGE_ORG_DESC" title="PUR_MANAGEMENT_QUICK_RULE_STEP3.REQ_MANAGE_ORG_TITLE">
+                        <a:mapping>
+                            <a:map from="pur_organization_name" to="req_manage_org_name"/>
+                            <a:map from="pur_organization_id" to="req_manage_org_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="req_agency_org_name" autoComplete="true" autoCompleteField="pur_organization_name" lovGridHeight="350" lovHeight="500" lovService="public.pur_organization_lov" lovWidth="550" title="PUR_MANAGEMENT_QUICK_RULE_STEP3.REQ_AGENCY_ORG_NAME">
+                        <a:mapping>
+                            <a:map from="pur_organization_name" to="req_agency_org_name"/>
+                            <a:map from="pur_organization_id" to="req_agency_org_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pur_management_rule_display" displayField="code_value_name" options="pur2060_pur_management_rule_list_ds" required="true" requiredMessage="PUR_MANAGEMENT_QUICK_RULE_STEP3.PUR_MANAGEMENT_RULE_DISPLAY" returnField="pur_management_rule" valueField="code_value"/>
+                    <a:field name="pur_manage_org_name" autoComplete="true" autoCompleteField="pur_organization_name" lovGridHeight="350" lovHeight="500" lovService="public.pur_organization_lov" lovWidth="550" required="true" requiredMessage="PUR_MANAGEMENT_QUICK_RULE_STEP3.PUR_MANAGE_ORG_DESC" title="PUR_MANAGEMENT_QUICK_RULE_STEP3.PUR_MANAGE_ORG_TITLE">
+                        <a:mapping>
+                            <a:map from="pur_organization_name" to="pur_manage_org_name"/>
+                            <a:map from="pur_organization_id" to="pur_manage_org_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pur_agency_org_name" autoComplete="true" autoCompleteField="pur_organization_name" lovGridHeight="350" lovHeight="500" lovService="public.pur_organization_lov" lovWidth="550" title="PUR_MANAGEMENT_QUICK_RULE_STEP3.PUR_AGENCY_ORG_NAME">
+                        <a:mapping>
+                            <a:map from="pur_organization_name" to="pur_agency_org_name"/>
+                            <a:map from="pur_organization_id" to="pur_agency_org_id"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur2060_onPurQuickManagementRuleDetailDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:toolbarButton click="pur2060_quickRuleStep3ToManagementRule" text="HAP_CANCEL" width="100"/>
+                <a:toolbarButton click="pur2060_quickRuleStep3ToQuickRuleStep2" style="margin-left:20px;" text="PROMPT.BACK_TO_LAST_STEP" width="100"/>
+                <a:toolbarButton id="pur2060_completeQuickRule_btn" click="pur2060_completeQuickRule" style="margin-left:20px;" text="PROMPT.COMPLETE" width="100"/>
+            </a:screenTopToolbar>
+            <a:vBox>
+                <a:hBox height="30" labelWidth="90">
+                    <a:checkBox name="overall_flag" bindTarget="pur2060_pur_quick_management_rule_detail_ds" prompt="PUR_MANAGEMENT_RULES.OVERALL_FLAG"/>
+                    <a:checkBox name="dispersed_flag" bindTarget="pur2060_pur_quick_management_rule_detail_ds" prompt="PUR_MANAGEMENT_RULES.DISPERSED_FLAG"/>
+                    <a:checkBox name="minor_flag" bindTarget="pur2060_pur_quick_management_rule_detail_ds" prompt="PUR_MANAGEMENT_RULES.MINOR_FLAG"/>
+                </a:hBox>
+                <a:hBox height="30" labelWidth="90">
+                    <a:comboBox name="quota_manage_type_display" bindTarget="pur2060_pur_quick_management_rule_detail_ds" prompt="PUR_MANAGEMENT_RULES.QUOTA_MANAGE_TYPE" width="80"/>
+                </a:hBox>
+                <a:hBox height="30" labelWidth="90">
+                    <a:comboBox name="req_management_rule_display" bindTarget="pur2060_pur_quick_management_rule_detail_ds" prompt="PUR_MANAGEMENT_RULE_DTLS.REQ_MANAGEMENT_RULE" width="80"/>
+                    <a:lov name="req_manage_org_name" bindTarget="pur2060_pur_quick_management_rule_detail_ds" prompt="PUR_MANAGEMENT_RULE_DTLS.REQ_MANAGE_ORG_ID"/>
+                </a:hBox>
+                <a:hBox height="30" labelWidth="90">
+                    <a:label width="172"/>
+                    <a:lov name="req_agency_org_name" bindTarget="pur2060_pur_quick_management_rule_detail_ds" prompt="PUR_MANAGEMENT_RULE_DTLS.REQ_AGENCY_ORG_ID"/>
+                </a:hBox>
+                <a:hBox height="30" labelWidth="90">
+                    <a:comboBox name="pur_management_rule_display" bindTarget="pur2060_pur_quick_management_rule_detail_ds" prompt="PUR_MANAGEMENT_RULE_DTLS.PUR_MANAGEMENT_RULE" width="80"/>
+                    <a:lov name="pur_manage_org_name" bindTarget="pur2060_pur_quick_management_rule_detail_ds" prompt="PUR_MANAGEMENT_RULE_DTLS.PUR_MANAGE_ORG_ID"/>
+                </a:hBox>
+                <a:hBox height="30" labelWidth="90">
+                    <a:label width="172"/>
+                    <a:lov name="pur_agency_org_name" bindTarget="pur2060_pur_quick_management_rule_detail_ds" prompt="PUR_MANAGEMENT_RULE_DTLS.PUR_AGENCY_ORG_ID"/>
+                </a:hBox>
+            </a:vBox>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

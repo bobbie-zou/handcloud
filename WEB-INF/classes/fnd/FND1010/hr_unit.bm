@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-6-2 下午5:05:30  
+    $Revision: 1.0  
+    $Purpose:组织架构定义，部门定义 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	SELECT t.unit_id,
+				       t.unit_code,
+				       t.unit_desc,
+				       t.company_id,
+				       t.responsibility_center_id,
+				       t.parent_unit_id,
+				       (SELECT pu.unit_code || '-' || pu.unit_desc FROM exp_org_unit_vl pu WHERE pu.unit_id = t.parent_unit_id) AS parent_unit_display,
+				       t.operate_unit_id,
+				       t.chief_position_id,
+				       t.org_unit_level_id,
+				       t.enabled_flag,
+				       t.assign_types_id,
+				       t.sequence,
+				       'N' as expand_flag,
+				       t.client,
+				       t.data_source,
+				       t.data_source_id,
+				       t.data_source_code,
+				       t.data_source_name
+				  FROM exp_org_unit_vl t
+				#AUTHORIY_FROM# 
+ 				#WHERE_CLAUSE# 
+ 				#AUTHORIY_WHERE# 
+ 				 ORDER BY t.sequence
+		]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+    		BEGIN
+			  exp_org_unit_pkg.create_org_unit(p_unit_code       			=> ${@unit_code},
+	                                           p_description       			=> ${@unit_desc},
+	                                           p_company_id 				=> ${@company_id},
+	                                           p_responsibility_center_id  	=> ${@responsibility_center_id},
+	                                           p_parent_unit_id    			=> ${@parent_unit_id},
+	                                           p_operate_unit_id   			=> ${@operate_unit_id},
+	                                           p_enabled_flag  				=> nvl(${@enabled_flag},'Y'),
+	                                           p_chief_position_id          => ${@chief_position_id},
+	                                           p_org_unit_level_id  		=> ${@org_unit_level_id},
+	                                           p_assign_types_id    		=> ${@assign_types_id},
+	                                           p_sequence           		=> ${@sequence},
+	                                           p_created_by         	  	=> ${/session/@user_id});
+			END;
+    	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+    		BEGIN
+			  exp_org_unit_pkg.modify_org_unit(p_unit_code       			=> ${@unit_code},
+	                                           p_description       			=> ${@unit_desc},
+	                                           p_company_id 				=> ${@company_id},
+	                                           p_responsibility_center_id  	=> ${@responsibility_center_id},
+	                                           p_parent_unit_id    			=> ${@parent_unit_id},
+	                                           p_operate_unit_id   			=> ${@operate_unit_id},
+	                                           p_enabled_flag  				=> ${@enabled_flag},
+	                                           p_chief_position_id          => ${@chief_position_id},
+	                                           p_org_unit_level_id  		=> ${@org_unit_level_id},
+	                                           p_assign_types_id    		=> ${@assign_types_id},
+	                                           p_sequence           		=> ${@sequence},
+	                                           p_created_by         	  	=> ${/session/@user_id});
+			END;
+    	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+    		BEGIN
+			  exp_org_unit_pkg.disable_org_unit(p_unit_id	=> ${@unit_id},
+		                                        p_user_id   => ${/session/@user_id});
+			END;
+    	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+    		BEGIN
+			  exp_org_unit_pkg.enable_org_unit(p_unit_id	=> ${@unit_id},
+		                                       p_user_id	=> ${/session/@user_id});
+			END;
+    	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="unit_id" queryExpression="t.unit_id = ${@unit_id}"/>
+        <bm:query-field name="unit_code_name" queryExpression="(t.unit_code like &apos;%&apos;||trim(${@unit_code_name})||&apos;%&apos; or t.unit_desc like &apos;%&apos;||trim(${@unit_code_name})||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+        <bm:data-filter expression="t.company_id = ${@company_id}"/>
+    </bm:data-filters>
+    <authority client_alias="t" client_name="client"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

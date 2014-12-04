@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-2-26 上午10:50:59  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select * from (            
+select ia.tmpl_insc_attr_id,
+       ia.tmpl_instance_id,
+       ia.tmpl_instance_version,
+       ia.display_sequence,
+       ia.attribute_code,
+       ia.attribute_desc,
+       ia.data_source,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = ia.data_source
+           and sc.code = 'FLEX_INSC_ATTR_DATA_SOURCE') data_source_desc,
+       ia.appl_attribute,
+       ia.group_attribute_id,
+       ga.attribute_code group_attribute_code,
+       ga.attribute_desc group_attribute_desc,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = ia.data_source
+           and sc.code = 'FLEX_INSC_ATTR_LEVEL_TYPE') level_type_desc,
+       ia.flex_value_set_id,
+       vs.flex_value_set_code,
+       vs.flex_value_set_desc,
+       ia.flex_format_id,
+       ff.format_category,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = ff.format_category
+           and sc.code = 'FLEX_FORMAT_CATEGORY') format_category_desc,
+       ff.display_example,
+       ia.enabled_flag,
+       ia.nullable_flag,
+       ia.extend_instance_id
+  from fnd_flex_tmpl_insc_attrs_vl ia,
+       fnd_flex_tmpl_group_attrs_vl ga,
+       fnd_flex_value_sets_vl vs,
+       fnd_flex_formats ff
+ where ia.group_attribute_id = ga.group_attribute_id(+)
+   and ia.flex_value_set_id = vs.flex_value_set_id(+)
+   and ia.flex_format_id = ff.flex_format_id) t
+  #WHERE_CLAUSE# 
+  order by display_sequence   
+
+
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    fnd_flex_tmpl_instance_pkg.create_all_tmpl_insc_attr(x_tmpl_insc_attr_id     => ${@tmpl_insc_attr_id},
+                                      p_tmpl_instance_id      => ${@tmpl_instance_id},
+                                      p_tmpl_instance_version => ${@tmpl_instance_version},
+                                      p_attribute_code        => ${@attribute_code},
+                                      p_description           => ${@attribute_desc},
+                                      p_data_source           => ${@data_source},
+                                      p_appl_attribute        => ${@appl_attribute},
+                                      p_group_attribute_id    => ${@group_attribute_id},
+                                      p_flex_value_set_id     => ${@flex_value_set_id},
+                                    --  p_extend_instance_id    => null,
+                                      p_flex_format_id        => ${@flex_format_id},
+                                      p_enabled_flag          => ${@enabled_flag},
+                                      p_nullable_flag         => ${@nullable_flag},
+                                      p_display_sequence      => ${@display_sequence},
+                                      p_user_id               => ${/session/@user_id});
+                                  
+                END;
+            ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="tmpl_insc_attr_id" input="false" output="true"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    fnd_flex_tmpl_instance_pkg.modify_tmpl_insc_attr(p_tmpl_instance_id      => ${@tmpl_instance_id},
+                                  p_tmpl_instance_version => ${@tmpl_instance_version},
+                                  p_attribute_code        => ${@attribute_code},
+                                  p_description           => ${@attribute_desc},
+                                  p_data_source           => ${@data_source},
+                                  p_appl_attribute        => ${@appl_attribute},
+                                  p_group_attribute_id    => ${@group_attribute_id},
+                                  p_flex_value_set_id     => ${@flex_value_set_id},
+                                  --p_extend_instance_id    in number default c_default_basic_number,
+                                  p_flex_format_id        => ${@flex_format_id},
+                                  p_enabled_flag          => ${@enabled_flag},
+                                  p_nullable_flag         => ${@nullable_flag},
+                                  p_display_sequence      => ${@display_sequence},
+                                  p_user_id                => ${/session/@user_id});
+                                  
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="tmpl_instance_id" queryExpression="tmpl_instance_id=${@tmpl_instance_id}"/>
+        <bm:query-field name="tmpl_insc_attr_id" queryExpression="tmpl_insc_attr_id=${@tmpl_insc_attr_id}"/>
+        <bm:query-field name="version" queryExpression="tmpl_instance_version=${@version}"/>
+        <bm:query-field name="appl_attribute" queryExpression="appl_attribute=${@appl_attribute}"/>
+        <bm:query-field name="attribute_code" queryExpression="attribute_code like &apos;%&apos;||${@attribute_code}||&apos;%&apos;"/>
+        <bm:query-field name="attribute_desc" queryExpression="attribute_desc like &apos;%&apos;||${@template_desc}||&apos;%&apos;"/>
+        <bm:query-field name="quick_value" queryExpression="(attribute_code like &apos;%&apos;||upper(${@quick_value})||&apos;%&apos; or attribute_desc like &apos;%&apos;||${@quick_value}||&apos;%&apos;)"/>
+    </bm:query-fields>
+</bm:model>

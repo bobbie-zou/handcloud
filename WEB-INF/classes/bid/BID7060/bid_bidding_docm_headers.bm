@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-27 下午4:49:14  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="bid_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="bid_header_number" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="bidder_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="bidder_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="application_date" databaseType="DATE" datatype="java.util.Date"/>
+        <bm:field name="entrustment_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="entrustment_header_number" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="complete_date" databaseType="DATE" datatype="java.util.Date"/>
+        <bm:field name="bid_closing_date" databaseType="DATE" datatype="java.util.Date"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="company_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="entrustment_type_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="entrustment_type_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="currency_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="currency_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="round" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="version" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="margin_required_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="margin_required_flag_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="comments" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    dh.bid_header_id,
+                    dh.bid_header_number,
+                    dh.bidder_id,
+                    (SELECT v.vendor_full_name FROM pur_system_vendors_vl v WHERE v.vendor_id = dh.bidder_id
+                    ) AS bidder_desc,
+                    dh.application_date,
+                    dh.entrustment_header_id,
+                    eh.entrustment_header_number,
+                    eh.complete_date,
+                    eh.bid_closing_date,
+                    eh.company_id,
+                    (SELECT
+                        fc.company_short_name
+                    FROM
+                        fnd_companies_vl fc
+                    WHERE
+                        fc.company_id = eh.company_id
+                    ) as company_desc,
+                    eh.entrustment_type_id,
+                    (SELECT
+                        bet.entrustment_type_desc
+                    FROM
+                        bid_entrustment_types_vl bet
+                    WHERE
+                        bet.entrustment_type_id = eh.entrustment_type_id
+                    ) AS entrustment_type_desc,
+                    eh.currency_code,
+                    (SELECT
+                        gc.currency_name
+                    FROM
+                        gld_currency_vl gc
+                    WHERE
+                        gc.currency_code = eh.currency_code
+                    ) AS currency_name,
+                    dh.round,
+                    dh.version,
+                    eh.margin_required_flag,
+                    (SELECT
+                        scv.code_value_name
+                    FROM
+                        sys_code_values_v scv
+                    WHERE
+                        scv.code                    = 'YES_OR_NO' AND
+                        scv.code_enabled_flag       = 'Y' AND
+                        scv.code_value_enabled_flag = 'Y' AND
+                        scv.code_value              = eh.margin_required_flag
+                    ) AS margin_required_flag_desc,
+                    dh.comments
+                FROM
+                    bid_entrustment_headers eh,
+                    bid_bidding_docm_headers dh
+                WHERE
+                    eh.entrustment_header_id = dh.entrustment_header_id(+) AND
+                    dh.bid_header_id          = ${/parameter/@bid_header_id}
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

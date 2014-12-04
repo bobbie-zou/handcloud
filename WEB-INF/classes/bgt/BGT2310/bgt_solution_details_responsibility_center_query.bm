@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[		select t.*,${@bgt_solution_header_id} bgt_solution_header_id
+		  from (select a.responsibility_center_code,
+					   a.responsibility_center_name responsibility_center_desc,
+					   a.responsibility_center_id,
+					   a.summary_flag
+				  from fnd_responsibility_centers_vl a
+				 where not exists
+				 (select 1
+						  from bgt_solution_tmp b
+						 where b.parameter_type = 'BGT_SOLUTION_PARAMETER_ORG'
+               and b.parameter_code = 'RESPONSIBILITY_CENTER'
+               and b.session_id = ${/session/@session_id}
+               and b.bgt_solution_header_id = ${@bgt_solution_header_id}
+               and b.parameter_value_id = a.responsibility_center_id)
+          and exists
+         (select 1
+              from fnd_companies c
+             where c.company_id = a.company_id
+               and exists
+             (select 1
+                  from fnd_companies d
+                 where d.set_of_books_id = c.set_of_books_id
+                   and d.company_id = ${/session/@company_id}))) t
+         #WHERE_CLAUSE#
+     order by t.responsibility_center_code]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="responsibility_center_code" dataType="java.lang.String" queryExpression="responsibility_center_code like &apos;%&apos;||upper(${@responsibility_center_code})||&apos;%&apos;"/>
+        <bm:query-field name="responsibility_center_desc" dataType="java.lang.String" queryExpression="responsibility_center_desc like &apos;%&apos;||${@responsibility_center_desc}||&apos;%&apos;"/>
+        <bm:query-field name="responsibility_center_code_from" dataType="java.lang.String" queryExpression="responsibility_center_code &gt;= upper(${@responsibility_center_code_from})"/>
+        <bm:query-field name="responsibility_center_code_to" dataType="java.lang.String" queryExpression="responsibility_center_code &lt;= upper(${@responsibility_center_code_to})"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter><![CDATA[
+              ((${@summary_flag} = 'Y' and ${@detail_flag} = 'Y') or (nvl(t.summary_flag,'N') = 'N' and ${@detail_flag} = 'Y' and ${@summary_flag} = 'N') or
+              (nvl(t.summary_flag,'N') = 'Y' and ${@detail_flag} = 'N' and ${@summary_flag} = 'Y') or (${@summary_flag} = 'N' and ${@detail_flag} = 'N'))
+        ]]></bm:data-filter>
+    </bm:data-filters>
+</bm:model>

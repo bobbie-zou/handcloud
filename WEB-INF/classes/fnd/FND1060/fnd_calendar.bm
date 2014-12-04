@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:ns2="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="fc" baseTable="fnd_calendar" defaultorderby="calendar_code">
+    <bm:fields>
+        <bm:field name="calendar_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="calendar_code" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_CALENDAR.CALENDAR_CODE"/>
+        <bm:field name="description_id" databaseType="BIGINT" datatype="java.lang.Long" multiLanguage="true" multiLanguageDescField="description"/>
+        <bm:field name="description" databaseType="VARCHAR" datatype="java.lang.String" forInsert="false" forUpdate="false" prompt="FND_CALENDAR.DESCRIPTION"/>
+        <bm:field name="start_date" databaseType="DATE" datatype="java.sql.Date" prompt="HAP_START_DATE"/>
+        <bm:field name="end_date" databaseType="DATE" datatype="java.sql.Date" prompt="HAP_END_DATE"/>
+    </bm:fields>
+    <bm:primary-key>
+        <bm:pk-field name="calendar_id"/>
+    </bm:primary-key>
+    <bm:query-fields>
+        <bm:query-field field="calendar_id" queryOperator="="/>
+        <bm:query-field field="calendar_code" queryOperator="like"/>
+        <bm:query-field field="description" queryExpression="exists (select 1 from fnd_descriptions fd where fc.description_id=fd.description_id and fd.description_text like ${@description} and fd.language = ${/session/@lang})"/>
+    </bm:query-fields>
+    <bm:features>
+        <ns2:sequence-pk/>
+        <f:standard-who/>
+        <f:multi-language-storage/>
+    </bm:features>
+    <bm:ref-fields/>
+    <bm:operations>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="calendar_id" input="false" output="true" outputPath="@calendar_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+            	begin
+            	    fnd_calendar_pkg.insert_calendar(p_calendar_code => ${@calendar_code},
+						                             p_description   => ${@description},
+						                             p_start_date    => ${@start_date},
+						                             p_end_date      => ${@end_date},
+						                             p_created_by    => ${/session/@user_id},
+						                             p_language_code => ${/session/@lang},
+						                             p_calendar_id   => ${@calendar_id});
+            	end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            	begin
+            	    fnd_calendar_pkg.update_calendar(p_calendar_id   => ${@calendar_id},
+						                             p_description   => ${@description},
+						                             p_start_date    => ${@start_date},
+						                             p_end_date      => ${@end_date},
+						                             p_created_by    => ${/session/@user_id},
+						                             p_language_code => ${/session/@lang});
+            	end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+            	begin
+            	    fnd_calendar_pkg.delete_calendar(p_calendar_id => ${@calendar_id},
+                            						 p_user_id     => ${/session/@user_id});
+            	end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

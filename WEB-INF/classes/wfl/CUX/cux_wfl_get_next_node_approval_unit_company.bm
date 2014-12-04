@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: FelixDru  
+    $Date: 2014-1-3 下午3:31:37  
+    $Revision: 1.0  
+    $Purpose: 查询下一审批人列表所在的公司及部门TREE
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT v.text,
+       v.id,
+       v.parent_id,
+       v.company_id,
+       v.unit_id
+  FROM (SELECT text,
+               id,
+               parent_id,
+               company_id,
+               unit_id
+          FROM (SELECT DISTINCT f.company_short_name AS text,
+                                'C' || f.company_id AS id,
+                                'C' || f.parent_company_id AS parent_id,
+                                f.company_id,
+                                NULL AS unit_id,
+                                company_code
+                  FROM fnd_companies_vl          f,
+                       cux_wfl_next_node_company c
+                 WHERE f.company_id = c.company_id
+                       AND c.record_id = ${@record_id})
+         ORDER BY company_code) v
+
+UNION ALL
+SELECT text,
+       id,
+       parent_id,
+       company_id,
+       unit_id
+  FROM (SELECT DISTINCT o.description AS text,
+               'U' || o.unit_id AS id,
+               'C' || o.company_id AS parent_id,
+               o.company_id,
+               o.unit_id,
+               unit_code
+          FROM exp_org_unit_vl o
+         WHERE EXISTS (SELECT 1
+                  FROM cux_wfl_node_approval na,
+                       sys_user              su,
+                       exp_employees         ee,
+                       exp_employee_assigns  ea,
+                       exp_org_position      op
+                 WHERE na.employee_id = su.user_id
+                       AND su.employee_id = ee.employee_id
+                       AND (su.end_date IS NULL OR SYSDATE BETWEEN su.start_date AND su.end_date)
+                       AND ee.employee_id = ea.employee_id
+                       AND ea.enabled_flag = 'Y'
+                       AND ea.position_id = op.position_id
+                       AND op.unit_id = o.unit_id
+                       AND op.enabled_flag = 'Y'
+                       AND na.record_id = ${@record_id})
+         ORDER BY unit_code) v
+  #WHERE_CLAUSE#
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="text" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="TEXT"/>
+        <bm:field name="id" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ID"/>
+        <bm:field name="parent_id" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARENT_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID"/>
+        <bm:field name="unit_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="UNIT_ID"/>
+    </bm:fields>
+</bm:model>

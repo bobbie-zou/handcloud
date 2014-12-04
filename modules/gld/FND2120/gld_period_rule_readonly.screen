@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tangrunyu3837 $
+    $Date: 2013/06/19 07:06:10 $
+    $Revision: 1.3 $
+    $Purpose: 会计期定义 - 创建规则
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="fnd_2120_gld_period_create_link" url="${/request/@context_path}/modules/gld/FND2120/gld_period_create.screen"/>
+        <script><![CDATA[
+            function fnd_2120_adjustmentFlag(value, record, name) {
+                if (name == 'adjustment_flag') {
+                    if (value == 'Y') {
+                        return '${l:HAP_YES}';
+                    } else {
+                        return '${l:HAP_NO}';
+                    }
+                }
+            }
+            
+            function fnd_2120_newPeriod() {
+                new Aurora.Window({
+                    id: 'fnd_2120_gld_period_create_window',
+                    url: /*gld_period_create.screen*/
+                    $('fnd_2120_gld_period_create_link').getUrl() + '?period_set_code=' + $('fnd_2120_gld_period_set_info_ds').getCurrentRecord().get('period_set_code'),
+                    title: '${l:DEFINITION_OF_ACCOUNTING_PERIOD_CREATE_PERIOD}',
+                    height: 240,
+                    width: 330
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd_2120_gld_period_set_info_ds" fetchAll="false" loadData="true" model="gld.gld_period_sets" selectable="true">
+                <a:fields>
+                    <a:field name="period_set_code" readOnly="true"/>
+                    <a:field name="period_set_name" readOnly="true"/>
+                    <a:field name="total_period_num" readOnly="true"/>
+                    <a:field name="period_additional_flag_display" displayField="code_value_name" options="fnd_2120_gld_period_set_additional_flag_ds" readOnly="true" returnField="period_additional_flag" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd_2120_gld_period_rules_ds" autoQuery="true" fetchAll="false" model="gld.FND2120.gld_period_rules" queryUrl="${/request/@context_path}/autocrud/gld.FND2120.gld_period_rules/query?ORDER_FIELD=period_num&amp;period_set_code=${/parameter/@period_set_code}">
+                <a:fields>
+                    <a:field name="period_set_code" defaultValue="${/parameter/@period_set_code}"/>
+                    <a:field name="period_additional_name" required="true"/>
+                    <a:field name="month_from" required="true"/>
+                    <a:field name="month_to" required="true"/>
+                    <a:field name="date_from" required="true"/>
+                    <a:field name="date_to" required="true"/>
+                    <a:field name="quarter_num" required="true"/>
+                    <a:field name="adjustment_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" title="GLD_PERIOD_SET.PERIOD_SET_QUERY" width="500">
+                <a:textField name="period_set_code" bindTarget="fnd_2120_gld_period_set_info_ds"/>
+                <a:textField name="period_set_name" bindTarget="fnd_2120_gld_period_set_info_ds"/>
+                <a:textField name="total_period_num" bindTarget="fnd_2120_gld_period_set_info_ds"/>
+                <a:comboBox name="period_additional_flag_display" bindTarget="fnd_2120_gld_period_set_info_ds"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="fnd_2120_newPeriod" text="GLD_PERIOD_RULE_CREATE_PERIOD"/>
+            </a:hBox>
+            <a:grid bindTarget="fnd_2120_gld_period_rules_ds" height="330" navBar="true" width="650">
+                <a:columns>
+                    <a:column name="period_additional_name" align="center" width="100"/>
+                    <a:column name="month_from" align="center" width="85"/>
+                    <a:column name="date_from" align="center" width="85"/>
+                    <a:column name="month_to" align="center" width="85"/>
+                    <a:column name="date_to" align="center" width="85"/>
+                    <a:column name="quarter_num" align="center" width="85"/>
+                    <a:column name="adjustment_flag" renderer="fnd_2120_adjustmentFlag"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

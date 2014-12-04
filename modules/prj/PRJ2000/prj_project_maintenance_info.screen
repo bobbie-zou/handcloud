@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: likun1919 $
+    $Date: 2013/01/09 01:47:35 $
+    $Revision: 1.1.1.1 $
+    $Purpose: xxx-xxx
+-->
+<!--
+	$lov size
+	lovWidth="400" lovGridHeight="300" lovHeight="450"
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="project_id=${@project_id}" model="prj.PRJ2000.prj_project_maintenance_query" rootPath="prj_maintenance_info"/>
+        <a:model-query defaultWhereClause="1=1 order by employee_code" model="prj.PRJ2000.prj_project_members_control" rootPath="prj_mem_ctrl"/>
+        <a:model-query defaultWhereClause="project_id = ${@project_id} order by company_code" model="prj.PRJ2000.prj_project_company_query_control" rootPath="prj_com_ctrl"/>
+        <a:model-query defaultWhereClause="enabled_flag = &apos;Y&apos; order by project_type_code" model="prj.prj_project_types_query_control" rootPath="prj_type_id"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="prj_project_company_assigned_batch_link" url="${/request/@context_path}/modules/prj/PRJ2000/prj_project_company_assigned_batch.screen"/>
+        <script><![CDATA[ 
+            function info_save() {
+                $('prj_maintenance_info_query_ds').submit();
+            }
+            
+            function info_cancel() {
+                $('prj_project_maintenance_info').close();
+            }
+            
+            function onload_attachment() {
+            
+               }
+            
+            function batch_asign() {
+                new Aurora.Window({
+                    id: 'prj_project_company_assign_batch_win',
+                    url: /*prj_project_company_assigned_batch.screen*/$('prj_project_company_assigned_batch_link').getUrl()+'?project_id=1111111111111111111111111',
+                    title: '${l:PRJ_PROJECT_MAINTENANCE_INFO.COMPANY_ASSIGN}',
+                    width: 600,
+                    height: 500
+                });
+            }
+            
+            function employee_editor(record, name) {
+                if (record.isNew) return 'lov_edit';
+                else return '';
+            }
+            
+            function setInitPrj(dataSet, record) {
+                record.set('project_id', '${/parameter/@project_id}');
+            }
+            
+            function company_code_edit(record, name) {
+                if (record.isNew) return 'company_code_lov';
+                else return '';
+            }
+            
+            function setInit(dataSet, record) {
+                record.set('project_id', '${/parameter/@project_id}');
+            }
+            
+            function uploadFile() {
+                var url = "${/request/@context_path}/uploadFile.screen?table_name=PRJ_PROJECTS&header_id=${/parameter/@project_id}"
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                    id: 'exp_report_pmtplan_schedules_screen',
+                    width: 600,
+                    height: 400
+                });
+            }
+            
+            ]]></script>
+        <a:dataSets>
+            <a:dataSet id="prj_maintenance_info_tempalate_id_ds">
+                <a:datas dataSource="/model/prj_type_id"/>
+            </a:dataSet>
+            <a:dataSet id="mem_ctrl_ds" autoQuery="true" model="prj.PRJ2000.prj_project_members_control" queryUrl="${/request/@context_path}/autocrud/prj.PRJ2000.prj_project_members_control/query?project_id=${/parameter/@project_id}&amp;ORDER_FIELD=employee_code" selectable="true" submitUrl="${/request/@context_path}/autocrud/prj.PRJ2000.prj_project_members_control/batch_update">
+                <a:fields>
+                    <a:field name="employee_code" lovGridHeight="320" lovHeight="460" lovService="prj.PRJ2000.prj_project_members_lov" lovWidth="450" required="true" title="EXP_EMPLOYEE.EMPLOYEE_CODE">
+                        <a:mapping>
+                            <a:map from="employee_code" to="employee_code"/>
+                            <a:map from="name" to="employee_name"/>
+                            <a:map from="employee_id" to="employee_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="project_member_type_code" lovGridHeight="320" lovHeight="460" lovLabelWidth="120" lovService="prj.PRJ2000.prj_project_members_type_lov?ORDER_FIELD=project_member_type_code" lovWidth="500" required="true" title="PRJ_PROJECT_MEMBER_TYPES.PROJECT_MEMBER_TYPE_CODE">
+                        <a:mapping>
+                            <a:map from="project_member_type_code" to="project_member_type_code"/>
+                            <a:map from="description" to="project_types_description"/>
+                            <a:map from="project_member_type_id" to="member_type_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="start_date" required="true"/>
+                    <a:field name="end_date" required="true"/>
+                </a:fields>
+                <a:datas dataSource="/model/prj_mem_ctrl"/>
+                <a:events>
+                    <a:event name="add" handler="setInitPrj"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="com_ctrl_ds" autoQuery="true" model="prj.PRJ2000.prj_project_company_query_control" queryUrl="${/request/@context_path}/autocrud/prj.PRJ2000.prj_project_company_query_control/query?project_id=${/parameter/@project_id}&amp;ORDER_FIELD=company_code" selectable="true">
+                <a:fields>
+                    <a:field name="company_code" lovGridHeight="320" lovHeight="460" lovService="fnd.PRJ2000.prj_project_company_lov?ORDER_FIELD=company_code" lovWidth="500" required="true" title="FND_COMPANIES.COMPANY_CODE">
+                        <a:mapping>
+                            <a:map from="company_code" to="company_code"/>
+                            <a:map from="company_short_name" to="company_short_name"/>
+                            <a:map from="company_id" to="company_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:datas dataSource="/model/prj_com_ctrl"/>
+                <a:events>
+                    <a:event name="add" handler="setInit"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="prj_maintenance_info_query_ds" model="prj.PRJ2000.prj_project_maintenance_query" submitUrl="${/request/@context_path}/autocrud/prj.PRJ2000.prj_project_pkg_insert_project/batch_update">
+                <a:fields>
+                    <a:field name="projects_type_description" displayField="description" options="prj_maintenance_info_tempalate_id_ds" prompt="PRJ_PROJECTS.PROJECT_TYPE_ID" readOnly="true" returnField="project_type_id" valueField="project_type_id"/>
+                    <a:field name="project_code" readOnly="true"/>
+                    <a:field name="project_description" required="true"/>
+                    <a:field name="public_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="start_date" required="true"/>
+                    <a:field name="end_date" required="true"/>
+                </a:fields>
+                <a:datas dataSource="/model/prj_maintenance_info"/>
+            </a:dataSet>
+            <!--a:dataSet id="" autoCount="" autoQuery="" model="" pageSize="15" queryDataSet="" selectable="true"/-->
+        </a:dataSets>
+        <a:screenBody>
+            <a:form title="PRJ_PROJECTS.MAINTENANCE" width="580">
+                <a:hBox>
+                    <a:textField name="projects_type_description" bindTarget="prj_maintenance_info_query_ds" width="200"/>
+                    <a:hBox style="margin-left:70px">
+                        <a:checkBox name="public_flag" bindTarget="prj_maintenance_info_query_ds" label="PRJ_PROJECTS.PUBLIC_FLAG" prompt=""/>
+                        <a:checkBox name="enabled_flag" bindTarget="prj_maintenance_info_query_ds" label="PRJ_PROJECTS.ENABLED_FLAG" prompt=""/>
+                    </a:hBox>
+                </a:hBox>
+                <a:hBox>
+                    <a:textField name="project_code" bindTarget="prj_maintenance_info_query_ds" width="200"/>
+                    <a:textField name="project_description" bindTarget="prj_maintenance_info_query_ds" width="200"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:datePicker name="start_date" bindTarget="prj_maintenance_info_query_ds" width="200"/>
+                    <a:datePicker name="end_date" bindTarget="prj_maintenance_info_query_ds" width="200"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:textArea name="notes" bindTarget="prj_maintenance_info_query_ds" height="50" width="200"/>
+                </a:hBox>
+            </a:form>
+            <a:hBox>
+                <a:button click="info_save" text="PROMPT.SAVE"/>
+                <a:button click="info_cancel" text="PROMPT.CANCEL"/>
+            </a:hBox>
+            <a:hBox>
+                <a:button click="uploadFile" text="PROMPT.ATTACHMENT"/>
+                <a:button click="batch_asign" text="PROMPT.BATCH_DISP_COMPANY"/>
+            </a:hBox>
+            <a:tabPanel height="260" width="580">
+                <a:tabs>
+                    <a:tab prompt="PRJ_PROJECT_MAINTENANCE_INFO.COMPANY_ASSIGN">
+                        <a:grid id="com_ctrl_grid" bindTarget="com_ctrl_ds" height="215" width="560">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="clear"/>
+                                <a:button type="save"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="company_code" align="center" editorFunction="company_code_edit" width="180"/>
+                                <a:column name="company_short_name" align="center" width="280"/>
+                                <a:column name="enabled_flag" align="center" editor="enabled_flag_cb" width="50"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="company_code_lov"/>
+                                <a:checkBox id="enabled_flag_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="PRJ_PROJECT_MAINTENANCE_INFO.MEMBER_ASSIGN" selected="true">
+                        <a:grid id="mem_ctrl_grid" bindTarget="mem_ctrl_ds" height="230" width="575">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="clear"/>
+                                <a:button type="save"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="employee_code" align="center" editorFunction="employee_editor" width="70"/>
+                                <a:column name="employee_name" align="center" width="80"/>
+                                <a:column name="project_member_type_code" align="center" editor="lov_edit" width="90"/>
+                                <a:column name="project_types_description" align="center" width="105"/>
+                                <a:column name="start_date" align="center" editor="date_edit_dp" prompt="BGT_CONTROL_RULES.START_DATE" renderer="Aurora.formatDate" width="80"/>
+                                <a:column name="end_date" align="center" editor="date_edit_dp" prompt="FND_COMPANIES.END_DATE_ACTIVE" renderer="Aurora.formatDate" width="80"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="lov_edit"/>
+                                <a:datePicker id="date_edit_dp"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tony  
+    $Date: 2013-7-16 上午9:15:01  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="pur2200_edit_requistion_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_requisition_edit.screen"/>
+        <script><![CDATA[
+            function pur2200_return() {
+                $('pur2200_create_window').close();
+            }
+            
+            function pur2200_hd_update(ds, record, name, value, oldValue) {
+                if (name == 'company_id') {
+                    record.set('unit_desc', null);
+                    record.set('unit_id', null);
+                    record.set('pur_requisition_type_desc', null);
+                    record.set('pur_requisition_type_id', null);
+                    if (!Aurora.isEmpty(value)) {
+                        record.getField('unit_desc').setLovPara('enabled_flag', 'Y');
+                        record.getField('unit_desc').setLovPara('company_id', value);
+                        record.getField('unit_desc').setLovService('public.exp_org_unit_lov');
+                    } else {
+                        record.getField('unit_desc').setLovPara('enabled_flag', null);
+                        record.getField('unit_desc').setLovPara('company_id', null);
+                        record.getField('unit_desc').setLovService(null);
+                    }
+                    $('pur2200_req_type_create_ds').setQueryParameter('company_id', value);
+                    $('pur2200_req_type_create_ds').query();
+                }
+            }
+            
+            function pur2200_req_save() {
+                if (!$('pur2200_req_hd_ds').validate()) {
+                    return;
+                }
+                Aurora.Masker.mask($('pur2200_create_window').wrap, '正在加载...');
+                $('pur2200_req_hd_ds').submit();
+            }
+            
+            function pur2200_hd_submitsuccess(ds, res) {
+                Aurora.Masker.unmask($('pur2200_create_window').wrap);
+                var pur_requisition_header_id = res.result.pur_requisition_header_id;
+                new Aurora.Window({
+                    url: $('pur2200_edit_requistion_link').getUrl() + '?pur_requisition_header_id=' + pur_requisition_header_id,
+                    title: '采购申请维护',
+                    id: 'pur2200_edit_window',
+                    fullScreen: true
+                }).on('beforeclose', pur2200_result_query);
+                pur2200_return();
+            }
+            
+            function pur2200_hd_submitfailed(ds, res) {
+                Aurora.Masker.unmask($('pur2200_create_window').wrap);
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur2200_req_type_create_ds" model="pur.PUR3851.pur_requisition_types_query"/>
+            <a:dataSet id="pur2200_req_hd_ds" autoCreate="true" model="pur.PUR2200.pur_requisition_hds">
+                <a:fields>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="code_name" defaultValue="${/session/@default_company_desc}" lovGridHeight="350" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" required="true" title="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_short_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pur_requisition_num" readOnly="true"/>
+                    <a:field name="company_id" defaultValue="${/session/@default_company_id}"/>
+                    <a:field name="requisition_date"/>
+                    <a:field name="unit_desc" lovGridHeight="350" lovHeight="500" lovWidth="500" required="true" title="公司">
+                        <a:mapping>
+                            <a:map from="unit_desc" to="unit_desc"/>
+                            <a:map from="unit_id" to="unit_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="unit_id"/>
+                    <a:field name="requisition_person" required="true"/>
+                    <a:field name="note"/>
+                    <a:field name="currency_code" defaultValue="CNY"/>
+                    <a:field name="currency_desc" autoComplete="true" autoCompleteField="code_name" defaultValue="人民币" lovGridHeight="300" lovHeight="460" lovService="public.gld_currency_lov" lovWidth="490" required="true" title="CURRENCY_SELECTION">
+                        <a:mapping>
+                            <a:map from="currency_code" to="currency_code"/>
+                            <a:map from="currency_name" to="currency_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pur_requisition_type_id"/>
+                    <a:field name="pur_requisition_type_desc" displayField="description" options="pur2200_req_type_create_ds" required="true" returnField="pur_requisition_type_id" valueField="requisition_type_id">
+                        <a:mapping>
+                            <a:map from="default_template_id" to="template_id"/>
+                            <a:map from="default_template_desc" to="template_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="template_id"/>
+                    <a:field name="template_desc" lovGridHeight="320" lovHeight="500" lovService="public.fnd_flex_seg_table_template_lov?appl_table_name=PUR_REQUISITION_HDS" lovWidth="500" title="模版">
+                        <a:mapping>
+                            <a:map from="template_id" to="template_id"/>
+                            <a:map from="template_desc" to="template_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur2200_hd_update"/>
+                    <a:event name="submitsuccess" handler="pur2200_hd_submitsuccess"/>
+                    <a:event name="submitfailed" handler="pur2200_hd_submitfailed"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur2200_req_save" text="保存" width="100"/>
+                <a:toolbarButton click="pur2200_return" text="返回" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="150" padding="0">
+                <a:textField name="pur_requisition_num" bindTarget="pur2200_req_hd_ds" prompt="采购申请单号" readOnly="true"/>
+                <a:lov name="company_desc" bindTarget="pur2200_req_hd_ds" prompt="公司"/>
+                <a:lov name="unit_desc" bindTarget="pur2200_req_hd_ds" prompt="需求部门"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:comboBox name="pur_requisition_type_desc" bindTarget="pur2200_req_hd_ds" prompt="申请单类型"/>
+                <a:lov name="template_desc" bindTarget="pur2200_req_hd_ds" prompt="模板"/>
+                <a:lov name="currency_desc" bindTarget="pur2200_req_hd_ds" prompt="币种"/>
+                <!-- <a:textField name="requisition_date" bindTarget="pur2200_req_hd_ds" prompt="申请日期" readOnly="true"/> -->
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:textField name="requisition_person" bindTarget="pur2200_req_hd_ds" prompt="申请人"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:textArea name="note" bindTarget="pur2200_req_hd_ds" height="60" marginWidth="500" prompt="备注"/>
+            </a:hBox>
+        </a:defaultScreen>
+        <script><![CDATA[
+            function pur2200_init() {
+                var company_id = '${/session/@default_company_id}';
+                var record = $('pur2200_req_hd_ds').getAt(0);
+                if (!Aurora.isEmpty(company_id)) {
+                    record.getField('unit_desc').setLovPara('enabled_flag', 'Y');
+                    record.getField('unit_desc').setLovPara('company_id', company_id);
+                    record.getField('unit_desc').setLovService('public.exp_org_unit_lov');
+                }
+                $('pur2200_req_type_create_ds').setQueryParameter('company_id', company_id);
+                $('pur2200_req_type_create_ds').query();
+            }
+            
+            pur2200_init();
+        ]]></script>
+    </a:view>
+</a:screen>

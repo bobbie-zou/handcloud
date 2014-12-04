@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tuguanghui6743 $
+    $Date: 2014/9/11 15:36:05 $
+    $Revision: 1.0  
+    $Purpose: 我的签约应用，为角色分配签约应用
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="rv.role_id = ${/parameter/@role_id}" fetchAll="true" model="sys.SYS8120.sys_role_manage" rootPath="role_info"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            
+            //保存
+            function fnd8520_saveAsignBgRole() {
+                /* var records = $('fnd8520_AssignBgRoleFunction_ds').getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    if (record.dirty) {
+                        record.set('role_id', '${/parameter/@role_id}');
+                    }
+                } */
+                $('fnd8520_AssignBgRoleFunction_ds').submit();
+            }
+        	
+        	//关闭窗口
+            function fnd8520_closeAsignBgRole() {
+                $('fnd8520_assign_bg_role_link_window').close();
+            }
+            
+            
+            //比较日期大小
+            function fnd8520_compareDate(start, end){
+                if(start > end){
+                    return false;
+                }
+                return true;
+            }
+            
+            //触发update事件
+            function fnd8520_AssignBgRoleFunction_onUpdate(ds,record,name,value){
+                //当start_date或end_date更新时，验证合法性
+                if(name == 'start_date' || name == 'end_date'){
+                    record.validate((name == 'start_date') ? 'end_date' : 'start_date');
+                }
+            }
+            
+            //验证日期是否合法
+            function fnd8520_dateValidator(record, name, value){
+                if(name == 'start_date' || name == 'end_date'){
+                    var start_date = record.get('start_date');
+                    var end_date = record.get('end_date');
+                    if(!Aurora.isEmpty(end_date)){
+                        if(!fnd8520_compareDate(start_date, end_date)){
+                            return '${l:START_GREATER_THAN_END}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            
+            function fnd8520_AssignBgRoleFunction_onQuery(ds) {
+                //触发查询事件时，锁住按钮
+                /* $('fnd8520_AssignBgRoleFunction_add').disable();
+                $('fnd8520_AssignBgRoleFunction_delete').disable(); */
+                $('fnd8520_AssignBgRoleFunction_save').disable();
+                $('fnd8520_AssignBgRoleFunction_close').disable();
+            }
+            
+            function fnd8520_AssignBgRoleFunction_onLoad(ds) {
+                //触发加载数据事件时，解锁按钮
+                // $('fnd8520_AssignBgRoleFunction_add').enable();
+                // $('fnd8520_AssignBgRoleFunction_delete').enable();
+                $('fnd8520_AssignBgRoleFunction_save').enable();
+                $('fnd8520_AssignBgRoleFunction_close').enable();
+            }
+            
+            //触发保存成功事件
+            function fnd8520_AssignBgRoleFunction_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+            }
+            
+            /* function fnd8520_businessGroupLovFunction(record) {
+            	//如果是新增的数据则返回lov编辑器，否则没有编辑器
+                return record.isNew ? 'fnd8520_AssignBgRoleFunction_grid_lov' : '';
+            } */
+            
+            function fnd8520_AssignBgRoleFunctionEditor(record,name){
+                var level_num=record.get('level_num');
+                if(level_num=='3' ){
+                    //record.getField('start_date').setRequired(true);
+                    return 'fnd8520_AssignBgRoleFunction_grid_dp';
+                }
+                return '';
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd8520_bg_role_ds" model="sys.SYS8120.sys_role_manage">
+                <a:datas dataSource="/model/role_info"/>
+                <a:fields>
+                    <a:field name="role_name" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd8520_AssignBgRoleFunction_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="fnd.FND8520.fnd_bg_role_function" queryDataSet="fnd8520_bg_role_ds">
+                <a:fields>
+                    <a:field name="function_id"/>
+                    <!-- <a:field name="function_code" autoComplete="true" autoCompleteField="function_name" lovHeight="490" lovService="fnd.FND8520.fnd_function_assign_bg_lov" lovWidth="540" required="true" title="FND8520.ASSIGN_ROLE_BG_FUNCTION">
+                        <a:mapping>
+                            <a:map from="function_id" to="function_id"/>
+                            <a:map from="function_code" to="function_code"/>
+                            <a:map from="function_name" to="function_name"/>
+                        </a:mapping>
+                    </a:field> -->
+                    <a:field name="function_code"/>
+                    <a:field name="function_name"/>
+                    <a:field name="start_date" datatype="date" validator="fnd8520_dateValidator"/>
+                    <a:field name="end_date" datatype="date" validator="fnd8520_dateValidator"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd8520_AssignBgRoleFunction_onLoad"/>
+                    <a:event name="query" handler="fnd8520_AssignBgRoleFunction_onQuery"/>
+                    <a:event name="update" handler="fnd8520_AssignBgRoleFunction_onUpdate"/>
+                    <a:event name="submitsuccess" handler="fnd8520_AssignBgRoleFunction_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <!-- <a:gridButton id="fnd8520_AssignBgRoleFunction_add" bind="fnd8520_AssignBgRoleFunction_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton id="fnd8520_AssignBgRoleFunction_delete" bind="fnd8520_AssignBgRoleFunction_grid" style="margin-left:20px;" type="delete" width="100"/> -->
+                <a:toolbarButton id="fnd8520_AssignBgRoleFunction_save" click="fnd8520_saveAsignBgRole" style="margin-left:20px;" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton id="fnd8520_AssignBgRoleFunction_close" click="fnd8520_closeAsignBgRole" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox>
+                <a:label name="role_name" bindTarget="fnd8520_bg_role_ds" prompt="SYS_ROLE.ROLE_NAME" width="200"/>
+            </a:hBox>
+            <!-- <a:grid id="fnd8520_AssignBgRoleFunction_grid" bindTarget="fnd8520_AssignBgRoleFunction_ds" height="350" navBar="false" width="600">
+                <a:columns>
+                    <a:column name="function_code" align="left" editorFunction="fnd8520_businessGroupLovFunction" prompt="FND_FUNCTION.FUNCTION_CODE" width="150"/>
+                    <a:column name="function_name" align="left" prompt="FND_FUNCTION.FUNCTION_NAME" width="150"/>
+                    <a:column name="start_date" align="left" editor="fnd8520_AssignBgRoleFunction_grid_dp" prompt="FND8520.BG_ROLE_FUNCTION_START_DATE" renderer="Aurora.formatDate" width="100"/>
+                    <a:column name="end_date" align="left" editor="fnd8520_AssignBgRoleFunction_grid_dp" prompt="FND8520.BG_ROLE_FUNCTION_END_DATE" renderer="Aurora.formatDate" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="fnd8520_AssignBgRoleFunction_grid_lov"/>
+                    <a:datePicker id="fnd8520_AssignBgRoleFunction_grid_dp"/>
+                </a:editors>
+            </a:grid> -->
+            <a:treeGrid id="fnd8520_AssignBgRoleFunction_grid" bindTarget="fnd8520_AssignBgRoleFunction_ds" expandField="expanded" height="350" idField="function_id" parentField="parent_function_id" showCheckBox="true" width="650">
+                <a:columns>
+                    <a:column name="function_name" prompt="FND_FUNCTION.FUNCTION_NAME" width="250"/>
+                    <a:column name="function_code" prompt="FND_FUNCTION.FUNCTION_CODE" width="170"/>
+                    <!-- <a:column name="checked" prompt="checked" width="40"/> -->
+                    <!-- <a:column name="level_num" align="center" width="40" prompt="level" /> -->
+                    <a:column name="start_date" align="left" editorFunction="fnd8520_AssignBgRoleFunctionEditor" prompt="FND8520.BG_ROLE_FUNCTION_START_DATE" renderer="Aurora.formatDate" width="100"/>
+                    <a:column name="end_date" align="left" editorFunction="fnd8520_AssignBgRoleFunctionEditor" prompt="FND8520.BG_ROLE_FUNCTION_END_DATE" renderer="Aurora.formatDate" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <!-- editor="fnd8520_AssignBgRoleFunction_grid_dp" -->
+                    <!-- <a:lov id="fnd8520_AssignBgRoleFunction_grid_lov"/> -->
+                    <a:datePicker id="fnd8520_AssignBgRoleFunction_grid_dp"/>
+                </a:editors>
+            </a:treeGrid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

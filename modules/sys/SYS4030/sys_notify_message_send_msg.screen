@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: PineYang3324  
+    $Date: 2012-09-03 下午02:54:57  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+            function sys4030_sysNotifyMessageSendMsgAddUsers() {
+                new Aurora.Window({
+                    url: 'sys_notify_message_send_msg_users.screen',
+                    title: 'HAP_ADDUSER',
+                    id: 'sys4030_sys_notify_message_send_msg_users_window',
+                    width: 450,
+                    height: 500
+                });
+            }
+            
+            function sys4030_userOnBeforeCreate(ds, obj) {
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].get('user_id') == obj.user_id) {
+                        //alert(obj.user_name);
+                        return false;
+                    }
+                }
+            }
+            
+            function sys4030_deleteUser(id) {
+                var ds = $('sys4030_sys_notify_message_send_msg_users_ds');
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].get('user_id') == id) {
+                        ds.remove(records[i]);
+                    }
+                }
+            }
+            
+            function sys4030_setUserShow() {
+                var user_show_record = $('sys4030_sys_notify_message_send_msg_user_show_ds').getCurrentRecord();
+                var users_records = $('sys4030_sys_notify_message_send_msg_users_ds').getAll();
+                var user_show = '';
+                for (var i = 0;i < users_records.length;i++) {
+                    user_show = user_show + users_records[i].get('user_name') + '<a href="javascript:sys4030_deleteUser(' + users_records[i].get('user_id') + ')">删除</a>' + '&nbsp;&nbsp;&nbsp;&nbsp;';
+                }
+                user_show_record.set('user_show', user_show);
+            }
+            
+            function sys4030_userOnAdd(ds, record, index) {
+                sys4030_setUserShow();
+            }
+            
+            function sys4030_userOnRemove(ds, record, index) {
+                sys4030_setUserShow();
+            }
+            
+            function sys4030_sysNotifyMessageSendMsgSend() {
+                var msg_ds = $('sys4030_sys_notify_message_send_msg_ds');
+                var user_ds = $('sys4030_sys_notify_message_send_msg_users_ds');
+                var msg_record = msg_ds.getCurrentRecord();
+                var user_records = user_ds.getAll();
+            
+                Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+            
+                var data = {
+                    message_id: msg_record.get('message_id'),
+                    msg_title: msg_record.get('msg_title'),
+                    msg_content: msg_record.get('msg_content')
+                };
+            
+                var users = [];
+                for (var i = 0;i < user_records.length;i++) {
+                    users.push(user_records[i].data);
+                }
+                data['users'] = users;
+            
+                if (!msg_record.get('message_id')) {
+                    Aurora.request({
+                        url: 'sys_notify_message_send_msg.svc',
+                        para: data,
+                        success: function(res) {
+                            msg_ds.setQueryParameter('message_id', res.result.message_id);
+                            msg_ds.query();
+            
+                            Aurora.request({
+			                    url: '${/request/@context_path}/autocrud/sys.SYS4030.sys_notify_message_send_msg_rec/insert',
+			                    para: {
+			                        message_id: res.result.message_id
+			                    },
+			                    success: function() {
+			                        $('sys4030_send_btn').disable();
+			                        $('sys4030_save_btn').disable();
+			                        $('sys4030_upload_btn').disable();
+			            
+			                        Aurora.showMessage('${l:PROMPT}', '${l:SYS_NOTIFY_OUTBOX_UNSEND_DETAIL.SENT_SUCCESS}！');
+			                    },
+			                    scope: this
+			                });
+                        },
+                        scope: this
+                    });
+                } else {
+                    Aurora.request({
+                        url: 'sys_notify_message_send_msg_save.svc',
+                        para: data,
+                        success: function() {
+                            Aurora.request({
+			                    url: '${/request/@context_path}/autocrud/sys.SYS4030.sys_notify_message_send_msg_rec/insert',
+			                    para: {
+			                        message_id: msg_record.get('message_id')
+			                    },
+			                    success: function() {
+			                        $('sys4030_send_btn').disable();
+			                        $('sys4030_save_btn').disable();
+			                        $('sys4030_upload_btn').disable();
+			            
+			                        Aurora.showMessage('${l:PROMPT}', '${l:SYS_NOTIFY_OUTBOX_UNSEND_DETAIL.SENT_SUCCESS}！');
+			                    },
+			                    scope: this
+			                });
+                        },
+                        scope: this
+                    });
+                }
+            
+                Aurora.Masker.unmask(Ext.getBody());
+            }
+            
+            function sys4030_sysNotifyMessageSendMsgSave() {
+                var msg_ds = $('sys4030_sys_notify_message_send_msg_ds');
+                var user_ds = $('sys4030_sys_notify_message_send_msg_users_ds');
+                var msg_record = msg_ds.getCurrentRecord();
+                var user_records = user_ds.getAll();
+            
+                Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+            
+                var data = {
+                    message_id: msg_record.get('message_id'),
+                    msg_title: msg_record.get('msg_title'),
+                    msg_content: msg_record.get('msg_content')
+                };
+            
+                var users = [];
+                for (var i = 0;i < user_records.length;i++) {
+                    users.push(user_records[i].data);
+                }
+                data['users'] = users;
+            
+                if (!msg_record.get('message_id')) {
+                    Aurora.request({
+                        url: 'sys_notify_message_send_msg.svc',
+                        para: data,
+                        success: function(res) {
+                            msg_ds.setQueryParameter('message_id', res.result.message_id);
+                            msg_ds.query();
+                            
+                            $('sys4030_upload_btn').enable();
+            
+                            Aurora.showMessage('${l:PROMPT}', '${l:SYS_NOTIFY_OUTBOX_UNSEND_DETAIL.SAVE_DRAFT}！');
+                        },
+                        scope: this
+                    });
+                } else {
+                    Aurora.request({
+                        url: 'sys_notify_message_send_msg_save.svc',
+                        para: data,
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:SYS_NOTIFY_OUTBOX_UNSEND_DETAIL.SAVE_DRAFT}！');
+                        },
+                        scope: this
+                    });
+                }
+            
+                Aurora.Masker.unmask(Ext.getBody());
+            }
+            function sysNotifyMessageSendMsgUpload(){
+            	var msg_ds = $('sys4030_sys_notify_message_send_msg_ds');
+                var msg_record = msg_ds.getCurrentRecord();
+            	var url = "${/request/@context_path}/uploadFile.screen?table_name=SYS_NOTIFY_MESSAGE&header_id=" + msg_record.get('message_id');
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                    id: 'sys4030_sys_notify_upload_file_window',
+                    width: 400,
+                    height: 200
+                });
+            }
+            ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys4030_sys_notify_message_send_msg_user_show_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="user_show" defaultValue=" "/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys4030_sys_notify_message_send_msg_users_ds">
+                <a:fields>
+                    <a:field name="user_id"/>
+                    <a:field name="user_name"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="beforecreate" handler="sys4030_userOnBeforeCreate"/>
+                    <a:event name="add" handler="sys4030_userOnAdd"/>
+                    <a:event name="remove" handler="sys4030_userOnRemove"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys4030_sys_notify_message_send_msg_ds" model="sys.SYS4030.sys_notify_message_send_msg">
+                <a:fields>
+                    <a:field name="message_id"/>
+                    <a:field name="msg_title" required="true"/>
+                    <a:field name="msg_content"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet column="1" marginWidth="65" title="WFL_WORKFLOW_MESSAGE.SUBMIT" width="1000">
+                <a:textField name="msg_title" bindTarget="sys4030_sys_notify_message_send_msg_ds" prompt="PUR_RFX_HEADERS_HIST.TITLE" width="800"/>
+                <a:label name="user_show" bindTarget="sys4030_sys_notify_message_send_msg_user_show_ds" prompt="SYS_NOTIFY_RECORD.MAIL_TO" width="800"/>
+                <a:button click="sys4030_sysNotifyMessageSendMsgAddUsers" text="HAP_ADDUSER"/>
+                <a:textArea name="msg_content" bindTarget="sys4030_sys_notify_message_send_msg_ds" height="400" prompt="FND_ATM_ATTACHMENT.CONTENT" width="800"/>
+            </a:fieldSet>
+            <a:hBox>
+                <a:button id="sys4030_upload_btn" click="sys4030_sysNotifyMessageSendMsgUpload" disabled="true" text="HAP_UPLOAD_TITLE"/>
+                <a:button id="sys4030_send_btn" click="sys4030_sysNotifyMessageSendMsgSend" text="FND_MESSAGE.SEND"/>
+                <a:button id="sys4030_save_btn" click="sys4030_sysNotifyMessageSendMsgSave" text="SYS_NOTIFY_MESSAGE_OUTBOX_UNSEND_SAVE"/>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

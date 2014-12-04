@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="wfl_workflow_assign_node_link" url="${/request/@context_path}/modules/wfl/WFL1050/wfl_workflow_assign_node.screen"/>
+        <div/>
+        <script><![CDATA[
+            function approveDefine(value, record, name) {
+                if (!record.isNew) {
+                    var wid = record.get('workflow_id');
+                    var cid = record.get('company_id');
+                    return '<a href="javascript:openApproveDefinePage(' + wid + ',' + encodeURI(encodeURI(cid)) + ')">审批人定义</a>';
+                }
+                return '';
+            }
+            
+            function openApproveDefinePage(wid, cid) {
+                new Aurora.Window({
+                    id: 'wfl_workflow_assign_node_window',
+                    url: $('wfl_workflow_assign_node_link').getUrl() + '?workflow_id=' + wid + '&company_id=' + encodeURIComponent(cid),
+                    title: '审批人定义',
+                    fullScreen: true
+                });
+            }
+            
+            function wflWorkFlowAssignApproveQuery() {
+                if ($('wfl_workflow_assign_approve_query_ds').validate()) {
+                    var record = $('wfl_workflow_assign_approve_query_ds').getCurrentRecord();
+                    $('wfl_workflow_assign_approve_result_ds').setQueryParameter('company_id', record.get('company_id'));
+                    $('wfl_workflow_assign_approve_result_ds').query();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl_workflow_assign_approve_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_code_name" autoComplete="true" autoCompleteField="company_name" lovGridHeight="300" lovHeight="450" lovService="wfl.wfl_workflow_assign_company_lov" lovWidth="550" prompt="公司" required="true" title="选择公司">
+                        <a:mapping>
+                            <a:map from="company_code_name" to="company_code_name"/>
+                            <a:map from="company_code" to="company_code"/>
+                            <a:map from="company_name" to="company_name"/>
+                            <a:map from="company_id" to="company_id"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl_workflow_assign_approve_result_ds" autoPageSize="true" autoQuery="false" model="wfl.WFL1050.wfl_workflow_assigns_approve" queryDataSet="wfl_workflow_assign_approve_query_ds" queryUrl="${/request/@context_path}/autocrud/wfl.WFL1050.wfl_workflow_assigns_approve/query?enabled_flag=Y"/>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+        </a:screenTopToolbar>
+        <a:queryForm id="wfl_workflow_assign_approve_query_form" bindTarget="wfl_workflow_assign_approve_query_ds" resultTarget="wfl_workflow_assign_approve_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:lov name="company_code_name" prompt="公司"/>
+            </a:formToolBar>
+        </a:queryForm>
+        <a:grid bindTarget="wfl_workflow_assign_approve_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="workflow_code" prompt="工作流代码" width="150"/>
+                <a:column name="workflow_desc" prompt="工作流描述" width="300"/>
+                <a:column name="approveDefine" align="center" prompt="审批人定义" renderer="approveDefine" width="100"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

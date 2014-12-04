@@ -1,0 +1,869 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658  
+    $Date: 2014-7-31 下午14:37:10  
+    $Revision: 1.0  
+    $Purpose: 登录后首页，云管理员
+-->
+<a:screen xmlns:c="aurora.application.action" xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc">
+    <a:init-procedure>
+        <a:model-query model="sys.sys_user_login_info" rootPath="wfl1001_user_info_rs"/>
+        <a:model-query defaultWhereClause="message_type=&apos;PLATFORM&apos;" model="sys.sys_user_messages_count" rootPath="wfl1001_user_message_count"/>
+        <a:model-query defaultWhereClause="message_type=&apos;SYSTEM&apos;" model="sys.sys_user_messages_count" rootPath="wfl1001_user_message_count_system"/>
+        <a:model-query defaultWhereClause="message_type=&apos;BUSINESS&apos;" model="sys.sys_user_messages_count" rootPath="wfl1001_user_message_count_business"/>
+        <a:model-query model="sys.SYS2520.sys_analytics_customize" rootPath="customize"/>
+        <a:model-query model="wfl.WFL1001.wfl_pur_amount_all" rootPath="wfl1001_amount_all"/>
+        <a:model-query model="wfl.WFL1001.wfl_pur_price_all" rootPath="wfl1001_price_all"/>
+        <a:model-query model="wfl.WFL1001.wfl_fnd_companies" rootPath="wfl1001_companies_all"/>
+        <a:model-query model="wfl.WFL1001.wfl_mtl_system_items" rootPath="wfl1001_items_all"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="wfl1001_create_bulletin_browsing_history_link" model="blt.BLT1010.create_bulletin_browsing_history" modelaction="execute"/>
+        <a:link id="wfl1001_blt_bulletin_detail_link" url="${/request/@context_path}/modules/blt/BLT1010/blt_bulletin_details_no_login.screen"/>
+        <a:link id="wfl1001_sys_user_message_read_link" model="sys.sys_user_messages" modelaction="update"/>
+        <a:link id="wfl1001_sys_user_message_delete_link" model="sys.sys_user_messages" modelaction="execute"/>
+        <a:link id="wfl1001_fnd_user_todo_list_insert_link" model="fnd.fnd_user_todo_list" modelaction="insert"/>
+        <a:link id="wfl1001_fnd_user_todo_list_update_link" model="fnd.fnd_user_todo_list" modelaction="update"/>
+        <a:link id="wfl1001_fnd_user_todo_list_delete_link" model="fnd.fnd_user_todo_list" modelaction="delete"/>
+        <!-- CSS样式引入 -->
+        <!-- <link href="${/request/@context_path}/mainpage_facility/plugins/boostrapv3/css/bootstrap.min.css" rel="stylesheet" type="text/css"/> -->
+        <link href="${/request/@context_path}/mainpage_facility/plugins/font-awesome/css/font-awesome.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/css/style.css" rel="stylesheet"/>
+        <link href="${/request/@context_path}/mainpage_facility/css/responsive.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/css/custom-icon-set.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/css/style-from-bootstrap.css" rel="stylesheet" type="text/css"/>
+        <style><![CDATA[
+            html,body {
+                padding:0px;
+                margin:0px;
+                color: #000000; 
+                font-family: Microsoft YaHei;
+                font-size:12px;
+                padding: 0px !important;
+                margin: 0px !important;
+                line-height: 1.5;
+                font-style: normal; 
+                font-weight: normal;
+            }      
+            
+            .showmore {
+                height:35px;
+                background:#f8f8f8;
+                border-bottom:1px solid #cccccc;
+                cursor:pointer;
+                tetx-align:center;
+                margin-bottom:25px;
+            }  
+            .showmore .handle{display:block;height:35px;text-align:center;color:#909090;font-size:14px;text-decoration:none;line-height:35px;}  
+            .showmore .handle:hover{text-decoration:none;background:#e6e6e6;}  
+            
+            .checkbox input[type=checkbox]:checked + label::after  {
+				font-family: 'FontAwesome';
+				content: <i class="fa fa-check"/>;
+			}
+        ]]></style>
+        <script><![CDATA[
+            /*
+             * 全局参数定义
+             */
+            var g_userMessagesList_pageNo = 1;
+            var g_userMessagesList_pageNoSystem = 1;
+            var g_userMessagesList_pageNoBusiness = 1;
+            var g_userMessagesList_pageSize = '${/model/wfl1001_user_message_count/record/@user_message_page_size}'; //默认显示消息数量
+            var g_userMessagesListUserMessagePage = '${/model/wfl1001_user_message_count/record/@user_message_page}'; //用户消息的页面数量 = 全部消息/默认显示消息数量
+            var g_userMessagesListUserMessagePageSystem = '${/model/wfl1001_user_message_count_system/record/@user_message_page}'; //用户消息的页面数量 = 全部消息/默认显示消息数量
+            var g_userMessagesListUserMessagePageBusiness = '${/model/wfl1001_user_message_count_business/record/@user_message_page}'; //用户消息的页面数量 = 全部消息/默认显示消息数量
+            /*
+             * END
+             */
+             
+            //全局参数初始化
+            function wfl1001_globalParameterInit(){
+                g_userMessagesList_pageNo = 1;
+                g_userMessagesList_pageNoSystem = 1;
+                g_userMessagesList_pageNoBusiness = 1;
+            	g_userMessagesList_pageSize = '${/model/wfl1001_user_message_count/record/@user_message_page_size}'; //默认显示消息数量
+            	g_userMessagesListUserMessagePage = '${/model/wfl1001_user_message_count/record/@user_message_page}'; //用户消息的页面数量 = 全部消息/默认显示消息数量
+            	g_userMessagesListUserMessagePageSystem = '${/model/wfl1001_user_message_count_system/record/@user_message_page}'; //用户消息的页面数量 = 全部消息/默认显示消息数量
+            	g_userMessagesListUserMessagePageBusiness = '${/model/wfl1001_user_message_count_business/record/@user_message_page}'; //用户消息的页面数量 = 全部消息/默认显示消息数量
+            }
+            
+            /*
+             * 显示图形必须要的JS方法
+             */
+            function refreshAll() {
+                var r = $('sys_favorite_function_view_cloud_admin_query_ds').getCurrentRecord();
+                var sd = r.get('startDate');
+                var ed = r.get('endDate');
+                var date = new Date();
+                date.setTime(date.getTime() - 1000 * 60 * 60 * 24);
+                if (ed > date) {
+                    ed = date;
+                    r.set('endDate', ed);
+                }
+                //$('summary_of_day_ds').query();
+                if (!r.validateRecord()) {
+                    return;
+                }
+                var recs = $('sys_favorite_function_view_cloud_admin_min_screen_ds').getAll();
+                for (var i = 0;i < recs.length;i++) {
+                    eval(recs[i].get('callback') + "()");
+                }
+            }
+            
+            function emptyRenderer() {
+                return "";
+            }
+            
+            function msRenderer() {
+                if (Number(this.value) < 0) {
+                    return "";
+                }
+                return this.value + "ms";
+            }
+            
+            function dayRenderer() {
+                //2011-10-10
+                //返回10-10
+                if (this.value) {
+                    return this.value.substr(5);
+                }
+            }
+            
+            function percentRenderer() {
+                var n = Number(this.value);
+                if (n < 0 || n > 1) {
+                    return "";
+                } else if (n == 0) {
+                    return "0";
+                }
+                return (n * 100).toFixed(2) + "%";
+            }
+            
+            function checkNotEmpty(obj) {
+                return typeof(obj) != 'undefined' && !Ext.isEmpty(obj);
+            }
+            
+            function dateValidator(record, name, value) {
+                if (name == 'startDate' || name == 'endDate') {
+                    var start_date = record.get('startDate');
+                    var end_date = record.get('endDate');
+                    if (checkNotEmpty(start_date) && checkNotEmpty(end_date) && (start_date > end_date)) {
+                        return '开始日期不能大于结束日期';
+                    }
+                }
+                return true;
+            }
+            /*
+             * END
+             */
+            
+            function wfl1001_sidebarOnclick(screen, prompt, flag) {
+                $('mainTab').openTab(screen, prompt);
+            }
+            
+            //用户消息列表初始化
+            function wfl1001_userMessagesListViewInit(pageNum) {
+                if (g_userMessagesListUserMessagePage == pageNum || g_userMessagesListUserMessagePage == 0 ) {
+                    document.getElementById("wfl1001_userMessagesListShowMoreDiv").style.display = "none";
+                }else{
+                    document.getElementById("wfl1001_userMessagesListShowMoreDiv").style.display = "block";
+                }
+            }
+            
+            //用户消息列表初始化
+            function wfl1001_userMessagesListViewInitSystem(pageNum) {
+                if (g_userMessagesListUserMessagePageSystem == pageNum || g_userMessagesListUserMessagePageSystem == 0 ) {
+                    document.getElementById("wfl1001_userMessagesListShowMoreDivSystem").style.display = "none";
+                }else{
+                    document.getElementById("wfl1001_userMessagesListShowMoreDivSystem").style.display = "block";
+                }
+            }
+            
+            //用户消息列表初始化
+            function wfl1001_userMessagesListViewInitBusiness(pageNum) {
+                if (g_userMessagesListUserMessagePageBusiness == pageNum || g_userMessagesListUserMessagePageBusiness == 0 ) {
+                    document.getElementById("wfl1001_userMessagesListShowMoreDivBusiness").style.display = "none";
+                }else{
+                    document.getElementById("wfl1001_userMessagesListShowMoreDivBusiness").style.display = "block";
+                }
+            }
+            
+            //用户消息列表DIV渲染方法
+            function wfl1001_userMessagesListDivView(dataset) {
+                var records = dataset.getAll();
+                var nextpagehtml = '';
+                for (i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    var count = i + (g_userMessagesList_pageSize * g_userMessagesList_pageNo); //顺序号
+                    nextpagehtml += '<div id="user_msg_info_div_' + count + '" class="notification-messages info">';
+                    nextpagehtml += '<div style="margin-left:99%">';
+                    nextpagehtml += '<a class="remove fa fa-times" onclick="javascript:wfl1001_deleteUserMessage(this,' + count + ',' + record.get('message_id') + ',\'' + record.get('source_table') + '\');"></a>';
+                    nextpagehtml += '</div>';
+                    nextpagehtml += '<div class="message-wrapper" onclick="javascript:wfl1001_showUserMessageListDetail(' + count + ',' + record.get('message_id') + ',' + record.get('source_id') + ',\'' + record.get('source_table') + '\',\'' + record.get('url') + '\',\'' + record.get('read_flag') + '\');">';
+                    if (record.get('read_flag') == 'N') {
+                        nextpagehtml += '<div id="user_msg_head_div_' + count + '" class="heading" style="font-weight:bold;"> ● ' + record.get('message_title') + '</div>';
+                        nextpagehtml += '<div id="user_msg_desc_div_' + count + '" class="description" style="font-weight:bold;">' + record.get('message_content') + '</div>';
+                    } else {
+                        nextpagehtml += '<div id="user_msg_head_div_' + count + '" class="heading" style="font-weight:normal;">' + record.get('message_title') + '</div>';
+                        nextpagehtml += '<div id="user_msg_desc_div_' + count + '" class="description" style="font-weight:normal;">' + record.get('message_content') + '</div>';
+                    }
+                    nextpagehtml += '</div>';
+                    nextpagehtml += '<div class="date">' + record.get('message_time_desc') + '</div>';
+                    nextpagehtml += '</div>';
+                }
+                document.getElementById("user_messages_list_div_view").innerHTML += nextpagehtml;
+            }
+            
+            //用户消息列表DIV渲染方法
+            function wfl1001_userMessagesListDivViewSystem(dataset) {
+                var records = dataset.getAll();
+                var nextpagehtml = '';
+                for (i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    var count = i + (g_userMessagesList_pageSize * g_userMessagesList_pageNoSystem); //顺序号
+                    nextpagehtml += '<div id="user_msg_info_div_' + count + '" class="notification-messages info">';
+                    nextpagehtml += '<div style="margin-left:99%">';
+                    nextpagehtml += '<a class="remove fa fa-times" onclick="javascript:wfl1001_deleteUserMessage(this,' + count + ',' + record.get('message_id') + ',\'' + record.get('source_table') + '\');"></a>';
+                    nextpagehtml += '</div>';
+                    nextpagehtml += '<div class="message-wrapper" onclick="javascript:wfl1001_showUserMessageListDetail(' + count + ',' + record.get('message_id') + ',' + record.get('source_id') + ',\'' + record.get('source_table') + '\',\'' + record.get('url') + '\',\'' + record.get('read_flag') + '\');">';
+                    if (record.get('read_flag') == 'N') {
+                        nextpagehtml += '<div id="user_msg_head_div_' + count + '" class="heading" style="font-weight:bold;"> ● ' + record.get('message_title') + '</div>';
+                        nextpagehtml += '<div id="user_msg_desc_div_' + count + '" class="description" style="font-weight:bold;">' + record.get('message_content') + '</div>';
+                    } else {
+                        nextpagehtml += '<div id="user_msg_head_div_' + count + '" class="heading" style="font-weight:normal;">' + record.get('message_title') + '</div>';
+                        nextpagehtml += '<div id="user_msg_desc_div_' + count + '" class="description" style="font-weight:normal;">' + record.get('message_content') + '</div>';
+                    }
+                    nextpagehtml += '</div>';
+                    nextpagehtml += '<div class="date">' + record.get('message_time_desc') + '</div>';
+                    nextpagehtml += '</div>';
+                }
+                document.getElementById("user_messages_list_div_viewSystem").innerHTML += nextpagehtml;
+            }
+            
+            //用户消息列表DIV渲染方法
+            function wfl1001_userMessagesListDivViewBusiness(dataset) {
+                var records = dataset.getAll();
+                var nextpagehtml = '';
+                for (i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    var count = i + (g_userMessagesList_pageSize * g_userMessagesList_pageNoBusiness); //顺序号
+                    nextpagehtml += '<div id="user_msg_info_div_' + count + '" class="notification-messages info">';
+                    nextpagehtml += '<div style="margin-left:99%">';
+                    nextpagehtml += '<a class="remove fa fa-times" onclick="javascript:wfl1001_deleteUserMessage(this,' + count + ',' + record.get('message_id') + ',\'' + record.get('source_table') + '\');"></a>';
+                    nextpagehtml += '</div>';
+                    nextpagehtml += '<div class="message-wrapper" onclick="javascript:wfl1001_showUserMessageListDetail(' + count + ',' + record.get('message_id') + ',' + record.get('source_id') + ',\'' + record.get('source_table') + '\',\'' + record.get('url') + '\',\'' + record.get('read_flag') + '\');">';
+                    if (record.get('read_flag') == 'N') {
+                        nextpagehtml += '<div id="user_msg_head_div_' + count + '" class="heading" style="font-weight:bold;"> ● ' + record.get('message_title') + '</div>';
+                        nextpagehtml += '<div id="user_msg_desc_div_' + count + '" class="description" style="font-weight:bold;">' + record.get('message_content') + '</div>';
+                    } else {
+                        nextpagehtml += '<div id="user_msg_head_div_' + count + '" class="heading" style="font-weight:normal;">' + record.get('message_title') + '</div>';
+                        nextpagehtml += '<div id="user_msg_desc_div_' + count + '" class="description" style="font-weight:normal;">' + record.get('message_content') + '</div>';
+                    }
+                    nextpagehtml += '</div>';
+                    nextpagehtml += '<div class="date">' + record.get('message_time_desc') + '</div>';
+                    nextpagehtml += '</div>';
+                }
+                document.getElementById("user_messages_list_div_viewBusiness").innerHTML += nextpagehtml;
+            }
+            
+            function wfl1001_userMessagesListDsLoad(dataset) {
+                wfl1001_userMessagesListDivView(dataset);
+            }
+            
+            function wfl1001_userMessagesListDsLoadSystem(dataset) {
+                wfl1001_userMessagesListDivViewSystem(dataset);
+            }
+            
+            function wfl1001_userMessagesListDsLoadBusiness(dataset) {
+                wfl1001_userMessagesListDivViewBusiness(dataset);
+            }
+            
+            function wfl1001_userMessageListRefresh() {
+                alert('g_userMessagesListUserMessagePage:'+g_userMessagesListUserMessagePage);
+                alert('g_userMessagesListUserMessagePageBusiness:'+g_userMessagesListUserMessagePageBusiness);
+                alert('g_userMessagesListUserMessagePageSystem:'+g_userMessagesListUserMessagePageSystem);
+                document.getElementById("user_messages_list_div_view").innerHTML = '';
+                wfl1001_globalParameterInit();
+                wfl1001_userMessagesListViewInit(1);
+                $('wfl1001_user_messages_list_ds').query();
+            }
+            
+            function wfl1001_userMessageListRefreshSystem() {
+                document.getElementById("user_messages_list_div_viewSystem").innerHTML = '';
+                wfl1001_globalParameterInit();
+                wfl1001_userMessagesListViewInitSystem(1);
+                $('wfl1001_user_messages_list_ds_system').query();
+            }
+            
+            function wfl1001_userMessageListRefreshBusiness() {
+                document.getElementById("user_messages_list_div_viewBusiness").innerHTML = '';
+                wfl1001_globalParameterInit();
+                wfl1001_userMessagesListViewInitBusiness(1);
+                $('wfl1001_user_messages_list_ds_business').query();
+            }
+            
+            function wfl1001_showMoreUserMessagesList() {
+                ++g_userMessagesList_pageNo;
+                $('wfl1001_user_messages_list_show_more_ds').setQueryParameter('pagesize', g_userMessagesList_pageSize);
+                $('wfl1001_user_messages_list_show_more_ds').setQueryParameter('pagenum', g_userMessagesList_pageNo);
+                $('wfl1001_user_messages_list_show_more_ds').setQueryParameter('_fetchall', false);
+                $('wfl1001_user_messages_list_show_more_ds').query();
+                wfl1001_userMessagesListViewInit(g_userMessagesList_pageNo);
+            }
+            
+            function wfl1001_showMoreUserMessagesListSystem() {
+                ++g_userMessagesList_pageNoSystem;
+                $('wfl1001_user_messages_list_show_more_ds_system').setQueryParameter('pagesize', g_userMessagesList_pageSize);
+                $('wfl1001_user_messages_list_show_more_ds_system').setQueryParameter('pagenum', g_userMessagesList_pageNoSystem);
+                $('wfl1001_user_messages_list_show_more_ds_system').setQueryParameter('_fetchall', false);
+                $('wfl1001_user_messages_list_show_more_ds_system').query();
+                wfl1001_userMessagesListViewInitSystem(g_userMessagesList_pageNoSystem);
+            }
+            
+            function wfl1001_showMoreUserMessagesListBusiness() {
+                ++g_userMessagesList_pageNoBusiness;
+                $('wfl1001_user_messages_list_show_more_ds_business').setQueryParameter('pagesize', g_userMessagesList_pageSize);
+                $('wfl1001_user_messages_list_show_more_ds_business').setQueryParameter('pagenum', g_userMessagesList_pageNoBusiness);
+                $('wfl1001_user_messages_list_show_more_ds_business').setQueryParameter('_fetchall', false);
+                $('wfl1001_user_messages_list_show_more_ds_business').query();
+                wfl1001_userMessagesListViewInitBusiness(g_userMessagesList_pageNoBusiness);
+            }
+            
+            function wfl1001_userMessagesListShowMoreDsLoad() {
+                var dataset = $('wfl1001_user_messages_list_show_more_ds');
+                var records = dataset.getAll();
+                if (records.length == 0) {
+                    document.getElementById("wfl1001_userMessagesListShowMoreDiv").style.display = "none";
+                }
+                var pageOffset = (g_userMessagesList_pageNo - 1) * g_userMessagesList_pageSize + 1;
+                wfl1001_userMessagesListDivView(dataset);
+            }
+            
+            function wfl1001_userMessagesListShowMoreDsLoadSystem() {
+                var dataset = $('wfl1001_user_messages_list_show_more_ds_system');
+                var records = dataset.getAll();
+                if (records.length == 0) {
+                    document.getElementById("wfl1001_userMessagesListShowMoreDivSystem").style.display = "none";
+                }
+                var pageOffset = (g_userMessagesList_pageNoSystem - 1) * g_userMessagesList_pageSize + 1;
+                wfl1001_userMessagesListDivViewSystem(dataset);
+            }
+            
+            function wfl1001_userMessagesListShowMoreDsLoadBusiness() {
+                var dataset = $('wfl1001_user_messages_list_show_more_ds_business');
+                var records = dataset.getAll();
+                if (records.length == 0) {
+                    document.getElementById("wfl1001_userMessagesListShowMoreDivBusiness").style.display = "none";
+                }
+                var pageOffset = (g_userMessagesList_pageNoBusiness - 1) * g_userMessagesList_pageSize + 1;
+                wfl1001_userMessagesListDivViewBusiness(dataset);
+            }
+            
+            function wfl1001_showBltBulletinDetail(id, url) {
+                Aurora.request({
+                    url: $('wfl1001_create_bulletin_browsing_history_link').getUrl(),
+                    para: {
+                        'bulletin_id': id
+                    },
+                    success: function() {
+                        var new_url = $('wfl1001_blt_bulletin_detail_link').getUrl() + '?bulletin_id=' + id;
+                        window.open(new_url, 'WFL_USER_MESSAGE_SHOW_WINDOWS', "left=" + 0 + ",top=" + 0 + ",width=" + (window.screen.availWidth - 10) + ",height=" + (window.screen.availHeight - 50) + ",status=0,toolbar=0,menubar=0,location=0,scrollbars=" + 1 + ",resizable=" + 1, false);
+                    },
+                    scope: this
+                });
+            }
+            
+            function wfl1001_showUserMessageDetail(id, url) {
+                var new_url = url + id;
+                window.open(new_url, 'WFL_USER_MESSAGE_SHOW_WINDOWS', "left=" + 0 + ",top=" + 0 + ",width=" + (window.screen.availWidth - 10) + ",height=" + (window.screen.availHeight - 50) + ",status=0,toolbar=0,menubar=0,location=0,scrollbars=" + 1 + ",resizable=" + 1, false);
+            }
+            
+            function wfl1001_showUserMessageListDetail(count, message_id, source_id, source_table, url, read_flag) {
+                Aurora.request({
+                    url: $('wfl1001_sys_user_message_read_link').getUrl(),
+                    para: {
+                        'message_id': message_id
+                    },
+                    success: function() {
+                        //点击“未读”的用户消息后，修改用户消息的样式，去掉标题和内容的加粗样式
+                        if(read_flag == 'N'){
+	                        var head = document.getElementById('user_msg_head_div_' + count);
+	                        var head_innerText = head.innerText;
+	                        head.setAttribute("style", "font-weight:normal;");
+	                        if(head_innerText.indexOf('●') != -1){
+		                        head.innerText = head_innerText.substr(1, head_innerText.length);
+	                        }
+	                        var desc = document.getElementById('user_msg_desc_div_' + count);
+	                        desc.setAttribute("style", "font-weight:normal;");
+                        }
+                        
+                        //打开用户消息
+                        if (url != 'URL_NULL') {
+                            if (source_table == 'BLT_BULLETIN') {
+                                wfl1001_showBltBulletinDetail(source_id, url);
+                            } else {
+                                wfl1001_showUserMessageDetail(source_id, url);
+                            }
+                        }
+                    },
+                    scope: this
+                });
+            }
+            
+            function wfl1001_deleteUserMessage(thisDiv, count, message_id, source_table) {
+                Aurora.request({
+                    url: $('wfl1001_sys_user_message_delete_link').getUrl(),
+                    para: {
+                        'message_id': message_id,
+                        'source_table': source_table
+                    },
+                    success: function() {
+                        //thisDiv.parentNode.parentNode.removeChild(thisDiv.parentNode);
+                        document.getElementById('user_msg_info_div_' + count).style.display = "none";
+                    },
+                    scope: this
+                });
+            }
+            
+            function wfl1001_createUserToDoList() {
+                var todo_content = document.getElementById("todo_content").value;
+                if (todo_content && !Ext.isEmpty(todo_content)) {
+                    Aurora.request({
+                        url: $('wfl1001_fnd_user_todo_list_insert_link').getUrl(),
+                        para: {
+                            'content': todo_content
+                        },
+                        success: function() {
+                            document.getElementById("todo_content").value = '';
+                            document.getElementById("todo_content").focus();
+                            wfl1001_userTodoListRefresh();
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function wfl1001_deleteUserToDoList(thisDiv, count, todo_list_id) {
+                if (todo_content && !Ext.isEmpty(todo_content)) {
+                    Aurora.request({
+                        url: $('wfl1001_fnd_user_todo_list_delete_link').getUrl(),
+                        para: {
+                            'todo_list_id': todo_list_id
+                        },
+                        success: function() {
+                            document.getElementById('user_todo_list_' + count).style.display = "none";
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function wfl1001_doneUserToDoList(todo_list_rownum, todo_list_id) {
+                var chk_todo = document.getElementById('chk_todo_' + todo_list_rownum);
+                var label = chk_todo.labels[0];
+                var done_flag;
+                if (chk_todo.checked) {
+                    label.className = "done";
+                    done_flag = 'Y';
+                } else {
+                    label.className = "";
+                    done_flag = 'N';
+                }
+                Aurora.request({
+                    url: $('wfl1001_fnd_user_todo_list_update_link').getUrl(),
+                    para: {
+                        'todo_list_id': todo_list_id,
+                        'done_flag': done_flag
+                    },
+                    success: function() {
+                        
+                    },
+                    scope: this
+                });
+            }
+            
+            function wfl1001_userTodoListDivView(ds) {
+                var records = ds.getAll();
+                var todolist_html = '';
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    var count = i; //顺序号
+                    todolist_html += '<div id="user_todo_list_' + count + '" class="row-fluid">';
+                    todolist_html += '<div class="checkbox check-success">';
+                    if (record.get('done_flag') == 'Y') {
+                        todolist_html += '<input id="chk_todo_' + record.get('todo_list_rownum') + '" checked="checked" class="todo-list" type="checkbox" onclick="javascript:wfl1001_doneUserToDoList(' + record.get('todo_list_rownum') + ',' + record.get('todo_list_id') + ');"/>';
+                        todolist_html += '<label class="done" for="chk_todo_' + record.get('todo_list_rownum') + '">' + record.get('content') + '</label>';
+                    } else {
+                        todolist_html += '<input id="chk_todo_' + record.get('todo_list_rownum') + '" class="todo-list" type="checkbox" onclick="javascript:wfl1001_doneUserToDoList(' + record.get('todo_list_rownum') + ',' + record.get('todo_list_id') + ');"/>';
+                        todolist_html += '<label for="chk_todo_' + record.get('todo_list_rownum') + '">' + record.get('content') + '</label>';
+                    }
+                    todolist_html += '<a class="remove fa fa-times" onclick="javascript:wfl1001_deleteUserToDoList(this,' + count + ',' + record.get('todo_list_id') + ');"></a>';
+                    todolist_html += '</div>';
+                    todolist_html += '</div>';
+                }
+                document.getElementById("user_todo_list_div_view").innerHTML += todolist_html;
+            }
+            
+            function wfl1001_userTodoListDsLoad(dataset) {
+                wfl1001_userTodoListDivView(dataset);
+            }
+            
+            function wfl1001_userTodoListRefresh() {
+                document.getElementById("user_todo_list_div_view").innerHTML = '';
+                $('wfl1001_user_todo_list_ds').query();
+            }
+            
+            function wfl_formatter1() {
+                return '<b>' + this.x + '</b><br/>' + this.series.name + ': ' + this.y;
+            }
+            
+            function wfl_formatter2() {
+                return '<b>' + this.x + '</b><br/>' + this.series.name + ': ' + Aurora.formatNumber(this.y,0);
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys_favorite_function_view_cloud_admin_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="startDate" required="true" validator="dateValidator"/>
+                    <a:field name="endDate" required="true" validator="dateValidator"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys_favorite_function_view_cloud_admin_min_screen_ds">
+                <a:datas dataSource="/model/customize"/>
+            </a:dataSet>
+            <a:dataSet id="wfl1001_user_messages_list_ds" autoQuery="true" model="sys.sys_user_messages_default" queryUrl="${/request/@context_path}/autocrud/sys.sys_user_messages_default/query?message_type=PLATFORM">
+                <a:events>
+                    <a:event name="load" handler="wfl1001_userMessagesListDsLoad"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl1001_user_messages_list_ds_system" autoQuery="true" model="sys.sys_user_messages_default" queryUrl="${/request/@context_path}/autocrud/sys.sys_user_messages_default/query?message_type=SYSTEM">
+                <a:events>
+                    <a:event name="load" handler="wfl1001_userMessagesListDsLoadSystem"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl1001_user_messages_list_ds_business" autoQuery="true" model="sys.sys_user_messages_default" queryUrl="${/request/@context_path}/autocrud/sys.sys_user_messages_default/query?message_type=BUSINESS">
+                <a:events>
+                    <a:event name="load" handler="wfl1001_userMessagesListDsLoadBusiness"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl1001_user_messages_list_show_more_ds" model="sys.sys_user_messages" queryUrl="${/request/@context_path}/autocrud/sys.sys_user_messages/query?message_type=PLATFORM">
+                <a:events>
+                    <a:event name="load" handler="wfl1001_userMessagesListShowMoreDsLoad"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl1001_user_messages_list_show_more_ds_system" model="sys.sys_user_messages" queryUrl="${/request/@context_path}/autocrud/sys.sys_user_messages/query?message_type=SYSTEM">
+                <a:events>
+                    <a:event name="load" handler="wfl1001_userMessagesListShowMoreDsLoadSystem"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl1001_user_messages_list_show_more_ds_business" model="sys.sys_user_messages" queryUrl="${/request/@context_path}/autocrud/sys.sys_user_messages/query?message_type=BUSINESS">
+                <a:events>
+                    <a:event name="load" handler="wfl1001_userMessagesListShowMoreDsLoadBusiness"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl1001_user_todo_list_ds" autoQuery="true" model="fnd.fnd_user_todo_list">
+                <a:events>
+                    <a:event name="load" handler="wfl1001_userTodoListDsLoad"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wtf1001_pur_amount" autoQuery="true" fetchAll="true" model="wfl.WFL1001.pur_po_amount">
+                <a:fields>
+                    <a:field name="sum" prompt="订单数"/>
+                    <a:field name="time" prompt="日期"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wtf1001_pur_price" autoQuery="true" fetchAll="true" model="wfl.WFL1001.pur_po_unit_price">
+                <a:fields>
+                    <a:field name="amount" prompt="交易额"/>
+                    <a:field name="time" prompt="日期"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wtf1001_pur_amount_all" autoQuery="true" fetchAll="true" model="wfl.WFL1001.wfl_pur_amount_all">
+                <a:fields>
+                    <a:field name="amount" prompt="订单总数"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wtf1001_pur_price_all" autoQuery="true" model="wfl.WFL1001.wfl_pur_price_all">
+                <a:fields>
+                    <a:field name="amount" prompt="总交易额"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wtf1001_fnd_companies" autoQuery="true" model="wfl.WFL1001.wfl_fnd_companies">
+                <a:fields>
+                    <a:field name="amount" prompt="注册企业数"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wtf1001_mtl_sys_items" autoQuery="true" model="wfl.WFL1001.wfl_mtl_system_items">
+                <a:fields>
+                    <a:field name="amount" prompt="商品数量"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <div class="page-container row">
+            <!-- BEGIN SIDEBAR -->
+            <div id="main-menu" class="page-sidebar">
+                <!-- BEGIN MINI-PROFILE -->
+                <div class="user-info-wrapper">
+                    <div class="user-info" style="width: 150px; border-bottom: 2px solid #ccc; ">
+                        <div class="username"><![CDATA[${/model/wfl1001_user_info_rs/record/@user_name}]]></div>
+                        <div class="status-icon green" style="float:left"/>
+                        <div style="margin-bottom: 10px;"><![CDATA[${/model/wfl1001_user_info_rs/record/@role_name}]]></div>
+                    </div>
+                </div>
+                <!-- END MINI-PROFILE -->
+                <!-- BEGIN SIDEBAR MENU -->
+                <p class="menu-title">
+                    <span class="pull-right"/>
+                </p>
+                <ul>
+                    <li class="">
+                        <a href="javascript:wfl1001_sidebarOnclick(&apos;modules/fnd/FND7010/fnd_message.screen?function_code=FND7010&apos;,&apos;站内信&apos;);">
+                            <i class="fa fa-envelope"/>
+                            <span class="title"><![CDATA[站内信]]></span>
+                        </a>
+                    </li>
+                    <li class="">
+                        <a href="javascript:wfl1001_sidebarOnclick(&apos;update_self_password.screen&apos;,&apos;密码修改&apos;);">
+                            <i class="fa fa-lock"/>
+                            <span class="title"><![CDATA[密码修改]]></span>
+                        </a>
+                    </li>
+                    <!-- <li class="">
+                        <a href="javascript:;">
+                            <i class="fa fa-bar-chart-o"/>
+                            <span class="title"><![CDATA[报表]]></span>
+                        </a>
+                    </li>
+                    <li class="">
+                        <a href="javascript:;">
+                            <i class="fa fa-th-large"/>
+                            <span class="title"><![CDATA[应用]]></span>
+                        </a>
+                    </li> -->
+                </ul>
+                <!-- END SIDEBAR MENU -->
+            </div>
+            <!-- END SIDEBAR -->
+            <!-- BEGIN PAGE CONTAINER-->
+            <div class="page-content">
+                <!-- BEGIN SAMPLE PORTLET CONFIGURATION MODAL FORM-->
+                <div class="content">
+                    <div id="container">
+                        <!-- <div class="col-md-8 spacing-bottom">
+                            <div class="row"> -->
+                        <div class="row spacing-bottom 2col">
+                            <div class="col-md-3 col-sm-6 spacing-bottom-sm spacing-bottom">
+                                <div class="tiles blue added-margin">
+                                    <div class="tiles-body">
+                                        <div class="tiles-title">
+                                            <div style="color: #fff;"><![CDATA[订单数]]></div>
+                                        </div>
+                                        <div class="heading">
+                                            <div style="font-size:30px"><![CDATA[${/model/wfl1001_amount_all/record/@amount}]]></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6 spacing-bottom-sm spacing-bottom">
+                                <div class="tiles green added-margin">
+                                    <div class="tiles-body">
+                                        <div class="tiles-title"><![CDATA[交易额]]></div>
+                                        <div class="heading">
+                                            <div style="font-size:30px"><![CDATA[${/model/wfl1001_price_all/record/@amount}]]></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6 spacing-bottom">
+                                <div class="tiles red added-margin">
+                                    <div class="tiles-body">
+                                        <div class="tiles-title"><![CDATA[注册企业]]></div>
+                                        <div class="heading">
+                                            <div style="font-size:30px"><![CDATA[${/model/wfl1001_companies_all/record/@amount}]]></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="tiles purple added-margin">
+                                    <div class="tiles-body">
+                                        <div class="tiles-title"><![CDATA[商品]]></div>
+                                        <div class="heading">
+                                            <div style="font-size:30px"><![CDATA[${/model/wfl1001_items_all/record/@amount}]]></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8 spacing-bottom">
+                                <!-- <a:hBox style="margin-left:340px;font-size:22px">
+                                        <a:label name="amount" bindTarget="wtf1001_fnd_companies"/>
+                                        <a:label name="amount" bindTarget="wtf1001_mtl_sys_items"/>
+                                    </a:hBox> -->
+                                <a:hBox>
+                                    <a:chart bindTarget="wtf1001_pur_amount" height="300" type="column" width="523">
+                                        <a:title style="font-family:微软雅黑" text="订单数"/>
+                                        <a:xAxis>
+                                            <a:xAxi name="time"/>
+                                        </a:xAxis>
+                                        <a:yAxis>
+                                            <a:yAxi name="sum">
+                                                <a:title text="订单数"/>
+                                            </a:yAxi>
+                                        </a:yAxis>
+                                        <a:tooltip formatter="wfl_formatter1"/>
+                                        <a:plotOptions>
+                                            <a:chartcolumn stacking="normal"/>
+                                        </a:plotOptions>
+                                    </a:chart>
+                                    <a:chart bindTarget="wtf1001_pur_price" height="300" type="column" width="523">
+                                        <a:title style="font-family:微软雅黑" text="交易额"/>
+                                        <a:xAxis>
+                                            <a:xAxi name="time"/>
+                                        </a:xAxis>
+                                        <a:yAxis>
+                                            <a:yAxi name="amount" allowDecimals="false" min="0">
+                                                <a:title text="交易额"/>
+                                            </a:yAxi>
+                                        </a:yAxis>
+                                        <a:tooltip formatter="wfl_formatter2"/>
+                                        <a:plotOptions>
+                                            <a:chartcolumn stacking="normal"/>
+                                        </a:plotOptions>
+                                    </a:chart>
+                                </a:hBox>
+                            </div>
+                        </div>
+                        <!-- </div>
+                        </div> -->
+                        <center style="margin-bottom:10px;width:100%">
+                            <a:form column="3">
+                                <a:placeHolder id="screen_include_id"/>
+                            </a:form>
+                            <!-- <a:hBox>
+                                <a:datePicker name="startDate" bindTarget="sys_favorite_function_view_cloud_admin_query_ds" prompt="起始日期"/>
+                                <a:datePicker name="endDate" bindTarget="sys_favorite_function_view_cloud_admin_query_ds" prompt="结束日期"/>
+                                <a:button click="refreshAll" text="刷新"/>
+                            </a:hBox> -->
+                        </center>
+                        <script><![CDATA[
+                            var r = $('sys_favorite_function_view_cloud_admin_query_ds').getCurrentRecord();
+                            var date = new Date();
+                            date.setTime(date.getTime() - 1000 * 60 * 60 * 24);
+                            r.set('endDate', date);
+                            var d = new Date();
+                            d.setTime(date.getTime() - 1000 * 60 * 60 * 24 * 10);
+                            r.set('startDate', d);
+                            refreshAll();
+                        ]]></script>
+                        <br/>
+                        <div class="row">
+                            <!-- <div class="col-md-8 spacing-bottom ">
+                                <div class="row">
+                                    <div class="col-md-11">
+                                        <a:tabPanel width="600">
+                                            <a:tabs>
+                                                <a:tab prompt="PROMPT.PLATFORM_MESSAGE">
+                                                    <div class="tiles white">
+                                                        <div class="tiles-body">
+                                                            <div class="controller">
+                                                                <a class="reload" href="javascript:wfl1001_userMessageListRefresh();"/>
+                                                            </div>
+                                                            <br/>
+                                                            <div id="user_messages_list_div_view"/>
+                                                        </div>
+                                                        <div id="wfl1001_userMessagesListShowMoreDiv" class="showmore">
+                                                            <a class="handle" href="javascript:wfl1001_showMoreUserMessagesList()"><![CDATA[点击显示更多]]></a>
+                                                        </div>
+                                                        <div class="row spacing-bottom"/>
+                                                    </div>
+                                                </a:tab>
+                                                <a:tab prompt="PROMPT.SYSTEM_MESSAGE">
+                                                    <div class="tiles white">
+                                                        <div class="tiles-body">
+                                                            <div class="controller">
+                                                                <a class="reload" href="javascript:wfl1001_userMessageListRefreshSystem();"/>
+                                                            </div>
+                                                            <br/>
+                                                            <div id="user_messages_list_div_viewSystem"/>
+                                                        </div>
+                                                        <div id="wfl1001_userMessagesListShowMoreDivSystem" class="showmore">
+                                                            <a class="handle" href="javascript:wfl1001_showMoreUserMessagesListSystem()"><![CDATA[点击显示更多]]></a>
+                                                        </div>
+                                                        <div class="row spacing-bottom"/>
+                                                    </div>
+                                                </a:tab>
+                                                <a:tab prompt="PROMPT.BUSINESS_MESSAGE">
+                                                    <div class="tiles white">
+                                                        <div class="tiles-body">
+                                                            <div class="controller">
+                                                                <a class="reload" href="javascript:wfl1001_userMessageListRefreshBusiness();"/>
+                                                            </div>
+                                                            <br/>
+                                                            <div id="user_messages_list_div_viewBusiness"/>
+                                                        </div>
+                                                        <div id="wfl1001_userMessagesListShowMoreDivBusiness" class="showmore">
+                                                            <a class="handle" href="javascript:wfl1001_showMoreUserMessagesListBusiness()"><![CDATA[点击显示更多]]></a>
+                                                        </div>
+                                                        <div class="row spacing-bottom"/>
+                                                    </div>
+                                                </a:tab>
+                                            </a:tabs>
+                                        </a:tabPanel>
+                                    </div>
+                                </div>
+                            </div> -->
+                            <!-- <div class="col-md-4">
+                                <div class="row spacing-bottom ">
+                                    <div class="col-md-12">
+                                        <div class="widget">
+                                            <div class="widget-body">
+                                                <div class="controller">
+                                                    <a class="reload" href="javascript:wfl1001_userTodoListRefresh();"/>-->
+                            <!-- <a class="remove" href="javascript:;"/> -->
+                            <!--</div>
+                                                <div class="widget-title"><![CDATA[记事便签]]></div>
+                                                <br/>
+                                                <div class="col-md-12">
+                                                    <input id="todo_content" class="dark" type="text"/>
+                                                    <button class="btn  btn-dark" onclick="javascript:wfl1001_createUserToDoList();" type="button">
+                                                        <i class="fa fa-plus"/>
+                                                    </button>
+                                                </div>
+                                                <div id="user_todo_list_div_view"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div> --><![CDATA[
+                            
+                            
+                            
+                            
+                        ]]></div>
+                    </div>
+                    <!-- END PAGE -->
+                </div>
+            </div>
+            <!-- BEGIN CHAT -->
+            <!-- END CHAT -->
+            <!-- END CONTAINER -->
+        </div>
+        <script><![CDATA[
+        	wfl1001_userMessagesListViewInit(1);
+        	wfl1001_userMessagesListViewInitSystem(1);
+        	wfl1001_userMessagesListViewInitBusiness(1);
+        ]]></script>
+    </a:view>
+    <a:view-config>
+        <c:create-config targetId="screen_include_id">
+            <p:loop nullable="true" source="/model/customize">
+                <c:process-config>
+                    <a:screen-include screen="${@screen}"/>
+                </c:process-config>
+            </p:loop>
+        </c:create-config>
+    </a:view-config>
+</a:screen>

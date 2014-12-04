@@ -1,0 +1,455 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autocount="true" model="wfl.wfl_workflow_reception_for_approve" rootpath="reception"/>
+        <a:model-query autocount="true" model="wfl.wfl_node_action_type_list" rootpath="actions"/>
+        <a:model-query autocount="true" model="wfl.CUX.cux_wfl_add_approval_get_action_id" rootpath="default_action"/>
+        <!--<a:model-query autocount="false" model="wfl.wfl_doc_info_query" rootPath="doc_info"/>-->
+        <a:model-query model="wfl.approve_record_list" rootPath="approvelist"/>
+        <a:model-query defaultWhereClause="v.flex_value_set_code = &apos;WFL_DEFAULT_OPINION&apos;" fetchAll="true" model="public.fnd_flex_value_v_lov" rootPath="default_opinion_list"/>
+        <a:model-query fetchAll="true" model="wfl.CUX.wfl_recipient_comments" rootPath="default_comments"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="uploadFile_link_7" url="${/request/@context_path}/uploadFile.screen"/>
+        <a:link id="wfl_notification_window_link_1" url="${/request/@context_path}/modules/wfl/public/wfl_notification_window.screen"/>
+        <a:link id="wfl_approve_link" url="${/request/@context_path}/modules/wfl/public/wfl_approve.screen"/>
+        <a:link id="wfl_deliver_link" url="${/request/@context_path}/modules/wfl/public/wfl_deliver.screen"/>
+        <a:link id="cux_wfl_get_next_node_approval_link" model="wfl.CUX.cux_wfl_get_next_node_approval" modelaction="execute"/>
+        <a:link id="cux_wfl_get_next_node_approval_list_link" url="${/request/@context_path}/modules/wfl/public/cux_wfl_next_node_approval_list.screen"/>
+        <a:link id="wfl_copyApproveRecord_link" url="${/request/@context_path}/modules/wfl/public/cux_wfl_copy_approve_record.screen"/>
+        <a:link id="wfl_approveComment_link" url="${/request/@context_path}/modules/wfl/public/cux_wfl_approve_record_comment_detail.screen"/>
+        <a:link id="cux_comments_save_link" model="wfl.CUX.wfl_recipient_comments" modelaction="update"/>
+        <a:link id="cux_workflow_only_execute" model="wfl.CUX.cux_wfl_workflow_only_execute" modelaction="update"/>
+        <style><![CDATA[
+         .buttongroup .item-btn-tl,.buttongroup .item-btn-tc,.buttongroup .item-btn-tr,.buttongroup .item-btn-bl,.buttongroup .item-btn-bc,.buttongroup .item-btn-br,.buttongroup .item-btn-mr{
+            display:none;
+         }
+         .buttongroup .item-btn{
+            height:30px;
+            border:none;
+         }
+         .buttongroup .item-btn-ml{
+            background:url(${/request/@context_path}/images/button2.gif)
+         }
+        .buttongroup .item-btn-mc{
+             background:url(${/request/@context_path}/images/button2.gif) right 0;
+            padding:9px 8px 5px 0;
+        }
+        .buttongroup .item-btn-mc button div{ 
+             color:#ffffff;
+        }
+        .buttongroup .item-btn-over .item-btn-mc{
+             background:url(${/request/@context_path}/images/button2.gif) right -30px;
+        }
+        .buttongroup .item-btn-over .item-btn-ml{
+            background:url(${/request/@context_path}/images/button2.gif) left -30px;
+         }
+        .buttongroup  .item-btn-over button div{ 
+             color:#000000;
+        }
+        ]]></style>
+        <script><![CDATA[
+            function showdeliver() {
+                new Aurora.Window({
+                    id: 'deliver_window',
+                    url: /*${/request/@context_path}/modules/wfl/wfl_deliver.screen*/
+                    $('wfl_deliver_link').getUrl() + '?record_id=${/parameter/@record_id}&instance_id=${/parameter/@instance_id}',
+                    title: '${l:WORKFLOW_APPR.DELIVER_PRO}',
+                    height: 270,
+                    width: 500
+                });
+            }
+            
+            function addapproverbtn() {
+                new Aurora.Window({
+                    id: 'appwindow',
+                    url: /*${/request/@context_path}/modules/wfl/wfl_approve.screen*/
+                    $('wfl_approve_link').getUrl() + '?record_id=${/parameter/@record_id}&instance_id=${/parameter/@instance_id}',
+                    title: '${l:WORKFLOW_APPR.ADD_CHECK_PEO}',
+                    height: 430,
+                    width: 550
+                }).on('close', function() {
+                    if (add_approval_flag) {
+                        $('commentsdata').getAt(0).set('action_id', '${/model/default_action/record/@action_id}');
+                        //Update By FelixDru 2013-09-03 取消重复输入意见
+                        $('commentsdata').getAt(0).getMeta().getField('comments').setRequired(false);
+                        $('commentsdata').submit();
+                    }
+                });
+            }
+            
+            function submitsuccesshandler() {
+                //Update By FelixDru 2013-10-12 提示信息
+                Aurora.showMessage('${l:PROMPT}', '操作成功!如需查询流程详情,请至“已办事项”查询', function(cmp) {
+                    if (opener && opener.removeApprove) {
+                        opener.removeApprove();
+                        opener.focus();
+                        window.blur();
+                    }
+                    backFunction();
+                });
+            }
+            
+            function backFunction() {
+                if (opener) {
+                    window.close();
+                }else{
+                    window.location.href = '${/request/@context_path}/main.screen';
+                }
+            }
+            
+            function notification() {
+                new Aurora.Window({
+                    id: 'notification_window',
+                    url: /*${/request/@context_path}/modules/wfl/wfl_notification_window.screen*/
+                    $('wfl_notification_window_link_1').getUrl() + '?instance_id=${/model/reception/record/@instance_id}&node_id=${/model/reception/record/@node_id}',
+                    title: '通知',
+                    height: 270,
+                    width: 470
+                });
+            }
+            
+            function wfl_uploadFile() {
+                //var docHeaderTable = '${/model/doc_info/record/@doc_header_table}' == '' ? 'WFL_APPROVE_RECORD':'${/model/doc_info/record/@doc_header_table}';
+                //var docHeaderId = '${/model/doc_info/record/@doc_header_table}' == '' ? '${/parameter/@record_id}':'${/model/doc_info/record/@doc_header_id}';
+            
+                var url = $('uploadFile_link_7').getUrl() + '?table_name=' + 'WFL_APPROVE_RECORD' + '&header_id=' + '${/parameter/@record_id}';
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                    id: 'exp_report_pmtplan_schedules_screen',
+                    width: 600,
+                    height: 400
+                });
+            }
+            
+            function goto_check_file(value, record, name) {
+                var att_num = record.get("att_num");
+                if (att_num == 0) return;
+                return '<a href="javascript:open_check_file(' + record.get('rcpt_record_id') + ')"> ${l:PROMPT.VIEW_ATTACHMENT} </a>';
+            }
+            
+            function open_check_file(id) {
+                var url = /*${/request/@context_path}/check_uploadFile.screen*/
+                $('check_uploadFile_link').getUrl() + '?table_name=WFL_APPROVE_RECORD&header_id=' + id;
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:PROMPT.VIEW_ATTACHMENT}',
+                    id: 'exp_report_pmtplan_schedules_screen',
+                    width: 600,
+                    height: 400
+                });
+            }
+            
+            //流程跟踪意见
+            
+            
+            function wfl_copyApproveRecordFun() {
+                var window_id = 'wfl_copyApproveRecord_link_window';
+                new Aurora.Window({
+                    id: window_id,
+                    url: $('wfl_copyApproveRecord_link').getUrl() + '?instance_id=${/parameter/@instance_id}',
+                    title: '流程跟踪意见',
+                    width: 400,
+                    height: 300
+                });
+            
+            }
+            
+            //默认审批意见值更改事件
+            function onDefaultOpinionDisplayChange(com, value, oldvalue){
+                var record = $('commentsdata').getCurrentRecord();
+                record.set('comments',value);
+            }
+            
+            //审批意见链接
+            function wflapprove_rendererFun(value, record, name){
+                return '<a href="javascript:openApproveComment(' + record.get('record_id')+')">' + record.get("comment_text") + '</a>';
+            }
+            
+            //打开页面
+            function openApproveComment(record_id){
+                new Aurora.Window({
+                    id: 'WFL_APPROVE_COMMENT_WINDOW',
+                    url: $('wfl_approveComment_link').getUrl() + '?record_id='+record_id+'&instance_id=${/parameter/@instance_id}',
+                    title: '审批意见明细',
+                    width: 400,
+                    height: 300
+                });
+            }
+            
+            //处理意见保存
+            function wfl_commentsSave(){
+                Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+                    //提交AjAX请求
+                    Aurora.request({
+                        url: $('cux_comments_save_link').getUrl(),
+                        para: {
+                            record_id:$('commentsdata').getAt(0).get('record_id'),
+                            comments:$('commentsdata').getAt(0).get('comments')
+                        },
+                        success: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        scope: this
+                    });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="default_opinion_list_ds" loadData="true">
+                <a:datas dataSource="/model/default_opinion_list"/>
+            </a:dataSet>
+            <a:dataSet id="reception_ds" loaddata="true">
+                <a:datas datasource="/model/reception"/>
+            </a:dataSet>
+            <a:dataSet id="commentsdata" autocreate="true" model="wfl.work_flow_approve" submiturl="${/request/@context_path}/modules/wfl/public/work_flow_approve.svc">
+                <a:fields>
+                    <a:field name="comments" required="true" requiredMessage="请输入处理意见"/>
+                    <a:field name="record_id" defaultValue="${/parameter/@record_id}"/>
+                    <a:field name="action_id"/>
+                    <a:field name="nonkeep_display_flag" checkedValue="Y" defaultValue="N" prompt="不保留处理意见" uncheckedValue="N"/>
+                    <a:field name="default_opinion_display" displayField="flex_desc" options="default_opinion_list_ds" prompt="审批意见" returnField="default_opinion" valueField="flex_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="submitsuccesshandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl_node_action_type_list">
+                <a:datas datasource="/model/actions"/>
+            </a:dataSet>
+            <a:dataSet id="approve_result_ds_detail">
+                <a:datas dataSource="/model/approvelist"/>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screen-include screen="modules/wfl/public/workflowreturn.screen?instance_id=${/parameter/@instance_id}"/>
+            <a:button click="wfl_copyApproveRecordFun" style="margin-left:35px;margin-top:10px" text="流程跟踪意见"/>
+            <a:form padding="0" showMargin="false" style="margin-left:35px;margin-top:10px" title="WFL_WORKFLOW_APPROVE.COMMENT">
+                <a:table bindTarget="approve_result_ds_detail" height="200" style="border:none">
+                    <a:columns>
+                        <a:column name="creation_date" Width="150" align="center" prompt="WFL_WORKFLOW_APPROVE_RECORD.APPROVE_DATE"/>
+                        <a:column name="node_name" Width="150" align="center" prompt="WFL_WORKFLOW_APPROVE_RECORD.APPROVE_NODE"/>
+                        <a:column name="user_name" Width="150" prompt="WFL_WORKFLOW_APPROVE_RECORD.APPROVER_NAME"/>
+                        <a:column name="action_title" align="center" prompt="WFL_WORKFLOW_APPROVAL.ACTION" width="150"/>
+                        <a:column name="comment_text" Width="420" prompt="WFL_WORKFLOW_APPROVE.COMMENT" renderer="wflapprove_rendererFun"/>
+                        <a:column name="check_file" Width="80" align="center" prompt="PROMPT.VIEW_ATTACHMENT" renderer="goto_check_file"/>
+                    </a:columns>
+                </a:table>
+            </a:form>
+            <ul style="margin-left:40px;color:red;overflow:inline;">
+                <li><![CDATA[1.提交至部门领导按钮：文件在部门内部办理完毕，最终呈部门领导审批时使用。]]></li>
+                <li><![CDATA[2.文件办理按钮：文件在部门内部办理过程中使用（文件在部门内部流转时，主要使用此按钮）。]]></li>
+            </ul>
+            <a:fieldSet marginWidth="104" style="margin-left:35px;" title="WORKFLOW_APPR.CHECK">
+                <a:template package="ui.template" template="workflowTemplate">
+                    <a:button id="backbtn" click="backFunction" text="返回主页"/>
+                    <a:button id="attachbtn" click="wfl_uploadFile" text="WFL_WORKFLOW_APPROVE_RECORD.UPLOAD_PROMPT"/>
+                    <a:button id="transactonbtn" click="showdeliver" text="WORKFLOW_APPR.DELIVER_PRO"/>
+                    <a:button id="addapproverbtn" click="addapproverbtn" text="WORKFLOW_APPR.ADD_CHECK_PEO"/>
+                    <a:button id="notificationbtn" click="notification" text="WORKFLOW_APPR.NOTIFY"/>
+                    <a:comboBox name="default_opinion_display" id="default_opinion" bindTarget="commentsdata">
+                        <a:events>
+                            <a:event name="change" handler="onDefaultOpinionDisplayChange"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:textArea name="comments" id="comments" bindtarget="commentsdata" height="200" width="700"/>
+                    <a:checkBox name="nonkeep_display_flag" id="nonkeep_display_flag_cb" bindtarget="commentsdata"/>
+                    <a:button id="commentsbtn" click="wfl_commentsSave" text="处理意见保存"/>
+                </a:template>
+            </a:fieldSet>
+        </a:screenBody>
+        <script><![CDATA[
+            //是否选择下一结点审批人标识（此处全局变量,将选择了下一节点审批人后，此标识改为true）
+            var select_next_node_approval_flag = false;
+            
+            //添加审批人标识（此处全局变量,将添加了“交办”的审批优先级后，此标识改为true）
+            var add_approval_flag = false;
+            
+            //判断工作流类型是否为项目评价工作流
+            if('${/model/reception/record/@workflow_category}' == 'PUR_PROGRAM_EVALUATION'){
+                $('commentsdata').getAt(0).set('comments', '已评价');
+            }
+            
+            //带出临时审批意见
+            if (Ext.isEmpty('${/model/default_comments/record/@comments}')) {} else {
+                $('commentsdata').getAt(0).set('comments', '${/model/default_comments/record/@comments}');
+            }
+            
+            function initbutton() {
+            
+                var initdataset = $('wfl_node_action_type_list');
+                var datalist = initdataset.getAll();
+                // for (var i=0, l=datalist.length;i<l;i++){
+                // var table=document.getElementById("showbutton");
+                // var newTD=table.rows[0].insertCell(0);
+                // newTD.style.cssText='padding-right:15px';
+                // var buttonTpl="<TABLE action_id='{action_id}'  class='item-btn' style=';width:60px;' id='{id}' cellSpacing='0'><TBODY><TR><TD class='item-btn-tl'><I></I></TD><TD class='item-btn-tc'></TD><TD class='item-btn-tr'><I></I></TD></TR><TR><TD class='item-btn-ml'><I></I></TD><TD class='item-btn-mc'><BUTTON type='button' hidefocus='true' atype='btn' title='' style='height:16px;' class=''><div style='line-height:16px;height:16px;'>{action_type}</div></BUTTON></TD><TD class='item-btn-mr'><I></I></TD></TR><TR><TD class='item-btn-bl'><I></I></TD><TD class='item-btn-bc'></TD><TD class='item-btn-br'><I></I></TD></TR></TBODY></TABLE>";
+                // var btnid='btn-'+i;
+                // var bindaction_id=datalist[i].get('action_id');
+                // var bindaction_type=datalist[i].get('action_title');
+                // new Ext.Template(buttonTpl).insertFirst(newTD,{id:btnid,action_type:bindaction_type,action_id:bindaction_id});
+                // new Aurora.Button({"id":btnid,"listeners":{"click":approveSave},"height":16,"width":60,"required":false,"readonly":false});
+            
+                // }
+            
+                for (var i = 0,
+                    l = datalist.length;i < l;i++) {
+                    var table = document.getElementById("showbutton");
+                    var newTD = table.rows[0].insertCell(0);
+                    newTD.style.cssText = 'padding-right:15px';
+                    var buttonTpl = "<TABLE action_id='{action_id}' action_type='{action_type}' action_title='{action_title}' class='item-btn' style=';width:60px;' id='{id}' cellSpacing='0'><TBODY><TR><TD class='item-btn-tl'><I></I></TD><TD class='item-btn-tc'></TD><TD class='item-btn-tr'><I></I></TD></TR><TR><TD class='item-btn-ml'><I></I></TD><TD class='item-btn-mc'><BUTTON type='button' hidefocus='true' atype='btn' title='' style='height:16px;' class=''><div style='line-height:16px;height:16px;'>{action_title}</div></BUTTON></TD><TD class='item-btn-mr'><I></I></TD></TR><TR><TD class='item-btn-bl'><I></I></TD><TD class='item-btn-bc'></TD><TD class='item-btn-br'><I></I></TD></TR></TBODY></TABLE>";
+                    var btnid = 'btn-' + i;
+                    var bindaction_id = datalist[i].get('action_id');
+                    var bindaction_type = datalist[i].get('action_type');
+                    var bindaction_title = datalist[i].get('action_title');
+                    var bindappoint_mannul_flag = datalist[i].get('appoint_mannul_flag');
+                    new Ext.Template(buttonTpl).insertFirst(newTD, {
+                        id: btnid,
+                        action_title: bindaction_title,
+                        action_id: bindaction_id,
+                        action_type: bindaction_type,
+                        appoint_mannul_flag: bindappoint_mannul_flag,
+                        appoint_procedure: bindappoint_procedure
+                    });
+                    new Aurora.Button({
+                        "id": btnid,
+                        "listeners": {
+                            "click": approveSave
+                        },
+                        "height": 16,
+                        "width": 60,
+                        "required": false,
+                        "readonly": false
+                    });
+            
+                }
+            
+                if ('${/model/reception/record/@can_add_approver}' == 0) {
+                    var addbtn = document.getElementById('adTD');
+                    if (addbtn != null) {
+                        addbtn.parentNode.removeChild(addbtn);
+                    }
+                }
+                if ('${/model/reception/record/@can_add_notification}' == 0) {
+                    var nobtn = document.getElementById('noTD');
+                    if (nobtn != null) {
+                        nobtn.parentNode.removeChild(nobtn);
+                    }
+                }
+                if ('${/model/reception/record/@can_deliver_to}' == 0) {
+                    var debtn = document.getElementById('trTD');
+                    if (debtn != null) {
+                        debtn.parentNode.removeChild(debtn);
+                    }
+                }
+            
+                if ('${/model/reception/record/@can_add_attachement}' == 0) {
+                    var attbtn = document.getElementById('atTD');
+                    if (attbtn != null) {
+                        attbtn.parentNode.removeChild(attbtn);
+                    }
+                }
+            }
+            
+            // function approveSave(action_id_o){
+            // var action_id =action_id_o.wrap.dom.getAttribute('action_id');
+            // $('commentsdata').getAt(0).set('action_id',action_id);
+            // $('commentsdata').submit();
+            // }
+            
+            //重写approveSave方法
+            
+            function approveSave(action_id_o) {
+                //获取动作ID、动作类型、手工选择下一节点审批人标识
+                var action_id = action_id_o.wrap.dom.getAttribute('action_id');
+                var action_type = action_id_o.wrap.dom.getAttribute('action_type');
+                var action_title = action_id_o.wrap.dom.getAttribute('action_title');
+                var appoint_mannul_flag = action_id_o.wrap.dom.getAttribute('appoint_mannul_flag');
+                //Update By FelixDru 2013-10-09 当前代办事项是否由会办而来标志
+                var rcpt_before_flag = '${/model/reception/record/@rcpt_before_flag}';
+                //判断，如果手工选择下一节点审批人标识为“Y”，并且点击“同意”、“跳转”动作，（动作类型为“1”，“3”），则执行过程，获取审批人列表
+                //Update By FelixDru 2013-10-09  点击同意时，判断当前代办事项是否由会办而来标志是否为Y，为Y则不获取审批人列表，执行标准操作；为N时，则获取审批人列表
+                if (!Aurora.isEmpty(appoint_mannul_flag) && appoint_mannul_flag == "Y" && ((action_type == '1' && rcpt_before_flag == 'N') || action_type == '3')) {
+                    //验收意见是否已填写
+                    if (!$('commentsdata').validate()) {
+                        return;
+                    }
+                    //整理过程参数
+                    var data = {
+                        instance_id: '${/parameter/@instance_id}',
+                        node_id: '${/model/reception/record/@node_id}',
+                        action_id: action_id,
+                        record_id: ${/parameter/@record_id}
+                    };
+                    Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+                    //提交AjAX请求
+                    Aurora.request({
+                        url: $('cux_wfl_get_next_node_approval_link').getUrl(),
+                        para: data,
+                        success: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            var window_id = 'cux_wfl_get_next_node_approval_list_link_window';
+                            new Aurora.Window({
+                                id: window_id,
+                                url: $('cux_wfl_get_next_node_approval_list_link').getUrl() + '?window_id=' + window_id + '&record_id=${/parameter/@record_id}&action_id=' + action_id + '&instance_id=${/parameter/@instance_id}&node_id=${/model/reception/record/@node_id}',
+                                title: action_title,
+                                width: 1000,
+                                height: 700
+                            })
+                            /* .on('close', function() {
+                             //选择了下一节点审批人后再执行后续动作
+                             if(select_next_node_approval_flag){
+                             $('commentsdata').getAt(0).set('action_id', action_id);
+                             $('commentsdata').submit();
+                             }
+                             }) */;
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        scope: this
+                    });
+            
+                }else if(action_type == '99'){	//当动作类型为“99”（仅执行）时，执行对应过程
+                    //整理过程参数
+                    var data = {
+                        action_id: action_id,
+                        rcpt_record_id: ${/parameter/@record_id}
+                    };
+                    Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+                    //提交AjAX请求
+                    Aurora.request({
+                        url: $('cux_workflow_only_execute').getUrl(),
+                        para: data,
+                        success: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            Aurora.showMessage('${l:PROMPT}', '执行成功！');
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                        },
+                        scope: this
+                    });
+                } else {
+                    $('commentsdata').getAt(0).set('action_id', action_id);
+                    $('commentsdata').submit();
+                }
+            }
+            
+            initbutton();
+        ]]></script>
+    </a:view>
+</a:screen>

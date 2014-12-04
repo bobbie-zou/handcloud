@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-6-8 下午2:46:32  
+    $Revision: 1.0  
+    $Purpose: 用户消息总数
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    ceil(COUNT(*)/DECODE(sys_parameter_pkg.value('SYS_USER_MESSAGE_NUMBER'),0,1,NULL,1,sys_parameter_pkg.value('SYS_USER_MESSAGE_NUMBER'))) user_message_page,
+                    DECODE(sys_parameter_pkg.value('SYS_USER_MESSAGE_NUMBER'),0,1,NULL,1,sys_parameter_pkg.value('SYS_USER_MESSAGE_NUMBER')) user_message_page_size,
+                    message_type
+                FROM
+                    (SELECT
+                        fv.*,
+                        rownum
+                    FROM
+                        (SELECT
+                            s.message_id,
+                            s.message_type,
+                            s.message_title,
+                            NVL(s.message_content,'无') message_content,
+                            s.message_time,
+                            TO_CHAR(s.message_time, 'YYYY-MM-DD HH24:MI:SS') message_time_desc,
+                            NVL(s.urgent_flag, 'N') urgent_flag,
+                            NVL(s.top_flag, 'N') top_flag,
+                            s.source_table,
+                            s.source_id
+                        FROM
+                            sys_user_messages s
+                        WHERE
+                            sys_user_message_pkg.check_message_show(s.message_id, ${/session/@user_id}) = 'Y' AND
+                            NOT EXISTS
+                            (SELECT
+                                1
+                            FROM
+                                sys_user_operation_messages om
+                            WHERE
+                                om.message_id       = s.message_id AND
+                                om.push_user_id     = ${/session/@user_id} AND
+                                om.operation_number = 2
+                            ) AND
+                            NVL(s.abolish_flag, 'N') = 'N' AND
+                            s.push_object_type       = 'ALL' AND
+                            s.message_time          <= SYSDATE
+                        UNION ALL
+                        SELECT
+                            s.message_id,
+                            s.message_type,
+                            s.message_title,
+                            s.message_content,
+                            s.message_time,
+                            TO_CHAR(s.message_time, 'YYYY-MM-DD HH24:MI:SS') message_time_desc,
+                            NVL(l.urgent_flag, s.urgent_flag) urgent_flag,
+                            NVL(l.top_flag, s.top_flag) top_flag,
+                            s.source_table,
+                            s.source_id
+                        FROM
+                            sys_user_messages s,
+                            sys_user_message_list l
+                        WHERE
+                            NVL(s.abolish_flag, 'N') = 'N' AND
+                            NOT EXISTS
+                            (SELECT
+                                1
+                            FROM
+                                sys_user_operation_messages om
+                            WHERE
+                                om.message_id       = s.message_id AND
+                                om.push_user_id     = ${/session/@user_id} AND
+                                om.operation_number = 2
+                            ) AND
+                            s.push_object_type = 'SINGLE' AND
+                            s.message_time    <= SYSDATE AND
+                            l.message_id       = s.message_id AND
+                            l.push_user_id     = ${/session/@user_id}
+                        ) fv
+                    ) v #WHERE_CLAUSE#
+                    group by message_type
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="user_message_page"/>
+        <bm:field name="user_message_page_size"/>
+        <bm:field name="message_type"/>
+    </bm:fields>
+</bm:model>

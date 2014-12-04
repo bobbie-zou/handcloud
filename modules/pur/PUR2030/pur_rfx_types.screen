@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-20 上午9:11:04  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <script><![CDATA[  
+			function pur2030_rfx_types_queryHook(value,ds){
+			    var record=ds.getCurrentRecord(0);
+			    record.set('query_hook',value);
+			}    
+	
+			function pur2030_rfx_types_code_ef(record,name){
+			    if(record.isNew){
+			        return 'pur2030_rfx_type_code_tf';
+			    }    
+			}    
+			
+			function pur2030_rfx_types_rules(record,rfx_category){
+        	    if(rfx_category == 'RFA'){//竞价单
+		            record.getMeta().getField('default_auction_direction_desc').setReadOnly(false); 
+		            
+		            record.getMeta().getField('default_auction_rule_desc').setReadOnly(false); 
+		            
+		            record.getMeta().getField('default_open_rule_desc').setReadOnly(false); 
+		            
+		            record.getMeta().getField('default_ranking_rule_desc').setReadOnly(false); 
+		            
+		            record.getMeta().getField('default_auction_ranking_desc').setReadOnly(false);
+        	    }else{//不为竞价单
+        	        record.set('default_auction_direction','');
+	       		    record.set('default_auction_direction_desc','');
+		            record.getMeta().getField('default_auction_direction_desc').setReadOnly(true); 
+		            
+		            record.set('default_auction_rule','');
+	       		    record.set('default_auction_rule_desc','');
+		            record.getMeta().getField('default_auction_rule_desc').setReadOnly(true); 
+		            
+		            record.set('default_open_rule','');
+	       		    record.set('default_open_rule_desc','');
+		            record.getMeta().getField('default_open_rule_desc').setReadOnly(true); 
+		            
+		            record.set('default_ranking_rule','');
+	       		    record.set('default_ranking_rule_desc','');
+		            record.getMeta().getField('default_ranking_rule_desc').setReadOnly(true); 
+		            
+		            record.set('default_auction_ranking','');
+	       		    record.set('default_auction_ranking_desc','');
+		            record.getMeta().getField('default_auction_ranking_desc').setReadOnly(true); 
+        	    }
+        	    
+        	}
+        	
+        	function pur2030_rfx_type_check(record){
+        	    var open_rule = record.get('default_open_rule');
+        	    var ranking_rule = record.get('default_ranking_rule');
+        	    if((open_rule == 'OPEN_IDENTITY_HIDDEN_QUOTN'||open_rule == 'OPEN_IDENTITY_OPEN_QUOTN')&&ranking_rule == 'ANONYMOUS_AUCTION'){
+        	        alert('${l:PUR2030.OPEN_IDENTITY_HIDDEN_UNSELECTED}');
+        	        return false;
+        	    }
+        	    return true;
+        	}
+			
+			function pur2030_rfx_types_result_ds_update(ds, record, name, value, oldvalue){
+			    if(name == "unique_template_flag"){
+			        if(value == 'Y'){
+			            record.getMeta().getField('default_template_desc').setReadOnly(false);
+			        }else{
+			            record.set('default_template_desc','');
+			            record.set('default_template_id','');
+			            record.getMeta().getField('default_template_desc').setReadOnly(true);
+			        }
+			    }else if(name == 'rfx_category'){
+			        pur2030_rfx_types_rules(record,value);
+			    }
+			}
+			
+			function pur2030_rfx_type_save(){
+				var records = $('pur2030_rfx_types_result_ds').getAll();
+			 	for(var i=0;i<records.length;i++){
+			 	   	if(!pur2030_rfx_type_check(records[i])){
+			 	   	    return;
+			 	   	}
+			 	}
+			 	$('pur2030_rfx_types_result_ds').submit();
+			}
+			
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur2030_rfx_category_ds" lookupCode="PUR_RFX_CATEGORY"/>
+            <a:dataSet id="pur2030_rfx_method_ds" lookupCode="PUR_RFX_METHOD"/>
+            <a:dataSet id="pur2030_rfx_auction_direction_ds" lookupCode="PUR_RFX_AUCTION_DIRECTION"/>
+            <a:dataSet id="pur2030_rfx_auction_rule_ds" lookupCode="PUR_RFX_AUCTION_RULE"/>
+            <a:dataSet id="pur2030_rfx_open_rule_ds" lookupCode="PUR_RFX_OPEN_RULE"/>
+            <a:dataSet id="pur2030_rfx_ranking_rule_ds" lookupCode="PUR_RFX_RANKING_RULE"/>
+            <a:dataSet id="pur2030_rfx_auction_ranking_ds" lookupCode="PUR_RFX_AUCTION_RANKING"/>
+            <a:dataSet id="pur2030_rfx_types_query_ds"/>
+            <a:dataSet id="pur2030_rfx_types_result_ds" autoPageSize="true" autoQuery="true" model="pur.PUR2030.pur_rfx_types" queryDataSet="pur2030_rfx_types_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="rfx_type_id"/>
+                    <a:field name="rfx_type_code" required="true"/>
+                    <a:field name="rfx_type_desc"/>
+                    <a:field name="rfx_category"/>
+                    <a:field name="rfx_category_desc" displayField="code_value_name" options="pur2030_rfx_category_ds" returnField="rfx_category" valueField="code_value"/>
+                    <a:field name="unique_template_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="default_template_desc" lovGridHeight="320" lovHeight="500" lovService="public.fnd_flex_seg_table_template_lov?appl_table_name=PUR_RFX_HEADERS" lovWidth="500" readOnly="true" title="PUR_RFX_TYPES.DEFAULT_TEMPLATE_ID">
+                        <a:mapping>
+                            <a:map from="template_id" to="default_template_id"/>
+                            <a:map from="template_desc" to="default_template_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="default_rfx_method"/>
+                    <a:field name="default_rfx_method_desc" displayField="code_value_name" options="pur2030_rfx_method_ds" returnField="default_rfx_method" valueField="code_value"/>
+                    <a:field name="default_auction_direction"/>
+                    <a:field name="default_auction_direction_desc" displayField="code_value_name" options="pur2030_rfx_auction_direction_ds" returnField="default_auction_direction" valueField="code_value"/>
+                    <a:field name="default_auction_rule"/>
+                    <a:field name="default_auction_rule_desc" displayField="code_value_name" options="pur2030_rfx_auction_rule_ds" returnField="default_auction_rule" valueField="code_value"/>
+                    <a:field name="default_open_rule"/>
+                    <a:field name="default_open_rule_desc" displayField="code_value_name" options="pur2030_rfx_open_rule_ds" returnField="default_open_rule" valueField="code_value"/>
+                    <a:field name="default_ranking_rule"/>
+                    <a:field name="default_ranking_rule_desc" displayField="code_value_name" options="pur2030_rfx_ranking_rule_ds" returnField="default_ranking_rule" valueField="code_value"/>
+                    <a:field name="default_auction_ranking"/>
+                    <a:field name="default_auction_ranking_desc" displayField="code_value_name" options="pur2030_rfx_auction_ranking_ds" returnField="default_auction_ranking" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur2030_rfx_types_result_ds_update"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="pur2030_rfx_type_grid" type="add" width="100"/>
+                <a:toolbarButton click="pur2030_rfx_type_save" style="margin-left:20px;" text="HAP_SAVE" width="100"/>
+                <a:gridButton bind="pur2030_rfx_type_grid" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="pur2030_rfx_types_query_ds" defaultQueryHint="PUR2030.RFX_TYPES_DEFAULT_QUERY_HINT" queryHook="pur2030_rfx_types_queryHook" resultTarget="pur2030_rfx_types_result_ds" style="width:100%;border:none"/>
+            <a:grid id="pur2030_rfx_type_grid" autoAppend="false" bindTarget="pur2030_rfx_types_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="rfx_type_code" align="left" editorFunction="pur2030_rfx_types_code_ef" prompt="PUR_RFX_TYPES.RFX_TYPE_CODE" width="80"/>
+                    <a:column name="rfx_type_desc" align="left" editor="pur2030_rfx_type_desc_tf" prompt="PUR_RFX_TYPES.DESCRIPTION_ID" width="100"/>
+                    <a:column name="rfx_category_desc" align="left" editor="pur2030_rfx_type_cb" prompt="PUR_RFX_TYPES.RFX_CATEGORY" width="60"/>
+                    <a:column name="enabled_flag" align="left" editor="pur2030_rfx_type_chb" prompt="PUR_RFX_TYPES.ENABLED_FLAG" width="40"/>
+                    <a:column name="unique_template_flag" align="left" editor="pur2030_rfx_type_chb" prompt="PUR_RFX_TYPES.UNIQUE_TEMPLATE_FLAG" width="60"/>
+                    <a:column name="default_template_desc" align="left" editor="pur2030_default_template_desc_lov" prompt="PUR_RFX_TYPES.DEFAULT_TEMPLATE_ID" width="100"/>
+                    <a:column name="default_rfx_method_desc" align="left" editor="pur2030_rfx_type_cb" prompt="PUR_RFX_TYPES.DEFAULT_RFX_METHOD" width="60"/>
+                    <a:column name="default_auction_direction_desc" align="left" editor="pur2030_rfx_type_cb" prompt="PUR_RFX_TYPES.DEFAULT_AUCTION_DIRECTION" width="60"/>
+                    <a:column name="default_auction_rule_desc" align="left" editor="pur2030_rfx_type_cb" prompt="PUR_RFX_TYPES.DEFAULT_AUCTION_RULE" width="60"/>
+                    <a:column name="default_open_rule_desc" align="left" editor="pur2030_rfx_type_cb" prompt="PUR_RFX_TYPES.DEFAULT_OPEN_RULE" width="80"/>
+                    <a:column name="default_ranking_rule_desc" align="left" editor="pur2030_rfx_type_cb" prompt="PUR_RFX_TYPES.DEFAULT_RANKING_RULE" width="80"/>
+                    <a:column name="default_auction_ranking_desc" align="left" editor="pur2030_rfx_type_cb" prompt="PUR_RFX_TYPES.DEFAULT_AUCTION_RANKING" width="60"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="pur2030_rfx_type_code_tf" maxLength="30" typeCase="upper"/>
+                    <a:textField id="pur2030_rfx_type_desc_tf" maxLength="200"/>
+                    <a:comboBox id="pur2030_rfx_type_cb"/>
+                    <a:lov id="pur2030_default_template_desc_lov"/>
+                    <a:checkBox id="pur2030_rfx_type_chb" checkedValue="Y" uncheckedValue="N"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

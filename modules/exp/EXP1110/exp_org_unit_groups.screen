@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="exp1110_exp_unit_group_relations_link" url="${/request/@context_path}/modules/exp/EXP1110/exp_unit_group_relations.screen"/>
+        <a:link id="exp1110_dept_batch_stype_assign_unit_link" url="${/request/@context_path}/modules/exp/EXP1110/exp_assign_unit_batch_all.screen"/>
+        <div/>
+        <script><![CDATA[
+            var exp1110_current_company_id = '${/session/@default_company_id}';
+            var exp1110_current_company_desc = '${/session/@default_company_desc}';
+            
+            function exp1110Query(ds) {
+                var record = $('exp1110_exp_org_unit_groups_query_ds').getAt(0);
+                exp1110_current_company_id = record.get('company_id');
+                exp1110_current_company_desc = record.get('company_desc');
+            }
+            
+            
+            function exp1110ResultAdd(ds, record, index) {
+                record.set('company_id', exp1110_current_company_id);
+                record.set('company_desc', exp1110_current_company_desc);
+            }
+            
+            
+            function exp1110QueryOrgUnitGroups() {
+                $('exp1110_exp_org_unit_groups_result_ds').query();
+            }
+            
+            
+            function exp1110_groupCodeEditor(record, name) {
+                if (record.isNew) {
+                    return 'exp1110_org_unit_group_code_grid_tf';
+                }
+                return '';
+            }
+            
+            function exp1110_setUnitGroupRelations(value, record, name) {
+                var orgUnitGroupId = record.get('unit_group_id');
+                var company_id = record.get('company_id');
+                if (orgUnitGroupId) {
+                    var unitGroupId = record.get('unit_group_id');
+                    return '<a href="javascript:exp1110_setUnitGroupRelationsInfo(' + unitGroupId + ',' + company_id + ')">${l:EXP_ORG_UNIT_GROUPS.ASSIGN}</a>';
+                }
+            }
+            
+            function exp1110_setUnitGroupRelationsInfo(unitGroupId, company_id) {
+                new Aurora.Window({
+                    id: 'exp1110_exp_unit_group_relations_window',
+                    url: $('exp1110_exp_unit_group_relations_link').getUrl() + '?unit_group_id=' + unitGroupId + '&company_id=' + company_id,
+                    title: '${l:EXP_ORG_UNIT_GROUPS.ASSIGN}',
+                    height: 440,
+                    width: 530
+                });
+            }
+            
+            
+            
+            function EXP1110_batchAssignUnit() {
+                var typeDs = $('exp1110_exp_org_unit_groups_result_ds');
+                var typeRecordsData = typeDs.getJsonData(true);
+                if (typeRecordsData.length == 0) {
+                    Aurora.showInfoMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}', null, 250, 100);
+                    return;
+                }
+                var record = typeDs.getAll();
+                var currentRecord = typeDs.getAt(record.length - 1);
+                if (currentRecord.isNew) {
+                    Aurora.showInfoMessage('${l:PROMPT}', '${l:PROMPT.DATA_CHECK_FAILURE}', null, 250, 100);
+                    return;
+                }
+                new Aurora.Window({
+                    id: 'EXP1110_csh_sob_payment_unit_batch_id',
+                    url: $('exp1110_dept_batch_stype_assign_unit_link').getUrl() + '?company_id=' + exp1110_current_company_id,
+                    title: '${l:PROMPT.BATCH_ADD}',
+                    height: 500,
+                    width: 575
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="exp1110_assign_company_ds" loadData="true" model="public.fnd_assign_company_list"/>
+            <a:dataSet id="exp1110_exp_org_unit_groups_query_ds">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@default_company_id}"/>
+                    <a:field name="company_desc" defaultValue="${/session/@default_company_desc}" displayField="company_desc" options="exp1110_assign_company_ds" returnField="company_id" valueField="company_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="exp1110_exp_org_unit_groups_result_ds" autoQuery="true" fetchAll="true" model="exp.EXP1110.exp_org_unit_groups" queryDataSet="exp1110_exp_org_unit_groups_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@default_company_id}"/>
+                    <a:field name="company_desc" defaultValue="${/session/@default_company_desc}"/>
+                    <a:field name="unit_group_code" required="true"/>
+                    <a:field name="unit_group_desc" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" unCheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="exp1110ResultAdd"/>
+                    <a:event name="query" handler="exp1110Query"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="exp1110_grid" text="HAP_NEW" type="add" width="100"/>
+                <a:gridButton bind="exp1110_grid" text="HAP_SAVE" type="save" width="100"/>
+                <a:gridButton bind="exp1110_grid" text="HAP_CLEAR" type="clear" width="100"/>
+                <a:gridButton click="EXP1110_batchAssignUnit" text="PROMPT.BATCH_DISP_UNIT"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="exp1110_exp_org_unit_groups_query_ds" resultTarget="exp1110_exp_org_unit_groups_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="150">
+                        <a:textField name="unit_type_code" bindTarget="exp1110_exp_org_unit_groups_query_ds" prompt="BGT_BUDGET_ITEM_MAPPING.ORG_UNIT_GROUP_CODE" typeCase="upper">
+                            <a:events>
+                                <a:event name="enterdown" handler="exp1110QueryOrgUnitGroups"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="unit_group_desc" bindTarget="exp1110_exp_org_unit_groups_query_ds" prompt="BGT_BUDGET_ITEM_MAPPING.ORG_UNIT_GROUP_DESC">
+                            <a:events>
+                                <a:event name="enterdown" handler="exp1110QueryOrgUnitGroups"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="company_desc" bindTarget="exp1110_exp_org_unit_groups_query_ds" prompt="INV_COMPANY_ITEMS.COMPANY_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="exp1110QueryOrgUnitGroups"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="exp1110_grid" bindTarget="exp1110_exp_org_unit_groups_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="unit_group_code" align="center" editorFunction="exp1110_groupCodeEditor" prompt="EXP_ORG_UNIT_GROUPS.UNIT_GROUP_CODE" sortable="true" width="150"/>
+                    <a:column name="unit_group_desc" editor="exp1110_description_grid_tf" prompt="EXP_ORG_UNIT_GROUPS.DESCRIPTION" width="230"/>
+                    <a:column name="company_desc" align="center" prompt="INV_COMPANY_ITEMS.COMPANY_ID" width="150"/>
+                    <a:column name="enabled_flag" editor="exp1110_fnd_calendar_grid_dp" prompt="EXP_ORG_UNIT_GROUPS.ENABLED_FLAG" sortable="true" width="100"/>
+                    <a:column name="unit_group_id" align="center" prompt="EXP_ORG_UNIT_TYPES.ASSIGN_UNIT" renderer="exp1110_setUnitGroupRelations" width="150"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="exp1110_org_unit_group_code_grid_tf" typeCase="upper"/>
+                    <a:textField id="exp1110_description_grid_tf"/>
+                    <a:checkBox id="exp1110_fnd_calendar_grid_dp"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

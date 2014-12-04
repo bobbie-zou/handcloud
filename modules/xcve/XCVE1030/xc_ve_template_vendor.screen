@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangzhisong  
+    $Date: 2011-11-16 下午02:28:20  
+    $Revision: 1.0  
+    $Purpose: 参评供应商
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <script><![CDATA[
+            function xcve1030VeTemplateVendorReturn() {
+                $('xcve1030_ve_template_vendor_window').close();
+            }
+            
+            function xcve1030VeTemplateVendorOnSubmitsuccess() {
+                $('xcve1030_ve_template_vendor_ds').query();
+            }
+            
+            function xcve1030VeTemplateVendorEditor(record, name) {
+                if (record.isNew) {
+                    return 'xcve1030_ve_template_vendor_lov';
+                } else {
+                    return '';
+                }
+            }
+            
+            function xcve1030VeTemplateVendorRender(value, record, name) {
+                if (!record.isNew) {
+                    return '<a href="javascript:xcve1030ItemgroupAssign(' + record.get('ve_template_id') + ','+record.get('vendor_id')+')">参评物料组</a>';
+                } else {
+                    return '';
+                }
+            }
+            
+            function xcve1030ItemgroupAssign(ve_template_id, vendor_id) {
+                new Aurora.Window({
+                    id: 'xc_ve_template_item_group',
+                    url: $('xcve1030_ve_template_item_group_link').getUrl() + '?ve_template_id=' + ve_template_id+'&vendor_id='+vendor_id,
+                    title: '缺省参评物料组',
+                    height: 460,
+                    width: 750
+                });
+            }
+            
+            function xcve1030VeTemplateVendorSyncVendor(){
+                Aurora.showConfirm('提示', '确定同步供应商吗?', function(){
+	                Aurora.request({
+	                    url:'${/request/@context_path}/autocrud/xcve.XCVE1030.xc_ve_sync_template_vendor/execute',
+	                    para:{
+	                        've_template_id': '${/parameter/@ve_template_id}'
+	                    },
+	                    scope:this,
+	                    success:function(){
+	                        $('xcve1030_ve_template_vendor_ds').query();
+	                    },
+	                    error:function(){},
+	                    failure:function(){}
+	                });
+                });
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="xcve1030_ve_template_vendor_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="xcve.XCVE1030.xc_ve_template_vendor" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE1030.xc_ve_template_vendor/query?ve_template_id=${/parameter/@ve_template_id}" selectable="true">
+                <a:fields>
+                    <a:field name="ve_template_id" defaultValue="${/parameter/@ve_template_id}"/>
+                    <a:field name="vendor_id"/>
+                    <a:field name="vendor_code" autoComplete="true" lovHeight="500" lovLabelWidth="110" lovService="public.pur_system_vendors_lov" lovWidth="600" required="true" title="XCVE.SYS_VENDOR_LOV_TITLE">
+                        <a:mapping>
+                            <!--<a:map from="user_id" to="vendor_id"/>
+                            <a:map from="user_name" to="vendor_srm_code"/>
+                            <a:map from="vendor_erp_code" to="vendor_erp_code"/>
+                            <a:map from="company_full_name" to="vendor_name"/>
+                            <a:map from="vendor_type_name" to="vendor_type_name"/>-->
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="short_name" to="vendor_short_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <!--<a:field name="vendor_erp_code" readOnly="true"/>
+                    <a:field name="vendor_name" readOnly="true"/>
+                    <a:field name="vendor_type_name" readOnly="true"/>-->
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="xcve1030VeTemplateVendorOnSubmitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="xcve1030_ve_template_vendor_grid" type="add" width="100"/>
+                <a:gridButton bind="xcve1030_ve_template_vendor_grid" type="save" width="100"/>
+                <a:gridButton bind="xcve1030_ve_template_vendor_grid" type="delete" width="100"/>
+                <a:toolbarButton click="xcve1030VeTemplateVendorReturn" text="PROMPT.RETURN" width="100"/>
+                <!--<a:toolbarButton click="xcve1030VeTemplateVendorSyncVendor" text="同步供应商" width="100"/>-->
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="150">
+                <a:vBox labelWidth="150">
+                    <a:label name="ve_template_code" bindTarget="xcve1030_type_ds" prompt="XC_VE_MAIN_CRITERIA.MAIN_CRITERION_CODE"/>
+                </a:vBox>
+                <a:vBox labelWidth="150">
+                    <a:label name="description" bindTarget="xcve1030_type_ds" prompt="XC_VE_MAIN_CRITERIA.MAIN_CRITERION_DESC"/>
+                </a:vBox>
+            </a:hBox>
+            <a:grid id="xcve1030_ve_template_vendor_grid" bindTarget="xcve1030_ve_template_vendor_ds" marginHeight="150" marginWidth="50" navBar="true">
+                <a:columns>
+                    <!--<a:column prompt="供应商编码">
+                        <a:column name="vendor_srm_code" editorFunction="xcve1030VeTemplateVendorEditor" prompt="SRM编码" sortable="true" width="120"/>
+                        <a:column name="vendor_erp_code" prompt="ERP编码" sortable="true" width="120"/>
+                    </a:column>
+                    <a:column name="vendor_name" prompt="供应商描述" sortable="true" width="200"/>
+                    <a:column name="vender_type_desc" prompt="供应商类型" sortable="true" width="120"/>
+                    <a:column name="itemgroup" align="center" prompt="参评物料组" renderer="xcve1030VeTemplateVendorRender" width="100"/>
+                    <a:column name="platform" prompt="供应商承制平台" sortable="true" width="300"/>-->
+                    <a:column name="vendor_code" editorFunction="xcve1030VeTemplateVendorEditor" sortable="true" width="100"/>
+                    <a:column name="vendor_short_name" sortable="true" width="200"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="xcve1030_ve_template_vendor_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

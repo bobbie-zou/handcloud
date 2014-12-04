@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-6 下午1:17:06  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="xc_ve_year_profiles_query_link" url="${/request/@context_path}/modules/xcve/XCVE5050/xc_ve_year_profile_query.screen"/>
+        <script><![CDATA[
+            function backToQuery() {
+                Aurora.go($('xc_ve_year_profiles_query_link').getUrl());
+            }
+            
+            function release() {
+                var records = $('score_ds').getSelected();
+                for (var i = 0;i < records.length;i++) {
+                    records[i].set('release_flag', 'Y');
+                }
+                $('score_ds').submit();
+            }
+            
+            function cancelRelease() {
+                var records = $('score_ds').getSelected();
+                for (var i = 0;i < records.length;i++) {
+                    records[i].set('release_flag', 'N');
+                }
+                $('score_ds').submit();
+            }
+            
+            function refreshDs() {
+                $('score_ds').query();
+            }
+            
+            function calcYearScore(dataSet, record, name, value, oldValue) {
+                var sumQ3 = record.get('q3_score_1') + record.get('q3_score_2') + record.get('q3_score_3') + record.get('q3_score_4') + record.get('q3_score_5') + record.get('q3_score_6') + record.get('q3_score_7') + record.get('q3_score_8') + record.get('q3_score_9') + record.get('q3_score_10') + record.get('q3_score_11') + record.get('q3_score_12') + record.get('q3_score_13') + record.get('q3_score_14') + record.get('q3_score_15') + record.get('q3_score_16');
+                var yearScore = (record.get('avg_score') * record.get('factor_q1') * record.get('factor_q2')) * 0.8 + sumQ3 * 0.2;
+                if (!isNaN(yearScore)) {
+                    record.set('year_score', yearScore.toFixed(2));
+                } else {
+                    record.set('year_score', '');
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="ve_year_profiles_ds" autoQuery="true" model="xcve.XCVE5050.xc_ve_year_profiles" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE5050.xc_ve_year_profiles/query?company_id=${/session/@company_id}&amp;ve_profile_id=${/parameter/@ve_profile_id}">
+                <a:fields>
+                    <a:field name="company_id" readOnly="true"/>
+                    <a:field name="ve_profile_num" readOnly="true"/>
+                    <a:field name="period_year" readOnly="true"/>
+                    <a:field name="ve_template_id" readOnly="true"/>
+                    <a:field name="ve_template_id_desc" readOnly="true"/>
+                    <a:field name="period_name_from" readOnly="true"/>
+                    <a:field name="period_name_to" readOnly="true"/>
+                    <a:field name="ve_profile_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="score_ds" autoQuery="true" model="xcve.XCVE5050.xc_ve_year_profile_score" pageSize="100" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE5050.xc_ve_year_profile_score/query?ve_profile_id=${/parameter/@ve_profile_id}" selectable="true">
+                <a:fields>
+                    <a:field name="vendor_srm_code" readOnly="true"/>
+                    <a:field name="vendor_erp_code" readOnly="true"/>
+                    <a:field name="vendor_name" readOnly="true"/>
+                    <a:field name="item_group_code" readOnly="true"/>
+                    <a:field name="avg_score" readOnly="true"/>
+                    <a:field name="factor_q1" readOnly="true"/>
+                    <a:field name="factor_q2" readOnly="true"/>
+                    <!-- <a:field name="q3_score_1" tooltip="行业前三10分，行业3-5得6分、行业前6-10得3分、其余0分"/>
+                    <a:field name="q3_score_2" tooltip="全球供应10分，国内3个以上主机厂6分，国内3个主机厂3分"/>
+                    <a:field name="q3_score_3" tooltip="生产场所为固定的自有资产5分，生产场所为固定的非自有资产3分；无固定场所0分"/>
+                    <a:field name="q3_score_4" tooltip="中高级管理层稳定5分，高层稳定，中层不稳定3分，高层不稳定0分"/>
+                    <a:field name="q3_score_5" tooltip="100万以下0分，100-1000万1分，以此类推，最大不超过5"/>
+                    <a:field name="q3_score_6" tooltip="供应商资料动态维护率达到100%得5分，95%以上得3分，90%以上得1分，其余0分"/>
+                    <a:field name="q3_score_7" tooltip="合格供应商得5分，其余0分"/>
+                    <a:field name="q3_score_8" tooltip="入库结算0分，上线结算10分"/>
+                    <a:field name="q3_score_9" tooltip="垫底周期4个月5分，三个月3分，二个月2分，一个月1分，现款0分"/>
+                    <a:field name="q3_score_10" tooltip="月100种以上5分，80种以上4分，60种以上3分，以此类推"/>
+                    <a:field name="q3_score_11" tooltip="具备分析评价我厂产品设计能力，能提出优化方案5分，具备分析能力但不具备改进能了3分，按图施工0分"/>
+                    <a:field name="q3_score_12" tooltip="同类产品价低5分，相等3分，价高0分"/>
+                    <a:field name="q3_score_13" tooltip="统计年度降价5%以上5分；3-5%3分；降1-3%得1分，不降0分"/>
+                    <a:field name="q3_score_14" tooltip="ISO/TS16949：10分；ISO9001:6分；无0分"/>
+                    <a:field name="q3_score_15" tooltip="通过ISO14000认证5分，不通过0分"/>
+                    <a:field name="q3_score_16" tooltip="使用ERP5分，不使用0分"/> -->
+                    <a:field name="year_score" readOnly="true"/>
+                    <a:field name="release_flag" readOnly="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="calcYearScore"/>
+                    <a:event name="submitsuccess" handler="refreshDs"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="period_score_ds" autoQuery="true" model="xcve.XCVE5050.xc_ve_year_profile_prd_score" pageSize="100" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE5050.xc_ve_year_profile_prd_score/query?ve_profile_id=${/parameter/@ve_profile_id}">
+                <a:fields>
+                    <a:field name="vendor_srm_code" readOnly="true"/>
+                    <a:field name="vendor_erp_code" readOnly="true"/>
+                    <a:field name="vendor_name" readOnly="true"/>
+                    <a:field name="item_group_code" readOnly="true"/>
+                    <a:field name="factor_q1" readOnly="true"/>
+                    <a:field name="factor_q2" readOnly="true"/>
+                    <a:field name="period_score_1" readOnly="true"/>
+                    <a:field name="period_score_2" readOnly="true"/>
+                    <a:field name="period_score_3" readOnly="true"/>
+                    <a:field name="period_score_4" readOnly="true"/>
+                    <a:field name="period_score_5" readOnly="true"/>
+                    <a:field name="period_score_6" readOnly="true"/>
+                    <a:field name="period_score_7" readOnly="true"/>
+                    <a:field name="period_score_8" readOnly="true"/>
+                    <a:field name="period_score_9" readOnly="true"/>
+                    <a:field name="period_score_10" readOnly="true"/>
+                    <a:field name="period_score_11" readOnly="true"/>
+                    <a:field name="period_score_12" readOnly="true"/>
+                    <a:field name="score_counts" readOnly="true"/>
+                    <a:field name="avg_score" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="1" labelWidth="80" title="年度供应商考评分" width="800">
+                <a:hBox cellPadding="0" cellSpacing="0" padding="0" width="800">
+                    <a:hBox cellPadding="0" cellSpacing="0" padding="0" width="180">
+                        <a:textField name="ve_profile_num" bindTarget="ve_year_profiles_ds" prompt="考评单号" width="100"/>
+                    </a:hBox>
+                    <a:hBox cellPadding="0" cellSpacing="0" padding="0" width="600">
+                        <a:textField name="ve_profile_desc" bindTarget="ve_year_profiles_ds" prompt="考评说明" width="500"/>
+                    </a:hBox>
+                </a:hBox>
+                <a:hBox cellPadding="0" cellSpacing="0" padding="0" width="800">
+                    <a:hBox cellPadding="0" cellSpacing="0" padding="0" width="180">
+                        <a:textField name="ve_template_id_desc" bindTarget="ve_year_profiles_ds" prompt="考评模板" width="100"/>
+                    </a:hBox>
+                    <a:hBox cellPadding="0" cellSpacing="0" padding="0" width="600">
+                        <a:textField name="period_year" bindTarget="ve_year_profiles_ds" prompt="考评年度" width="100"/>
+                        <a:textField name="period_name_from" bindTarget="ve_year_profiles_ds" prompt="考评月度从" width="100"/>
+                        <a:textField name="period_name_to" bindTarget="ve_year_profiles_ds" prompt="考评月度到" width="100"/>
+                    </a:hBox>
+                </a:hBox>
+            </a:form>
+            <a:hBox>
+                <a:button click="backToQuery" text="返回"/>
+                <a:button click="release" text="发布"/>
+                <a:button click="cancelRelease" text="取消发布"/>
+            </a:hBox>
+            <a:tabPanel id="tabpanel" height="450" width="810">
+                <a:tabs>
+                    <a:tab prompt="年度考评分计算" width="140">
+                        <a:grid bindTarget="score_ds" height="400" navBar="true" style="margin:10px;" width="790">
+                            <a:toolBar>
+                                <a:button type="Save"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="vendor_code" prompt="供应商编码" width="240">
+                                    <a:column name="vendor_srm_code" prompt="SRM编码" sortable="true" width="120"/>
+                                    <a:column name="vendor_erp_code" prompt="ERP编码" sortable="true" width="120"/>
+                                </a:column>
+                                <a:column name="vendor_name" prompt="供应商描述" sortable="true" width="200"/>
+                                <a:column name="item_group_code" prompt="物料组编码" sortable="true" width="120"/>
+                                <a:column name="item_group_desc" prompt="物料组描述" width="120"/>
+                                <a:column name="avg_score" align="right" prompt="平均分" sortable="true" width="100"/>
+                                <a:column name="factor" prompt="Q1 &amp; Q2 - 占80%">
+                                    <a:column name="factor_q1" align="right" prompt="物料组重要度" sortable="true" width="100"/>
+                                    <a:column name="factor_q2" align="right" prompt="物料组承制难度" sortable="true" width="100"/>
+                                </a:column>
+                                <a:column name="q3_score" align="right" prompt="Q3 - 占20%" width="120"/>
+                                <!-- <a:column name="q3_score_1" align="right" editor="scoreEditor" prompt="行业地位" sortable="true" width="100"/>
+                                    <a:column name="q3_score_2" align="right" editor="scoreEditor" prompt="配套能力" sortable="true" width="100"/>
+                                    <a:column name="q3_score_3" align="right" editor="scoreEditor" prompt="生产场所、企业稳定性" sortable="true" width="160"/>
+                                    <a:column name="q3_score_4" align="right" editor="scoreEditor" prompt="管理层稳定性" sortable="true" width="100"/>
+                                    <a:column name="q3_score_5" align="right" editor="scoreEditor" prompt="年供货总额" sortable="true" width="100"/>
+                                    <a:column name="q3_score_6" align="right" editor="scoreEditor" prompt="资质文件完整率" sortable="true" width="100"/>
+                                    <a:column name="q3_score_7" align="right" editor="scoreEditor" prompt="是否合格供应商" sortable="true" width="100"/>
+                                    <a:column name="q3_score_8" align="right" editor="scoreEditor" prompt="结算方式" sortable="true" width="100"/>
+                                    <a:column name="q3_score_9" align="right" editor="scoreEditor" prompt="账期" sortable="true" width="100"/>
+                                    <a:column name="q3_score_10" align="right" editor="scoreEditor" prompt="承制品种数" sortable="true" width="100"/>
+                                    <a:column name="q3_score_11" align="right" editor="scoreEditor" prompt="同步开发能力" sortable="true" width="100"/>
+                                    <a:column name="q3_score_12" align="right" editor="scoreEditor" prompt="成本控制能力" sortable="true" width="100"/>
+                                    <a:column name="q3_score_13" align="right" editor="scoreEditor" prompt="成本改善能力" sortable="true" width="100"/>
+                                    <a:column name="q3_score_14" align="right" editor="scoreEditor" prompt="体系能力" sortable="true" width="100"/>
+                                    <a:column name="q3_score_15" align="right" editor="scoreEditor" prompt="安全" sortable="true" width="100"/>
+                                    <a:column name="q3_score_16" align="right" editor="scoreEditor" prompt="信息化能力" sortable="true" width="100"/> -->
+                                <a:column name="year_score" align="right" prompt="年度分" sortable="true" width="100"/>
+                                <a:column name="release_flag" align="center" prompt="发布状态" sortable="true" width="80"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:numberField id="scoreEditor" allowDecimals="false" allowNegative="false"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="各月考评基础分" width="140">
+                        <a:grid bindTarget="period_score_ds" height="400" navBar="true" style="margin:10px;" width="790">
+                            <a:columns>
+                                <a:column name="vendor_code" prompt="供应商编码" width="240">
+                                    <a:column name="vendor_srm_code" prompt="SRM编码" sortable="true" width="120"/>
+                                    <a:column name="vendor_erp_code" prompt="ERP编码" sortable="true" width="120"/>
+                                </a:column>
+                                <a:column name="vendor_name" prompt="供应商描述" sortable="true" width="200"/>
+                                <a:column name="item_group_code" prompt="物料组编码" sortable="true" width="120"/>
+                                <a:column name="item_group_desc" prompt="物料组描述" sortable="true" width="120"/>
+                                <!-- <a:column name="factor_q1" align="right" prompt="Q1_物料组重要度" sortable="true" width="100"/> -->
+                                <!-- <a:column name="factor_q2" align="right" prompt="Q2_物料组承制难度" sortable="true" width="100"/> -->
+                                <a:column name="period_score" prompt="月度考评基础总分">
+                                    <a:column name="period_score_1" align="right" prompt="月度1" sortable="true" width="100"/>
+                                    <a:column name="period_score_2" align="right" prompt="月度2" sortable="true" width="100"/>
+                                    <a:column name="period_score_3" align="right" prompt="月度3" sortable="true" width="100"/>
+                                    <a:column name="period_score_4" align="right" prompt="月度4" sortable="true" width="100"/>
+                                    <a:column name="period_score_5" align="right" prompt="月度5" sortable="true" width="100"/>
+                                    <a:column name="period_score_6" align="right" prompt="月度6" sortable="true" width="100"/>
+                                    <a:column name="period_score_7" align="right" prompt="月度7" sortable="true" width="100"/>
+                                    <a:column name="period_score_8" align="right" prompt="月度8" sortable="true" width="100"/>
+                                    <a:column name="period_score_9" align="right" prompt="月度9" sortable="true" width="100"/>
+                                    <a:column name="period_score_10" align="right" prompt="月度10" sortable="true" width="100"/>
+                                    <a:column name="period_score_11" align="right" prompt="月度11" sortable="true" width="100"/>
+                                    <a:column name="period_score_12" align="right" prompt="月度12" sortable="true" width="100"/>
+                                </a:column>
+                                <a:column name="score_counts" align="right" prompt="得分次数" sortable="true" width="90"/>
+                                <a:column name="avg_score" align="right" prompt="平均分" sortable="true" width="100"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

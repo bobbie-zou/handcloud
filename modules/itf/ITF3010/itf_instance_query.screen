@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-4-28 下午2:16:47  
+    $Revision: 1.0  
+    $Purpose: CLIENT级接口实例查询
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="itf3010_instance_standard_link" url="${/request/@context_path}/modules/itf/public/itf_instance_standard_view.screen"/>
+        <a:link id="itf3010_instance_custom_link" url="${/request/@context_path}/modules/itf/public/itf_instance_standard_view.screen"/>
+        <a:link id="itf3010_transaction_list_link" url="${/request/@context_path}/modules/itf/public/itf_transaction_list.screen"/>
+        <div/>
+        <script><![CDATA[
+            //查询
+            
+            
+            function itf3010_interfacesQuery() {
+                $('itf3010_instance_result_ds').query();
+            }
+            
+            //查看接口数据
+            
+            
+            function itf3010_view_renderer_fun(value, record, name) {
+                //判断接口类型
+                var interface_type = record.get('interface_type');
+                var itf_instance_id = record.get('itf_instance_id');
+                if (interface_type == 'CUSTOM') {
+                    //自定义接口类型
+                    return '<a href="javascript:itf3010_view_open_custom_window(' + itf_instance_id + ');">${l:ITF_INSTANCES.VIEW_DATA}</a>';
+                } else if (interface_type == 'STANDARD') {
+                    return '<a href="javascript:itf3010_view_open_standrad_window(' + itf_instance_id + ');">${l:ITF_INSTANCES.VIEW_DATA}</a>';
+                }
+            }
+            
+            //打开标准类型接口查看界面
+            
+            function itf3010_view_open_standrad_window(itf_instance_id) {
+                //标准接口类型
+                new Aurora.Window({
+                    id: 'itf_public_instance_standard_window',
+                    url: $('itf3010_instance_standard_link').getUrl() + '?itf_instance_id=' + itf_instance_id,
+                    title: '${l:ITF_INSTANCES.VIEW_DATA}',
+                    height: 500,
+                    width: 1020
+                });
+            }
+            
+            //打开自定义类型接口查看界面
+            
+            function itf3010_view_open_custom_window(itf_instance_id) {
+                //标准接口类型
+                new Aurora.Window({
+                    id: 'itf_public_instance_custom_window',
+                    url: $('itf3010_instance_custom_link').getUrl() + '?itf_instance_id=' + itf_instance_id,
+                    title: '${l:ITF_INSTANCES.VIEW_DATA}',
+                    height: 500,
+                    width: 1020
+                });
+            }
+            
+            //接口请求内容及响应结果查看
+            function itf3010_transactionrenderer_fun(value, record, name){
+                var itf_instance_id = record.get('itf_instance_id');
+                if (itf_instance_id){
+                    return '<a href="javascript:itf3010_transaction_open_window(' + itf_instance_id + ');">${l:ITF_TRANSACTIONS.QUERY_TRANSACTION}</a>';
+                }
+            }
+            
+            function itf3010_transaction_open_window(itf_instance_id){
+                 //标准接口类型
+                new Aurora.Window({
+                    id: 'itf_public_transaction_list_window',
+                    url: $('itf3010_transaction_list_link').getUrl() + '?itf_instance_id=' + itf_instance_id,
+                    title: '${l:ITF_TRANSACTIONS.QUERY_TRANSACTION}',
+                    height: 380,
+                    width: 550
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <!-- 状态 -->
+            <a:dataSet id="itf3010_instance_status_ds" lookupCode="ITF_INSTANCE_STATUS"/>
+            <!-- 动作 -->
+            <a:dataSet id="itf3010_instance_action_ds" lookupCode="ITF_INSTANCE_ACTION"/>
+            <!-- 执行结果状态 -->
+            <a:dataSet id="itf3010_dat_execute_result_ds" lookupCode="ITF_DATA_EXECUTE_RESULT"/>
+            <!-- 查询ds -->
+            <a:dataSet id="itf3010_instance_query_ds" model="itf.ITF3010.itf_instance_all_of_client_query">
+                <a:fields>
+                    <a:field name="status_desc" displayField="code_value_name" options="itf3010_instance_status_ds" returnField="status" valueField="code_value"/>
+                    <a:field name="action_desc" displayField="code_value_name" options="itf3010_instance_action_ds" returnField="action" valueField="code_value"/>
+                    <!-- <a:field name="finished_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/> -->
+                    <a:field name="interface_category_id"/>
+                    <a:field name="interface_category_code"/>
+                    <a:field name="interface_category_desc" lovGridHeight="320" lovHeight="450" lovService="itf.ITF3010.itf_interface_categories_lov" lovWidth="500" title="ITF_INTERFACE_CATEGORIES.INTERFACE_CATEGORY">
+                        <a:mapping>
+                            <a:map from="interface_category_id" to="interface_category_id"/>
+                            <a:map from="interface_category_code" to="interface_category_code"/>
+                            <a:map from="interface_category_desc" to="interface_category_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="interface_desc" lovGridHeight="320" lovHeight="450" lovService="itf.ITF3010.itf_system_interface_lov" lovWidth="500" title="ITF_INTERFACE.INTERFACE">
+                        <a:mapping>
+                            <a:map from="interface_desc" to="interface_desc"/>
+                            <a:map from="interface_id" to="interface_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="data_execute_result_desc" displayField="code_value_name" options="itf3010_dat_execute_result_ds" returnField="data_execute_result" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <!-- 结果ds -->
+            <a:dataSet id="itf3010_instance_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="itf.ITF3010.itf_instance_all_of_client_query" queryDataSet="itf3010_instance_query_ds">
+                <a:fields>
+                    <a:field name="finished_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="itf3010_instance_query_ds" resultTarget="itf3010_instance_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:lov name="interface_category_desc" bindTarget="itf3010_instance_query_ds" prompt="ITF_INTERFACE_CATEGORIES.INTERFACE_CATEGORY">
+                        <a:events>
+                            <a:event name="enterdown" handler="itf3010_interfacesQuery"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="interface_desc" bindTarget="itf3010_instance_query_ds" prompt="ITF_INTERFACE.INTERFACE">
+                        <a:events>
+                            <a:event name="enterdown" handler="itf3010_interfacesQuery"/>
+                        </a:events>
+                    </a:lov>
+                    <a:comboBox name="status_desc" bindTarget="itf3010_instance_query_ds" prompt="ITF_INSTANCES.STATUS">
+                        <a:events>
+                            <a:event name="enterdown" handler="itf3010_interfacesQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="action_desc" bindTarget="itf3010_instance_query_ds" prompt="ITF_INSTANCES.ACTION">
+                        <a:events>
+                            <a:event name="enterdown" handler="itf3010_interfacesQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox>
+                        <a:numberField name="lot_id" bindTarget="itf3010_instance_query_ds" prompt="ITF_INSTANCES.LOT_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="itf3010_interfacesQuery"/>
+                            </a:events>
+                        </a:numberField>
+                        <a:comboBox name="data_execute_result_desc" bindTarget="itf3010_instance_query_ds" prompt="ITF_INSTANCES.DATA_EXECUTE_RESULT">
+                            <a:events>
+                                <a:event name="enterdown" handler="itf3010_interfacesQuery"/>
+                            </a:events>
+                        </a:comboBox>
+                        <!-- <a:checkBox name="finished_flag" bindTarget="itf3010_instance_query_ds" prompt="ITF_INSTANCES.FINISHED_FLAG">
+                            <a:events>
+                                <a:event name="enterdown" handler="itf3010_interfacesQuery"/>
+                            </a:events>
+                        </a:checkBox> -->
+                    </a:hBox>
+                    <a:hBox>
+                        <a:dateTimePicker name="instance_start_time_from" bindTarget="itf3010_instance_query_ds" prompt="ITF_INSTANCES.INSTANCE_START_TIME_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="itf3010_interfacesQuery"/>
+                            </a:events>
+                        </a:dateTimePicker>
+                        <a:dateTimePicker name="instance_start_time_to" bindTarget="itf3010_instance_query_ds" prompt="ITF_INSTANCES.INSTANCE_START_TIME_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="itf3010_interfacesQuery"/>
+                            </a:events>
+                        </a:dateTimePicker>
+                        <a:dateTimePicker name="instance_end_time_from" bindTarget="itf3010_instance_query_ds" prompt="ITF_INSTANCES.INSTANCE_END_TIME_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="itf3010_interfacesQuery"/>
+                            </a:events>
+                        </a:dateTimePicker>
+                        <a:dateTimePicker name="instance_end_time_to" bindTarget="itf3010_instance_query_ds" prompt="ITF_INSTANCES.INSTANCE_END_TIME_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="itf3010_interfacesQuery"/>
+                            </a:events>
+                        </a:dateTimePicker>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="itf3010_interfaces_result_grid" bindTarget="itf3010_instance_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="interface_desc" align="center" lock="true" prompt="ITF_INTERFACES.INTERFACE_DESC" sortable="true" width="80"/>
+                    <a:column name="interface_category_desc" align="center" lock="true" prompt="ITF_INTERFACE_CATEGORIES.INTERFACE_CATEGORY" sortable="true" width="80"/>
+                    <a:column name="itf_instance_id" align="center" prompt="ITF_INSTANCES.ITF_INSTANCE_ID" sortable="true" width="50"/>
+                    <a:column name="lot_id" align="center" prompt="ITF_INSTANCES.LOT_ID" sortable="true" width="50"/>
+                    <a:column name="status_desc" align="center" prompt="ITF_INSTANCES.STATUS" sortable="true" width="60"/>
+                    <a:column name="action_desc" align="center" prompt="ITF_INSTANCES.ACTION" sortable="true" width="60"/>
+                    <a:column name="data_execute_result_desc" prompt="ITF_INSTANCES.DATA_EXECUTE_RESULT" sortable="true" width="80"/>
+                    <a:column name="instance_start_time_desc" align="center" prompt="ITF_INSTANCES.INSTANCE_START_TIME" renderer="Aurora.formatDate" sortable="true" width="100"/>
+                    <a:column name="instance_end_time_desc" align="center" prompt="ITF_INSTANCES.INSTANCE_END_TIME" renderer="Aurora.formatDate" sortable="true" width="100"/>
+                    <a:column name="finished_flag" align="center" prompt="ITF_INSTANCES.FINISHED_FLAG" sortable="true" width="60"/>
+                    <a:column name="client" align="center" prompt="FND_CLIENTS.CLIENT" sortable="true" width="80"/>
+                    <a:column name="view_renderer" align="center" renderer="itf3010_view_renderer_fun" width="80"/>
+                    <a:column name="transaction_renderer" align="center" renderer="itf3010_transactionrenderer_fun" width="80"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

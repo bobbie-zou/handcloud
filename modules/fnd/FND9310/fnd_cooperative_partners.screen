@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-4 下午2:21:42  
+    $Revision: 1.0  
+    $Purpose: 合作邀约-合作伙伴
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <a:link id="fnd9310_coopPartnerInviteClientsReq_link" url="${/request/@context_path}/modules/fnd/FND9310/fnd_cooperative_partner_invite_clients.screen"/>
+        <a:link id="fnd9310_coopPartnerInviteVendorsReq_link" url="${/request/@context_path}/modules/fnd/FND9310/fnd_cooperative_partner_invite_vendors.screen"/>
+        <a:link id="fnd9310_coopPartnerInviteServicesReq_link" url="${/request/@context_path}/modules/fnd/FND9310/fnd_cooperative_partner_invite_service_providers.screen"/>
+        <a:link id="fnd9310_coopCompanyDetail_link" url="${/request/@context_path}/modules/fnd/FND9310/fnd_company_detail_readonly.screen"/>
+        <script><![CDATA[
+            //index change Function
+            
+            
+            function fnd9310_userAuthorityCompanyDs_IndexChangeFun(ds, record) {
+                //企业信息
+                var require_flag = record.get('require_flag');
+                var supply_flag = record.get('supply_flag');
+                var complete_supply_flag = record.get('complete_supply_flag');
+                var service_flag = record.get('service_flag');
+                var complete_service_flag = record.get('complete_service_flag');
+                var owner_company_id = record.get('company_id');
+             
+                if (require_flag == 'Y' || (supply_flag == 'Y' && complete_supply_flag == 'Y')) {
+                    $('fnd9310_cooperativePartnerTabPanel').setEnabled(2);
+                    $('fnd9310_cooperativePartnerTabPanel').selectTab(2);
+                    $('fnd9310_coopPartnerServices_queryDs').getAt(0).set('owner_company_id',owner_company_id);
+                } else {
+                    $('fnd9310_cooperativePartnerTabPanel').setDisabled(2);
+                }
+                
+                 if (require_flag == 'Y') {
+                    $('fnd9310_cooperativePartnerTabPanel').setEnabled(1);
+                    $('fnd9310_cooperativePartnerTabPanel').selectTab(1);
+                    $('fnd9310_coopPartnerVendors_queryDs').getAt(0).set('owner_company_id',owner_company_id);
+                } else {
+                    $('fnd9310_cooperativePartnerTabPanel').setDisabled(1);
+                }
+                
+                if ((supply_flag == 'Y' && complete_supply_flag == 'Y') || (service_flag == 'Y' && complete_service_flag == 'Y')) {
+                    $('fnd9310_cooperativePartnerTabPanel').setEnabled(0);
+                    $('fnd9310_cooperativePartnerTabPanel').selectTab(0);
+                    $('fnd9310_coopPartnerClients_queryDs').getAt(0).set('owner_company_id',owner_company_id);
+                } else {
+                    $('fnd9310_cooperativePartnerTabPanel').setDisabled(0);
+                }
+            }
+            
+            //My Clients Query
+            
+            function fnd9310_coopPartnerClients_queryFun() {
+                $('fnd9310_coopPartnerClients_resultDs').query();
+            }
+            
+            //My Vendors Query
+            
+            function fnd9310_coopPartnerVendors_queryFun() {
+                $('fnd9310_coopPartnerVendors_resultDs').query();
+            }
+            
+            //My Service Providers Query
+            
+            function fnd9310_coopPartnerServices_queryFun() {
+                $('fnd9310_coopPartnerServices_resultDs').query();
+            }
+            
+            //invite client
+            
+            function fnd9310_inviteClientsFun() {
+                var owner_company_id = $('fnd9310_userAuthorityCompany_ds').getCurrentRecord().get('company_id');
+                
+                if(Ext.isEmpty(owner_company_id)){
+                    Aurora.showMessage('${l:PROMPT}','${l:FND9310.CHOOSE_COWER_COMPANY}');
+                    return;
+                }
+                new Aurora.Window({
+                    url: $('fnd9310_coopPartnerInviteClientsReq_link').getUrl() + '?owner_company_id=' + owner_company_id,
+                    id: 'fnd9310_coopPartnerInvite_window',
+                    title: '${l:FND9310.INVITE}',
+                    width: 920,
+                    height: 480
+                });
+            }
+            
+            //invite vendor
+            function fnd9310_inviteVendorsFun() {
+                var owner_company_id = $('fnd9310_userAuthorityCompany_ds').getCurrentRecord().get('company_id');
+                
+                if(Ext.isEmpty(owner_company_id)){
+                    Aurora.showMessage('${l:PROMPT}','${l:FND9310.CHOOSE_COWER_COMPANY}');
+                    return;
+                }
+                
+                new Aurora.Window({
+                    url: $('fnd9310_coopPartnerInviteVendorsReq_link').getUrl() + '?owner_company_id=' + owner_company_id,
+                    id: 'fnd9310_coopPartnerInvite_window',
+                    title: '${l:FND9310.INVITE}',
+                    width: 920,
+                    height: 480
+                });
+            }
+            
+            //invite service provider
+            function fnd9310_inviteServicesFun() {
+                var owner_company_id = $('fnd9310_userAuthorityCompany_ds').getCurrentRecord().get('company_id');
+                
+                if(Ext.isEmpty(owner_company_id)){
+                    Aurora.showMessage('${l:PROMPT}','${l:FND9310.CHOOSE_COWER_COMPANY}');
+                    return;
+                }
+                new Aurora.Window({
+                    url: $('fnd9310_coopPartnerInviteServicesReq_link').getUrl() + '?owner_company_id=' + owner_company_id,
+                    id: 'fnd9310_coopPartnerInvite_window',
+                    title: '${l:FND9310.INVITE}',
+                    width: 920,
+                    height: 480
+                });
+            }
+            
+            //My Clients tab renderer函数
+            
+            function fnd9310_partnerClientsView_rendererFun(value, record, name) {
+                var coop_company_id = record.get('coop_company_id');
+                if (coop_company_id) {
+                    return '<a href="javascript:fnd9310_partnerView_open(' + coop_company_id + ',\'N\',\'N\')">' + value + '</a>';
+                }
+            }
+            
+            //My Vendors tab renderer函数
+            
+            
+            function fnd9310_partnerVendorsView_rendererFun(value, record, name) {
+                var coop_company_id = record.get('coop_company_id');
+                if (coop_company_id) {
+                    return '<a href="javascript:fnd9310_partnerView_open(' + coop_company_id + ',\'Y\',\'N\')">' + value + '</a>';
+                }
+            }
+            
+            //My Service tab renderer函数
+            
+            
+            function fnd9310_partnerServicesView_rendererFun(value, record, name) {
+                var coop_company_id = record.get('coop_company_id');
+                if (coop_company_id) {
+                    return '<a href="javascript:fnd9310_partnerView_open(' + coop_company_id + ',\'N\',\'Y\')">' + value + '</a>';
+                }
+            }
+            
+            //合作伙伴明细信息
+            
+            function fnd9310_partnerView_open(coop_company_id, vendor_flag, service_flag) {
+                new Aurora.Window({
+                    url: $('fnd9310_coopCompanyDetail_link').getUrl() + '?coop_company_id=' + coop_company_id + '&vendor_flag=' + vendor_flag + '&service_flag=' + service_flag,
+                    id: 'fnd9310_cooperative_company_partner_window',
+                    title: '${l:FND_COMPANIES.TITLE}',
+                    width: 930,
+                    height: 550
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <!-- USER AUTHORITY COMPANY-->
+            <a:dataSet id="fnd9310_userAuthorityCompany_ds" autoQuery="true" fetchAll="true" model="fnd.FND9310.fnd_user_authority_company_query">
+                <a:events>
+                    <a:event name="indexchange" handler="fnd9310_userAuthorityCompanyDs_IndexChangeFun"/>
+                </a:events>
+            </a:dataSet>
+            <!-- My Clients -->
+            <a:dataSet id="fnd9310_coopPartnerClients_queryDs" autoCreate="true" model="fnd.FND9310.fnd_coop_partner_clients_query">
+                <a:fields>
+                    <a:field name="owner_company_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd9310_coopPartnerClients_resultDs" autoCount="true" autoPageSize="true" model="fnd.FND9310.fnd_coop_partner_clients_query" queryDataSet="fnd9310_coopPartnerClients_queryDs" queryUrl="${/request/@context_path}/autocrud/fnd.FND9310.fnd_coop_partner_clients_query/query?ORDER_FIELD=coop_company_code">
+                <a:fields>
+                    <a:field name="comments" prompt="FND_COOPERATIVE_PARTNERS.COMMENTS"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="FND_COOPERATIVE_PARTNERS.ENABLED_FLAG" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <!-- My Vendors -->
+            <a:dataSet id="fnd9310_coopPartnerVendors_queryDs" autoCreate="true" model="fnd.FND9310.fnd_coop_partner_vendors_query">
+                <a:fields>
+                    <a:field name="owner_company_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd9310_coopPartnerVendors_resultDs" autoCount="true" autoPageSize="true" model="fnd.FND9310.fnd_coop_partner_vendors_query" queryDataSet="fnd9310_coopPartnerVendors_queryDs" queryUrl="${/request/@context_path}/autocrud/fnd.FND9310.fnd_coop_partner_vendors_query/query?ORDER_FIELD=coop_company_code">
+                <a:fields>
+                    <a:field name="comments" prompt="FND_COOPERATIVE_PARTNERS.COMMENTS"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="FND_COOPERATIVE_PARTNERS.ENABLED_FLAG" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <!-- My Service-->
+            <a:dataSet id="fnd9310_coopPartnerServices_queryDs" autoCreate="true" model="fnd.FND9310.fnd_coop_partner_services_query">
+                <a:fields>
+                    <a:field name="owner_company_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd9310_coopPartnerServices_resultDs" autoCount="true" autoPageSize="true" model="fnd.FND9310.fnd_coop_partner_services_query" queryDataSet="fnd9310_coopPartnerServices_queryDs" queryUrl="${/request/@context_path}/autocrud/fnd.FND9310.fnd_coop_partner_services_query/query?ORDER_FIELD=coop_company_code">
+                <a:fields>
+                    <a:field name="comments" prompt="FND_COOPERATIVE_PARTNERS.COMMENTS"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="FND_COOPERATIVE_PARTNERS.ENABLED_FLAG" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:hBox>
+                <a:grid autoAppend="false" bindTarget="fnd9310_userAuthorityCompany_ds" marginHeight="85" width="320">
+                    <a:columns>
+                        <a:column name="company_code" align="center" prompt="FND9310.OWNER_COMPANY_CODE" sortable="true" width="100"/>
+                        <a:column name="company_full_name" align="center" prompt="FND9310.COWER_COMPANY_NAME" sortable="true" width="200"/>
+                    </a:columns>
+                </a:grid>
+                <a:tabPanel id="fnd9310_cooperativePartnerTabPanel" marginHeight="90" marginWidth="400">
+                    <a:tabs>
+                        <!--My Clients-->
+                        <a:tab id="fnd9310_clientTab" disabled="true" prompt="FND9310.COOPERATIVE_PARTNER_CLIENT_TAB" width="130">
+                            <a:hBox style="margin-top:10px;margin-left:20px">
+                                <a:gridButton bind="fnd9310_coopPartnerClients_grid" type="save" width="100"/>
+                                <a:toolbarButton click="fnd9310_inviteClientsFun" text="FND9310.INVITE_CLIENT" width="100"/>
+                            </a:hBox>
+                            <a:queryForm bindTarget="fnd9310_coopPartnerClients_queryDs" resultTarget="fnd9310_coopPartnerClients_resultDs" style="width:100%;border:none">
+                                <a:formToolBar>
+                                    <a:textField style="width:100%;display:none"/>
+                                    <a:hBox labelWidth="100">
+                                        <a:textField name="coop_company_code" bindTarget="fnd9310_coopPartnerClients_queryDs" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_CODE">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="fnd9310_coopPartnerClients_queryFun"/>
+                                            </a:events>
+                                        </a:textField>
+                                        <a:textField name="cooperative_company_name" bindTarget="fnd9310_coopPartnerClients_queryDs" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_NAME">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="fnd9310_coopPartnerClients_queryFun"/>
+                                            </a:events>
+                                        </a:textField>
+                                    </a:hBox>
+                                </a:formToolBar>
+                            </a:queryForm>
+                            <a:grid id="fnd9310_coopPartnerClients_grid" autoAppend="false" bindTarget="fnd9310_coopPartnerClients_resultDs" marginHeight="230" marginWidth="430" navBar="true">
+                                <a:columns>
+                                    <a:column name="coop_company_code" align="center" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_CODE" renderer="fnd9310_partnerClientsView_rendererFun" sortable="true" width="120"/>
+                                    <a:column name="coop_company_name" align="center" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_NAME" sortable="true" width="200"/>
+                                    <a:column name="enabled_flag" align="center" editor="fnd9310_coopParnterClients_cb" width="100"/>
+                                    <a:column name="comments" align="center" editor="fnd9310_coopParnterClients_tf" sortable="true" width="300"/>
+                                </a:columns>
+                                <a:editors>
+                                    <a:checkBox id="fnd9310_coopParnterClients_cb"/>
+                                    <a:textField id="fnd9310_coopParnterClients_tf"/>
+                                </a:editors>
+                            </a:grid>
+                        </a:tab>
+                        <!-- My Vendors -->
+                        <a:tab id="fnd9310_vendorTab" disabled="true" prompt="FND9310.COOPERATIVE_PARTNER_VENDOR_TAB" width="130">
+                            <a:hBox style="margin-top:10px;margin-left:20px">
+                                <a:gridButton bind="fnd9310_coopPartnerVendors_grid" type="save" width="100"/>
+                                <a:toolbarButton click="fnd9310_inviteVendorsFun" text="FND9310.INVITE_VENDOR" width="100"/>
+                            </a:hBox>
+                            <a:queryForm bindTarget="fnd9310_coopPartnerVendors_queryDs" resultTarget="fnd9310_coopPartnerVendors_resultDs" style="width:100%;border:none">
+                                <a:formToolBar>
+                                    <a:textField style="width:100%;display:none"/>
+                                    <a:hBox labelWidth="100">
+                                        <a:textField name="coop_company_code" bindTarget="fnd9310_coopPartnerVendors_queryDs" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_CODE">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="fnd9310_coopPartnerVendors_queryFun"/>
+                                            </a:events>
+                                        </a:textField>
+                                        <a:textField name="coop_company_name" bindTarget="fnd9310_coopPartnerVendors_queryDs" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_NAME">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="fnd9310_coopPartnerVendors_queryFun"/>
+                                            </a:events>
+                                        </a:textField>
+                                    </a:hBox>
+                                </a:formToolBar>
+                            </a:queryForm>
+                            <a:grid id="fnd9310_coopPartnerVendors_grid" autoAppend="false" bindTarget="fnd9310_coopPartnerVendors_resultDs" marginHeight="230" marginWidth="430" navBar="true">
+                                <a:columns>
+                                    <a:column name="coop_company_code" align="center" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_CODE" renderer="fnd9310_partnerVendorsView_rendererFun" sortable="true" width="120"/>
+                                    <a:column name="coop_company_name" align="center" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_NAME" sortable="true" width="200"/>
+                                    <a:column name="enabled_flag" align="center" editor="fnd9310_coopParnterVendors_cb" width="100"/>
+                                    <a:column name="comments" align="center" editor="fnd9310_coopParnterVendors_tf" sortable="true" width="300"/>
+                                </a:columns>
+                                <a:editors>
+                                    <a:checkBox id="fnd9310_coopParnterVendors_cb"/>
+                                    <a:textField id="fnd9310_coopParnterVendors_tf"/>
+                                </a:editors>
+                            </a:grid>
+                        </a:tab>
+                        <!-- My Service-->
+                        <a:tab id="fnd9310_serviceTab" disabled="true" prompt="FND9310.COOPERATIVE_PARTNER_SERVICE_TAB" width="130">
+                            <a:hBox style="margin-top:10px;margin-left:20px">
+                                <a:gridButton bind="fnd9310_coopPartnerServices_grid" type="save" width="100"/>
+                                <a:toolbarButton click="fnd9310_inviteServicesFun" text="FND9310.INVITE_SERVICE" width="100"/>
+                            </a:hBox>
+                            <a:queryForm bindTarget="fnd9310_coopPartnerServices_queryDs" resultTarget="fnd9310_coopPartnerServices_resultDs" style="width:100%;border:none">
+                                <a:formToolBar>
+                                    <a:textField style="width:100%;display:none"/>
+                                    <a:hBox labelWidth="100">
+                                        <a:textField name="coop_company_code" bindTarget="fnd9310_coopPartnerServices_queryDs" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_CODE">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="fnd9310_coopPartnerServices_queryFun"/>
+                                            </a:events>
+                                        </a:textField>
+                                        <a:textField name="coop_company_name" bindTarget="fnd9310_coopPartnerServices_queryDs" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_NAME">
+                                            <a:events>
+                                                <a:event name="enterdown" handler="fnd9310_coopPartnerServices_queryFun"/>
+                                            </a:events>
+                                        </a:textField>
+                                    </a:hBox>
+                                </a:formToolBar>
+                            </a:queryForm>
+                            <a:grid id="fnd9310_coopPartnerServices_grid" autoAppend="false" bindTarget="fnd9310_coopPartnerServices_resultDs" marginHeight="230" marginWidth="430" navBar="true">
+                                <a:columns>
+                                    <a:column name="coop_company_code" align="center" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_CODE" renderer="fnd9310_partnerServicesView_rendererFun" sortable="true" width="120"/>
+                                    <a:column name="coop_company_name" align="center" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_NAME" sortable="true" width="200"/>
+                                    <a:column name="enabled_flag" align="center" editor="fnd9310_coopParnterServices_cb" width="100"/>
+                                    <a:column name="comments" align="center" editor="fnd9310_coopParnterServices_tf" sortable="true" width="300"/>
+                                </a:columns>
+                                <a:editors>
+                                    <a:checkBox id="fnd9310_coopParnterServices_cb"/>
+                                    <a:textField id="fnd9310_coopParnterServices_tf"/>
+                                </a:editors>
+                            </a:grid>
+                        </a:tab>
+                    </a:tabs>
+                </a:tabPanel>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

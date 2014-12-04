@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-3-15 下午05:52:51  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                    	fr.region_id as city_id,
+                        fr.region_code AS city_code,
+                        fd.description_text AS city_name,
+                        fr.parent_id AS province_id
+                    FROM
+                        fnd_descriptions fd,
+                        fnd_region_code fr
+                    WHERE
+                        fd.description_id(+)=fr.description_id AND
+                        fd.language         =userenv('LANG') AND
+                        fr.level_num        =1
+                        AND fr.enabled_flag = 'Y'
+                        and fr.parent_id = ${@province_id}
+                    )#WHERE_CLAUSE# order by city_code
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="city_id"/>
+        <bm:field name="city_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="REGION_CODE" prompt="市代码"/>
+        <bm:field name="city_name" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="DESCRIPTION_TEXT" prompt="市名称"/>
+        <bm:field name="province_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="province_id" queryOperator="="/>
+        <bm:query-field field="city_code" queryExpression="city_code like &apos;%&apos;||${@city_code}||&apos;%&apos;"/>
+        <bm:query-field field="city_name" queryExpression="city_name like &apos;%&apos;||${@city_name}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

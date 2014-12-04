@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-5-6 下午3:15:58  
+    $Revision: 1.0  
+    $Purpose: 供应商邀请查询
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT i.invitation_id,
+       i.vendor_name,
+       i.vendor_email,
+       i.inviter_user_id,
+       s.user_name,
+       s.description user_desc,
+       to_char(i.invitation_date,
+               'YYYY-MM-DD HH24:MI') invitation_date,
+      (SELECT f.company_full_name FROM fnd_companies_vl f WHERE f.company_id = i.company_id) company_name ,
+      nvl(i.enabled_flag,'N')      enabled_flag  ,
+        'N'    used_flag 
+  FROM pur_vendor_invitations i,
+       sys_user               s
+ WHERE i.inviter_user_id = s.user_id
+  AND  ${@used_flag} = 'N'
+  AND i.inviter_user_id = ${/session/@user_id}
+UNION
+SELECT i.invitation_id,
+       i.vendor_name,
+       i.vendor_email,
+       i.inviter_user_id,
+       s.user_name,
+       s.description user_desc,
+       to_char(i.invitation_date,
+               'YYYY-MM-DD HH24:MI') invitation_date,
+       (SELECT f.company_full_name FROM fnd_companies_vl f WHERE f.company_id = i.company_id) company_name,
+       nvl(i.enabled_flag,'N')      enabled_flag,
+        'Y'    used_flag 
+  FROM pur_vendor_invitation_ht i,
+       sys_user                 s
+ WHERE i.inviter_user_id = s.user_id
+   AND  ${@used_flag} = 'Y'
+   AND i.inviter_user_id = ${/session/@user_id}
+                    ) v #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="invitation_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="INVITATION_ID"/>
+        <bm:field name="vendor_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="VENDOR_NAME"/>
+        <bm:field name="vendor_email" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="VENDOR_EMAIL"/>
+        <bm:field name="inviter_user_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="INVITER_USER_ID"/>
+        <bm:field name="user_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="USER_NAME"/>
+        <bm:field name="user_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="USER_DESC"/>
+        <bm:field name="invitation_date"/>
+        <bm:field name="company_name"/>
+        <bm:field name="enabled_flag"/>
+        <bm:field name="used_flag"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="vendor_name" queryExpression="vendor_name like &apos;%&apos;||trim(${@vendor_name})||&apos;%&apos;"/>
+        <bm:query-field name="vendor_email" queryExpression="vendor_email like &apos;%&apos;||trim(${@vendor_email})||&apos;%&apos;"/>
+        <bm:query-field name="invitation_date_from" queryExpression="invitation_date &gt;= ${@invitation_date_from}"/>
+        <bm:query-field name="invitation_date_to" queryExpression="invitation_date &lt;= ${@invitation_date_to}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <!-- <authority create_alias="v" create_name="user_id"/>#AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE#
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features> -->
+</bm:model>

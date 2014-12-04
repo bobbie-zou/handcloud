@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-10 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 送货单创建，送货单临时头数据查询BM
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="public.get_system_info" rootPath="srv5110_current_date_rp"/>
+    </a:init-procedure>
+    <a:view>
+        <!--   <a:link id="srv5110_asn_submit_link" model="srv.SRV5110.inv_asn_submit" modelaction="execute"/>
+        <a:link id="srv5110_asn_submit_print_link" url="${/request/@context_path}/modules/srv/SRV5110/inv_asn_submit_print.svc"/>
+        <a:link id="srv5110_asn_print_link" url="${/request/@context_path}/modules/srv/SRV5110/inv_asn_print.screen"/>
+        -->
+        <a:link id="srv5110_asn_create_save_link" url="${/request/@context_path}/modules/srv/SRV5110/srv_asn_create_save.svc"/>
+        <a:link id="srv5110_asn_create_submit_link" url="${/request/@context_path}/modules/srv/SRV5110/srv_asn_create_submit.svc"/>
+        <script><![CDATA[
+            // 返回
+            
+            function srv5110_inv_asn_header_go_back() {
+                $('srv5110_asn_create_window').close();
+            }
+            
+            // 送货单保存
+            
+            function srv5110_inv_asn_header_save() {
+                srv5110_inv_asn_header_update('N');
+            }
+            
+            // 送货单提交
+            
+            function srv5110_inv_asn_header_submit() {
+                srv5110_inv_asn_header_update('Y');
+            }
+            
+            // 保存动作
+            function srv5110_inv_asn_header_update(p_submit_flag) {
+            
+                var headers_ds = $('srv5110_asn_create_header_ds');
+                if(!headers_ds.validate()){
+                    return false;
+                }
+                var header_record = headers_ds.getCurrentRecord();
+            
+                if (Aurora.isEmpty(header_record.get('ship_date'))) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:INV_ASN_HEADERS_TEMP.SHIP_DATE_NOT_NULL}');
+                    return false;
+                }
+            
+                if (Aurora.isEmpty(header_record.get('expected_date'))) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:INV_ASN_HEADERS_TEMP.EXPECTED_DATE_NOT_NULL}');
+                    return false;
+                }
+            
+                Aurora.Masker.mask($('srv5110_asn_create_window').wrap, '${l:PROMPT.SUBMITING}');
+                var datas;
+            
+            
+                datas = {
+                    asn_header_id: header_record.get('asn_header_id'),
+                    ship_date: header_record.get('ship_date'),
+                    expected_date: header_record.get('expected_date'),
+                    header_desc: header_record.get('header_desc')
+                };
+            
+                var list_ds = $('srv5110_asn_create_line_ds');
+                var records = list_ds.getAll();
+                
+                var lines = [];
+                for (var i = 0;i < records.length;i++) {
+                    lines.push(records[i].data);
+            
+                }
+                datas['lines'] = lines;
+            
+            
+                Aurora.request({
+                    url: $('srv5110_asn_create_save_link').getUrl(),
+                    para: datas,
+                    success: function(res) {
+                        // 判断是否提交
+                        if (p_submit_flag == 'Y') {
+                            srv5110_inv_asn_create();
+                        } else {
+                            Aurora.Masker.unmask($('srv5110_asn_create_window').wrap);
+                            list_ds.query();
+            
+                        }
+                    },
+                    failure: function(res) {
+                        Aurora.Masker.unmask($('srv5110_asn_create_window').wrap);
+                    },
+                    error: function(res) {
+                        Aurora.Masker.unmask($('srv5110_asn_create_window').wrap);
+                    },
+                    scope: this
+                });
+            }
+            
+            // 提交动作
+            function srv5110_inv_asn_create() {
+                //校验行上的发运数量等信息
+                var lines_ds = $('srv5110_asn_create_line_ds');
+                if(!lines_ds.validate()){
+                    Aurora.Masker.unmask($('srv5110_asn_create_window').wrap);
+                    return false;
+                }
+                var headers_ds = $('srv5110_asn_create_header_ds');
+                var header_record = headers_ds.getCurrentRecord();
+                var datas;
+                datas = {
+                    asn_header_id: header_record.get('asn_header_id')
+                };
+                Aurora.request({
+                    url: $('srv5110_asn_create_submit_link').getUrl(),
+                    para: datas,
+                    success: function(res) {
+                        Aurora.Masker.unmask($('srv5110_asn_create_window').wrap);
+                        // 判断是否还存在未提交的预览送货单
+                        if (res.result.last_flag == 'Y') {
+                            srv5110_inv_asn_header_go_back();
+                            srv5110_asn_headers_back();
+                            srv5110_inv_asn_query_reset();
+                        } else {
+                            srv5110_inv_asn_header_go_back();
+                            srv5110_asn_headers_query();
+                        }
+                    },
+                    failure: function(res) {
+                        Aurora.Masker.unmask($('srv5110_asn_create_window').wrap);
+                    },
+                    error: function(res) {
+                        Aurora.Masker.unmask($('srv5110_asn_create_window').wrap);
+                    },
+                    scope: this
+                });
+            }
+            
+            function srv5110_asnCreateHeaderDsValidator(record, name, value) {
+                var current_date = Aurora.formatDate(new Date());
+                value = Aurora.formatDate(value);
+                //送货日期
+                if(name == 'ship_date'){
+                    if (value < current_date) {
+                        return '${l:INV5010_SHIP_DATE_ERROR}';
+                    }
+                }
+                
+                //预计到货日期
+                if(name == 'expected_date'){
+                    if (value < Aurora.formatDate(record.get('ship_date'))) {
+                        return '${l:INV5010_EXPECT_DATE_COMPRE_ERROR}';
+                    }
+                }
+                return true;
+            }
+            
+            
+            //打印
+            function srv5110_inv_asn_header_go_submit_print() {
+                var ds = $('srv5110_asn_create_header_ds');
+                var reocrd = ds.getAt(0);
+                Aurora.request({
+                    url: $('srv5110_asn_submit_link').getUrl(),
+                    para: reocrd.data,
+                    success: function(res) {
+                        srv5110_inv_asn_header_go_print();
+                    },
+                    scope: this
+                });
+            }
+            
+            function srv5110_inv_asn_header_go_print() {
+                var ds = $('srv5110_asn_create_line_ds');
+                var records = ds.getAll();
+                var datas = [];
+                for (var i = 0;i < records.length;i++) {
+                    datas.push(records[i].data);
+                }
+                //Aurora.Masker.mask(Ext.getBody());
+                Aurora.request({
+                    url: $('srv5110_asn_submit_print_link').getUrl(),
+                    para: datas,
+                    success: function(res) {
+                        var header_ds = $('srv5110_asn_create_header_ds');
+                        var asn_header_id = header_ds.getCurrentRecord().get('asn_header_id');
+                        window.open($('srv5110_asn_print_link').getUrl() + '?asn_header_id=' + asn_header_id, 'srv5110_asn_print_win');
+                        // if (res.result.last_flag == 'Y') {
+                        // srv5110_inv_asn_query_reset();
+                        // $('srv5110_asn_create_window').close();
+                        // $('srv5110_asn_header_window').close();
+                        // $('srv5110_asn_result_ds').query();
+                        // } else {
+                        // $('srv5110_asn_headers_result_ds').query();
+                        // $('srv5110_asn_create_window').close();
+                        // }
+                        //Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function(res) {
+                        //Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    error: function(res) {
+                        //Aurora.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+            
+            function srv5110_asnCreateGridRenderer(value, record, name) {
+                if (name == 'operate') {
+                    if (record.get('copy_flag') == 'Y') {
+                        return '<a href="javascript:srv5110_asnCreateGridRendererRemove(' + record.id + ')">删除</a>';
+                    } else {
+                        return '<a href="javascript:srv5110_asnCreateGridRendererSplit(' + record.id + ')">拆分</a>';
+                    }
+                }
+            }
+            
+            function srv5110_asnCreateGridRendererRemove(record_id) {
+                var record = $('srv5110_asn_create_line_ds').findById(record_id);
+                $('srv5110_asn_create_line_ds').remove(record);
+            }
+            
+            function srv5110_asnCreateGridRendererSplit(record_id) {
+                var max_as_line_num =0;
+                var records = $('srv5110_asn_create_line_ds').getAll();
+                for(var i=0;i<records.length;i++){
+                    max_as_line_num = max_as_line_num > records[i].get('asn_line_num') ? max_as_line_num : records[i].get('asn_line_num');
+                }
+                var old_record = $('srv5110_asn_create_line_ds').findById(record_id);
+                var new_record = $('srv5110_asn_create_line_ds').create({
+                    'asn_line_id': old_record.get('asn_line_id'),
+                    'asn_line_num': max_as_line_num + 1,
+                    'require_item_code': old_record.get('require_item_code'),
+                    'require_item_name': old_record.get('require_item_name'),
+                    'supply_item_code': old_record.get('supply_item_code'),
+                    'supply_item_name': old_record.get('supply_item_name'),
+                    'segment1': old_record.get('segment1'),
+                    'line_num': old_record.get('line_num'),
+                    'shipment_num': old_record.get('shipment_num'),
+                    'release_num': old_record.get('release_num'),
+                    'revision_num': old_record.get('revision_num'),
+                    'unit_meas_lookup_code': old_record.get('unit_meas_lookup_code'),
+                    'unit_price': old_record.get('unit_price'),
+                    'quantity': old_record.get('quantity'),
+                    'ship_quantity': old_record.get('ship_quantity'),
+                    'need_by_date': old_record.get('need_by_date'),
+                    'promised_date': old_record.get('promised_date'),
+                    'lots_num': old_record.get('lots_num'),
+                    'lots_validity_date': old_record.get('lots_validity_date'),
+                    'invoice_num': old_record.get('invoice_num'),
+                    'serial_num': old_record.get('serial_num'),
+                    'comments': old_record.get('comments'),
+                    'copy_flag':'Y'
+                });
+            }
+            
+            //加载事件
+            function srv5110_asnCreateLine_loadFun(ds){
+                var records = ds.getAll();
+                for(var i = 0 ;i< records.length;i++){
+                    var record = records[i];
+                    
+                    //发运数量为0时默认为待发货数量
+                    if(record.get('ship_quantity') == 0){
+	                    record.set('ship_quantity',record.get('quantity_enable_shipped'));
+                    }
+                    
+                    if(record.get('serial_required_flag') == 'Y'){
+                        record.getMeta().getField('serial_num').setRequired(true);
+                    }else{
+                        record.getMeta().getField('serial_num').setRequired(false);
+                    }
+                    
+                    if(record.get('lot_required_flag') == 'Y'){
+                        record.getMeta().getField('lots_num').setRequired(true);
+                        record.getMeta().getField('lots_validity_date').setRequired(true);
+                    }else{
+                        record.getMeta().getField('lots_num').setRequired(false);
+                        record.getMeta().getField('lots_validity_date').setRequired(false);
+                    }
+                }
+            }
+            
+            function srv5110_asnCreateLineDsValidator(record, name, value){
+                var quantity_enable_shipped = record.get('quantity_enable_shipped');
+                if(name == 'ship_quantity'){
+                    if(value == 0){
+                        return '发运数量不能为0';
+                    }else{
+                        if(value > quantity_enable_shipped){
+                            return '发运数量不能大于待发货数量';
+                        }
+                    }
+                }
+                return true;
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="srv5110_asn_create_header_ds" autoPageSize="true" autoQuery="true" model="srv.SRV5110.srv_asn_headers_temp" queryUrl="${/request/@context_path}/autocrud/srv.SRV5110.srv_asn_headers_temp/query?asn_header_id=${/parameter/@asn_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="asn_header_id" readOnly="true"/>
+                    <a:field name="asn_number" readOnly="true"/>
+                    <a:field name="company_name" readOnly="true"/>
+                    <a:field name="ship_to_organization_name" readOnly="true"/>
+                    <a:field name="location_name" readOnly="true"/>
+                    <a:field name="ship_date" required="true" requiredMessage="${l:INV_ASN_HEADERS_TEMP.SHIP_DATE_NOT_NULL}" validator="srv5110_asnCreateHeaderDsValidator"/>
+                    <a:field name="expected_date" required="true" requiredMessage="${l:INV_ASN_HEADERS_TEMP.EXPECTED_DATE_NOT_NULL}" validator="srv5110_asnCreateHeaderDsValidator"/>
+                    <a:field name="vendor_site_name" readOnly="true"/>
+                    <a:field name="data_source" readOnly="true"/>
+                    <a:field name="header_desc"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="srv5110_asn_create_line_ds" autoPageSize="true" autoQuery="true" model="srv.SRV5110.srv_asn_lines_temp" queryUrl="${/request/@context_path}/autocrud/srv.SRV5110.srv_asn_lines_temp/query?asn_header_id=${/parameter/@asn_header_id}" selectable="false">
+                <a:fields>
+                    <a:field name="asn_line_id"/>
+                    <a:field name="ship_quantity" required="true" requiredMessage="发运数量不能为空或0" validator="srv5110_asnCreateLineDsValidator"/>
+                    <a:field name="comments"/>
+                    <a:field name="serial_num" requiredMessage="序列号不能为空"/>
+                    <a:field name="lots_num" requiredMessage="批次号不能为空"/>
+                    <a:field name="lots_validity_date" requiredMessage="批次有效期不能为空"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="srv5110_asnCreateLine_loadFun"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTiitle/>
+            <a:toolbarButton click="srv5110_inv_asn_header_save" style="margin-left:20px;" text="PROMPT.SAVE" width="100"/>
+            <a:toolbarButton click="srv5110_inv_asn_header_submit" style="margin-left:20px;" text="PROMPT.SUBMIT" width="100"/>
+            <!-- <a:toolbarButton click="srv5110_inv_asn_header_go_submit_print" text="提交并打印" width="100"/> -->
+            <a:gridButton bind="srv5110_asn_create_grid" className="item-rbtn-blue button-excel" type="excel" width="100"/>
+            <a:toolbarButton click="srv5110_inv_asn_header_go_back" style="margin-left:20px;" text="PROMPT.RETURN" width="100"/>
+        </a:screenTopToolbar>
+        <a:vBox>
+            <a:hBox labelWidth="120">
+                <a:label name="asn_number" bindTarget="srv5110_asn_create_header_ds" prompt="INV_ASN_HEADERS_TEMP.ASN_NUMBER"/>
+                <a:label name="company_name" bindTarget="srv5110_asn_create_header_ds" prompt="INV_ASN_HEADERS_TEMP.COMPANY_ID"/>
+                <a:label name="vendor_site_name" bindTarget="srv5110_asn_create_header_ds" prompt="INV_ASN_HEADERS_TEMP.VENDOR_SITE_ID"/>
+                <a:label name="data_source" bindTarget="srv5110_asn_create_header_ds" prompt="EBS_DATA_RESOURCE"/>
+            </a:hBox>
+            <a:hBox labelWidth="120">
+                <a:label name="ship_to_organization_name" bindTarget="srv5110_asn_create_header_ds" prompt="INV_ASN_HEADERS_TEMP.SHIP_TO_ORGANIZATION_ID"/>
+                <a:label name="location_name" bindTarget="srv5110_asn_create_header_ds" prompt="INV_ASN_HEADERS_TEMP.LOCATION_ID"/>
+                <a:datePicker name="ship_date" bindTarget="srv5110_asn_create_header_ds" prompt="INV_ASN_HEADERS.SHIP_DATE" width="120"/>
+                <a:datePicker name="expected_date" bindTarget="srv5110_asn_create_header_ds" prompt="INV_ASN_HEADERS_TEMP.EXPECTED_DATE" width="120"/>
+            </a:hBox>
+            <a:hBox labelWidth="120">
+                <a:textField name="header_desc" bindTarget="srv5110_asn_create_header_ds" prompt="INV_ASN_HEADERS.HEADER_DESC" width="600"/>
+            </a:hBox>
+        </a:vBox>
+        <a:grid id="srv5110_asn_create_grid" bindTarget="srv5110_asn_create_line_ds" marginHeight="190" marginWidth="50" navBar="true" style="margin-top:10px;">
+            <a:columns>
+                <a:column name="operate" align="center" lock="true" prompt="操作" renderer="srv5110_asnCreateGridRenderer" width="30"/>
+                <a:column name="asn_line_num" align="center" lock="true" prompt="INV_ASN_LINES_TEMP.LINE_NUM" width="30"/>
+                <a:column name="require_item_code" align="left" lock="true" prompt="INV_ASN_LINES_TEMP.ITEM_CODE" sortable="true" width="60"/>
+                <a:column name="require_item_name" align="left" lock="true" prompt="INV_ASN_LINES_TEMP.ITEM_NAME" sortable="true" width="100"/>
+                <a:column name="supply_item_code" align="left" lock="true" prompt="INV_ASN_LINES_TEMP.VENDOR_ITEM_CODE" sortable="true" width="60"/>
+                <a:column name="supply_item_name" align="left" lock="true" prompt="INV_ASN_LINES_TEMP.VENDOR_ITEM_NAME" sortable="true" width="100"/>
+                <a:column name="quantity" align="right" prompt="INV_ASN_LINES_TEMP.QUANTITY" renderer="Aurora.formatNumber" width="40"/>
+                <a:column name="unit_meas_lookup_code" align="center" prompt="INV_ASN_LINES_TEMP.UNIT_MEAS_LOOKUP_CODE" width="50"/>
+                <a:column name="quantity_enable_shipped" align="right" prompt="INV_ASN_LINES_TEMP.HID_QUANTITY" renderer="Aurora.formatNumber" width="40"/>
+                <a:column name="ship_quantity" align="right" editor="srv5110_asn_ship_quantity_nf" prompt="INV_ASN_LINES_TEMP.SHIP_QUANTITY" width="40"/>
+                <a:column name="lots_num" align="center" editor="srv5110_asn_create_grid_tf" prompt="INV_ASN_LINES_TEMP.LOTS_NUM" width="50"/>
+                <a:column name="lots_validity_date" align="center" editor="srv5110_asn_create_grid_dp" prompt="INV_ASN_LINES_TEMP.LOTS_VALIDITY_DATE" renderer="Aurora.formatDate" width="50"/>
+                <a:column name="serial_num" align="center" editor="srv5110_asn_create_grid_tf" prompt="INV_ASN_LINES_TEMP.SERIAL_NUM" width="50"/>
+                <a:column name="invoice_num" align="center" editor="srv5110_asn_create_grid_tf" prompt="INV_ASN_LINES_TEMP.INVOICE_NUM" width="50"/>
+                <a:column name="comments" align="left" editor="srv5110_asn_create_grid_tf" prompt="INV_ASN_LINES.LINE_DESC" width="100"/>
+                <a:column name="need_by_date" align="center" prompt="INV_ASN_LINES_TEMP.NEED_BY_DATE" width="80"/>
+                <a:column name="promised_date" align="center" prompt="INV_ASN_LINES_TEMP.PROMISED_DATE" width="80"/>
+                <a:column name="segment1" align="center" prompt="INV_ASN_LINES_TEMP.SEGMENT1" width="80"/>
+                <a:column name="line_num" align="center" prompt="INV_ASN_LINES_TEMP.LINE_NUM" width="30"/>
+                <a:column name="shipment_num" align="center" prompt="INV_ASN_LINES_TEMP.SHIPMENT_NUM" width="30"/>
+                <a:column name="revision_num" align="center" prompt="INV_ASN_LINES_TEMP.REVISION_NUM" width="40"/>
+                <a:column name="release_num" align="center" prompt="INV_ASN_LINES_TEMP.RELEASE_NUM" width="40"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="srv5110_asn_create_grid_tf"/>
+                <a:datePicker id="srv5110_asn_create_grid_dp"/>
+                <a:numberField id="srv5110_asn_ship_quantity_nf" allowDecimals="true" allowFormat="false" allowNegative="false" decimalPrecision="4"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

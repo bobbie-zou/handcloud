@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tangrunyu3837 $
+    $Date: 2014/02/21 05:33:12 $
+    $Revision: 1.6 $
+    $Purpose: “并发查询
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="fnd5030_fnd_request_job_stop_link" url="${/request/@context_path}/modules/fnd/FND5030/fnd_request_job_stop.svc"/>
+        <a:link id="fnd5030_fnd_request_job_run_link" url="${/request/@context_path}/modules/fnd/FND5030/fnd_request_job_run.svc"/>
+        <a:link id="fnd5030_fnd_request_job_drop_link" url="${/request/@context_path}/modules/fnd/FND5030/fnd_request_job_drop.svc"/>
+        <a:link id="fnd5030_fnd_request_job_execute_link" url="${/request/@context_path}/modules/fnd/FND5030/fnd_request_job_execute.svc"/>
+        <a:link id="fnd5030_fnd_concurrent_request_log_link" url="${/request/@context_path}/modules/fnd/FND5030/fnd_concurrent_request_log.screen"/>
+        <a:link id="fnd5030_fnd_concurrent_request_job_log_link" url="${/request/@context_path}/modules/fnd/FND5030/fnd_concurrent_request_job_log.screen"/>
+        <script><![CDATA[
+
+            function fnd5030_query() {
+                $('fnd5030_fnd_concurrent_request_result_ds').query();
+            }
+            
+            function fnd5030_reset() {
+                $('fnd5030_fnd_concurrent_request_query_ds').reset();
+            }
+            
+            
+            
+            function fnd5030_requestDetails(value, record, name) {
+                var request_id = record.get('request_id');
+                if (request_id) {
+                   var url = record.get('url'); 
+                    var path = '${/request/@context_path}/'+url+ '?request_id=' + request_id;
+                    var window_id = "fnd5030_fnd_concurrent_request_detail_window";
+                    return "<a href=\"javascript:fnd5030_showdetails('" + window_id + "','" + path + "')\">"+request_id+"</a>";
+                } else {
+                    return '';
+                }
+            }
+            
+            function fnd5030_showdetails(window_id, path) {
+                new Aurora.Window({
+                    id: window_id,
+                    url: path,
+                    title: '${l:RESULT}',
+                    fullScreen: true
+            
+                });
+            }
+            
+            
+            
+            function fnd5030_actionRenderer(value, record, name) {
+                var request_id = record.get('request_id');
+                var job_flag = record.get('job_flag');
+                if (request_id) {
+                    var window_id = "fnd5030_fnd_concurrent_request_log_window";
+                    if (job_flag == 'Y') {
+                        var job_name = record.get('job_name');
+                        var path = $('fnd5030_fnd_concurrent_request_job_log_link').getUrl() + '?request_id=' + request_id + '&job_name=' + job_name;
+                    } else {
+                        var path = $('fnd5030_fnd_concurrent_request_log_link').getUrl() + '?request_id=' + request_id;
+                    }
+                    return "<a href=\"javascript:fnd5030_editProgram('" + window_id + "','" + path + "')\">${l:FND_REQUEST_LOG.LOG_CONTENT}</a>";
+                } else {
+                    return '';
+                }
+            }
+            
+            function fnd5030_editProgram(window_id, path) {
+                new Aurora.Window({
+                    id: window_id,
+                    url: path,
+                    title: '${l:FND_REQUEST_LOG.LOG_CONTENT}',
+                    fullScreen: true
+            
+                });
+            }
+            
+            function fnd5030_addForm() {
+                new Aurora.Window({
+                    id: 'fnd5030_fnd_concurrent_request_create_window',
+                    url: '${/request/@context_path}/modules/fnd/FND5030/fnd_concurrent_request_create.screen',
+                    title: '${l:HAP_CREATE}',
+                    height: 520,
+                    width: 650
+                });
+            }
+            
+            function fnd5030_StopJob() {
+                var records = $('fnd5030_fnd_concurrent_request_result_ds').getSelected();
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:AT_LEAST_CHOICE_ONE}!');
+                } else {
+                    Aurora.showConfirm('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '确认要暂挂吗？', function() {
+                        var data = [];
+                        for (var t = 0;t < records.length;t++) {
+                            job_flag = records[t].get('job_flag');
+                            if (job_flag == 'N') {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '您所选的请求中包含非周期性的请求，请查证!');
+                                return;
+                            }
+                            phase_code = records[t].get('phase_code');
+                            if (phase_code != 'R') {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '只有处于运行状态的请求才能被暂挂，请查证!');
+                                return;
+                            }
+            
+                            data.push(records[t].data);
+                        }
+                        Aurora.request({
+                            url: $('fnd5030_fnd_request_job_stop_link').getUrl(),
+                            para: data,
+                            success: function() {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:EXP_POLICY_PLACE_TYPE.OPE_SUC}!', function() {
+                                    query();
+                                });
+                            },
+                            scope: this
+                        });
+            
+                    });
+                }
+            }
+            
+            function fnd5030_RunJob() {
+                var records = $('fnd5030_fnd_concurrent_request_result_ds').getSelected();
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:AT_LEAST_CHOICE_ONE}!');
+                } else {
+                    Aurora.showConfirm('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '确认要恢复吗？', function() {
+                        var data = [];
+                        for (var t = 0;t < records.length;t++) {
+                            job_flag = records[t].get('job_flag');
+                            if (job_flag == 'N') {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '您所选的请求中包含非周期性的请求，请查证!');
+                                return;
+                            }
+            
+                            phase_code = records[t].get('phase_code');
+                            if (phase_code != 'H') {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '只有处于挂起状态的请求才能被恢复，请查证!');
+                                return;
+                            }
+            
+                            data.push(records[t].data);
+                        }
+                        Aurora.request({
+                            url: $('fnd5030_fnd_request_job_run_link').getUrl(),
+                            para: data,
+                            success: function() {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:EXP_POLICY_PLACE_TYPE.OPE_SUC}!', function() {
+                                    query();
+                                });
+                            },
+                            scope: this
+                        });
+            
+                    });
+                }
+            }
+            
+            function fnd5030_DropJOB() {
+                var records = $('fnd5030_fnd_concurrent_request_result_ds').getSelected();
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:AT_LEAST_CHOICE_ONE}!');
+                } else {
+                    Aurora.showConfirm('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:JOB_DELETE}？', function() {
+                        var data = [];
+                        for (var t = 0;t < records.length;t++) {
+                            job_flag = records[t].get('job_flag');
+                            if (job_flag == 'N') {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:FND_REQUEST.SELECTED_NO_CYCLE_REQUEST}!');
+                                return;
+                            }
+                            phase_code = records[t].get('phase_code');
+                            if (phase_code == 'D') {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:FND_REQUEST.JOB_HAS_DELETED}!');
+                                return;
+                            }
+                            data.push(records[t].data);
+                        }
+                        Aurora.request({
+                            url: $('fnd5030_fnd_request_job_drop_link').getUrl(),
+                            para: data,
+                            success: function() {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:EXP_POLICY_PLACE_TYPE.OPE_SUC}!', function() {
+                                    query();
+                                });
+                            },
+                            scope: this
+                        });
+            
+                    });
+                }
+            }
+            
+            function fnd5030_ExeJOB() {
+                var records = $('fnd5030_fnd_concurrent_request_result_ds').getSelected();
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:AT_LEAST_CHOICE_ONE}!');
+                } else {
+                    Aurora.showConfirm('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:FND_REQUEST.EXECUTE_REQUEST_SURE}？', function() {
+                        var data = [];
+                        for (var t = 0;t < records.length;t++) {
+                            job_flag = records[t].get('job_flag');
+                            if (job_flag == 'N') {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:FND_REQUEST.SELECTED_NO_CYCLE_REQUEST}!');
+                                return;
+                            }
+                            phase_code = records[t].get('phase_code');
+                            if (phase_code == 'D') {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:FND_REQUEST.JOB_HAS_DELETED}!');
+                                return;
+                            }
+                            data.push(records[t].data);
+                        }
+                        Aurora.request({
+                            url: $('fnd5030_fnd_request_job_execute_link').getUrl(),
+                            para: data,
+                            success: function() {
+                                Aurora.showMessage('${l:BID_EXPERT_ALTERATION.HAP_PROMPT}', '${l:EXP_POLICY_PLACE_TYPE.OPE_SUC}!', function() {
+                                    query();
+                                });
+                            },
+                            scope: this
+                        });
+            
+                    });
+                }
+            }
+            
+            function fnd5030_PhaseCodeRenderer(value, rec, name) {
+                var phase_code = rec.get('phase_code');
+                if (phase_code == 'R' || phase_code == 'F' || phase_code == 'D') {
+                    return "<div style='background-color:#00FF00'>" + value + "</div>";
+                } else if (phase_code == 'E') {
+                    return "<div style='background-color:#FF0000'>" + value + "</div>";
+                } else if (phase_code == 'H') {
+                    return "<div style='background-color:#FFFF00'>" + value + "</div>";
+                } else {
+                    return value;
+                }
+            }
+            
+            function fnd5030_StatusCodeRenderer(value, rec, name) {
+                var status_code = rec.get('status_code');
+                if (status_code == 'R' || status_code == 'F' || status_code == 'D') {
+                    return "<div style='background-color:#00FF00'>" + value + "</div>";
+                } else if (status_code == 'E') {
+                    return "<div style='background-color:#FF0000'>" + value + "</div>";
+                } else if (status_code == 'H') {
+                    return "<div style='background-color:#FFFF00'>" + value + "</div>";
+                } else {
+                    return value;
+                }
+            
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd5030_job_flag_ds" lookupCode="YES_OR_NO"/>
+            <a:dataSet id="fnd5030_request_status_ds" lookupCode="FND_CONCURRENT_REQUEST_STATUS"/>
+            <a:dataSet id="fnd5030_status_code_ds" lookupCode="FND_CONCURRENT_REQUEST_STATUS"/>
+            <a:dataSet id="fnd5030_fnd_concurrent_request_query_ds" model="fnd.FND5030.fnd_concurrent_request">
+                <a:fields>
+                    <a:field name="phase_code_desc" displayField="code_value_name" options="fnd5030_request_status_ds" returnField="phase_code" valueField="code_value"/>
+                    <a:field name="status_code_desc" displayField="code_value_name" options="fnd5030_status_code_ds" returnField="status_code" valueField="code_value"/>
+                    <a:field name="request_code" autoComplete="true" autoCompleteField="code_name" lovHeight="500" lovService="fnd.FND5020.fnd_request_info_lov" lovWidth="500" title="请求编码">
+                        <a:mapping>
+                            <a:map from="request_info_id" to="request_info_id"/>
+                            <a:map from="request_code" to="request_code"/>
+                            <a:map from="request_name" to="request_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="job_flag_desc" displayField="code_value_name" options="fnd5030_job_flag_ds" returnField="job_flag" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd5030_fnd_concurrent_request_result_ds" autoCount="true" autoQuery="true" fetchAll="false" model="fnd.FND5030.fnd_concurrent_request" queryDataSet="fnd5030_fnd_concurrent_request_query_ds" selectable="true"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="fnd5030_addForm" text="FND_REQUEST.SUBMIT_NEW_REQUEST"/>
+                <a:toolbarButton click="fnd5030_StopJob" text="JOB_TEMPORARILY_HUNG"/>
+                <a:toolbarButton click="fnd5030_RunJob" text="JOB_RECOVERY"/>
+                <a:toolbarButton click="fnd5030_DropJOB" text="JOB_DELETE"/>
+                <a:toolbarButton click="fnd5030_ExeJOB" text="HAP_IMMEDIATE_IMPLEMENT"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="fnd5030_concurrent_request_query_form" bindTarget="fnd5030_fnd_concurrent_request_query_ds" resultTarget="fnd5030_fnd_concurrent_request_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox>
+                        <a:textField name="request_id" prompt="INV_ASN_RECEIVE_DETAILS.REQUEST_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd5030_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:lov name="request_code" prompt="FND_CONCURRENT_REQUEST.REQUEST_CODE">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd5030_query"/>
+                            </a:events>
+                        </a:lov>
+                        <a:textField name="request_name" prompt="FND_CONCURRENT_REQUEST.REQUEST_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd5030_query"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody style="margin-left:8px">
+                    <a:hBox>
+                        <a:comboBox name="phase_code_desc" prompt="INV_ASN_LINES.PROCESS_STATUS">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd5030_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="status_code_desc" prompt="INV_ASN_LINES.STATUS">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd5030_query"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="job_flag_desc" prompt="SYS_ALERT_RULE_JOBS_JOB_SCHEDULE.PEIRODICITY">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd5030_query"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="fnd5030_grid" bindTarget="fnd5030_fnd_concurrent_request_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+                <a:columns>
+                    <a:column name="request_id" align="center" prompt="INV_ASN_RECEIVE_DETAILS.REQUEST_ID" renderer="fnd5030_requestDetails" width="45"/>
+                    <a:column name="request_code" align="center" prompt="FND_CONCURRENT_REQUEST.REQUEST_CODE" width="70"/>
+                    <a:column name="request_name" align="center" prompt="FND_CONCURRENT_REQUEST.REQUEST_NAME" width="80"/>
+                    <a:column name="phase_code_desc" align="center" prompt="INV_ASN_LINES.PROCESS_STATUS" renderer="fnd5030_PhaseCodeRenderer" width="50"/>
+                    <a:column name="status_code_desc" align="center" prompt="INV_ASN_LINES.STATUS" renderer="fnd5030_StatusCodeRenderer" width="50"/>
+                    <a:column name="job_flag_desc" align="center" prompt="SYS_ALERT_RULE_JOBS_JOB_SCHEDULE.PEIRODICITY" width="40"/>
+                    <a:column name="request_parameter" align="center" prompt="SYS_ALERT_RULE_JOBS_PARAMETER_VALUES.PATAMETER" width="100"/>
+                    <a:column name="start_date_desc" align="center" prompt="WFL_WORKFLOW_DELIVER.TIME_FROM" width="115"/>
+                    <a:column name="end_date_desc" align="center" prompt="FND_REQUEST.END_TIME_AND_NEXT_TIME" width="115"/>
+                    <!-- <a:column align="center" prompt="信息" renderer="requestDetails" width="55"/> -->
+                    <a:column align="center" prompt="FND_REQUEST_LOG.LOG_CONTENT" renderer="fnd5030_actionRenderer" width="55"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

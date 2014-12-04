@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+  SELECT *
+  FROM (SELECT c.ctrl_company_id,
+               c.ctrl_rule_id,
+               c.control_area,
+               c.business_group,
+               c.company_id,
+               f.company_code,
+               f.company_full_name company_name,
+               nvl(c.particular_flag,
+                   'N') particular_flag,
+               nvl(c.enabled_flag,
+                   'N') enabled_flag
+          FROM fnd_doc_ctrl_companies c,
+               fnd_companies_vl       f
+         WHERE c.company_id = f.company_id
+               AND c.control_area = ${@control_area}
+               AND c.ctrl_rule_id = ${@ctrl_rule_id}
+               AND c.business_group = ${/session/@business_group}
+        UNION
+        SELECT NULL ctrl_company_id,
+               to_number(${@ctrl_rule_id}) ctrl_rule_id,
+               ${@control_area} control_area,
+               f.business_group business_group,
+               f.company_id,
+               f.company_code,
+               f.company_full_name company_name,
+               'N' particular_flag,
+               'N' enabled_flag
+          FROM fnd_companies_vl f
+         WHERE NOT EXISTS (SELECT 1
+                  FROM fnd_doc_ctrl_companies c
+                 WHERE c.company_id = f.company_id
+                       AND c.control_area = ${@control_area}
+                       AND c.ctrl_rule_id = ${@ctrl_rule_id}
+                       AND c.business_group = ${/session/@business_group})
+               AND f.business_group = ${/session/@business_group}) v
+ ORDER BY v.company_code
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            BEGIN
+  fnd_document_control_pkg.save_doc_ctrl_company(p_ctrl_company_id        => ${@ctrl_company_id},
+                                                 p_ctrl_rule_id     => ${@ctrl_rule_id},
+                                                 p_control_area           => ${@control_area},
+                                                 p_company_id             => ${@company_id},
+                                                 p_particular_flag        => ${@particular_flag},
+                                                 p_enabled_flag           => ${@enabled_flag},
+                                                 p_business_group         => ${/session/@business_group},
+                                                 p_user_id                => ${/session/@user_id});
+END;
+            
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

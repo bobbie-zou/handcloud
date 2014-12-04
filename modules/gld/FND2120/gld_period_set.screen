@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duxiaofu4653 $
+    $Date: 2014/02/21 06:12:29 $
+    $Revision: 1.5 $
+    $Purpose: 会计期定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="fnd2120_gld_period_rule_readonly_link" url="${/request/@context_path}/modules/gld/FND2120/gld_period_rule_readonly.screen"/>
+        <a:link id="fnd2120_gld_period_rule_link" url="${/request/@context_path}/modules/gld/FND2120/gld_period_rule.screen"/>
+        <script><![CDATA[
+            function fnd2120_queryPeriodSet() {
+                $('fnd2120_gld_period_set_result_ds').query();
+            }
+            
+            function fnd2120_periodSetCodeEdit(record, name) {
+                if (record.isNew) {
+                    return 'fnd2120_total_period_num_grid_tf';
+                } else {
+                    return '';
+                }
+            }
+            
+            function fnd2120_totalPeriodNumEdit(record, name) {
+                return 'fnd2120_total_period_num_grid_tf';
+            }
+            
+            function fnd2120_periodAdditionalFlagEdit(record, name) {
+                if (record.isNew) {
+                    return 'fnd2120_period_additional_flag_grid_cmb';
+                } else {
+                    return '';
+                }
+            }
+            
+            function fnd2120_createRule(value, record, name) {
+                if (!record.isNew) {
+                    var code = record.get('period_set_code');
+                    var gprCount = record.get('gpr_count');
+                    return "<a href=javascript:fnd2120_createRuleInfo('" + code + "'," + gprCount + ")>${l:GLD_PERIOD_SETS.CREATE_RULE}</a>";
+                }
+                return '';
+            }
+            
+            function fnd2120_createRuleInfo(code, gprCount) {
+                if (gprCount == null || gprCount == '' || gprCount == 0) {
+                    new Aurora.Window({
+                        id: 'gld_period_rule_window',
+                        url: /*gld_period_rule.screen*/
+                        $('fnd2120_gld_period_rule_link').getUrl() + '?period_set_code=' + code,
+                        title: '${l:DEFINITION_OF_ACCOUNTING_PERIOD_CREATE_RULE}',
+                        height: 500,
+                        width: 720
+                    });
+                    //new Aurora.Window({id:'gld_period_rule_window', url:'gld_period_rule.screen?period_set_code='+ code, title:'会计期定义-创建规则', height:500,width:700,listeners:{'close':fnd2120_queryPeriodSet}});
+                } else {
+                    new Aurora.Window({
+                        id: 'gld_period_rule_readonly_window',
+                        url: /*gld_period_rule_readonly.screen*/
+                        $('fnd2120_gld_period_rule_readonly_link').getUrl() + '?period_set_code=' + code,
+                        title: '${l:DEFINITION_OF_ACCOUNTING_PERIOD_CREATE_RULE}',
+                        height: 500,
+                        width: 700
+                    });
+                }
+            }
+            
+            function fnd2120_reset() {
+                $('fnd2120_gld_period_set_query_ds').fnd2120_reset();
+            }
+            
+            function fnd2120_queryHook(value, ds) {
+                var record = ds.getCurrentRecord();
+                record.set('query_hook', null);
+                record.set('query_hook', value);
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2120_gld_period_set_additional_flag_ds" lookupCode="PERIOD_ADDITIONAL_FLAG"/>
+            <a:dataSet id="fnd2120_gld_period_set_query_ds" model="gld.gld_period_sets"/>
+            <a:dataSet id="fnd2120_gld_period_set_result_ds" autoPageSize="true" autoQuery="true" fetchAll="false" model="gld.gld_period_sets" queryDataSet="fnd2120_gld_period_set_query_ds" selectable="true" submitUrl="${/request/@context_path}/modules/gld/FND2120/gld_period_set.svc">
+                <a:fields>
+                    <a:field name="period_set_code" required="true"/>
+                    <a:field name="period_set_name" required="true"/>
+                    <a:field name="total_period_num" required="true"/>
+                    <a:field name="period_additional_flag_display" displayField="code_value_name" options="fnd2120_gld_period_set_additional_flag_ds" required="true" returnField="period_additional_flag" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="fnd2120_gld_gld_period_set_grid" className="item-rbtn-blue button-add" type="add" width="100"/>
+            <a:gridButton bind="fnd2120_gld_gld_period_set_grid" className="item-rbtn-blue button-delete" type="delete" width="100"/>
+            <a:gridButton bind="fnd2120_gld_gld_period_set_grid" className="item-rbtn-blue button-save" type="save" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="fnd2120_query_form" bindTarget="fnd2120_gld_period_set_query_ds" defaultQueryHint="PLEASE_INPUT_CODE_OR_NAME" queryHook="fnd2120_queryHook" resultTarget="fnd2120_gld_period_set_result_ds" style="width:100%;border:none"/>
+        <a:grid id="fnd2120_gld_gld_period_set_grid" bindTarget="fnd2120_gld_period_set_result_ds" marginHeight="180" marginWidth="70" navBar="true" width="1209">
+            <a:columns>
+                <a:column name="period_set_code" align="center" editorFunction="fnd2120_periodSetCodeEdit" sortable="true" width="300"/>
+                <a:column name="period_set_name" align="left" editor="fnd2120_period_set_name_grid_tf" width="350"/>
+                <a:column name="total_period_num" align="left" editorFunction="fnd2120_totalPeriodNumEdit" sortable="true" width="160"/>
+                <a:column name="period_additional_flag_display" align="center" editorFunction="fnd2120_periodAdditionalFlagEdit" width="160"/>
+                <a:column name="gpr_count" align="center" prompt="GLD_PERIOD_SETS.CREATE_RULE" renderer="fnd2120_createRule" width="160"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="fnd2120_period_set_code_grid_tf" typeCase="upper"/>
+                <a:textField id="fnd2120_period_set_name_grid_tf"/>
+                <a:numberField id="fnd2120_total_period_num_grid_tf" allowDecimals="false" allowNegative="false"/>
+                <a:comboBox id="fnd2120_period_additional_flag_grid_cmb"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zhangyi2652 $
+    $Date: 2010/11/22 08:05:29 $
+    $Revision: 1.7 $
+    $Purpose: 工作流节点定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" fieldNameCase="lower" model="wfl.wfl_workflow_node" rootPath="wfl2010_workflow_node_edit_rootpath"/>
+        <a:model-query autoCount="false" fetchAll="true" fieldNameCase="lower" model="wfl.wfl_workflow_approval" queryOrderBy="e.rule_sequence asc" rootPath="wfl2010_workflow_node_approvals_edit_rootpath"/>
+        <a:model-query autoCount="false" fetchAll="true" fieldNameCase="lower" model="wfl.wfl_workflow_recipient_rules" rootPath="wfl2010_workflow_node_recipient_rules_edit_rootpath"/>
+        <a:model-query autoCount="false" defaultWhereClause="e.proc_type = 10" fetchAll="true" fieldNameCase="lower" model="wfl.wfl_workflow_procedure" rootPath="wfl2010_workflow_node_pre_procedure_edit_rootpath"/>
+        <a:model-query autoCount="false" defaultWhereClause="e.proc_type = 20" fetchAll="true" fieldNameCase="lower" model="wfl.wfl_workflow_procedure" rootPath="wfl2010_workflow_node_check_procedure_edit_rootpath"/>
+    </a:init-procedure>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+            function wfl2010WorkflowNodeNodeEditOnSubmitsuccess(ds, datas, res) {
+                //closeWorkflowNodeWindow();
+                wfl2010WorkflowNodeEditOnBeforeload();
+            }
+            
+            function wfl2010WorkflowNodeEditSave() {
+                if (Aurora.CmpManager.get('wfl2010_workflow_node_rule_node_rule_ds')) {
+                    var records = $('wfl2010_workflow_node_rule_node_rule_ds').getAll();
+                    var node_result_1;
+                    var node_result_2;
+                    for (var i = 0;i < records.length;i++) {
+                        for (var j = i + 1;j < records.length;j++) {
+                            node_result_1 = records[i].get("node_result");
+                            node_result_2 = records[j].get("node_result");
+                            if (node_result_1 == node_result_2) {
+                                Aurora.showMessage('${l:PROMPT.HINT}', '${l:WFL.WFL_RETURN_VALUE_CANNOT_REPEAT}！');
+                                return;
+                            }
+                        }
+                    }
+                }
+            
+                $('wfl2010_workflow_node_node_edit_ds').submit();
+            }
+            
+            function wfl2010WorkflowNodeEditCancel() {
+                $('wfl2010_workflow_node_edit_window').close();
+            }
+            
+            function wfl2010WorkflowNodeApprovalsEditOnUpdate(ds, record, name, value) {
+                if (name == 'rule_code') {
+                    var current = $('wfl2010_workflow_node_approvals_edit_ds').getCurrentRecord();
+                    for (var i = 1;i <= 4;i++) {
+                        var pt = 'parameter_' + i + '_type';
+                        var pd = 'parameter_' + i + '_desc';
+                        var pv = 'parameter_' + i + '_value';
+                        var pu = 'parameter_' + i + '_url';
+                        current.set(pv, '');
+                        current.set(pd, '');
+                    }
+            
+                } else if (name == 'parameter_1_desc' || name == 'parameter_2_desc' || name == 'parameter_3_desc' || name == 'parameter_4_desc') {
+                    var prex = name.substring(0, name.lastIndexOf('_'));
+                    var pt = prex + '_type';
+                    var pd = prex + '_desc';
+                    var pv = prex + '_value';
+                    var pu = prex + '_url';
+                    var vt = record.get(pt)
+                    if (vt == 'INPUT') {
+                        record.set(name.replace('desc', 'value'), value);
+                    }
+            
+                }
+            }
+            
+            function wfl2010WorkflowNodeApprovalsEditor(record, name) {
+                var prex = name.substring(0, name.lastIndexOf('_'));
+                var pt = prex + '_type';
+                var pd = prex + '_desc';
+                var pv = prex + '_value';
+                var pu = prex + '_url';
+                var vt = record.get(pt)
+            
+                if (vt == 'INPUT') {
+                    return "wfl2010_workflow_node_approvals_edit_tf";
+                } else if (vt == 'SELECT') {
+                    var field = record.getField(pd)
+                    field.setTitle("${l:LOGIN_SELECT_ROLE.CHOICE}");
+                    field.setLovWidth(500);
+                    field.setLovGridHeight(280);
+                    field.setLovHeight(460);
+            
+                    field.setLovService(record.get(pu));
+            
+                    var mapping = [{
+                        from: "code_name",
+                        to: pd
+                    }, {
+                        from: "code",
+                        to: pv
+                    }]
+            
+            
+                    field.setMapping(mapping);
+                    field.setRequired(true);
+                    return "wfl2010_workflow_node_approvals_edit_lov";
+                } else {
+                    var field = record.getField(pd);
+                    field.setRequired(false);
+                    return "";
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl2010_sys_notify_delay_time_unit_ds" lookupCode="SYS_NOTIFY_DELAY_TIME_UNIT"/>
+            <a:dataSet id="wfl2010_workflow_node_pre_procedure_edit_ds">
+                <a:datas dataSource="/model/wfl2010_workflow_node_pre_procedure_edit_rootpath"/>
+            </a:dataSet>
+            <a:dataSet id="wfl2010_workflow_node_check_procedure_edit_ds">
+                <a:datas dataSource="/model/wfl2010_workflow_node_check_procedure_edit_rootpath"/>
+            </a:dataSet>
+            <a:dataSet id="wfl2010_workflow_node_node_edit_ds" model="wfl.wfl_workflow_node" selectable="true" submitUrl="${/request/@context_path}/modules/wfl/public/wfl_workflow_node_update.svc">
+                <a:datas dataSource="/model/wfl2010_workflow_node_edit_rootpath"/>
+                <a:fields>
+                    <a:field name="name" required="true"/>
+                    <a:field name="sequence_num" required="true"/>
+                    <a:field name="can_deliver_to" checkedValue="1" uncheckedValue="0"/>
+                    <a:field name="can_auto_pass" checkedValue="1" uncheckedValue="0"/>
+                    <a:field name="can_add_approver" checkedValue="1" defaultValue="1" uncheckedValue="0"/>
+                    <a:field name="can_no_approver" checkedValue="1" uncheckedValue="0"/>
+                    <a:field name="can_add_notification" checkedValue="1" uncheckedValue="0"/>
+                    <a:field name="can_add_attachement" checkedValue="1" uncheckedValue="0"/>
+                    <a:field name="mail_notify" checkedValue="1" uncheckedValue="0"/>
+                    <a:field name="is_date_limited" checkedValue="1" uncheckedValue="0"/>
+                    <a:field name="is_self_re_commit" checkedValue="1" uncheckedValue="0"/>
+                    <a:field name="notify_on_finish" checkedValue="1" uncheckedValue="0"/>
+                    <a:field name="is_comment_access_control" checkedValue="1" uncheckedValue="0"/>
+                    <a:field name="recipient_type_display" displayField="name" options="wfl2010_workflow_recipient_type_edit_ds" required="true" valueField="value">
+                        <a:mapping>
+                            <a:map from="value" to="recipient_type"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="form_name_display" displayField="service_display" options="wfl2010_workflow_page_edit_ds" required="true" valueField="service_name">
+                        <a:mapping>
+                            <a:map from="service_name" to="form_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="approval_type_display" displayField="name" options="wfl2010_workflow_approval_type_edit_ds" required="true" valueField="value">
+                        <a:mapping>
+                            <a:map from="value" to="approval_type"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="notify_period_length_display" displayField="code_value_name" options="wfl2010_sys_notify_delay_time_unit_ds" returnField="notify_period_length" valueField="code_value"/>
+                    <a:field name="process_date_unit_id_display" displayField="code_value_name" options="wfl2010_sys_notify_delay_time_unit_ds" returnField="process_date_unit_id" valueField="code_value"/>
+                    <a:field name="pre_node_proc_display" displayField="proc_display" options="wfl2010_workflow_node_pre_procedure_edit_ds" returnField="pre_node_proc" valueField="proc_name"/>
+                    <a:field name="check_proc_display" displayField="proc_display" options="wfl2010_workflow_node_check_procedure_edit_ds" returnField="check_proc" valueField="proc_name"/>
+                    <a:field name="select_all_enabled" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="one_approver_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="only_manager_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="wfl2010WorkflowNodeNodeEditOnSubmitsuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl2010_workflow_node_recipient_rules_edit_ds">
+                <a:datas dataSource="/model/wfl2010_workflow_node_recipient_rules_edit_rootpath"/>
+            </a:dataSet>
+            <a:dataSet id="wfl2010_workflow_node_approvals_edit_ds" bindName="approvals" bindTarget="wfl2010_workflow_node_node_edit_ds" model="wfl.wfl_workflow_approval" selectable="true">
+                <a:datas dataSource="/model/wfl2010_workflow_node_approvals_edit_rootpath"/>
+                <a:fields>
+                    <a:field name="rule_sequence" required="true"/>
+                    <a:field name="recipient_sequence" required="true"/>
+                    <a:field name="rule_code_display" displayField="description" options="wfl2010_workflow_node_recipient_rules_edit_ds" required="true" valueField="rule_code">
+                        <a:mapping>
+                            <a:map from="parameter_1_type" to="parameter_1_type"/>
+                            <a:map from="parameter_1_url" to="parameter_1_url"/>
+                            <a:map from="parameter_2_type" to="parameter_2_type"/>
+                            <a:map from="parameter_2_url" to="parameter_2_url"/>
+                            <a:map from="parameter_3_type" to="parameter_3_type"/>
+                            <a:map from="parameter_3_url" to="parameter_3_url"/>
+                            <a:map from="parameter_4_type" to="parameter_4_type"/>
+                            <a:map from="parameter_4_url" to="parameter_4_url"/>
+                            <a:map from="rule_code" to="rule_code"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="wfl2010WorkflowNodeApprovalsEditOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="wfl2010WorkflowNodeEditSave" icon="${/request/@context_path}/images/save.gif" text="HAP_SAVE" width="100"/>
+                <a:toolbarButton click="wfl2010WorkflowNodeEditCancel" text="HAP_CANCEL" width="100"/>
+            </a:screenTopToolbar>
+            <a:vBox padding="2" style="margin-top:5px;" width="850">
+                <a:fieldSet labelWidth="120" padding="0" title="WFL_WORKFLOW_NODE.NODE_INFO" width="850">
+                    <a:box column="3" labelWidth="120">
+                        <a:textField name="name" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.NAME" width="150"/>
+                        <a:textField name="sequence_num" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.SEQUENCE_NUM" width="150"/>
+                        <a:comboBox name="recipient_type_display" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.RECIPIENT_TYPE" width="150"/>
+                        <a:comboBox name="approval_type_display" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.APPROVAL_TYPE" width="150"/>
+                        <a:comboBox name="check_proc_display" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.CHECK_PROC" width="150"/>
+                        <a:comboBox name="pre_node_proc_display" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.PRE_NODE_PROC" width="150"/>
+                        <a:comboBox name="form_name_display" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.FORM_NAME" width="150"/>
+                        <a:numberField name="form_height" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.FORM_HEIGHT" width="150"/>
+                        <a:numberField name="form_width" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.FORM_WIDTH" width="150"/>
+                        <a:numberField name="quantity" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.QUANTITY" width="150"/>
+                        <a:hBox padding="0" prompt="WFL_WORKFLOW_NODE.NOTIFY_PERIOD" width="152">
+                            <a:textField name="notify_period" bindTarget="wfl2010_workflow_node_node_edit_ds" width="85"/>
+                            <a:comboBox name="notify_period_length_display" bindTarget="wfl2010_workflow_node_node_edit_ds" width="58"/>
+                        </a:hBox>
+                        <a:hBox padding="0" prompt="WFL_WORKFLOW_NODE.PROCESS_DATE" width="152">
+                            <a:textField name="process_date" bindTarget="wfl2010_workflow_node_node_edit_ds" width="85"/>
+                            <a:comboBox name="process_date_unit_id_display" bindTarget="wfl2010_workflow_node_node_edit_ds" width="58"/>
+                        </a:hBox>
+                    </a:box>
+                    <a:box column="5" labelWidth="120">
+                        <a:checkBox name="mail_notify" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.MAIL_NOTIFY" width="30"/>
+                        <a:checkBox name="is_date_limited" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.IS_DATE_LIMITED" width="30"/>
+                        <a:checkBox name="can_auto_pass" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.CAN_AUTO_PASS" width="30"/>
+                        <a:checkBox name="can_no_approver" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.CAN_NO_APPROVER" width="30"/>
+                        <a:checkBox name="can_add_approver" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.CAN_ADD_APPROVER" width="30"/>
+                        <a:checkBox name="can_add_notification" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.CAN_ADD_NOTIFICATION"/>
+                        <a:checkBox name="can_deliver_to" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.CAN_DELIVER_TO"/>
+                        <a:checkBox name="is_self_re_commit" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.IS_SELF_RE_COMMIT"/>
+                        <a:checkBox name="notify_on_finish" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.NOTIFY_ON_FINISH"/>
+                        <a:checkBox name="is_comment_access_control" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL_WORKFLOW_NODE.IS_COMMENT_ACCESS_CONTROL"/>
+                        <a:checkBox name="can_add_attachement" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL2010.CAN_ADD_ATTACHEMENT" width="30"/>
+                        <a:checkBox name="select_all_enabled" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL2010.SELECT_ALL_ENABLED" width="30"/>
+                        <a:checkBox name="one_approver_flag" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL2010.ONE_APPROVER_FLAG" width="30"/>
+                        <a:checkBox name="only_manager_flag" bindTarget="wfl2010_workflow_node_node_edit_ds" prompt="WFL2010.ONLY_MANAGER_FLAG" width="30"/>
+                    </a:box>
+                    <a:box labelWidth="120">
+                        <a:textArea name="description" bindTarget="wfl2010_workflow_node_node_edit_ds" height="35" prompt="WFL_WORKFLOW_NODE.DESCRIPTION" width="700"/>
+                    </a:box>
+                </a:fieldSet>
+                <a:tabPanel id="wfl_workflow_node_tab" height="230" width="850">
+                    <a:tabs>
+                        <a:tab prompt="WFL_WORKFLOW_APPROVAL.APPROVERS" width="100">
+                            <a:grid bindTarget="wfl2010_workflow_node_approvals_edit_ds" height="185" style="margin-top:5px;" width="835">
+                                <a:toolBar>
+                                    <a:button type="add"/>
+                                    <a:button type="delete"/>
+                                </a:toolBar>
+                                <a:columns>
+                                    <a:column name="rule_sequence" editor="wfl2010_workflow_node_approvals_edit_nf" width="70"/>
+                                    <a:column name="rule_code_display" editor="wfl2010_workflow_node_approvals_edit_cmb" width="120"/>
+                                    <a:column name="recipient_sequence" editor="wfl2010_workflow_node_approvals_edit_nf" width="70"/>
+                                    <a:column name="parameter_1_value" width="150"/>
+                                    <a:column name="parameter_1_desc" editorFunction="wfl2010WorkflowNodeApprovalsEditor" width="150"/>
+                                    <a:column name="parameter_2_value" width="150"/>
+                                    <a:column name="parameter_2_desc" editorFunction="wfl2010WorkflowNodeApprovalsEditor" width="150"/>
+                                    <a:column name="parameter_3_value" width="150"/>
+                                    <a:column name="parameter_3_desc" editorFunction="wfl2010WorkflowNodeApprovalsEditor" width="150"/>
+                                    <a:column name="parameter_4_value" width="150"/>
+                                    <a:column name="parameter_4_desc" editorFunction="wfl2010WorkflowNodeApprovalsEditor" width="150"/>
+                                </a:columns>
+                                <a:editors>
+                                    <a:textField id="wfl2010_workflow_node_approvals_edit_tf"/>
+                                    <a:numberField id="wfl2010_workflow_node_approvals_edit_nf"/>
+                                    <a:comboBox id="wfl2010_workflow_node_approvals_edit_cmb"/>
+                                    <a:lov id="wfl2010_workflow_node_approvals_edit_lov"/>
+                                </a:editors>
+                            </a:grid>
+                        </a:tab>
+                        <a:tab prompt="WFL_WORKFLOW_APPROVAL.ACTION" ref="${/request/@context_path}/modules/wfl/public/wfl_workflow_node_action.screen?workflow_id=${/parameter/@workflow_id}&amp;node_id=${/parameter/@node_id}" width="100"/>
+                        <a:tab prompt="WFL_WORKFLOW_APPROVAL.NODE_AFTER_PRO" ref="${/request/@context_path}/modules/wfl/public/wfl_workflow_node_rules.screen?workflow_id=${/parameter/@workflow_id}&amp;node_id=${/parameter/@node_id}" width="100"/>
+                        <a:tab prompt="WFL_WORKFLOW_APPROVAL.PARAMETER" ref="${/request/@context_path}/modules/wfl/public/wfl_workflow_node_parameter.screen?workflow_id=${/parameter/@workflow_id}&amp;workflow_node_id=${/parameter/@node_id}" width="100"/>
+                        <a:tab prompt="WFL_WORKFLOW_APPROVAL.WORKFLOW_NOTICE" ref="${/request/@context_path}/modules/wfl/public/wfl_workflow_node_notification.screen?workflow_id=${/parameter/@workflow_id}&amp;node_id=${/parameter/@node_id}" width="100"/>
+                        <a:tab prompt="WFL_WORKFLOW_APPROVAL.ACCESSIBLE_NODE" ref="${/request/@context_path}/modules/wfl/public/wfl_workflow_node_comment_access.screen?workflow_id=${/parameter/@workflow_id}&amp;exclude_node_id=${/parameter/@node_id}" width="100"/>
+                    </a:tabs>
+                </a:tabPanel>
+            </a:vBox>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Administrator  
+    $Date: 2013-6-8 下午3:30:44  
+    $Revision: 1.0  
+    $Purpose: 供应商分类bm
+-->
+<bm:model xmlns:e="aurora.service.exception" xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+			    select *
+			      from (select vc.vendor_id,
+						       vc.category_id,
+						       vc.total_category_code,
+						       pur_sys_vendor_pkg.get_vendor_category_names(vc.category_id,
+						                                                    ${/session/@user_id}) total_category_name,
+						       vc.enabled_flag
+						  from pur_sys_vendor_categories vc,
+						       pur_vendor_category_vl    vcl
+						 where vc.category_id = vcl.vendor_category_id(+)
+						   and vc.vendor_id = ${@vendor_id}
+						union
+						select t.vendor_id,
+						       t.vendor_category_id,
+						       t.total_category_code,
+						       t.total_category_name,
+						       'N'
+						  from pur_vendor_category_tmp t
+						 where t.vendor_id = ${@vendor_id}
+						       and t.session_id = ${/session/@session_id}) t1
+						ORDER BY total_category_code
+			]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        		begin
+				  pur_sys_vendor_pkg.pur_sys_vendor_category_update(p_vendor_id    => ${@vendor_id},
+				                                                    p_category_id  => ${@category_id},
+				                                                    p_session_id   => ${/session/@session_id},
+				                                                    p_enabled_flag => ${@enabled_flag},
+				                                                    p_user_id      => ${/session/@user_id});
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="vendor_id" databaseType="NUMBER" datatype="java.lang.Long" insertExpression="${../../@vendor_id}" physicalName="VENDOR_ID" prompt="PUR_SYS_VENDOR_CATEGORIES.VENDOR_ID"/>
+        <bm:field name="category_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="CATEGORY_ID" prompt="PUR_SYS_VENDOR_CATEGORIES.CATEGORY_ID"/>
+        <bm:field name="total_category_code" databaseType="NUMBER" datatype="java.lang.Long" physicalName="TOTAL_CATEGORY_CODE" prompt="PUR_SYS_VENDOR_CATEGORIES.TOTAL_CATEGORY_CODE"/>
+        <bm:field name="total_category_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="TOTAL_CATEGORY_NAME" prompt="PUR_SYSTEM_VENDERS.CATEGORY_SET_NAME"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="PUR_SYS_VENDOR_CATEGORIES.ENABLED_FLAG"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="vendor_id" queryExpression="vendor_id = ${@vendor_id}"/>
+    </bm:query-fields>
+</bm:model>

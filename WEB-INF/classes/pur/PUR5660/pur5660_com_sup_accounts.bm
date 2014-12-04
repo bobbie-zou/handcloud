@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT a.account_id,
+               a.supplier_id,
+               a.bank_code,
+               (select bank_name from csh_banks_vl cb where cb.bank_code = a.bank_code) bank_name,
+               a.bank_branch_name,
+               a.bank_account_name,
+               a.bank_account_number,
+               nvl(a.primary_account_flag,
+                   'N') primary_account_flag,
+               nvl(a.enabled_flag,
+                   'N') enabled_flag
+          FROM fnd_com_sup_accounts a
+         WHERE EXISTS (SELECT 1
+          FROM fnd_com_sup_infos f,
+               pur_vendors       pv
+         WHERE f.company_id = pv.coop_company_id
+               AND f.supplier_id = ${@supplier_id}
+               AND pv.business_group = ${/session/@business_group})
+       AND a.supplier_id = ${@supplier_id})
+         #WHERE_CLAUSE# order by account_id]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

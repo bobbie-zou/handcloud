@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-3-18 下午02:50:28  
+    $Revision: 1.0  
+    $Purpose: 投标方变更头表
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select rownum*10 line_serial_num,
+                                          va_header_id alteration_header_id,
+									      va_header_number apply_num,
+									      applicant_id,
+									      entrustment_header_id,
+									      (select beh.entrustment_header_number from bid_entrustment_headers beh where beh.entrustment_header_id=bvah.entrustment_header_id) entrustment_header_num,
+                                          (select beh.title from bid_entrustment_headers beh where beh.entrustment_header_id=bvah.entrustment_header_id) entrustment_header_name,
+									      to_char(private_date,'yyyy-mm-dd') private_date,
+									      note apply_comments,
+									      status,
+									      closed_flag,
+									      created_by,
+									      to_char(private_date,'yyyy-mm-dd') creation_date,
+									      last_updated_by,
+									      last_update_date,
+									      flex_appl_relevance_id
+									 from bid_vendor_alteration_hds bvah
+									 #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:query-sql><![CDATA[
+            begin
+                bid_vendor_alt_apply_pkg.insert_alteration_header(p_applicant_id           =>${@applicant_id},
+                                                                  p_entrustment_header_id  =>${@entrustment_header_id},
+                                                                  p_flex_appl_relevance_id =>${@flex_appl_relevance_id},
+                                                                  p_creation_date          =>to_date(${@creation_date},'yyyy-mm-dd'),
+                                                                  p_apply_comments         =>${@apply_comments},
+                                                                  p_user_id                =>${/session/@user_id},
+                                                                  x_alteration_header_id   =>${@alteration_header_id},
+                                                                  x_apply_num              =>${@apply_num});
+            end;                                 
+            ]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter name="alteration_header_id" datatype="java.lang.Long" input="false" output="true" outputPath="@alteration_header_id"/>
+                <bm:parameter name="apply_num" datatype="java.lang.String" input="false" output="true" outputPath="@apply_num"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+            begin
+                bid_vendor_alt_apply_pkg.update_alteration_header(p_alteration_header_id =>${@alteration_header_id},
+                                                                  p_applicant_id         =>${@applicant_id},
+                                                                  p_creation_date        =>to_date(${@creation_date},'yyyy-mm-dd'),
+                                                                  p_apply_comments       =>${@apply_comments},
+                                                                  p_user_id              =>${/session/@user_id});
+            end;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="entrustment_type_code_name" queryExpression="(select bvah.entrustment_type_code from bid_entrustment_types bet where bet.entrustment_type_id=beh.entrustment_type_id) like &apos;%&apos;||${@entrustment_type_code_name}||&apos;%&apos; or (select fd.description_text from fnd_descriptions fd,bid_entrustment_types bet where bet.entrustment_type_id=beh.entrustment_type_id and bet.description_id=fd.description_id and fd.language=${/session/@lang}) like &apos;%&apos;||${@entrustment_type_code_name}||&apos;%&apos;"/>
+        <bm:query-field name="client_id" queryExpression="bvah.client_id=${@client_id}"/>
+        <bm:query-field name="entrustment_type_id" queryExpression="bvah.entrustment_type_id=${@entrustment_type_id}"/>
+        <bm:query-field name="bidding_method" queryExpression="bvah.suggested_bidding_method=${@bidding_method}"/>
+        <bm:query-field name="principal_company_id" queryExpression="bvah.principal_company_id=${@principal_company_id}"/>
+        <bm:query-field name="organization_id" queryExpression="bvah.organization_id=${@organization_id}"/>
+        <bm:query-field name="using_unit_type" queryExpression="bvah.using_unit_type=${@using_unit_type}"/>
+        <bm:query-field name="reversed_entrust_flag" queryExpression="bvah.reversed_entrust_flag=${@reversed_entrust_flag}"/>
+        <bm:query-field name="margin_required_flag" queryExpression="bvah.margin_required_flag=${@margin_required_flag}"/>
+        <bm:query-field name="bidder_qualified_flag" queryExpression="bvah.bidder_qualified_flag=${@bidder_qualified_flag}"/>
+        <bm:query-field name="status" queryExpression="bvah.status=${@status}"/>
+        <bm:query-field name="private_date_from" queryExpression="bvah.private_date &gt;= ${@private_date_from}"/>
+        <bm:query-field name="private_date_to" queryExpression="bvah.private_date &lt;= ${@private_date_to}"/>
+        <bm:query-field name="delivered_date_from" queryExpression="bvah.delivered_date &gt;= ${@delivered_date_from}"/>
+        <bm:query-field name="delivered_date_to" queryExpression="bvah.delivered_date &lt;= ${@delivered_date_to}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="bvah.status in (&apos;NEW&apos;, &apos;TAKEN_BACK&apos;, &apos;REJECTED&apos;)"/>
+    </bm:data-filters>
+</bm:model>

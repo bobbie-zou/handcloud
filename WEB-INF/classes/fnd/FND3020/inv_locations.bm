@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-1-16 上午10:31:28  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="t1.LOCATION_CODE">
+    <bm:fields>
+        <bm:field name="location_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="location_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="location_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="warehouse_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="warehouse_code_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="warehouse_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="inv_organization_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="business_unit_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="business_unit_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="business_group" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="data_source" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="business_unit_id" queryExpression="t1.business_unit_id = ${@business_unit_id}"/>
+        <bm:query-field name="data_source" queryExpression="t1.data_source = ${@data_source}"/>
+        <bm:query-field name="warehouse_id" queryExpression="t1.warehouse_id = ${@warehouse_id}"/>
+        <bm:query-field name="location_code" queryExpression="t1.location_code like &apos;%&apos;||${@location_code}||&apos;%&apos;"/>
+        <bm:query-field name="location_name" queryExpression="t1.location_name like &apos;%&apos;||${@location_name}||&apos;%&apos;"/>
+        <bm:query-field name="inv_organization_id" queryExpression="t1.inv_organization_id = ${@inv_organization_id}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        i.location_id,
+                        i.location_code,
+                        i.description location_name,
+                        i.warehouse_id,
+                        ( iw.warehouse_code
+                        || '-'
+                        || iw.description) AS warehouse_code_name,
+                        iw.description warehouse_name,
+                        io.inv_organization_id,
+                        io.description inv_organization_name,
+                        io.business_unit_id,
+                        (SELECT
+                            f.business_unit_name
+                        FROM
+                            fnd_business_units_vl f
+                        WHERE
+                            f.business_unit_id=io.business_unit_id
+                        ) business_unit_name,
+                        i.enabled_flag,
+                        i.business_group,
+                        i.data_source
+                    FROM
+                        inv_locations_vl i,
+                        inv_warehouses_vl iw,
+                        inv_organizations_vl io
+                    WHERE
+                        i.warehouse_id         = iw.warehouse_id AND
+                        iw.inv_organization_id = io.inv_organization_id
+                    ) t1 #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="location_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@location_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              BEGIN
+                inv_location_pkg.insert_inv_locations
+                (
+                  p_location_id=>${@location_id},
+                  p_location_code=>${@location_code},
+                  p_description=>${@description},
+                  p_warehouse_id=>${@warehouse_id},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_business_group=>${/session/@business_group},
+                  p_data_source=>${@data_source},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                inv_location_pkg.update_inv_locations
+                (
+                  p_location_id=>${@location_id},
+                  p_location_code=>${@location_code},
+                  p_description=>${@description},
+                  p_warehouse_id=>${@warehouse_id},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="t1.business_group=${/session/@business_group}"/>
+    </bm:data-filters>
+    <!-- 
+    <authority client_alias="t1" client_name="client"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features> -->
+</bm:model>

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-27 上午9:38:00  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select * from (
+select li.*,
+       nvl(l.feedback_line_id,fp.feedback_line_id) feedback_line_id,
+       l.feedback_header_id,
+       l.abandoned_flag,
+       l.status_desc fd_line_status_desc,
+       TO_CHAR(nvl(l.promised_date,fp.promised_date),'yyyy-mm-dd') promised_date,
+       TO_CHAR(nvl(l.feedback_expiry_date_from,fp.feedback_expiry_date_from),'yyyy-mm-dd') feedback_expiry_date_from,
+       TO_CHAR(nvl(l.feedback_expiry_date_to,fp.feedback_expiry_date_from),'yyyy-mm-dd') feedback_expiry_date_to,
+       nvl(l.valid_fb_quantity,fp.quantity) valid_fb_quantity,
+       nvl(l.valid_fb_retail_price,fp.feedback_retail_price) valid_fb_retail_price,
+       nvl(l.valid_fb_wholesale_price,fp.feedback_wholesale_price) valid_fb_wholesale_price,
+       nvl(l.valid_fb_reason,fp.feedback_reason) valid_fb_reason,
+       l.valid_bargain_by,
+       l.valid_bargain_by_desc,
+       l.valid_bargain_quantity,
+       l.valid_bargain_retail_price,
+       l.valid_bargain_wholesale_price,
+       l.valid_bargain_reason,
+       l.suggested_note,
+       TO_CHAR(nvl(l.feedback_time,fp.feedback_time), 'yyyy-mm-dd hh24:mi:ss') feedback_time,
+       l.bargained_time,
+       fp.rfx_round rfx_filing_round,
+       fp.rfx_round rfx_filing_version,
+       nvl(l.suggested_flag, fp.suggested_flag) suggested_flag_fn
+  from (select rh.rfx_header_id,
+               rh.round,
+               rh.version,
+               li.rfx_line_item_id,
+               li.company_id,
+               li.inv_organization_id,
+               (SELECT io.description
+                  FROM inv_organizations_vl io
+                 WHERE io.inv_organization_id = li.inv_organization_id) inv_organization_desc,
+               li.item_category_id,
+               li.item_id,
+               li.item_code,
+               li.item_desc,
+               li.item_note,
+               li.item_parameter_config,
+               li.uom_code,
+               (select uc.uom_desc
+                  from fnd_uom_codes_vl uc
+                 where uc.uom_code = li.uom_code) uom_desc,
+               li.quantity,
+               TO_CHAR(li.need_by_date, 'yyyy-mm-dd') need_by_date,
+               li.feedback_range,
+               li.cancel_flag,
+               li.rfx_finished_flag
+          from pur_rfx_headers rh, pur_rfx_ln_items li
+         where li.rfx_header_id = rh.rfx_header_id) li,
+       (SELECT h.vendor_id,
+               h.vendor_code,
+               h.vendor_desc,
+               h.status header_status,
+               h.rfx_round,
+               h.rfx_version,
+               h.rfx_header_id,
+               l.rfx_line_item_id,
+               l.feedback_line_id,
+               l.feedback_header_id,
+               l.abandoned_flag,
+               (SELECT io.description
+                  FROM inv_organizations_vl io
+                 WHERE io.inv_organization_id = l.inv_organization_id) inv_organization_desc,
+               l.status,
+               (SELECT scv.code_value_name
+                  FROM sys_code_values_vl scv, sys_codes_vl sc
+                 WHERE sc.code_id = scv.code_id
+                   AND scv.code_value = l.status
+                   AND sc.code = 'PUR_RFX_FEEDBACK_LINE_STATUS') status_desc,
+               
+               l.promised_date,
+               l.feedback_expiry_date_from,
+               l.feedback_expiry_date_to,
+               l.current_fb_by,
+               (SELECT u.user_desc
+                  FROM sys_user_v u
+                 WHERE u.user_id = l.current_fb_by) current_fb_by_desc,
+               l.current_fb_quantity,
+               l.current_fb_retail_price,
+               l.current_fb_wholesale_price,
+               l.current_fb_reason,
+               l.current_bargain_by,
+               (SELECT u.user_desc
+                  FROM sys_user_v u
+                 WHERE u.user_id = l.current_bargain_by) current_bargain_by_desc,
+               l.current_bargain_quantity,
+               l.current_bargain_retail_price,
+               l.current_bargain_whlsale_price,
+               l.current_bargain_reason,
+               l.valid_fb_by,
+               (SELECT u.user_desc
+                  FROM sys_user_v u
+                 WHERE u.user_id = l.valid_fb_by) valid_fb_by_desc,
+               l.valid_fb_quantity,
+               l.valid_fb_retail_price,
+               l.valid_fb_wholesale_price,
+               l.valid_fb_reason,
+               l.valid_bargain_by,
+               (SELECT u.user_desc
+                  FROM sys_user_v u
+                 WHERE u.user_id = l.valid_bargain_by) valid_bargain_by_desc,
+               l.valid_bargain_quantity,
+               l.valid_bargain_retail_price,
+               l.valid_bargain_wholesale_price,
+               l.valid_bargain_reason,
+               l.suggested_flag,
+               l.suggested_note,
+               l.feedback_time,
+               TO_CHAR(l.bargained_time, 'yyyy-mm-dd hh24:mi:ss') bargained_time
+          FROM pur_rfx_feedback_lines l, pur_rfx_feedback_headers h
+         WHERE h.feedback_header_id = l.feedback_header_id
+           AND h.rfx_header_id = ${@rfx_header_id}
+           AND h.vendor_id = ${/session/@vendor_id}) l,
+       (select fp.*, 'Y' suggested_flag
+          from pur_rfx_filing_pool fp
+         where fp.vendor_id = ${/session/@vendor_id} ) fp
+ where li.rfx_header_id = l.rfx_header_id(+)
+   and li.rfx_line_item_id = l.rfx_line_item_id(+)
+   and li.round = l.rfx_round(+)
+   and li.version = l.rfx_version(+)
+   and li.rfx_line_item_id = fp.rfx_line_item_id(+)) t
+ #WHERE_CLAUSE#
+order by item_code
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="rfx_header_id" queryExpression="rfx_header_id = ${@rfx_header_id}"/>
+        <bm:query-field name="round" queryExpression="round = ${@round}"/>
+        <bm:query-field name="version" queryExpression="version = ${@version}"/>
+    </bm:query-fields>
+    <flex-segmentBm applTableAliasName="l" headerIdPath="@rfx_header_id" headerTableName="PUR_RFX_HEADERS" lineTableName="PUR_RFX_FEEDBACK_LINES" templateFieldName="template_id" type="grid_expanded_bm_query"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_grid_expanded_bm.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

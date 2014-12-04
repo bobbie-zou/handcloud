@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-3-5 下午03:11:42  
+    $Revision: 1.0  
+    $Purpose: 网上发票预览 临时表行信息
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t.invoice_line_id,
+                    t.invoice_line_num,
+                    t.invoice_price,
+                    t.bill_quantity,
+                    t.bill_amount,
+                    d.segment1,
+                    d.line_num,
+                    d.shipment_num,
+                    l.item_code,
+                    l.item_name,
+                    l.unit_meas_lookup_code,
+                    h.currency_code,
+                    l.unit_price,
+                    t.tax_rate,
+                    t.tax_bill_amount,
+                    d.receipt_num,
+                    d.release_num,
+                    d.distribution_num,
+                    TO_CHAR(d.transaction_date, 'yyyy-mm-dd hh24:mi:ss') AS transaction_date,
+                    TO_CHAR(l.request_date, 'yyyy-mm-dd hh24:mi:ss') AS request_date,
+                    d.erp_transaction_id
+                FROM
+                    acp_bill_details d,
+                    acp_bill_lines l,
+                    acp_bill_headers h,
+                    acp_web_invoice_lines_temp t #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:parameters>
+                <bm:parameter name="last_flag" dataType="java.lang.String" input="false" output="true" outputPath="@last_flag"/>
+            </bm:parameters>
+            <bm:query-sql><![CDATA[
+                BEGIN
+                  acp_web_invoice_pkg.submit_web_invoice_headers(p_invoice_header_id => ${@invoice_header_id},
+				                                                 p_status => ${@status},
+				                                                 p_vender_id => ${/session/@vendor_id},
+				                                                 p_session_id => ${/session/@session_id},
+				                                                 p_user_id => ${/session/@user_id},
+				                                                 x_last_flag => ${@last_flag});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="h.header_id = l.header_id"/>
+        <bm:data-filter expression="l.line_id = d.line_id"/>
+        <bm:data-filter expression="d.detail_id = t.bill_detail_id"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="invoice_header_id" queryExpression="t.invoice_header_id=${@invoice_header_id}"/>
+    </bm:query-fields>
+</bm:model>

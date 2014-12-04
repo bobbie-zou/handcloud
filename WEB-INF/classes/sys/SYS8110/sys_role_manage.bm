@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-8-27 下午1:49:33  
+    $Revision: 1.0  
+    $Purpose: 角色管理-云级，角色管理BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="role_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ROLE_ID"/>
+        <bm:field name="role_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ROLE_CODE" prompt="SYS_ROLE.ROLE_CODE"/>
+        <bm:field name="role_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ROLE_NAME" prompt="SYS_ROLE.ROLE_NAME"/>
+        <bm:field name="role_description" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ROLE_DESCRIPTION" prompt="SYS_ROLE.ROLE_DESCRIPTION"/>
+        <bm:field name="role_source_business_group" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BUSINESS_GROUP"/>
+        <bm:field name="business_group_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BUSINESS_GROUP_NAME"/>
+        <bm:field name="start_date" databaseType="DATE" datatype="java.util.Date" physicalName="START_DATE" prompt="SYS_ROLE.START_DATE"/>
+        <bm:field name="end_date" databaseType="DATE" datatype="java.util.Date" physicalName="END_DATE" prompt="SYS_ROLE.END_DATE"/>
+        <bm:field name="role_camp" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ROLE_CAMP" prompt="SYS_ROLE.ROLE_CAMP"/>
+        <bm:field name="role_camp_display" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ROLE_CAMP_DESC" prompt="SYS_ROLE.ROLE_CAMP"/>
+        <bm:field name="role_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ROLE_TYPE" prompt="SYS_ROLE.ROLE_TYPE"/>
+        <bm:field name="role_type_display" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ROLE_TYPE_DESC" prompt="SYS_ROLE.ROLE_TYPE"/>
+        <bm:field name="login_screen" databaseType="NUMBER" datatype="java.lang.Long" physicalName="LOGIN_SCREEN" prompt="SYS_ROLE.LOGIN_SCREEN"/>
+        <bm:field name="login_screen_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="LOGIN_SCREEN_NAME" prompt="SYS_ROLE.LOGIN_SCREEN"/>
+        <bm:field name="max_user_number" databaseType="NUMBER" datatype="java.lang.Long" physicalName="MAX_USER_NUMBER" prompt="SYS_ROLE.MAX_USER_NUMBER"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="role_code_name_desc" queryExpression="rv.role_code like &apos;%&apos;||trim(upper(${@role_code_name_desc}))||&apos;%&apos; or rv.role_name like &apos;%&apos;||trim(${@role_code_name_desc})||&apos;%&apos; or rv.role_description like &apos;%&apos;||trim(${@role_code_name_desc})||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="role_source=&apos;CLOUD&apos;"/>
+    </bm:data-filters>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            select rv.role_id,
+			       rv.role_code,
+			       rv.role_name,
+			       rv.role_description,
+			       rv.role_source_business_group,
+				       (SELECT bgv.business_group_name
+				          FROM fnd_business_groups_vl bgv
+				         WHERE bgv.business_group_code = rv.role_source_business_group) AS business_group_name,
+			       rv.start_date,
+			       rv.end_date,
+			       rv.role_camp,
+			       (SELECT cvv.code_value_name
+			          FROM sys_code_values_v cvv
+			         WHERE cvv.code = 'SYS_ROLE_CAMP'
+			               AND cvv.code_value = rv.role_camp) AS role_camp_display,
+			       rv.role_type,
+			       (SELECT cvv.code_value_name
+			          FROM sys_code_values_v cvv
+			         WHERE cvv.code = 'SYS_ROLE_TYPE'
+			               AND cvv.code_value = rv.role_type) AS role_type_display,
+			       rv.login_screen,
+			       (SELECT ss.service_name FROM sys_service ss WHERE ss.service_id = login_screen) AS login_screen_name,
+			       rv.max_user_number,
+			       rv.role_source
+			  from sys_role_vl rv
+			 #WHERE_CLAUSE# 
+			]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="role_id" dataType="java.lang.Long" input="false" output="true" outputPath="@role_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+            	begin
+	            	sys_role_pkg.create_sys_role(
+	            		x_role_id      		=> ${@role_id},
+            			p_role_code    		=> ${@role_code},
+                    	p_role_name    		=> ${@role_name},
+                    	p_role_description  => ${@role_description},
+                    	p_start_date   		=> to_date(${@start_date},'yyyy-mm-dd'),
+                    	p_end_date     		=> to_date(${@end_date},'yyyy-mm-dd'),
+                    	p_role_camp			=> ${@role_camp},
+                    	p_role_type			=> ${@role_type},
+                    	p_login_screen		=> ${@service_id},
+                    	p_max_user_number	=> ${@max_user_number},
+						p_session_user_id 	=> ${/session/@user_id});
+				end;            								 
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            	begin
+	            	sys_role_pkg.modify_sys_role(
+	            		p_role_id      		=> ${@role_id},
+                    	p_role_name    		=> ${@role_name},
+                    	p_role_description  => ${@role_description},
+                    	p_start_date   		=> to_date(${@start_date},'yyyy-mm-dd'),
+                    	p_end_date     		=> to_date(${@end_date},'yyyy-mm-dd'),
+                    	p_login_screen		=> ${@service_id},
+                    	p_max_user_number	=> ${@max_user_number},
+						p_session_user_id 	=> ${/session/@user_id});
+				end;            								 
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

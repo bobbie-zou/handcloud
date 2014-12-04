@@ -1,0 +1,817 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tony  
+    $Date: 2013-7-16 上午9:15:01  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="pur2200_edit_requistion_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_requisition_edit.screen"/>
+        <a:link id="pur2200_edit_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_req_create.svc"/>
+        <a:link id="pur2200_edit_line_contract_delete_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_req_contract_delete.svc"/>
+        <a:link id="pur2200_edit_line_attachment_delete_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_req_attachment_delete.svc"/>
+        <a:link id="pur2200_edit_line_delete_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_req_line_delete.svc"/>
+        <a:link id="pur2200_edit_line_submit_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_req_detail_submit.svc"/>
+        <a:link id="pur2200_edit_line_cancel_link" url="${/request/@context_path}/modules/pur/PUR2200/pur_req_detail_cancel.svc"/>
+        <script><![CDATA[
+            var retrun_flag = 'N';
+            var submit_flag = 'N';
+            var cancel_flag = 'N';
+            
+            function pur2200_line_operation_record() {
+                new Aurora.Window({
+                    id: 'pur_req_operation_record_win',
+                    url: $('pur2200_req_operation_record_link').getUrl() + '?operation_table_id=' + ${/parameter/@req_header_id} + '&operation_table=PUR_REQ_HEADERS',
+                    title: '${l:ACP_BILL.OPERATION_RECORD}',
+                    height: 450,
+                    width: 600
+                });
+            }
+            
+            function pur2200_edit_return() {
+                $('pur2200_header_edit_window').close();
+            }
+            
+            function pur2200_header_update(ds, record, name, value, oldValue) {
+                if (name == 'company_id') {
+            
+                    record.set('req_type_id', null);
+                    record.set('req_type_name', null);
+                    record.set('unit_id', null);
+                    record.set('unit_name', null);
+            
+            
+                    // 重置行上数据
+                    var line_ds = $('pur2200_req_edit_line_ds');
+                    var line_records = line_ds.getAll();
+                    for (var i = 0;i < line_records.length;i++) {
+                        // 物料品类
+                        line_records[i].set('item_category_id', null);
+                        line_records[i].set('item_category_code', null);
+                        line_records[i].set('item_category_desc', null);
+            
+                        // 收货组织
+                        line_records[i].set('ship_to_organization_id', null);
+                        line_records[i].set('ship_to_organization_name', null);
+            
+                    }
+            
+            
+                    var req_type_name_ds = record.getMeta().getField('req_type_name');
+                    var unit_name_ds = record.getMeta().getField('unit_name');
+            
+                    if (!Aurora.isEmpty(value)) {
+            
+                        req_type_name_ds.setReadOnly(false);
+                        unit_name_ds.setReadOnly(false);
+            
+                        $('pur2200_req_edit_type_ds').setQueryParameter('company_id', value);
+                        $('pur2200_req_edit_type_ds').query();
+            
+                        var unit_url = 'public.exp_org_company_unit?company_id=' + value;
+            
+            
+                        var lovField = record.getMeta().getField("unit_name");
+                        lovField.setLovService(unit_url);
+                    } else {
+                        req_type_name_ds.setReadOnly(true);
+                        unit_name_ds.setReadOnly(true);
+                    }
+                }
+            
+                if (name == 'tax_flag') {
+                    record.set('tax_name', null);
+                    record.set('tax_id', null);
+            
+                    var tax_name_ds = record.getMeta().getField('tax_name');
+                    if (value == 'Y') {
+                        tax_name_ds.setReadOnly(false);
+                        tax_name_ds.setRequired(true);
+            
+                    } else {
+                        tax_name_ds.setReadOnly(true);
+                        tax_name_ds.setRequired(false);
+                    }
+                }
+            
+            
+            }
+            
+            
+            function pur2200_req_edit_save() {
+            
+                var headers_ds = $('pur2200_req_edit_header_ds');
+                var lines_ds = $('pur2200_req_edit_line_ds');
+                var contact_ds = $('pur2200_req_edit_line_contract_ds');
+                var attachment_ds = $('pur2200_req_edit_attachment_ds');
+            
+                if (headers_ds.validate() && lines_ds.validate() && attachment_ds.validate()) {
+                    headers_ds.setSubmitUrl($('pur2200_edit_link').getUrl());
+                    headers_ds.submit();
+            
+            
+                    var header_record = headers_ds.getCurrentRecord();
+                    var datas;
+                    datas = {
+                        req_header_id: ${/parameter/@req_header_id}
+                    };
+            
+            
+                    if (submit_flag == 'Y') {
+            
+                        Aurora.request({
+                            url: $('pur2200_edit_line_submit_link').getUrl(),
+                            para: datas,
+                            success: function(res) {
+                                pur2200_edit_return();
+                                pur2200_result_query();
+                            },
+                            failure: function(res) {
+                                // Aurora.Masker.unmask($('acp5030_lines_window').wrap);
+                                return;
+            
+                            },
+                            error: function(res) {
+                                return;
+                                // Aurora.Masker.unmask($('acp5030_lines_window').wrap);
+                            },
+                            scope: this
+                        });
+            
+            
+                    }
+                    if (cancel_flag == 'Y') {
+            
+            
+                        Aurora.request({
+                            url: $('pur2200_edit_line_cancel_link').getUrl(),
+                            para: datas,
+                            success: function(res) {
+                                pur2200_edit_return();
+                                pur2200_result_query();
+                            },
+                            failure: function(res) {
+                                // Aurora.Masker.unmask($('acp5030_lines_window').wrap);
+                                return;
+            
+                            },
+                            error: function(res) {
+                                return;
+                                // Aurora.Masker.unmask($('acp5030_lines_window').wrap);
+                            },
+                            scope: this
+                        });
+            
+            
+                    }
+                    attachment_ds.query();
+            
+            
+            
+                }
+            
+            
+            }
+            // 提交动作
+            
+            function pur2200_req_edit_submit() {
+                submit_flag = 'Y';
+                return_flag = 'Y';
+                pur2200_req_edit_save();
+            }
+            // 取消动作
+            
+            function pur2200_req_edit_cancel() {
+            
+                cancel_flag = 'Y';
+                return_flag = 'Y';
+                pur2200_req_edit_save();
+            
+            }
+            
+            function pur2200_hd_submitsuccess(ds, res) {
+                Aurora.Masker.unmask($('pur2200_edit_window').wrap);
+                var pur_requisition_header_id = res.result.pur_requisition_header_id;
+                new Aurora.Window({
+                    url: $('pur2200_edit_requistion_link').getUrl() + '?pur_requisition_header_id=' + pur_requisition_header_id,
+                    title: '${l:PUR_REQ_HEADERS.PUR_REQ_MAINTAIN}',
+                    id: 'pur2200_edit_window',
+                    fullScreen: true
+                }).on('beforeclose', pur2200_result_query);
+                pur2200_edit_return();
+            }
+            
+            function pur2200_hd_submitfailed(ds, res) {
+                Aurora.Masker.unmask($('pur2200_edit_window').wrap);
+            }
+            
+            // 采购品类
+            
+            function pur2220_edit_cellClick(grid, row, name, record) {
+                var headers_ds = $('pur2200_req_edit_header_ds');
+                var header_record = headers_ds.getCurrentRecord();
+            
+            
+                if (name == 'item_category_desc') {
+                    if (Ext.isEmpty(header_record.get('company_id'))) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PUR_REQ_HEADERS.PLEASE_SELECT_COMPANY}!');
+                        return;
+                    } else {
+                        url = 'pur.PUR2200.pur_purchase_category_lov?company_id=' + header_record.get('company_id');
+                    }
+            
+                    var lovField = record.getMeta().getField("item_category_desc");
+                    lovField.setLovService(url);
+                    return 'item_category_desc_lov';
+                }
+            
+                if (name == 'item_code') {
+                    if (Ext.isEmpty(record.get('item_category_id'))) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PUR_REQ_HEADERS.PLEASE_SELECT_PURCHASE_CATEGORY}!');
+                        return;
+                    } else {
+                        url = 'pur.PUR2200.inv_system_item_lov?purchase_category_id=' + record.get('item_category_id');
+                    }
+                    var item_lovField = record.getMeta().getField("item_code");
+                    item_lovField.setLovService(url);
+                    return 'item_code_lov';
+                }
+            
+                if (name == 'ship_to_organization_name') {
+                    if (Ext.isEmpty(header_record.get('company_id'))) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PUR_REQ_HEADERS.PLEASE_SELECT_COMPANY}!');
+                        return;
+                    } else {
+                        url = 'public.inv_organizations_lov?company_id=' + header_record.get('company_id');
+                    }
+                    var organization_lovField = record.getMeta().getField("ship_to_organization_name");
+                    organization_lovField.setLovService(url);
+                    return 'ship_to_organization_name_lov';
+                }
+            
+            }
+            
+            
+            function pur2220_edit_contact_cellClick(grid, row, name, record) {
+                if (name == 'vendor_site_name') {
+                    if (Ext.isEmpty(record.get('vendor_id'))) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PUR_REQ_HEADERS.PLEASE_SELECT_VENDOR}!');
+                        return;
+                    } else {
+                        url = 'public.po_vendor_sites_all_lov?vendor_id=' + record.get('vendor_id');
+                    }
+                    var vendor_site_name_lovField = record.getMeta().getField("vendor_site_name");
+                    vendor_site_name_lovField.setLovService(url);
+                    return 'vendor_site_name_lov';
+                }
+                if (name == 'contact_persion') {
+                    if (Ext.isEmpty(record.get('vendor_id'))) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PUR_REQ_HEADERS.PLEASE_SELECT_VENDOR}!');
+                        return;
+                    } else {
+                        url = 'public.pur_sys_vendor_cantacts_lov?vendor_id=' + record.get('vendor_id');
+                    }
+                    var contact_persion_lovField = record.getMeta().getField("contact_persion");
+                    contact_persion_lovField.setLovService(url);
+                    return 'contact_persion_lov';
+                }
+            }
+            // 行更新动作
+            
+            function pur2200_grid_update(dataSet, record, name, value, oldvalue) {
+            
+                if (name == 'tax_flag') {
+            
+                    var tax_ds = record.getMeta().getField('tax');
+            
+                    if (value == 'Y') {
+            
+                        tax_ds.setReadOnly(false);
+                        tax_ds.setRequired(true);
+            
+                    } else {
+                        tax_ds.setReadOnly(true);
+                        tax_ds.setRequired(false);
+                        record.set('tax_id', null);
+                        record.set('tax', null);
+            
+                    }
+                }
+            
+            
+            
+                //物料品类改变
+                if (name == 'item_category_desc') {
+                    if (Ext.isEmpty(value)) {
+                        record.set('item_id', null);
+                        record.set('item_code', null);
+                        record.set('item_desc', null);
+                    }
+                }
+            
+            
+                // 税率改变
+                if (name == 'tax_id') {
+                    if (!Ext.isEmpty(value)) {
+                        if (!Ext.isEmpty(record.get('tax_type_rate'))) {
+            
+                            if (!Ext.isEmpty(record.get('quantity')) && !Ext.isEmpty(record.get('budget_price'))) {
+                                var line_amount = record.get('quantity') * record.get('budget_price') * 1;
+                                record.set('tax_amount', Math.round((line_amount - line_amount / (1 + record.get('tax_type_rate') / 100) * 1) * 100) / 100);
+                            } else {
+                                record.set('tax_amount', 0);
+                            }
+                        }
+                    } else {
+                        record.set('tax_amount', 0);
+                    }
+                }
+            
+            
+            
+                // 数量改变
+                if (name == 'quantity') {
+                    if (!Ext.isEmpty(value) && !Ext.isEmpty(record.get('budget_price'))) {
+                        var line_amount = value * record.get('budget_price') * 1;
+                        record.set('line_amount', line_amount);
+            
+                        // 税率判断
+                        if (!Ext.isEmpty(record.get('tax_type_rate'))) {
+                            var tax_amount = line_amount - line_amount / (1 + record.get('tax_type_rate') / 100) * 1;
+                            record.set('tax_amount', Math.round(tax_amount * 100) / 100);
+                        } else {
+                            record.set('tax_amount', 0);
+                        }
+                        // 汇率判断
+                        if (!Ext.isEmpty(record.get('exchange_rate'))) {
+                            record.set('functional_amount', line_amount * record.get('exchange_rate') * 1);
+                        } else {
+            
+                            record.set('functional_amount', 0);
+                        }
+            
+                    }
+            
+                }
+                // 价格改变
+                if (name == 'budget_price') {
+                    if (!Ext.isEmpty(value) && !Ext.isEmpty(record.get('quantity'))) {
+                        var line_amount = value * record.get('quantity') * 1;
+                        record.set('line_amount', line_amount);
+                        // 税率判断
+                        if (!Ext.isEmpty(record.get('tax_type_rate'))) {
+                            var tax_amount = line_amount - line_amount / (1 + record.get('tax_type_rate') / 100) * 1;
+                            record.set('tax_amount', Math.round(tax_amount * 100) / 100);
+                        } else {
+                            record.set('tax_amount', 0);
+                        }
+                        // 汇率判断
+                        if (!Ext.isEmpty(record.get('exchange_rate'))) {
+                            record.set('functional_amount', line_amount * record.get('exchange_rate') * 1);
+                        } else {
+            
+                            record.set('functional_amount', 0);
+                        }
+            
+                    }
+            
+                }
+                // 汇率改变
+                if (name == 'exchange_rate') {
+                    if (!Ext.isEmpty(value) && !Ext.isEmpty(record.get('budget_price')) && !Ext.isEmpty(record.get('quantity'))) {
+                        record.set('functional_amount', value * record.get('budget_price') * record.get('quantity') * 1);
+                    } else {
+            
+                        record.set('functional_amount', 0);
+                    }
+            
+                }
+            
+            
+            }
+            
+            
+            // 添加附件行
+            
+            function pur2220_edit_attachment_add(dataSet, record, index) {
+                // 生成行号
+                records = dataSet.getAll();
+                var attachment_num = 0;
+                if (records.length > 1) {
+                    for (var t = 0;t < records.length;t++) {
+                        if (attachment_num < records[t].get('attachment_num')) {
+                            attachment_num = records[t].get('attachment_num');
+                        }
+                    }
+                }
+                record.set('attachment_num', attachment_num * 1 + 1);
+            }
+            // 合同删除
+            
+            function pur2220_edit_contract_delete(dataSet) {
+            
+                dataSet.setSubmitUrl($('pur2200_edit_line_contract_delete_link').getUrl());
+                dataSet.submit();
+            }
+            // 附件删除
+            
+            function pur2220_edit_attachment_delete(dataSet) {
+            
+                dataSet.setSubmitUrl($('pur2200_edit_line_attachment_delete_link').getUrl());
+                dataSet.submit();
+            }
+            
+            
+            
+            // 行删除
+            
+            function pur2200_edit_line_delete(dataSet) {
+                dataSet.setSubmitUrl($('pur2200_edit_line_delete_link').getUrl());
+                dataSet.submit();
+            
+            }
+            
+            
+            // 添加行动作
+            
+            function pur2220_edit_add(dataSet, record, index) {
+                var headers_ds = $('pur2200_req_edit_header_ds');
+                var header_record = headers_ds.getCurrentRecord();
+                // 生成行号
+                records = dataSet.getAll();
+                var line_num = 0;
+                if (records.length > 1) {
+                    for (var t = 0;t < records.length;t++) {
+            
+            
+            
+                        if (line_num < records[t].get('line_num')) {
+                            line_num = records[t].get('line_num');
+                        }
+                    }
+                }
+                record.set('line_num', line_num * 1 + 1);
+                record.set('req_header_id', header_record.get('req_header_id'));
+            
+                // 默认税率
+                var tax_ds = record.getMeta().getField('tax');
+            
+                if (!Ext.isEmpty(header_record.get('tax_id'))) {
+            
+                    tax_ds.setReadOnly(false);
+                    record.set('tax_flag', header_record.get('tax_flag'));
+                    record.set('tax_id', header_record.get('tax_id'));
+                    record.set('tax', header_record.get('tax_name'));
+                    record.set('tax_type_rate', header_record.get('tax_type_rate'));
+            
+                } else {
+                    tax_ds.setReadOnly(true);
+            
+                }
+            
+            
+            
+                // 默认币种
+                if (!Ext.isEmpty(header_record.get('currency_code'))) {
+                    record.set('currency_code', header_record.get('currency_code'));
+                    record.set('currency_name', header_record.get('currency_name'));
+                }
+            
+                // 默认汇率
+                if (!Ext.isEmpty(header_record.get('exchange_rate'))) {
+                    record.set('exchange_rate', header_record.get('exchange_rate'));
+                }
+            
+            }
+            
+            function pur2200_header_load() {
+                var headers_ds = $('pur2200_req_edit_header_ds');
+                var header_record = headers_ds.getCurrentRecord();
+                if (header_record.get('tax_flag') == 'Y') {
+                    var tax_ds = header_record.getMeta().getField('tax_name');
+                    tax_ds.setReadOnly(false);
+                    tax_ds.setRequired(true);
+            
+                }
+            }
+            
+            function pur2200_line_load() {
+                var line_ds = $('pur2200_req_edit_line_ds');
+                var line_records = line_ds.getAll();
+                for (var j = 0;j < line_records.length;j++) {
+                    if (line_records[j].get('tax_flag') == 'Y') {
+                        var tax_ds = line_records[j].getMeta().getField('tax');
+                        tax_ds.setReadOnly(false);
+                        tax_ds.setRequired(true);
+            
+                    }
+                }
+            
+            
+            }
+            
+            
+            
+            function pur2200_edit_Upload(value, record, name) {
+                var req_attachment_id = record.get('req_attachment_id');
+                if (record.get('req_attachment_id')) {
+                    return '<a href="javascript:pur2200_edit_uploadFile(' + req_attachment_id + ')">' + '附件上传' + '</a>';
+                }
+            }
+            
+            
+            function pur2200_edit_uploadFile(req_attachment_id) {
+                if (!Ext.isEmpty(req_attachment_id)) {
+                    var url = "${/request/@context_path}/uploadFile.screen?table_name=PUR_REQ_ATTACHMENT&header_id=" + req_attachment_id;
+                    new Aurora.Window({
+                        url: url,
+                        title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                        id: 'pur2200_req_edit_file_window',
+                        width: 600,
+                        height: 300
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur2200_req_edit_type_ds" autoQuery="true" loadData="true" model="pur.public.pur_req_type"/>
+            <a:dataSet id="pur2200_req_edit_currency_ds" autoQuery="true" loadData="true" model="public.currency_list"/>
+            <a:dataSet id="pur2200_req_edit_tax_ds" autoQuery="true" loadData="true" model="public.fnd_tax_type_code_lov"/>
+            <a:dataSet id="pur2200_req_edit_line_type_ds" autoQuery="true" loadData="true" model="pur.public.pur_line_type"/>
+            <a:dataSet id="pur2200_req_edit_pur_method_ds" loadData="true" lookupCode="PUR_METHOD"/>
+            <a:dataSet id="pur2200_req_edit_pur_attachment_ds" loadData="true" lookupCode="PUR_ATTACHMENT_TYPE"/>
+            <a:dataSet id="pur2200_req_edit_header_ds" autoCreate="true" autoQuery="true" model="pur.PUR2200.pur_req_headers" queryUrl="${/request/@context_path}/autocrud/pur.PUR2200.pur_req_headers/query?req_header_id=${/parameter/@req_header_id}">
+                <a:fields>
+                    <a:field name="req_header_id"/>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_short_name" lovGridHeight="350" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" required="true" title="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_short_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="req_type_name" displayField="description" options="pur2200_req_edit_type_ds" required="true" returnField="req_type_id" valueField="requisition_type_id"/>
+                    <a:field name="currency_name" displayField="currency_name" options="pur2200_req_edit_currency_ds" required="true" returnField="currency_code" valueField="currency_code"/>
+                    <a:field name="tax_name" displayField="description" options="pur2200_req_edit_tax_ds" readOnly="true" returnField="tax_id" valueField="tax_type_id">
+                        <a:mapping>
+                            <a:map from="tax_type_rate" to="tax_type_rate"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="unit_name" lovGridHeight="350" lovHeight="500" lovWidth="700" title="EXP_ORG_UNIT.UNIT">
+                        <a:mapping>
+                            <a:map from="description" to="unit_name"/>
+                            <a:map from="unit_id" to="unit_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="tax_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="pur_organization_name" lovGridHeight="350" lovHeight="500" lovService="public.pur_organization_lov" lovWidth="500" title="PUR_PUR_ORGS_INV_ORGS.PUR_ORGANIZATION_ID">
+                        <a:mapping>
+                            <a:map from="pur_organization_name" to="pur_organization_name"/>
+                            <a:map from="pur_organization_id" to="pur_organization_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="exchange_rate" required="true"/>
+                    <a:field name="header_comments"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur2200_header_update"/>
+                    <a:event name="load" handler="pur2200_header_load"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur2200_req_edit_line_ds" autoQuery="true" bindName="pur2200_req_create_line_result_ds" bindTarget="pur2200_req_edit_header_ds" fetchAll="true" model="pur.PUR2200.pur_req_lines" queryUrl="${/request/@context_path}/autocrud/pur.PUR2200.pur_req_lines/query?req_header_id=${/parameter/@req_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="req_line_id"/>
+                    <a:field name="req_header_id"/>
+                    <a:field name="line_num" required="true"/>
+                    <a:field name="pur_line_type_name" displayField="line_type" options="pur2200_req_edit_line_type_ds" required="true" returnField="pur_line_type" valueField="line_type_id"/>
+                    <a:field name="item_category_desc" lovGridHeight="350" lovHeight="500" lovWidth="500" required="true" title="PUR_REQ_HEADERS.PURCHASE_CATEGORY">
+                        <a:mapping>
+                            <a:map from="purchase_category_name" to="item_category_desc"/>
+                            <a:map from="purchase_category_code" to="item_category_code"/>
+                            <a:map from="purchase_category_id" to="item_category_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_code" lovGridHeight="350" lovHeight="500" lovWidth="500" title="PUR_LINES_ALL.ITEM">
+                        <a:mapping>
+                            <a:map from="description" to="item_desc"/>
+                            <a:map from="item_code" to="item_code"/>
+                            <a:map from="item_id" to="item_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pro_mode_name" displayField="code_value_name" options="pur2200_req_edit_pur_method_ds" required="true" returnField="pro_mode_code" valueField="code_value"/>
+                    <a:field name="approve_number"/>
+                    <a:field name="quantity" required="true"/>
+                    <a:field name="unit_meas_lookup_code"/>
+                    <a:field name="need_by_date" required="true"/>
+                    <a:field name="ship_to_organization_name" lovGridHeight="350" lovHeight="500" lovWidth="500" required="true" title="PUR_REQ_LINES.SHIP_TO_ORGANIZATION_ID">
+                        <a:mapping>
+                            <a:map from="organization_name" to="ship_to_organization_name"/>
+                            <a:map from="organization_id" to="ship_to_organization_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="ship_to_location_name"/>
+                    <a:field name="budget_price"/>
+                    <a:field name="exchange_rate" required="true"/>
+                    <a:field name="tax_amount"/>
+                    <a:field name="line_amount"/>
+                    <a:field name="functional_amount"/>
+                    <a:field name="line_comments"/>
+                    <a:field name="tax_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="tax" displayField="description" options="pur2200_req_edit_tax_ds" readOnly="true" returnField="tax_id" valueField="tax_type_id">
+                        <a:mapping>
+                            <a:map from="tax_type_rate" to="tax_type_rate"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="currency_name" displayField="currency_name" options="pur2200_req_edit_currency_ds" returnField="currency_code" valueField="currency_code"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur2200_grid_update"/>
+                    <a:event name="load" handler="pur2200_line_load"/>
+                    <a:event name="add" handler="pur2220_edit_add"/>
+                    <a:event name="beforesubmit" handler="pur2200_edit_line_delete"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur2200_req_edit_line_contract_ds" bindName="pur2200_req_create_result_ds" bindTarget="pur2200_req_edit_line_ds" fetchAll="true" model="pur.PUR2200.pur_req_line_contact" selectable="true">
+                <a:fields>
+                    <a:field name="contract_id"/>
+                    <a:field name="req_line_id"/>
+                    <a:field name="vendor_code" lovGridHeight="350" lovHeight="500" lovService="public.po_vendors_lov" lovWidth="500" title="PUR_REQUISITION_LINES.VENDER_ID">
+                        <a:mapping>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_name" to="vendor_name"/>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_site_name" lovGridHeight="350" lovHeight="500" lovWidth="500" title="PUR_RFX_LN_VENDORS.VENDOR_ADDRESS">
+                        <a:mapping>
+                            <a:map from="vendor_site_id" to="vendor_site_id"/>
+                            <a:map from="vendor_site_name" to="vendor_site_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="contact_persion" lovGridHeight="350" lovHeight="500" lovWidth="500" title="PUR_RFX_LN_VENDORS_HIST.CONTACT_PERSON">
+                        <a:mapping>
+                            <a:map from="contract_id" to="contact_person_id"/>
+                            <a:map from="linkman_name" to="contact_persion"/>
+                            <a:map from="email" to="email"/>
+                            <a:map from="mobile_phone" to="mobile"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="comments"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="beforesubmit" handler="pur2220_edit_contract_delete"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur2200_req_edit_attachment_ds" autoQuery="true" bindName="pur2200_req_create_attachment_result_ds" bindTarget="pur2200_req_edit_header_ds" model="pur.PUR2200.pur_req_line_attachment" queryUrl="${/request/@context_path}/autocrud/pur.PUR2200.pur_req_line_attachment/query?req_header_id=${/parameter/@req_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="attachment_num" required="true"/>
+                    <a:field name="req_header_id"/>
+                    <a:field name="attachment_name" displayField="code_value_name" options="pur2200_req_edit_pur_attachment_ds" required="true" returnField="attachment_type" valueField="code_value"/>
+                    <a:field name="req_attachment_id"/>
+                    <a:field name="comments"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="pur2220_edit_attachment_add"/>
+                    <a:event name="beforesubmit" handler="pur2220_edit_attachment_delete"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="pur2200_req_edit_save" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="pur2200_req_edit_submit" text="PROMPT.SUBMIT" width="100"/>
+                <a:toolbarButton click="pur2200_req_edit_cancel" text="PROMPT.CANCEL" width="100"/>
+                <a:toolbarButton click="pur2200_line_operation_record" text="PUR_REQ_HEADERS.OPERATION_RECORD" width="100"/>
+                <a:toolbarButton click="pur2200_edit_return" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="req_number" bindTarget="pur2200_req_edit_header_ds" prompt="PUR_REQ_HEADERS.PUR_REQ_NUMBER"/>
+                <a:label name="company_name" bindTarget="pur2200_req_edit_header_ds" prompt="SYS_COMPANY_PROMPTS.COMPANY_ID"/>
+                <a:label name="unit_name" bindTarget="pur2200_req_edit_header_ds" prompt="PUR_REQ_HEADERS.DEMAND_UNIT"/>
+                <a:label name="req_type_name" bindTarget="pur2200_req_edit_header_ds" prompt="PUR_REQ_HEADERS.REQ_TYPE_ID"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="currency_name" bindTarget="pur2200_req_edit_header_ds" prompt="PUR_REQ_HEADERS.CURRENCY_CODE"/>
+                <a:label name="exchange_rate" allowNegative="false" bindTarget="pur2200_req_edit_header_ds" prompt="PUR_REQ_LINES.EXCHANGE_RATE"/>
+                <a:label name="tax_flag_desc" bindTarget="pur2200_req_edit_header_ds" prompt="PUR_REQ_HEADERS.TAX_FLAG" width="150"/>
+                <a:label name="tax_name" bindTarget="pur2200_req_edit_header_ds" prompt="PUR_REQ_LINES.TAX_TYPE_RATE"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="create_user" bindTarget="pur2200_req_edit_header_ds" prompt="PROMPTS.CREATED_BY"/>
+                <a:label name="creation_date" bindTarget="pur2200_req_edit_header_ds" prompt="PROMPTS.CREATION_DATE"/>
+                <a:label name="version_num" bindTarget="pur2200_req_edit_header_ds" prompt="PUR_REQ_HEADERS.VERSION"/>
+                <a:label name="status" bindTarget="pur2200_req_edit_header_ds" prompt="STATUS"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="requisition_functional_amount" bindTarget="pur2200_req_edit_header_ds" prompt="PUR_REQ_HEADERS.TOTAL_CURRENCY&apos;"/>
+                <a:label name="pur_organization_name" bindTarget="pur2200_req_edit_header_ds" prompt="PUR_REQ_HEADERS.PUR_ORGANIZATION_ID"/>
+            </a:hBox>
+            <a:hBox labelWidth="150" padding="0">
+                <a:label name="header_comments" bindTarget="pur2200_req_edit_header_ds" height="30" prompt="PROMPTS.COMMENTS" width="600"/>
+            </a:hBox>
+            <a:tabPanel height="570" marginHeight="170" marginWidth="60">
+                <a:tabs>
+                    <a:tab prompt="PUR_LINES_ALL.ITEM_DETAIL" width="100">
+                        <a:grid bindTarget="pur2200_req_edit_line_ds" height="350" marginWidth="65">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="line_num" align="center" editor="line_num_tf" prompt="PUR_REQ_LINES.LINE_NUM" width="40"/>
+                                <a:column name="pur_line_type_name" align="center" editor="pur_line_type_name_cb" prompt="PROMPTS.TYPE" width="60"/>
+                                <a:column name="item_category_desc" align="center" editor="item_category_desc_lov" prompt="PUR_REQ_HEADERS.PURCHASE_CATEGORY" width="60"/>
+                                <a:column name="item_code" align="center" editor="item_code_lov" prompt="PUR_REQ_LINES.ITEM_CODE" width="80"/>
+                                <a:column name="item_desc" align="center" prompt="PUR_REQ_LINES.ITEM_DESC" width="80"/>
+                                <a:column name="pro_mode_name" align="center" editor="pro_mode_name_cb" prompt="PUR_REQ_LINES.PRO_MODE_CODE" width="80"/>
+                                <a:column name="approve_number" align="center" editor="approve_number_tf" prompt="PUR_REQ_HEADERS.APPROVAL_NUMBER" width="80"/>
+                                <a:column name="quantity" align="center" editor="quantity_nf" prompt="PUR_REQ_LINES.QUANTITY" width="80"/>
+                                <a:column name="unit_meas_lookup_code" align="center" prompt="PUR_REQ_LINES.UNIT_MEAS_LOOKUP_CODE" width="80"/>
+                                <a:column name="need_by_date" align="center" editor="need_by_date_dp" prompt="PUR_REQ_LINES.NEED_BY_DATE" renderer="Aurora.formatDate" width="80"/>
+                                <a:column name="ship_to_organization_name" align="center" editor="ship_to_organization_name_lov" prompt="PUR_REQ_LINES.SHIP_TO_ORGANIZATION_ID" width="80"/>
+                                <a:column name="ship_to_location_name" align="center" editor="ship_to_location_name_tf" prompt="PUR_REQ_LINES.SHIP_TO_LOCATION_ID" width="80"/>
+                                <a:column name="budget_price" align="center" editor="budget_price_nf" prompt="PUR_REQ_LINES.BUDGET_PRICE" width="80"/>
+                                <a:column name="tax_flag" align="center" editor="tax_flag_cf" prompt="PUR_ORDER_LINES.TAX_FLAG" width="80"/>
+                                <a:column name="tax" align="center" editor="tax_cb" prompt="PUR_REQ_LINES.TAX_TYPE_RATE" width="80"/>
+                                <a:column name="currency_name" align="center" editor="currency_name_cb" prompt="PUR_REQUISITION_TYPES.CURRENCY_CODE" width="80"/>
+                                <a:column name="exchange_rate" align="center" editor="exchange_rate_nf" prompt="PUR_REQ_LINES.EXCHANGE_RATE" width="80"/>
+                                <a:column name="tax_amount" align="right" prompt="PUR_REQ_LINES.TAX_AMOUNT" width="80"/>
+                                <a:column name="line_amount" align="right" prompt="PUR_REQ_LINES.LINE_AMOUNT" width="80"/>
+                                <a:column name="functional_amount" align="right" prompt="PUR_REQ_HEADERS.CURRENCY_TOTAL_AMOUNT" width="80"/>
+                                <a:column name="line_comments" align="left" editor="line_comments_tf" prompt="PROMPTS.COMMENTS" width="80"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="line_num_tf"/>
+                                <a:textField id="approve_number_tf"/>
+                                <a:textField id="ship_to_location_name_tf"/>
+                                <a:textField id="line_comments_tf"/>
+                                <a:comboBox id="pur_line_type_name_cb"/>
+                                <a:comboBox id="pro_mode_name_cb"/>
+                                <a:comboBox id="currency_name_cb"/>
+                                <a:comboBox id="tax_cb"/>
+                                <a:lov id="item_category_desc_lov"/>
+                                <a:lov id="item_code_lov"/>
+                                <a:lov id="ship_to_organization_name_lov"/>
+                                <a:numberField id="quantity_nf" allowNegative="false"/>
+                                <a:numberField id="budget_price_nf" allowNegative="false"/>
+                                <a:numberField id="exchange_rate_nf" allowNegative="false"/>
+                                <a:datePicker id="need_by_date_dp"/>
+                                <a:checkBox id="tax_flag_cf"/>
+                            </a:editors>
+                            <a:events>
+                                <a:event name="cellclick" handler="pur2220_edit_cellClick"/>
+                            </a:events>
+                        </a:grid>
+                        <a:grid bindTarget="pur2200_req_edit_line_contract_ds" height="180" marginWidth="65">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="contract_id" align="center" editor="contract_id_nf" prompt="PUR_PURCHASE_ORDER.CONTRACT_ID" width="80"/>
+                                <a:column name="vendor_code" align="center" editor="vendor_code_lov" prompt="PUR_REQ_HEADERS.RECOMMENDED_VENDOR" width="80"/>
+                                <a:column name="vendor_name" align="center" prompt="PUR_RFX_LN_VENDORS.VENDOR_DESC" width="100"/>
+                                <a:column name="vendor_site_name" align="center" editor="vendor_site_name_lov" prompt="PUR_RFX_LN_VENDORS.VENDOR_ADDRESS" width="120"/>
+                                <a:column name="contact_persion" align="center" editor="contact_persion_lov" prompt="PUR_RFX_LN_VENDORS.CONTACT_PERSON" width="60"/>
+                                <a:column name="mobile" align="center" prompt="PUR_RFX_LN_VENDORS.CONTACT_MOBILE" width="80"/>
+                                <a:column name="email" align="center" prompt="PUR_SYS_VENDOR_CONTACTS.EMAIL" width="80"/>
+                                <a:column name="comments" align="center" editor="comments_tf" prompt="PROMPTS.COMMENTS" width="150"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="vendor_code_lov"/>
+                                <a:lov id="vendor_site_name_lov"/>
+                                <a:lov id="contact_persion_lov"/>
+                                <a:numberField id="contract_id_nf"/>
+                                <a:textField id="comments_tf"/>
+                            </a:editors>
+                            <a:events>
+                                <a:event name="cellclick" handler="pur2220_edit_contact_cellClick"/>
+                            </a:events>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="PUR_REQ_HEADERS.ATTACHMENT_INFOMATION" width="100">
+                        <a:grid bindTarget="pur2200_req_edit_attachment_ds" height="350" marginWidth="65">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="attachment_num" align="center" editor="attachment_num_tf" prompt="PUR_REQ_LINES.LINE_NUM" width="40"/>
+                                <a:column name="attachment_name" align="center" editor="attachment_name_cb" prompt="PROMPT.FILE_TYPE" width="80"/>
+                                <a:column name="comments" align="center" editor="attachment_comments_tf" prompt="PROMPTS.COMMENTS" width="150"/>
+                                <a:column name="uploadFile" align="center" prompt="ATM.UPLOAD_ATTACHMENT" renderer="pur2200_edit_Upload" width="80"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="attachment_num_tf"/>
+                                <a:textField id="attachment_comments_tf"/>
+                                <a:comboBox id="attachment_name_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT ra.rule_agency_id,
+               ra.ctrl_rule_id,
+               ra.company_id,
+               fc.company_full_name        company_name,
+               ra.business_group,
+               ra.client_company_id,
+               client_fc.company_full_name client_company_name,
+               ra.erp_po_type,
+               ra.buyer_id,
+               pb.buyer_desc,
+               ra.enabled_flag
+          FROM fnd_doc_ctrl_rule_agency ra,
+               fnd_companies_vl         fc,
+               fnd_companies_vl         client_fc,
+               pur_buyers_vl            pb
+         WHERE ra.company_id = fc.company_id
+               AND ra.client_company_id = client_fc.company_id
+               AND ra.buyer_id = pb.buyer_id
+               AND ra.business_group = ${/session/@business_group}
+               AND ra.ctrl_rule_id = ${@ctrl_rule_id}) 
+        #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+            BEGIN
+  fnd_doc_ctrl_rule_agency_pkg.create_doc_ctrl_rule_agency(x_rule_agency_id    => ${@rule_agency_id},
+                                                           p_ctrl_rule_id      => ${@ctrl_rule_id},
+                                                           p_company_id        => ${@company_id},
+                                                           p_business_group    => ${/session/@business_group},
+                                                           p_client_company_id => ${@client_company_id},
+                                                           p_erp_po_type       => ${@erp_po_type},
+                                                           p_buyer_id          => ${@buyer_id},
+                                                           p_enabled_flag      => ${@enabled_flag},
+                                                           p_user_id           => ${/session/@user_id});
+END;
+]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            BEGIN
+  fnd_doc_ctrl_rule_agency_pkg.modify_doc_ctrl_rule_agency(p_rule_agency_id    => ${@rule_agency_id},
+                                                           p_business_group    => ${/session/@business_group},
+                                                           p_erp_po_type       => ${@erp_po_type},
+                                                           p_buyer_id          => ${@buyer_id},
+                                                           p_enabled_flag      => ${@enabled_flag},
+                                                           p_user_id           => ${/session/@user_id});
+END;
+]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+        <bm:query-field name="client_company_id" queryExpression="client_company_id = ${@client_company_id}"/>
+        <bm:query-field name="buyer_id" queryExpression="buyer_id = ${@buyer_id}"/>
+        <bm:query-field name="erp_po_type" queryExpression="erp_po_type like  &apos;%&apos;||${@erp_po_type}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

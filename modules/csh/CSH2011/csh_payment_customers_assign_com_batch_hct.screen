@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure><![CDATA[
+    
+	]]></a:init-procedure>
+    <a:view>
+        <a:link id="CSH2011_sob_companies_link" url="${/request/@context_path}/modules/csh/CSH2011/csh_sob_com_obj_batch_assign.svc"/>
+        <script><![CDATA[
+	            function CSH2011_assignCom() {  
+	            var companyRecord=$('CSH2011_system_company_assign_com_ds').getJsonData(true);
+	              if(companyRecord.length == 0){
+						Aurora.showInfoMessage('${l:PROMPT}','${l:PROMPT.SELECT_LINE_DATE}',null,250,100);
+				        return ;				    
+				    }
+	             for(var i = 0; i < companyRecord.length ; i ++){
+				        companyRecord[i]['objs'] = [{set_of_books_id:'${/parameter/@set_of_books_id}',type_code:'${/parameter/@type_code}'}];
+				    }
+	                Aurora.request({
+	                    url: $('CSH2011_sob_companies_link').getUrl(),
+	                    para: companyRecord,
+	                    success: backFunction,
+	                    scope: this
+	                });
+         
+            }
+            
+			 function queryCompany(){
+                $('CSH2011_system_company_assign_com_ds').query();
+            }	
+			
+	  //重置查询条件
+       	 function resetRequisition(){
+               $('CSH2011_batch_query_ds').reset();
+            }
+            
+						
+			function backFunction(){
+			    $('CSH2011_exp_sob_companies_ds').query();
+				$('csh_payment_customers_assign_com_id').close();
+			}
+			
+			function updateFunction(ds,record,name,value,old){
+				if(name=='company_code_from_display'){
+					record.set(record.get('company_code_to_display'),'');
+					record.set(record.get('company_code_to'),'');
+				}
+			}
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="CSH2011_batch_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_code_from_display" autoComplete="true" lovGridHeight="300" lovHeight="450" lovService="csh.CSH2011.csh_assign_batch_lov?set_of_books_id=${/parameter/@set_of_books_id}&amp;type_code=${/parameter/@type_code}" lovWidth="500" prompt="FND_COMPANIES.COMPANY_FROM" title="FND_COMPANIES.COMPANY_FROM">
+                        <a:mapping>
+                            <a:map from="company_code" to="company_code_from"/>
+                            <a:map from="code_name" to="company_code_from_display"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_code_to_display" autoComplete="true" lovGridHeight="300" lovHeight="450" lovService="csh.CSH2011.csh_assign_batch_lov?set_of_books_id=${/parameter/@set_of_books_id}&amp;type_code=${/parameter/@type_code}" lovWidth="500" prompt="FND_COMPANIES.COMPANY_TO" title="FND_COMPANIES.COMPANY_TO">
+                        <a:mapping>
+                            <a:map from="company_code" to="company_code_to"/>
+                            <a:map from="code_name" to="company_code_to_display"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_code_from"/>
+                    <a:field name="company_code_to"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="CSH2011_system_company_assign_com_ds" autoQuery="true" loadData="true" model="csh.CSH2011.csh_assign_batch_lov" queryDataSet="CSH2011_batch_query_ds" queryUrl="${/request/@context_path}/autocrud/csh.CSH2011.csh_assign_batch_lov/query?set_of_books_id=${/parameter/@set_of_books_id}&amp;type_code=${/parameter/@type_code}" selectable="true">
+                <a:fields>
+                    <a:field name="company_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form title="ORD_SYSTEM_CUSTOMERS_ASSIGN_COM_BATCH_HCT" width="520">
+                <a:vBox>
+                    <a:hBox>
+                        <a:lov name="company_code_from_display" bindTarget="CSH2011_batch_query_ds" prompt="FND_COMPANIES.COMPANY_FROM"/>
+                        <a:lov name="company_code_to_display" bindTarget="CSH2011_batch_query_ds" prompt="FND_COMPANIES.COMPANY_TO"/>
+                    </a:hBox>
+                </a:vBox>
+            </a:form>
+            <a:hBox>
+                <a:button click="queryCompany" text="HAP_OK"/>
+                <a:button click="resetRequisition" text="HAP_RESET"/>
+            </a:hBox>
+            <a:hBox>
+                <a:button click="CSH2011_assignCom" text="CSH2011_ADD"/>
+                <a:button click="backFunction" text="HAP_BACK"/>
+            </a:hBox>
+            <a:grid bindTarget="CSH2011_system_company_assign_com_ds" height="340" navBar="true" width="520">
+                <a:columns>
+                    <a:column name="company_code" Width="130" align="center" prompt="FND_COMPANIES.COMPANY_CODE"/>
+                    <a:column name="company_short_name" Width="200" prompt="FND_COMPANIES_VL.COMPANY_SHORT_NAME"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

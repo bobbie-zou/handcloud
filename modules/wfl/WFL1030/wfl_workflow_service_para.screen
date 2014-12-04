@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+            function onClose() {
+                $('wfl_workflow_service_para_window').close();
+            }
+            
+            function onSave() {
+                var result_ds = $('wfl_workflow_service_para_result_ds');
+                if (result_ds.validate) {
+                    var records = result_ds.getAll();
+                    if (records.length < 1) {
+                        Aurora.showMessage('提示', '请添加一条数据!');
+                    } else {
+                        //获取头表ID
+                        var service_id = ${/parameter/@service_id};
+                        if (!service_id) {
+                            Aurora.showMessage('提示', '工作流页面信息ID缺失，请查看源程序!');
+                        } else {
+                            for (var i = 0;i < records.length;i++) {
+                                var record = records[i];
+                                record.set('service_id', ${/parameter/@service_id});
+                            }
+                            result_ds.submit();
+                        }
+                    }
+                }
+            }
+            
+            function onServiceParaDelete() {
+                var ds = $('wfl_workflow_service_para_result_ds');
+                var selectedRecords = ds.getSelected();
+                if (selectedRecords.length < 1) {
+                    Aurora.showMessage('提示', '请选择一条数据!');
+                } else {
+                    for (var i = 0;i < selectedRecords.length;i++) {
+                        selectedRecords[i].set('_status', 'delete')
+                    }
+                    var confirm = new Aurora.showConfirm("提示", "确认删除数据？", function() {
+                        confirm.close();
+                        ds.remove(selectedRecords);
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl_workflow_service_one_ds" loadData="true" model="wfl.WFL1030.wfl_workflow_service">
+                <a:fields>
+                    <a:field name="service_name" readOnly="true"/>
+                    <a:field name="service_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl_workflow_service_para_result_ds" autoPageSize="true" autoQuery="true" model="wfl.WFL1030.wfl_workflow_service_para" queryUrl="${/request/@context_path}/autocrud/wfl.WFL1030.wfl_workflow_service_para/query?service_id=${/parameter/@service_id}" selectable="true">
+                <a:fields>
+                    <a:field name="sequence_num" required="true"/>
+                    <a:field name="parameter_code" maxLength="200" required="true"/>
+                    <a:field name="parameter_desc" maxLength="2000"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="wfl_workflow_procedure_para_result_grid" type="add" width="100"/>
+            <a:toolbarButton click="onSave" text="HAP_SAVE" width="100"/>
+            <a:toolbarButton click="onClose" text="HAP_CLOSE" width="100"/>
+        </a:screenTopToolbar>
+        <a:form column="4" labelWidth="100" width="770">
+            <a:textField name="service_name" bindTarget="wfl_workflow_service_one_ds" prompt="页面名称"/>
+            <a:textField name="service_desc" bindTarget="wfl_workflow_service_one_ds" prompt="页面描述"/>
+        </a:form>
+        <a:grid id="wfl_workflow_procedure_para_result_grid" bindTarget="wfl_workflow_service_para_result_ds" height="370" navBar="true" width="770">
+            <a:columns>
+                <a:column name="sequence_num" editor="numberField" prompt="页面参数序号" width="80"/>
+                <a:column name="parameter_code" editor="textField_up_c" prompt="页面参数代码" width="150"/>
+                <a:column name="parameter_desc" editor="textField_c" prompt="页面参数描述" width="300"/>
+            </a:columns>
+            <a:editors>
+                <a:numberField id="numberField" allowDecimals="false" allowNegative="false"/>
+                <a:textField id="textField_c"/>
+                <a:textField id="textField_up_c" typeCase="upper"/>
+            </a:editors>
+        </a:grid>
+        <!-- <div class="win-toolbar" style="width:770px;height:40px;">
+                <a:hBox style="float:right;margin-right:10px;margin-top:5px;">
+                    <a:button click="onSave" text="HAP_SAVE" width="90"/>
+                    <a:button click="onClose" text="HAP_CLOSE" width="90"/>
+                </a:hBox>
+            </div> -->
+    </a:view>
+</a:screen>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lixi  
+    $Date: 2011-7-13 上午10:52:12  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query model="bgt.bgt_get_set_of_books_id" rootPath="set_of_books_id"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="exp_expense_item_company_assigned_batch_control_link" url="${/request/@context_path}/modules/expm/EXPM1002/exp_expense_item_company_assigned_batch_control.svc"/>
+        <script><![CDATA[
+			function query(){
+				$('result_ds').query();
+			}
+			function reset(){
+				$('query_ds').reset();
+			}
+			function confirm(){
+				if ($('result_ds').getSelected().length < 1){
+					Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}');
+				} else{
+					var param	= $('query_ds').getJsonData()[0];
+					var records	= $('result_ds').getJsonData(true);
+					param['details'] = records;
+					Aurora.request({
+						url		: /*exp_expense_item_company_assigned_batch_control.svc*/$('exp_expense_item_company_assigned_batch_control_link').getUrl(),
+						para	: param,
+						success	: function(){
+							$('exp_expense_item_company_assigned_batch_screen').close();
+						},
+						scope	: this
+					});
+				}
+			}
+			function loadEventFunction_batch(dataSet){
+					var records = dataSet.getAll();
+					for(var i = 0 ; i < records.length; i ++){
+						var record = records[i];
+						record.set('application_code','${/parameter/@application_code}');
+					} 				
+				}
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_code_from" lovGridHeight="320" lovHeight="440" lovService="fnd.fnd_dimension_value_assign_batch_lov?set_of_books_id=${/model/set_of_books_id/record/@set_of_books_id}" lovWidth="500" title="FND_COMPANIES.QUERY">
+                        <a:mapping>
+                            <a:map from="company_code_name" to="company_code_from"/>
+                            <a:map from="company_short_name" to="company_code_from_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_code_to" lovGridHeight="320" lovHeight="440" lovService="fnd.fnd_dimension_value_assign_batch_lov?set_of_books_id=${/model/set_of_books_id/record/@set_of_books_id}" lovWidth="500" title="FND_COMPANIES.QUERY">
+                        <a:mapping>
+                            <a:map from="company_code_name" to="company_code_to"/>
+                            <a:map from="company_short_name" to="company_code_to_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="set_of_books_id" defaultValue="${/model/set_of_books_id/record/@set_of_books_id}"/>
+                    <a:field name="application_code" defaultValue="${/parameter/@application_code}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="result_ds" autoQuery="false" fetchAll="false" model="fnd.fnd_dimension_value_company_batch_query" pageSize="100" queryDataSet="query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="company_id"/>
+                    <a:field name="company_code" prompt="FND_COMPANIES.COMPANY_CODE"/>
+                    <a:field name="company_short_name" prompt="FND_COMPANIES.COMPANY_SHORT_NAME_ID"/>
+                    <a:field name="set_of_books_id"/>
+                    <a:field name="set_of_books_name" prompt="FND_COMPANIES.SET_OF_BOOKS_ID"/>
+                    <a:field name="application_code"/>
+                </a:fields>
+                <a:events>
+                    <!-- <a:event name="load" handler="loadEventFunction_batch"/> --><![CDATA[
+                    
+                ]]></a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form title="PROMPT.BATCH_DISP_COMPANY" width="480">
+                <a:lov name="company_code_from" bindTarget="query_ds" prompt="GLD_ACCOUNT_COMPANY_ASSIGNED_BATCH.COMPANY_FROM"/>
+                <a:lov name="company_code_to" bindTarget="query_ds" prompt="GLD_ACCOUNT_COMPANY_ASSIGNED_BATCH.COMPANY_TO"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="query" text="HAP_QUERY"/>
+                <a:button click="reset" text="HAP_RESET"/>
+                <a:button click="confirm" text="HAP_CONFIRM"/>
+            </a:hBox>
+            <a:grid bindTarget="result_ds" height="380" navBar="true" width="480">
+                <a:columns>
+                    <a:column name="company_code" align="center" width="140"/>
+                    <a:column name="company_short_name" width="140"/>
+                    <a:column name="set_of_books_name" align="center" width="140"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-1-18 下午01:08:39  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="l.line_num asc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    l.pur_line_id,
+                    l.line_num,
+                    h.company_id,
+                    l.item_code,
+                    l.item_name,
+                    l.item_category_code,
+                    l.item_category_desc,
+                    l.quantity,
+                    nvl((select sum(pl.quantity)
+                     from  pur_line_locations_temp pl
+                     where	pl.pur_line_id=l.pur_line_id),0) as sum_quantity,
+                    l.unit_meas_lookup_code,
+                    TO_CHAR(l.need_by_date,'yyyy-mm-dd') AS need_by_date,
+                    l.unit_price,
+                    l.net_amount,
+                    l.tax_amount,
+                    l.sum_amount,
+                    l.functional_amount,
+                    l.exchange_rate,
+                    l.remark
+                FROM
+                    pur_lines_temp l,
+                    pur_headers_temp h #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                      pur_req_pur_pkg.update_pur_line_temp(p_line_id => ${@pur_line_id},
+					                                       p_remark => ${@remark},
+					                                       p_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="l.pur_header_id=h.pur_header_id"/>
+        <bm:data-filter expression="h.session_id=${/session/@session_id}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="pur_header_id" queryExpression="h.pur_header_id = ${@pur_header_id}"/>
+        <bm:query-field name="pur_line_id" queryExpression="l.pur_line_id = ${@pur_line_id}"/>
+    </bm:query-fields>
+</bm:model>

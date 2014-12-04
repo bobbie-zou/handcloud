@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-7-4 上午9:15:48  
+    $Revision: 1.0  
+    $Purpose: 采购品类管理规则，快速创建规则第二步
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="pur2060_link_pur_management_quick_rule_step3" url="${/request/@context_path}/modules/pur/PUR2060/pur_management_quick_rule_step3.screen"/>
+        <script><![CDATA[
+        
+        	//全局公司数组（只存放勾选的）
+        	var g_company_array = [];
+        	
+        	//取消按钮调用的方法，返回到管理规则定义页面
+        	function pur2060_quickRuleStep2ToManagementRule(){
+        	    pur2060_quickRuleStep1ToManagementRule();
+        	    pur2060_quickRuleStep2ToQuickRuleStep1();
+        	}
+        	
+        	//返回上一步按钮调用的方法，返回到第一步采购品类定义的页面
+        	function pur2060_quickRuleStep2ToQuickRuleStep1(){
+        	    $('pur2060_link_pur_management_quick_rule_step2_window').close();
+        	}
+        	
+        	//跳转到第三步，定义规则明细的页面
+        	function pur2060_skipToQuickRuleStep3(){
+        	    
+        	    //清空全局公司数组
+                g_company_array = [];
+        	    
+        	    //获取勾选中的公司的记录
+                var records = $('pur2060_fnd_company_tree_quick_rule_result_ds').getAll();
+            
+				//循环公司树，将勾选中的放入全局数组				                
+                for (var i = 0;i < records.length;i++) {
+                    
+                    //判断是否有勾中的（包括有下级节点的）公司
+                    if (records[i].get('checked') == "Y") {
+                        flag = true;
+                        records[i].set('_status','insert');
+                        g_company_array.push(records[i].data);
+                    }
+                }
+            	
+            	//若全局公司数组里没有数据，则表示没有勾选
+                if (g_company_array.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SELECT_COMPANY}！');
+                    return false;
+                }
+                
+                //打开快速创建管理规则第三步页面          
+        	    new Aurora.Window({
+                    id: 'pur2060_link_pur_management_quick_rule_step3_window',
+                    url: $('pur2060_link_pur_management_quick_rule_step3').getUrl(),
+                    title: '${l:PUR_MANAGEMENT_RULES.QUICK_RULE_STEP3_TITLE}',
+                    width: 500,
+                    height: 300
+                });
+        	}
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur2060_fnd_company_tree_quick_rule_query_ds"/>
+            <a:dataSet id="pur2060_fnd_company_tree_quick_rule_result_ds" fetchAll="true" loadData="true" model="public.fnd_company" queryDataSet="pur2060_fnd_company_tree_quick_rule_query_ds"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:toolbarButton click="pur2060_quickRuleStep2ToManagementRule" text="HAP_CANCEL" width="100"/>
+                <a:toolbarButton click="pur2060_quickRuleStep2ToQuickRuleStep1" style="margin-left:20px;" text="PROMPT.BACK_TO_LAST_STEP" width="100"/>
+                <a:toolbarButton click="pur2060_skipToQuickRuleStep3" style="margin-left:20px;" text="PROMPT.NEXT_STEP" width="100"/>
+            </a:screenTopToolbar>
+            <a:vBox>
+                <a:treeGrid id="pur2060_fnd_company_tree_quick_rule_result_ds_grid" bindTarget="pur2060_fnd_company_tree_quick_rule_result_ds" height="530" idField="company_id" parentField="parent_company_id" showCheckBox="true" width="390">
+                    <a:columns>
+                        <a:column name="company_short_name" prompt="FND_COMPANIES.COMPANY_NAME" width="390"/>
+                    </a:columns>
+                </a:treeGrid>
+            </a:vBox>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

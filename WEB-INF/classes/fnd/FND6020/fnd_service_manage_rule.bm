@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:query-fields>
+        <bm:query-field name="service_rule_id" queryExpression="t1.service_rule_id=${@service_rule_id}"/>
+        <bm:query-field name="company_id" queryExpression="t1.company_id=${@company_id}"/>
+        <bm:query-field name="service_company_id" queryExpression="t1.service_company_id=${@service_company_id}"/>
+        <bm:query-field name="enabled_flag" queryExpression="t1.enabled_flag=${@enabled_flag}"/>
+        <bm:query-field name="sensitive_flag" queryExpression="t1.sensitive_flag=${@sensitive_flag}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="t1.business_group=${/session/@business_group}"/>
+    </bm:data-filters>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        fsmr.service_rule_id,
+                        fsmr.company_id,
+                        (SELECT
+                            fcv.company_full_name
+                        FROM
+                            fnd_companies_vl fcv
+                        WHERE
+                            fcv.company_id = fsmr.company_id
+                        ) company_name,
+                        fsmr.service_company_id,
+                        (SELECT
+                            fcv.company_full_name
+                        FROM
+                            fnd_companies_vl fcv
+                        WHERE
+                            fcv.company_id = fsmr.service_company_id
+                        ) service_company_name,
+                        to_char(fsmr.start_date,'yyyy-mm-dd') start_date,
+                        to_char(fsmr.end_date,'yyyy-mm-dd') end_date,
+                        fsmr.business_group,
+                        fsmr.sensitive_flag,
+                        fsmr.enabled_flag
+                    FROM
+                        fnd_service_manage_rule fsmr
+                    ) t1 #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="service_rule_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@service_rule_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              BEGIN
+                fnd_service_manage_rule_pkg.create_fnd_service_manage_rule
+                (
+                  o_service_rule_id=>${@service_rule_id},
+                  p_company_id=>${@company_id},
+                  p_service_company_id=>${@service_company_id},
+                  p_start_date=>to_date(${@start_date},'yyyy-mm-dd'),
+                  p_end_date=>to_date(${@end_date},'yyyy-mm-dd'),
+                  p_business_group=>${/session/@business_group},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_sensitive_flag=>${@sensitive_flag},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                fnd_service_manage_rule_pkg.modify_fnd_service_manage_rule
+                (
+                  p_service_rule_id=>${@service_rule_id},
+                  p_company_id=>${@company_id},
+                  p_service_company_id=>${@service_company_id},
+                  p_start_date=>to_date(${@start_date},'yyyy-mm-dd'),
+                  p_end_date=>to_date(${@end_date},'yyyy-mm-dd'),
+                  p_business_group=>${/session/@business_group},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_sensitive_flag=>${@sensitive_flag},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

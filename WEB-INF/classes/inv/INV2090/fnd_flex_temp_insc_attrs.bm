@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-2-26 上午10:50:59  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT *
+				  FROM (SELECT ia.tmpl_insc_attr_id temp_insc_attr_id,
+				               ia.tmpl_instance_id temp_instance_id,
+				               ia.display_sequence,
+				               ia.attribute_code,
+				               ia.attribute_desc,
+				               ia.data_source,
+				               (SELECT scv.code_value_name
+				                  FROM sys_code_values_vl scv,
+				                       sys_codes_vl       sc
+				                 WHERE sc.code_id = scv.code_id
+				                       AND scv.code_value = ia.data_source
+				                       AND sc.code = 'FLEX_INSC_ATTR_DATA_SOURCE') data_source_desc,
+				               ia.appl_attribute,
+				               ia.group_attribute_id,
+				               --ia.level_type,
+				               (SELECT scv.code_value_name
+				                  FROM sys_code_values_vl scv,
+				                       sys_codes_vl       sc
+				                 WHERE sc.code_id = scv.code_id
+				                       AND scv.code_value = ia.data_source
+				                       AND sc.code = 'FLEX_INSC_ATTR_LEVEL_TYPE') level_type_desc,
+				               ia.flex_value_set_id,
+				               vs.flex_value_set_code,
+				               vs.flex_value_set_desc,
+				               ia.flex_format_id,
+				               ff.format_category,
+				               (SELECT scv.code_value_name
+				                  FROM sys_code_values_vl scv,
+				                       sys_codes_vl       sc
+				                 WHERE sc.code_id = scv.code_id
+				                       AND scv.code_value = ff.format_category
+				                       AND sc.code = 'FLEX_FORMAT_CATEGORY') format_category_desc,
+				               ff.display_example,
+				               ia.enabled_flag,
+				               ia.nullable_flag,
+				               ia.extend_instance_id,
+				               ac.description_prfix,
+				               ac.description_appendix,
+				               ac.coding_flag,
+				               ac.description_flag
+				          FROM inv_item_attr_configs       ac,
+				               --fnd_flex_temp_insc_attrs_vl ia,
+				               fnd_flex_tmpl_insc_attrs_vl  ia,
+				               fnd_flex_value_sets_vl         vs,
+				               fnd_flex_formats            ff
+				         WHERE ac.temp_insc_attr_id(+) = ia.tmpl_insc_attr_id
+				               AND ia.flex_value_set_id = vs.flex_value_set_id(+)
+				               AND ia.flex_format_id = ff.flex_format_id
+				               AND ia.tmpl_instance_id = ${@temp_instance_id}) t
+                ORDER BY
+                    t.temp_insc_attr_id
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                	fnd_key_flexfield_pkg.inv_item_attr_configs_update(p_temp_insc_attr_id     	=> ${@temp_insc_attr_id},
+				                                                   	  p_temp_instance_id      	=> ${@temp_instance_id},
+				                                                      p_description_prfix 		=> ${@description_prfix},
+				                                                      p_description_appendix    => ${@description_appendix},
+				                                                      p_coding_flag    			=> ${@coding_flag},
+				                                                      p_description_flag    	=> ${@description_flag},
+				                                                      p_user_id               	=> ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="temp_instance_id" queryExpression="temp_instance_id=${@temp_instance_id}"/>
+        <bm:query-field name="temp_insc_attr_id" queryExpression="temp_insc_attr_id=${@temp_insc_attr_id}"/>
+        <bm:query-field name="appl_attribute" queryExpression="appl_attribute=${@appl_attribute}"/>
+        <bm:query-field name="level_type" queryExpression="level_type=${@level_type}"/>
+        <bm:query-field name="attribute_code" queryExpression="attribute_code like &apos;%&apos;||${@attribute_code}||&apos;%&apos;"/>
+        <bm:query-field name="attribute_desc" queryExpression="attribute_desc like &apos;%&apos;||${@template_desc}||&apos;%&apos;"/>
+        <bm:query-field name="quick_value" queryExpression="(attribute_code like &apos;%&apos;||upper(${@quick_value})||&apos;%&apos; or attribute_desc like &apos;%&apos;||${@quick_value}||&apos;%&apos;)"/>
+    </bm:query-fields>
+</bm:model>

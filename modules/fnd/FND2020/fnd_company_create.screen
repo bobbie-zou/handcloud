@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: huyijun4108 $
+    $Date: 2014/01/26 06:05:02 $
+    $Revision: 1.5 $
+    $Purpose: 公司创建
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <!-- <a:model-query autoCount="true" defaultWhereClause="enabled_flag = &apos;Y&apos;" model="gld.gld_set_of_books" queryOrderBy="set_of_books_code" rootPath="fnd_2020_set_of_book_list"/> -->
+        <a:model-query autoCount="false" model="fnd.FND2020.fnd_company_position_cmb" rootPath="fnd_2020_parent_companies"/>
+        <a:model-query defaultWhereClause="enabled_flag = &apos;Y&apos;" model="fnd.fnd_company_levels" rootPath="fnd_2020_fc"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function fnd_2020_createCompany() {
+                $('fnd_2020_fnd_companies_create_ds').submit();
+            }
+            
+            function fnd_2020_closeCompanyCreateWindow() {
+                $('company_create_window').close();
+            }
+            
+            function fnd_2020_onCompanyCreateSuccess() {
+                fnd_2020_closeCompanyCreateWindow();
+                fnd_2020_queryCompanies();
+            }
+            
+            function fnd_2020_onUpdate(ds, record, name, value) {
+                if (name == 'start_date_active' || name == 'end_date_active') {
+                    record.validate((name == 'start_date_active') ? 'end_date_active' : 'start_date_active');
+                }
+            }
+            
+            function fnd_2020_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function fnd_2020_dateValidator(record, name, value) {
+                if (name == 'start_date_active' || name == 'end_date_active') {
+                    var start_date = record.get('start_date_active');
+                    var end_date = record.get('end_date_active');
+                    if (typeof(end_date) != 'undefined' && !Ext.isEmpty(end_date)) {
+                        if (!fnd_2020_compareDate(start_date, end_date)) {
+                            return '${l:START_GREATER_THAN_END}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function fmd_2020_blurHandler() {
+                var company_code = $('fnd_2020_fnd_companies_create_ds').getAt(0).get('company_code');
+                var records = $('fnd_2020_companies_result_ds').getAll();
+            
+                for (var i = 0;i < records.length;i++) {
+                    if (company_code == records[i].get('company_code')) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:FND_COMPANY.COMPANY_CODE_REPEAT}');
+                        $('fnd_2020_fnd_companies_create_ds').getAt(0).set('company_code', '');
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd_2020_fnd_companies_level_ds" autoQuery="true">
+                <a:datas dataSource="/model/fnd_2020_fc"/>
+            </a:dataSet>
+            <a:dataSet id="fnd_2020_fnd_companies_type_ds" lookupCode="COMPANY_TYPE"/>
+            <!-- <a:dataSet id="gld_set_of_book_ds">
+                <a:datas dataSource="/model/fnd_2020_set_of_book_list"/>
+            </a:dataSet> -->
+            <a:dataSet id="fnd_2020_parent_companies_ds">
+                <a:datas dataSource="/model/fnd_2020_parent_companies"/>
+            </a:dataSet>
+            <a:dataSet id="fnd_2020_fnd_companies_create_ds" autoCreate="true" model="fnd.FND2020.fnd_company" submitUrl="${/request/@context_path}/modules/fnd/FND2020/fnd_company_create_control.svc">
+                <a:fields>
+                    <a:field name="company_code" required="true"/>
+                    <a:field name="company_short_name" required="true"/>
+                    <a:field name="company_type_display" displayField="code_value_name" options="fnd_2020_fnd_companies_type_ds" required="true" returnField="company_type" valueField="code_value"/>
+                    <!-- <a:field name="set_of_books_id_display" displayField="set_of_books_name_display" options="gld_set_of_book_ds" required="true" returnField="set_of_books_id" valueField="set_of_books_id"/> -->
+                    <a:field name="set_of_books_id_display" lovHeight="500" lovService="public.gld_set_of_books_lov" lovWidth="500" required="true" title="套帐选择">
+                        <a:mapping>
+                            <a:map from="set_of_books_name" to="set_of_books_id_display"/>
+                            <a:map from="set_of_books_id" to="set_of_books_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_level_id_display" displayField="description_display" options="fnd_2020_fnd_companies_level_ds" required="true" returnField="company_level_id" valueField="company_level_id"/>
+                    <a:field name="start_date_active" datatype="date" required="true" validator="fnd_2020_dateValidator"/>
+                    <a:field name="end_date_active" datatype="date" validator="fnd_2020_dateValidator"/>
+                    <a:field name="chief_position_id_display" displayField="position_name_display" options="fnd_2020_parent_companies_ds" returnField="chief_position_id" valueField="position_id"/>
+                    <a:field name="parent_company_id_display" lovHeight="500" lovUrl="${/request/@context_path}/modules/fnd/FND2020/fnd_company_tree_lov.screen" lovWidth="700" title="FND_COMPANIES.COMPANY">
+                        <a:mapping>
+                            <a:map from="company_id" to="parent_company_id"/>
+                            <a:map from="company_short_name" to="parent_company_id_display"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="data_source" defaultValue="SRM"/>
+                    <a:field name="company_class" defaultValue="0"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="fnd_2020_onCompanyCreateSuccess"/>
+                    <a:event name="update" handler="fnd_2020_onUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet column="1" style="margin:15px;" title="FND_COMPANIES.INFO" width="480">
+                <a:hBox>
+                    <a:textField name="company_code" bindTarget="fnd_2020_fnd_companies_create_ds" typeCase="upper">
+                        <a:events>
+                            <a:event name="blur" handler="fmd_2020_blurHandler"/>
+                        </a:events>
+                    </a:textField>
+                    <a:numberField name="sequence" allowDecimals="false" allowNegative="false" bindTarget="fnd_2020_fnd_companies_create_ds" prompt="SORT_NUM"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:textField name="company_short_name" bindTarget="fnd_2020_fnd_companies_create_ds" width="385"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:textField name="company_full_name" bindTarget="fnd_2020_fnd_companies_create_ds" prompt="FND_COMPANIES.COMPANY_FULL_NAME" width="385"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:comboBox name="company_type_display" bindTarget="fnd_2020_fnd_companies_create_ds" prompt="FND_COMPANIES.COMPANY_TYPE"/>
+                    <a:lov name="set_of_books_id_display" bindTarget="fnd_2020_fnd_companies_create_ds" prompt="FND_COMPANIES.SET_OF_BOOKS"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:comboBox name="company_level_id_display" bindTarget="fnd_2020_fnd_companies_create_ds" prompt="FND_COMPANIES.COMPANY_LEVEL_ID"/>
+                    <a:comboBox name="chief_position_id_display" bindTarget="fnd_2020_fnd_companies_create_ds" prompt="FND_COMPANIES.CHIEF_POSITION_ID"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:lov name="parent_company_id_display" bindTarget="fnd_2020_fnd_companies_create_ds" prompt="FND_COMPANIES.PARENT_COMPANY_ID" width="385"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:datePicker name="start_date_active" bindTarget="fnd_2020_fnd_companies_create_ds" prompt="HAP_START_DATE"/>
+                    <a:datePicker name="end_date_active" bindTarget="fnd_2020_fnd_companies_create_ds" prompt="HAP_END_DATE"/>
+                </a:hBox>
+                <a:hBox>
+                    <a:textField name="address" bindTarget="fnd_2020_fnd_companies_create_ds" prompt="FND_COMPANIES.ADDRESS" width="385"/>
+                </a:hBox>
+            </a:fieldSet>
+        </a:screenBody>
+        <div class="win-toolbar" style="width:510px;height:40px;">
+            <a:hBox style="float:right;margin-right:10px;margin-top:5px;">
+                <a:button click="fnd_2020_createCompany" icon="${/request/@context_path}/images/save.gif" text="HAP_SAVE" width="90"/>
+                <a:button click="fnd_2020_closeCompanyCreateWindow" text="HAP_CLOSE" width="90"/>
+            </a:hBox>
+        </div>
+    </a:view>
+</a:screen>

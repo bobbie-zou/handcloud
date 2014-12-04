@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-7-4 上午9:15:20  
+    $Revision: 1.0  
+    $Purpose: 采购品类管理规则，快速创建规则第一步
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="pur2060_link_pur_management_quick_rule_step2" url="${/request/@context_path}/modules/pur/PUR2060/pur_management_quick_rule_step2.screen"/>
+        <script><![CDATA[
+        
+        	//定义全局采购品类数组（只存放已经勾中的采购品类）
+        	var g_category_array = [];
+        
+            //取消按钮调用的方法，返回到管理规则定义页面
+            function pur2060_quickRuleStep1ToManagementRule() {
+                $('pur2060_link_pur_management_quick_rule_step1_window').close();
+            }
+            
+            //下一步按钮调用的方法，打开下一步定义的页面
+            function pur2060_skipToQuickRuleStep2() {
+                
+                //清空全局采购品类数组
+                g_category_array = [];
+            
+                //获取勾选中的采购品类的记录
+                var records = $('pur2060_pur_purchase_category_tree_quick_rule_result_ds').getAll();
+            
+				//循环品类树，将勾选中的放入全局数组				                
+                for (var i = 0;i < records.length;i++) {
+                    
+                    //判断是否有勾中的没有下级节点的采购品类
+                    if (records[i].get('checked') == "Y" && records[i].get('extend_flag') == "N") {
+                        flag = true;
+                        records[i].set('_status','insert');
+                        g_category_array.push(records[i].data);
+                    }
+                }
+            	
+            	//若全局采购品类数组里没有数据，则表示没有勾选
+                if (g_category_array.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SELECT_PURCHASE_CATEGORY}');
+                    return false;
+                }
+                
+				//打开快速创建管理规则第二步页面            
+                new Aurora.Window({
+                    id: 'pur2060_link_pur_management_quick_rule_step2_window',
+                    url: $('pur2060_link_pur_management_quick_rule_step2').getUrl(),
+                    title: '${l:PUR_MANAGEMENT_RULES.QUICK_RULE_STEP2_TITLE}',
+                    width: 430,
+                    height: 600
+                });
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur2060_pur_purchase_category_tree_quick_rule_result_ds" fetchAll="true" loadData="true" model="public.pur_purchase_category_tree_query"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:toolbarButton click="pur2060_quickRuleStep1ToManagementRule" text="HAP_CANCEL" width="100"/>
+                <a:toolbarButton click="pur2060_skipToQuickRuleStep2" style="margin-left:20px;" text="PROMPT.NEXT_STEP" width="100"/>
+            </a:screenTopToolbar>
+            <a:vBox>
+                <a:treeGrid id="pur2060_pur_purchase_category_tree_quick_rule_result_grid" bindTarget="pur2060_pur_purchase_category_tree_quick_rule_result_ds" height="530" idField="purchase_category_id" parentField="parent_category_id" showCheckBox="true" width="390">
+                    <a:columns>
+                        <a:column name="purchase_category_name" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CATEGORY_NAME" width="390"/>
+                    </a:columns>
+                </a:treeGrid>
+            </a:vBox>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

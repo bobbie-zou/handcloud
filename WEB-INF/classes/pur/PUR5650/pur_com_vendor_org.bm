@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Administrator  
+    $Date: 2013-6-8 下午3:31:24  
+    $Revision: 1.0  
+    $Purpose: 供应商采购组织bm
+-->
+<bm:model xmlns:e="aurora.service.exception" xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="PUR_SYS_VENDOR_ORG">
+    <bm:fields>
+        <bm:field name="vendor_org_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_ORG_ID" prompt="PUR_SYS_VENDOR_ORG.ORG_ID"/>
+        <bm:field name="pur_org_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PUR_ORG_ID" prompt="PUR_SYS_VENDOR_ORG.PUR_ORG_ID"/>
+        <bm:field name="pur_org_code" expression="(select o.pur_organization_code from pur_organizations o where o.pur_organization_id = t1.pur_org_id)" forInsert="false" forUpdate="false" prompt="PUR_SYS_VENDOR_ORG.PUR_ORG_CODE"/>
+        <bm:field name="pur_org_name" expression="(select d.description_text from pur_organizations o, fnd_descriptions d where o.pur_organization_id = t1.pur_org_id and o.description_id = d.description_id and d.language = ${/session/@lang})" forInsert="false" forUpdate="false" prompt="PUR_SYS_VENDOR_ORG.PUR_ORG_NAME"/>
+        <bm:field name="vendor_id" databaseType="NUMBER" datatype="java.lang.Long" insertExpression="nvl(${@vendor_id},${../../@vendor_id})" physicalName="VENDOR_ID" prompt="PUR_SYS_VENDOR_ORG.VENDOR_ID"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG" prompt="PUR_SYS_VENDOR_ORG.ENABLED_FLAG"/>
+        <bm:field name="vendor_status" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="VENDOR_STATUS"/>
+    </bm:fields>
+    <bm:features>
+        <f:standard-who/>
+        <o:sequence-pk sequenceName="PUR_SYS_VENDOR_ORG_S"/>
+    </bm:features>
+    <bm:primary-key>
+        <bm:pk-field name="vendor_org_id"/>
+    </bm:primary-key>
+    <bm:query-fields>
+        <bm:query-field name="vendor_id" queryExpression="vendor_id = ${@vendor_id}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="t1.pur_org_id in (select t1.pur_organization_id from pur_organizations t1, fnd_companies_vl t2 where t1.data_source = t2.DATA_SOURCE and t1.data_source_id = t2.DATA_SOURCE_ID and exists (select company_id from fnd_auth_company_v t where t.session_id = ${/session/@session_id} and t.company_id = t2.COMPANY_ID))"/>
+    </bm:data-filters>
+    <e:exception-descriptor-config>
+        <e:exception-descriptor exception="java.sql.SQLException" handleClass="aurora.database.SQLExceptionDescriptor">
+            <e:error-message code="1" message="PUR_SYSTEM_VENDOR_ORG_DUPLICATE"/>
+        </e:exception-descriptor>
+    </e:exception-descriptor-config>
+</bm:model>

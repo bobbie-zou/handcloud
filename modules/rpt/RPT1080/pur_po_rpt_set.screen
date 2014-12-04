@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-10-12 下午6:39:19  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="rpt1080_header_link" url="${/request/@context_path}/modules/rpt/RPT1080/pur_po_rpt_line_set.screen"/>
+        <a:link id="rpt1080_header_default_set_link" url="${/request/@context_path}/modules/rpt/RPT1080/pur_po_rpt_default_set.screen"/>
+        <script><![CDATA[
+            function rpt1080_header_renderer(value, record, name) {
+                if (value) {
+                    var rpt_header_id = record.get('rpt_header_id');
+                    if (record.get('rpt_code') == 'RPT0000') {
+                        return '<a href="javascript:rpt1080_header_default_set(' + rpt_header_id + ')">' + '${l:RPT.RPT1080_SETTING_HEADER_DEFAULT_SET}' + '</>';
+                    } else {
+                        return '<a href="javascript:rpt1080_header_to_line(' + rpt_header_id + ')">' + '${l:RPT.RPT1080_SETTING_HEADER_SET}' + '</>';
+                    }
+                } else {
+                    return null;
+                }
+            }
+            
+            function rpt1080_header_to_line(rpt_header_id) {
+                var parent_result = 'rpt1080_header_result_ds';
+                new Aurora.Window({
+                    id: 'rpt1080_line_details_window',
+                    url: $('rpt1080_header_link').getUrl() + '?rpt_header_id=' + rpt_header_id + '&parent_result=' + parent_result,
+                    title: '${l:RPT.RPT1080_RPT_SHOW_SETTING_DETAILS}',
+                    fullScreen: true
+                });
+            }
+            
+            function rpt1080_header_default_set(rpt_header_id) {
+                new Aurora.Window({
+                    id: 'rpt1080_default_line_set_window',
+                    url: $('rpt1080_header_default_set_link').getUrl() + '?rpt_header_id=' + rpt_header_id ,
+                    title: '${l:RPT.RPT1080_RPT_SHOW_SETTING_DETAILS}',
+                    fullScreen: true
+                });
+            }
+            
+            function rpt1080_header_success(ds) {
+                ds.query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="rpt1080_header_query_ds"/>
+            <a:dataSet id="rpt1080_header_result_ds" autoCreate="true" autoPageSize="true" autoQuery="true" model="rpt.RPT1080.rpt_setting_headers" queryDataSet="rpt1080_header_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="rpt_name" autoComplete="true" autoCompleteField="flex_desc" lovHeight="490" lovService="rpt.RPT1080.fnd_flex_value_v_lov_2?flex_value_set_code=REPORT_NAME" lovWidth="490" title="字段">
+                        <a:mapping>
+                            <a:map from="flex_desc" to="rpt_name"/>
+                            <a:map from="flex_value" to="rpt_code"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="rpt1080_header_success"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <!-- <a:screenTitle/> -->
+                <a:gridButton bind="rpt1080_header_result_grid" type="add" width="100"/>
+                <a:gridButton bind="rpt1080_header_result_grid" type="save" width="100"/>
+                <a:gridButton bind="rpt1080_header_result_grid" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="rpt1080_header_query_ds" defaultqueryfield="rpt_code_name" defaultqueryhint="RPT.RPT1080_RPT_CODE_OR_NAME" resultTarget="rpt1080_header_result_ds" style="width:100%;border:none"><![CDATA[
+            ]]></a:queryForm>
+            <a:grid id="rpt1080_header_result_grid" bindTarget="rpt1080_header_result_ds" marginHeight="180" marginWidth="40" navBar="true">
+                <a:columns>
+                    <a:column name="rpt_code" align="left" prompt="RPT.RPT1080_RPT_HEADER_CODE" width="200"/>
+                    <a:column name="rpt_name" align="left" editor="rpt1080_header_edit" prompt="RPT.RPT1080_RPT_HEADER_NAME" width="300"/>
+                    <a:column name="rpt_setting_url" align="center" prompt="RPT.RPT1080_RPT_SETTING_DETAILS" renderer="rpt1080_header_renderer" width="150"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="rpt1080_hander_grid_edit_tf" typeCase="UPPER"/>
+                    <a:lov id="rpt1080_header_edit"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

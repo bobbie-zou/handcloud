@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select count(*) num
+  from (select max(i.instance_id) instance_id
+          from wfl_workflow_instance i, wfl_workflow w1
+         where i.status = -1
+           and i.created_by=${/session/@user_id}
+           and i.workflow_id = w1.workflow_id
+           and not exists
+         (select 1
+                  from wfl_workflow_instance a, wfl_workflow w2
+                 where a.instance_id > i.instance_id
+                   and a.workflow_id = w2.workflow_id
+                   and w1.workflow_category = w2.workflow_category
+                   and a.instance_param = i.instance_param)
+         group by w1.workflow_category, i.instance_param) t,
+       wfl_workflow_instance i,
+       wfl_workflow_vl wf
+ where i.instance_id = t.instance_id
+   and i.workflow_id = wf.workflow_id
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="num"/>
+    </bm:fields>
+</bm:model>

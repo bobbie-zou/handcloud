@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-26 下午7:45:48  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select rfx_header_id,
+       rfx_number,
+       company_id,
+       
+       (select fc.company_short_name
+          from fnd_companies_vl fc
+         where fc.COMPANY_ID = rh.company_id) company_desc,
+       (select b.functional_currency_code
+          from fnd_companies_vl fc, gld_set_of_books  b
+         where fc.COMPANY_ID = rh.company_id
+           and fc.set_of_books_id = b.set_of_books_id) functional_currency_code,
+       status,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = rh.status
+           and sc.code = 'PUR_RFX_STATUS') status_desc,
+       rh.rfx_type_id,
+       rt.rfx_type_desc,
+       rt.unique_template_flag,
+       rh.rfx_category,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = rh.rfx_category
+           and sc.code = 'PUR_RFX_CATEGORY') rfx_category_desc,
+       title,
+       rfx_method,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = rh.rfx_method
+           and sc.code = 'PUR_RFX_METHOD') rfx_method_desc,
+       auction_direction,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = rh.auction_direction
+           and sc.code = 'PUR_RFX_AUCTION_DIRECTION') auction_direction_desc,
+       auction_rule,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = rh.auction_rule
+           and sc.code = 'PUR_RFX_AUCTION_RULE') auction_rule_desc,
+       open_rule,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = rh.open_rule
+           and sc.code = 'PUR_RFX_OPEN_RULE') open_rule_desc,
+       ranking_rule,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = rh.ranking_rule
+           and sc.code = 'PUR_RFX_RANKING_RULE') ranking_rule_desc,
+       auction_ranking,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = rh.auction_ranking
+           and sc.code = 'PUR_RFX_AUCTION_RANKING') auction_ranking_desc,
+       payment_method_id,
+       (select pm.description
+          from csh_payment_methods_vl pm
+         where pm.payment_method_id = rh.payment_method_id) payment_method_desc,
+       currency_code,
+       (select gc.currency_name
+          from gld_currency_vl gc
+         where gc.currency_code = rh.currency_code) currency_desc,
+       exchange_rate,
+       tax_included_flag,
+       tax_type_id,
+       tax_type_code,
+       (select ttc.description
+          from fnd_tax_type_codes_vl ttc
+         where ttc.tax_type_id = rh.tax_type_id) tax_type_desc,
+       tax_type_rate,
+       place_of_delivery,
+       issued_date,
+       to_char(issued_date, 'yyyy-mm-dd') issued_date_desc,
+       round,
+       version,
+       to_char(rh.feedback_start_time, 'yyyy-mm-dd hh24:mi:ss') feedback_start_time,
+       to_char(rh.feedback_end_time, 'yyyy-mm-dd hh24:mi:ss') feedback_end_time,
+       terminated_time,
+       terminated_reason,
+       template_id,
+       (select ft.template_desc
+          from fnd_flex_templates_vl ft
+         where ft.template_id = rh.template_id) template_desc,
+       cancel_flag,
+       closed_flag,
+       data_source,
+       data_source_id,
+       data_source_code,
+       data_source_name,
+       comments,
+       flex_appl_relevance_id,
+       rh.creation_date,
+       to_char(rh.creation_date, 'yyyy-mm-dd') creation_date_desc,
+       rh.created_by,
+       (select u.description from sys_user u where u.user_id = rh.created_by) created_by_desc
+  from pur_rfx_headers rh, pur_rfx_types_vl rt
+ where rh.rfx_type_id = rt.rfx_type_id
+   and rh.rfx_header_id = ${/parameter/@rfx_header_id}
+]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="rfx_header_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@rfx_header_id"/>
+                <bm:parameter name="rfx_number" dataType="java.lang.String" input="false" output="true" outputPath="/parameter/@rfx_number"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              BEGIN
+                pur_rfx_pkg.create_pur_rfx_headers
+                (
+                  x_rfx_header_id=>${@rfx_header_id},
+                  x_rfx_number=>${@rfx_number},
+                  p_company_id=>${@company_id},
+                  p_status=>${@status},
+                  p_rfx_category=>${@rfx_category},
+                  p_rfx_type_id=>${@rfx_type_id},
+                  p_title=>${@title},
+                  p_rfx_method=>${@rfx_method},
+                  p_auction_direction=>${@auction_direction},
+                  p_auction_rule=>${@auction_rule},
+                  p_open_rule=>${@open_rule},
+                  p_ranking_rule=>${@ranking_rule},
+                  p_auction_ranking=>${@auction_ranking},
+                  p_payment_method_id=>${@payment_method_id},
+                  p_currency_code=>${@currency_code},
+                  p_exchange_rate=>${@exchange_rate},
+                  p_tax_included_flag=>${@tax_included_flag},
+                  p_tax_type_id=>${@tax_type_id},
+                  p_tax_type_code=>${@tax_type_code},
+                  p_tax_type_rate=>${@tax_type_rate},
+                  p_place_of_delivery=>${@place_of_delivery},
+                  p_round=>${@round},
+                  p_version=>${@version},
+                  p_feedback_start_time=>to_date(${@feedback_start_time},'yyyy-mm-dd HH24:mi:ss'),
+                  p_feedback_end_time=>to_date(${@feedback_end_time},'yyyy-mm-dd HH24:mi:ss'),
+                  p_template_id=>${@template_id},
+                  p_data_source=>${@data_source},
+                  p_data_source_id=>${@data_source_id},
+                  p_data_source_code=>${@data_source_code},
+                  p_data_source_name=>${@data_source_name},
+                  p_comments=>${@comments},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                pur_rfx_pkg.modify_pur_rfx_headers
+                (
+                  p_rfx_header_id=>${@rfx_header_id},
+                  
+                  p_rfx_type_id=>${@rfx_type_id},
+                  p_title=>${@title},
+                  p_rfx_method=>${@rfx_method},
+                  p_auction_direction=>${@auction_direction},
+                  p_auction_rule=>${@auction_rule},
+                  p_open_rule=>${@open_rule},
+                  p_ranking_rule=>${@ranking_rule},
+                  p_auction_ranking=>${@auction_ranking},
+                  p_payment_method_id=>${@payment_method_id},
+                  p_currency_code=>${@currency_code},
+                  p_exchange_rate=>${@exchange_rate},
+                  p_tax_included_flag=>${@tax_included_flag},
+                  p_tax_type_id=>${@tax_type_id},
+                  p_tax_type_code=>${@tax_type_code},
+                  p_tax_type_rate=>${@tax_type_rate},
+                  p_place_of_delivery=>${@place_of_delivery},
+                  p_feedback_start_time=>to_date(${@feedback_start_time},'yyyy-mm-dd HH24:mi:ss'),
+                  p_feedback_end_time=>to_date(${@feedback_end_time},'yyyy-mm-dd HH24:mi:ss'),
+                  p_template_id=>${@template_id},
+                  p_comments=>${@comments},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

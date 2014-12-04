@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Administrator  
+    $Date: 2013-6-5 下午4:52:12  
+    $Revision: 1.0  
+    $Purpose: 供应商基础信息查询
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="pur2010_pur_sys_vendor_create_link" url="${/request/@context_path}/modules/pur/PUR2010/pur_sys_vendor_create.screen"/>
+        <a:link id="pur2010_pur_sys_vendor_edit_link" url="${/request/@context_path}/modules/pur/PUR2010/pur_sys_vendor_edit.screen"/>
+        <a:link id="pur2010_pur_sys_vendor_view_link" url="${/request/@context_path}/modules/pur/PUR2010/pur_sys_vendor_view.screen"/>
+        <a:link id="pur2020_vendor_delete_link" model="pur.PUR2010.pur_sys_vendor_delete" modelaction="execute"/>
+        <a:link id="pur2020_vendor_batch_delete_link" url="${/request/@context_path}/modules/pur/PUR2010/pur_sys_vendor_batch_delete.svc"/>
+        <script><![CDATA[
+         	//查询函数
+			function pur2020_queryFunction(){
+			    $('pur2020_pur_sys_vendor_basics_ds').query();
+			}
+			
+			//供应商创建按钮事件
+			function pur2020_vendorCreate(){
+			    new Aurora.Window({
+			        id:'purSystemVendorCreate',
+			        title:'${l:VENDOR_BASICS_CREATATION.TITLE}',
+			        url:$('pur2010_pur_sys_vendor_create_link').getUrl(),
+			        /*width: 1000,
+			        height: 750*/
+			        fullScreen: true
+			    });
+			    $('purSystemVendorCreate').on('close', function(){
+			        pur2020_queryFunction();
+			    });
+			}
+			
+			//供应商编码渲染函数
+			function pur2020_vendorCodeRenderer(value, record, name){
+			    var deleted_flag = record.get('deleted_flag');
+			    //判断供应商是否作废
+			    return '<a href="javascript:pur2020_vendorEdit('+record.get('vendor_id')+',\''+deleted_flag+'\');">' + value + '</a>';
+			}
+			
+			//供应商维护
+			function pur2020_vendorEdit(vendor_id, deleted_flag){
+			    var url;
+			    if(deleted_flag == 'Y'){
+			        url = $('pur2010_pur_sys_vendor_view_link').getUrl();
+			    }else{
+			        url = $('pur2010_pur_sys_vendor_edit_link').getUrl();
+			    }
+			    new Aurora.Window({
+			        id: 'pur2020_vendorEditWin',
+			        title:'${l:VENDOR_BASICS_MAINTAIN.TITLE}',
+			        url:url+'?vendor_id='+vendor_id,
+			        /*width: 1000,
+			        height: 750*/
+			        fullScreen: true
+			    });
+			    $('pur2020_vendorEditWin').on('close', function(){
+			        pur2020_queryFunction();
+			    });
+			}
+			
+			//供应商批量作废
+			function pur2020_vendorBatchDelete(){
+			    var records = $('pur2020_pur_sys_vendor_basics_ds').getSelected();
+			    //至少选择一行作废
+			    if(records.length < 1){
+			        Aurora.showMessage('${l:PROMPT}', '${l:PUR_SYS_VENDOR_BASICS.AT_LEAST_ONE_ROW_CHOOSED}!');
+			        return;
+			    }
+			    var para = {};
+			    var vendors_id = [];
+			    for(var i = 0; i < records.length; i++){
+			        var vendor_id = {'vendor_id': records[i].get('vendor_id')};
+			        vendors_id.push(vendor_id);
+			    }
+			    para['vendors'] = vendors_id;
+			    Aurora.request({
+			        url:$('pur2020_vendor_batch_delete_link').getUrl(),
+			        para: para,
+			        success:function(){
+			            Aurora.showMessage('${l:PROMPT}', '${l:SUCCESSFUL_OPERATION}', function(){
+			                pur2020_queryFunction();
+			            });
+			            return;
+			        },
+			        error:function(){},
+			        failure:function(){},
+			        scope:this
+			    });
+			}
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur2020_pur_sys_vendor_type_ds" autoQuery="true" model="public.pur_sys_vendor_type_lov"/>
+            <a:dataSet id="pur2020_pur_sys_vendor_basics_query_ds">
+                <a:fields>
+                    <a:field name="vendor_type_id"/>
+                    <a:field name="vendor_type_name" displayField="description" options="pur2020_pur_sys_vendor_type_ds" returnField="vendor_type_id" valueField="vender_type_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur2020_pur_sys_vendor_basics_ds" autoPageSize="true" autoQuery="true" model="pur.PUR2010.pur_sys_vendor_basic" queryDataSet="pur2020_pur_sys_vendor_basics_query_ds" selectable="true"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="pur2020_vendorCreate" style="margin-left:20px;" text="HAP_CREATE" type="add" width="100"/>
+                <a:gridButton click="pur2020_vendorBatchDelete" style="margin-left:20px;" text="PUR_SYSTEM_VENDERS.DELETION" type="add" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="pur_sys_vendor_basic_query_form" bindTarget="pur2020_pur_sys_vendor_basics_query_ds" resultTarget="pur2020_pur_sys_vendor_basics_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="vendor_code" prompt="PUR_SYS_VENDOR_BASICS.VENDOR_CODE" typeCase="upper">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur2020_queryFunction"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="full_name" prompt="PUR_SYS_VENDOR_BASICS.FULL_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur2020_queryFunction"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="vendor_type_name" prompt="PUR_SYS_VENDOR_BASICS.VENDOR_TYPE_NAME">
+                            <a:events>
+                                <a:event name="enterdown" handler="pur2020_queryFunction"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="grid" bindTarget="pur2020_pur_sys_vendor_basics_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="vendor_code" align="center" renderer="pur2020_vendorCodeRenderer" width="100"/>
+                    <a:column name="version_number" align="center" width="60"/>
+                    <a:column name="vendor_type_name" align="center" width="100"/>
+                    <a:column name="short_name" width="150"/>
+                    <a:column name="full_name" width="200"/>
+                    <a:column name="enabled_flag_display" align="center" width="80"/>
+                    <a:column name="deleted_flag_display" align="center" width="80"/>
+                    <a:column name="note" width="200"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

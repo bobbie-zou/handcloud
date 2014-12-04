@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-22 下午2:48:34  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT h.pur_header_id,
+               h.segment1,
+               h.display_po_number,
+               h.type_lookup_code,
+               nvl(h.type_lookup_desc,h.erp_po_type_desc) type_lookup_desc,
+               h.agent_id,
+               h.agent_name,
+               h.release_id,
+               h.release_num,
+               h.display_release_num,
+               h.revision_num,
+               h.company_id,
+               h.company_name,
+               h.comments,
+               h.currency_code,
+               fnd_document_control_pkg.get_reality_value(p_rule_code    => 'PRICE_SECRECY',
+                                             p_role_id         => ${/session/@role_id},
+                                             p_foundation_code => 'PUR_PO',
+                                             p_document_id     => h.pur_header_id,
+                                             p_control_area    => 'EXTERNAL',
+                                             p_business_group  => ${/session/@business_group},
+                                             p_value           => (SELECT SUM(l.unit_price * pll.quantity)
+                  FROM pur_lines_all          l,
+                       pur_line_locations_all pll
+                 WHERE l.pur_line_id = pll.pur_line_id
+                       AND l.pur_header_id = h.pur_header_id)) sum_amount,
+               to_char(h.creation_date,
+                       'yyyy-mm-dd hh24:mi') AS creation_date_desc,
+               nvl(h.ship_to_location_code,h.ship_to_location_address) ship_to_location_name,
+               h.bill_to_location_name,
+               h.vendor_site_name,
+               to_char(h.release_date,
+                       'yyyy-mm-dd hh24:mi') AS release_date_desc,
+               to_char(h.reply_date,
+                       'yyyy-mm-dd hh24:mi') AS reply_date_desc,
+               h.reply_date,
+               h.data_source,
+               h.pur_organization_id,
+               h.vendor_id,
+               h.vendor_name,
+               h.inv_organization_name ship_to_organization_name,
+               h.coop_company_id,
+		       h.coop_business_group,
+		       h.owner_company_id,
+		       h.owner_business_group,
+               null useless_id_1,
+               null useless_id_3,
+               null useless_id_4,
+               null useless_id_5,
+               null useless_id_6,
+               null useless_id_7,
+               null useless_id_8,
+               null useless_id_9,
+               null useless_id_10,
+               null useless_id_11
+          FROM pur_headers_all_v h
+         WHERE h.last_version = 'Y'
+             and h.coop_business_group = ${/session/@business_group}
+               AND h.pur_header_id = ${@pur_header_id}) v
+       #WHERE_CLAUSE# ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority foundation_code="PUR_PO">
+        <authority-segment source_alias="v" source_name="useless_id_1" type="CREATER"/>
+        <authority-segment source_alias="v" source_name="coop_company_id" type="COMPANY"/>
+        <authority-segment source_alias="v" source_name="useless_id_3" type="RECEIVER"/>
+        <authority-segment source_alias="v" source_name="useless_id_4" type="BUSINESS_UNIT"/>
+        <authority-segment source_alias="v" source_name="useless_id_5" type="PUR_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_6" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_7" type="SD_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_8" type="VENDOR"/>
+        <authority-segment source_alias="v" source_name="owner_company_id" type="CLIENT"/>
+        <authority-segment source_alias="v" source_name="useless_id_10" type="PURHASE_MATERIAL"/>
+        <authority-segment source_alias="v" source_name="useless_id_11" type="SALES_PRODUCTION"/>
+        <authority-segment source_alias="v" source_name="useless_id_4" type="CLIENT_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id_6" type="VENDOR_SITE"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+            var cx = Packages.aurora.javascript.Context.getCurrentContext();
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

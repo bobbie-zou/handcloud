@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lily  
+    $Date: 2013-7-6 下午1:25:41  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                select t.filing_pool_id,
+       t.item_category_id,
+       (SELECT icv.item_catagory_desc
+          FROM inv_item_catagories_v icv
+         WHERE icv.item_catagory_id = t.item_category_id) item_category,
+       t.item_id,
+       t.item_code,
+       t.item_desc,
+       t.item_note,
+       t.vendor_id,
+       t.vendor_code,
+       t.vendor_desc,
+       t.feedback_retail_price,
+       t.feedback_wholesale_price,
+       t.exchange_rate,
+       t.currency_code,
+       (SELECT gc.currency_name
+          FROM gld_currency_vl gc
+         WHERE gc.currency_code = t.currency_code) currency_desc,
+       t.tax_included_flag,
+       t.tax_type_id,
+       t.tax_type_code,
+       (SELECT ttc.description
+          FROM fnd_tax_type_codes_vl ttc
+         WHERE ttc.tax_type_id = t.tax_type_id) tax_type_desc,
+       t.tax_type_rate,
+       t.fb_net_retail_price,
+       t.fb_net_retail_amount,
+       t.fb_tax_retail_amount,
+       t.fb_total_retail_amount,
+       t.fb_net_wholesale_price,
+       t.fb_net_wholesale_amount,
+       t.fb_tax_retail_amount,
+       t.fb_tax_wholesale_amount,
+       t.functional_retail_amount,
+       t.functional_wholesale_amount,
+       t.entered_retail_amount,
+       t.entered_wholesale_amount,
+       to_char(t.feedback_expiry_date_from, 'YYYY-MM-DD') feedback_expiry_date_from,
+       to_char(t.feedback_expiry_date_to, 'YYYY-MM-DD') feedback_expiry_date_to,
+       t.quantity,
+       t.uom_code,
+       (select uom_desc
+          from fnd_uom_codes_vl uc
+         where uc.uom_code = t.uom_code) uom_desc,
+       to_char(t.need_by_date, 'YYYY-MM-DD') need_by_date,
+       to_char(t.promised_date, 'YYYY-MM-DD') promised_date,
+       t.inv_organization_id,
+       (select io.description from inv_organizations_vl io where io.inv_organization_id = t.inv_organization_id) inv_organization_desc,
+       t.company_id,
+       (SELECT fc.company_short_name
+          FROM fnd_companies_vl fc
+         WHERE fc.COMPANY_ID = t.company_id) company_desc,
+       t.data_source,
+       t.rfx_header_id,
+       decode(t.data_source,
+              'DEMAND_POOL',
+              (select dp.pur_req_num
+                 from pur_req_demand_pool dp
+                where t.data_source_id = dp.pool_id),
+              null) pur_req_num,
+       rh.rfx_number,
+       t.flex_appl_relevance_id
+  from pur_rfx_filing_pool t, pur_rfx_headers rh
+                #WHERE_CLAUSE#
+    order by t.filing_pool_id desc                
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_desc" queryExpression="t.company_id = ${@company_id}"/>
+        <bm:query-field name="rfx_number" queryExpression="rfx_number like &apos;%&apos; || ${@rfx_number} || &apos;%&apos;"/>
+        <bm:query-field name="item_code" queryExpression="item_id = ${@item_id}"/>
+        <bm:query-field name="vendor_code" queryExpression="vendor_id = ${@vendor_id}"/>
+        <bm:query-field name="item_desc" queryExpression="item_desc like &apos;%&apos; || ${@item_desc} || &apos;%&apos;"/>
+        <bm:query-field name="item_category" queryExpression="item_category_id = ${@item_category_id}"/>
+        <bm:query-field name="item_note" queryExpression="item_note like &apos;%&apos; || ${@item_note} || &apos;%&apos;"/>
+        <bm:query-field name="need_by_date_from" queryExpression="need_by_date &gt;= to_date(${@need_by_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="need_by_date_to" queryExpression="need_by_date &lt;= to_date(${@need_by_date_to},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="promised_date_from" queryExpression="promised_date &gt;= to_date(${@promised_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="promised_date_to" queryExpression="promised_date &lt;= to_date(${@promised_date_to},&apos;YYYY-MM-DD&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="t.rfx_header_id = rh.rfx_header_id and rh.company_id IN (SELECT c.company_id FROM fnd_auth_company_v c WHERE c.session_id = ${/session/@session_id})        "/>
+    </bm:data-filters>
+</bm:model>

@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lily  
+    $Date: 2013-1-18 下午03:48:40  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure><![CDATA[
+      ]]></a:init-procedure>
+    <a:view>
+        <a:link id="srv5020_purchase_order_save_link" url="${/request/@context_path}/modules/srv/SRV5020/srv_purchase_order_save_detail.svc"/>
+        <script><![CDATA[
+
+            var flag = 'N';
+            //返回按钮定义	
+            
+            function srv5020_purchase_order_detail_return() {
+            
+                if (!Aurora.isEmpty($('srv5020_purchase_order_detail_ds').getJsonData())) {
+            
+                    $A.showYesNoCancelWindow('${l:PUR_HEADERS_ALL.CONFIRM_RETURN}', '${l:PUR_HEADERS_ALL.SAVE_UPDATE_RECORD}', function() {
+                        srv5020_purchase_order_detail_save();
+                        $('pur_purchase_order_detail_window').close();
+                    }, function() {
+                        $('pur_purchase_order_detail_window').close();
+                    }, 300, 100);
+                } else {
+                    $('pur_purchase_order_detail_window').close();
+                }
+            }
+            
+            //操作记录
+            
+            function srv5020_detail_Operate_Record() {
+                new Aurora.Window({
+                    id: 'pur_purchase_order_record_window',
+                    url: $('srv5020_puchase_order_verify_record_link').getUrl() + '?transaction_object=PUR_HEADERS_ALL' + '&pur_header_id=' + ${/parameter/@pur_header_id},
+                    title: '${l:PUR_HEADERS_ALL.OPERATION_RECORD}',
+                    height: 450,
+                    width: 700
+                });
+            }
+            
+            
+            
+            //保存按钮
+            
+            function srv5020_purchase_order_detail_save() {
+            
+                var ds = $('srv5020_purchase_order_detail_ds');
+                var records = ds.getAll();
+                var datas = [];
+                for (var i = 0;i < records.length;i++) {
+                    datas.push(records[i].data);
+                }
+            
+                Aurora.request({
+                    url: $('srv5020_purchase_order_save_link').getUrl(),
+                    para: datas,
+                    success: function() {
+                        if (flag=='Y'){
+                            srv5020_detail_confirm();
+                        }else{
+                        ds.query();
+                        }
+                    },
+                    scope: this
+                });
+            
+            
+            
+            }
+            
+            //确认操作
+            
+            function srv5020_purchase_order_detail_confirm() {
+                Aurora.showConfirm('${l:MODULES/SRV/SRV5020/SRV_PURCHASE_ORDER_CONFIRM.SCREEN.TITLE}', '${l:PUR_HEADERS_ALL.CONFIRM_NOTE}', function() {
+                    flag = 'Y';
+                    srv5020_purchase_order_detail_save();
+                    
+                }, null, 300, 100);
+            }
+            
+            //采购订单确认逻辑
+            
+            function srv5020_detail_confirm() {
+                   
+                    var datas = [];
+                    Aurora.Masker.mask($('pur_purchase_order_detail_window').wrap, '${l:PUR_HEADERS_ALL.SUBMITING}');
+                     Aurora.request({
+                        url: '${/request/@context_path}/autocrud/srv.SRV5020.purchase_order_confirm/execute?pur_header_id=' + ${/parameter/@pur_header_id},
+                        para: datas,
+                        success: function() {
+                            Aurora.Masker.unmask($('pur_purchase_order_detail_window').wrap);
+                            $('pur_purchase_order_detail_window').close();
+                            srv5020_purchase_order_query();
+                        },
+                        failure: function(res) {
+                            Aurora.Masker.unmask($('pur_purchase_order_detail_window').wrap);
+                        },
+                        error: function(res) {
+                            Aurora.Masker.unmask($('pur_purchase_order_detail_window').wrap);
+                        },
+                        scope: this
+                    });
+            
+            
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="srv5020_purchase_order_detail_ds" autoCount="true" autoPageSize="true" autoQuery="true" loadData="true" model="srv.SRV5020.srv_purchase_order_detail" queryUrl="${/request/@context_path}/autocrud/srv.SRV5020.srv_purchase_order_detail/query?pur_header_id=${/parameter/@pur_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="pur_header_id"/>
+                    <a:field name="pur_line_location_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="srv5020_purchase_order_detail_header_ds" loadData="true" model="srv.SRV5020.srv_purchase_order_confirm" queryUrl="${/request/@context_path}/autocrud/srv.SRV5020.srv_purchase_order_confirm/query?pur_header_id=${/parameter/@pur_header_id}"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="srv5020_purchase_order_detail_save" text="HAP_SAVE" width="100"/>
+                <a:toolbarButton click="srv5020_purchase_order_detail_confirm" text="CONFIRM" width="100"/>
+                <a:toolbarButton click="srv5020_detail_Operate_Record" text="PUR_HEADERS_ALL.OPERATION_RECORD" width="100"/>
+                <a:toolbarButton click="srv5020_purchase_order_detail_return" text="HAP_BACK" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100">
+                <a:textField name="segment1" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.SEGMENT1" readOnly="true"/>
+                <a:textField name="release_num" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.RELEASE_NUM" readOnly="true"/>
+                <a:textField name="revision_num" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.REVISION_NUM" readOnly="true"/>
+                <a:textField name="agent_name" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.PUR_BUYER" readOnly="true"/>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:textField name="currency_code" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.CURRENCY_CODE" readOnly="true"/>
+                <a:textField name="sum_amount" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.AMOUNT" readOnly="true"/>
+                <a:textField name="data_source" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="EBS_DATA_RESOURCE" readOnly="true"/>
+                <a:textField name="creation_date" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.CREATION_DATE" readOnly="true"/>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:textField name="type_lookup_desc" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.ORDER_TYPE_ID" readOnly="true"/>
+                <a:textField name="ship_to_location_name" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.SHIP_TO_LOCATION_ID" readOnly="true"/>
+                <a:textField name="bill_to_location_name" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.BILL_TO_LOCATION_ID" readOnly="true"/>
+                <a:textField name="company_name" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.COMPANY" readOnly="true"/>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:textField name="release_date_desc" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.RELEASE_DATE" readOnly="true"/>
+                <a:textField name="reply_date_desc" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.REPLY_DATE" readOnly="true"/>
+                <a:textField name="vendor_name" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.VENDOR_ID" readOnly="true"/>
+                <a:textField name="vendor_site_name" bindTarget="srv5020_purchase_order_detail_header_ds" prompt="PUR_HEADERS_ALL.VENDOR_SITE" readOnly="true"/>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:textArea name="comments" bindTarget="srv5020_purchase_order_detail_header_ds" height="30" prompt="PUR_HEADERS_ALL.COMMENTS" readOnly="true" width="800"/>
+            </a:hBox>
+            <a:grid id="srv5020_purchase_order_detail_grid" bindTarget="srv5020_purchase_order_detail_ds" height="450" marginHeight="300" marginWidth="65" navBar="true">
+                <a:toolBar>
+                    <a:button text="HAP_EXPORT" type="excel"/>
+                    <a:button text="HAP_CLEAR" type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="line_num" align="center" lock="true" prompt="PUR_LINES_ALL.LINE_NUM" sortable="true" width="25"/>
+                    <a:column name="shipment_num" align="center" lock="true" prompt="PUR_LINE_LOCATIONS_ALL.SHIPMENT_NUM" sortable="true" width="40"/>
+                    <a:column name="item_description" align="center" lock="true" prompt="PUR_LINES_ALL.ITEM_ID" width="100"/>
+                    <a:column name="item_specs" align="left" lock="true" prompt="MTL_SYSTEM_VENDOR_ITEMS.ITEM_SPECS" width="100"/>
+                    <a:column name="item_model" align="left" lock="true" prompt="MTL_SYSTEM_VENDOR_ITEMS.ITEM_MODEL" width="100"/>
+                    <a:column name="quantity" align="right" lock="true" prompt="PUR_LINES_ALL.QUANTITY" sortable="true" width="40"/>
+                    <a:column name="unit_meas_lookup_code" align="center" lock="true" prompt="PUR_LINES_ALL.UNIT_MEAS_LOOKUP_CODE" width="40"/>
+                    <a:column name="unit_price" align="right" prompt="PUR_LINES_ALL.UNIT_PRICE" renderer="Aurora.formatMoney" sortable="true" width="40"/>
+                    <a:column name="line_amount" align="right" prompt="PUR_LINES_ALL.LINE_AMOUNT" width="60"/>
+                    <a:column name="need_by_date" align="center" prompt="PUR_LINE_LOCATIONS_ALL.NEED_BY_DATE" sortable="true" width="80"/>
+                    <a:column name="promised_date" align="center" prompt="PUR_LINE_LOCATIONS_ALL.PROMISED_DATE" sortable="true" width="80"/>
+                    <a:column name="consigned_flag" align="center" prompt="PUR_LINE_LOCATIONS_ALL.CONSIGNED_FLAG" width="50"/>
+                    <a:column name="vendor_desc" align="center" editor="pur_order_detail_tf" prompt="PUR_LINE_LOCATIONS_ALL.VENDOR_DESC" width="80"/>
+                    <a:column name="ship_to_location_name" align="center" prompt="PUR_HEADERS_ALL.SHIP_TO_LOCATION_ID" width="50"/>
+                    <a:column name="warehouse_name" align="center" prompt="PUR_LINE_LOCATIONS_ALL.WAREHOUSE_ID" width="60"/>
+                    <a:column name="inv_location_name" align="center" prompt="PUR_LINE_LOCATIONS_ALL.WAREHOUSE_ID" width="60"/>
+                    <a:column name="bill_to_location_name" align="center" prompt="PUR_HEADERS_ALL.BILL_TO_LOCATION_ID" width="50"/>
+                    <a:column name="line_type_name" align="center" prompt="PUR_LINES_ALL.LINE_TYPE_ID" width="50"/>
+                    <a:column name="category_name" align="center" prompt="PUR_LINES_ALL.CATEGORY_NAME" width="50"/>
+                    <a:column name="secondary_unit_of_measure" align="center" prompt="PUR_LINES_ALL.SECONDARY_UNIT_OF_MEASURE" width="50"/>
+                    <a:column name="secondary_quantity" align="right" prompt="PUR_LINES_ALL.SECONDARY_QUANTITY" width="50"/>
+                    <a:column name="c_attribute1" align="left" prompt="PUR_LINE_LOCATIONS_ALL.S_ATTRIBUTE2" width="80"/>
+                    <a:column name="c_attribute2" align="left" prompt="PUR_LINE_LOCATIONS_ALL.S_ATTRIBUTE3" width="80"/>
+                    <a:column name="c_attribute3" align="left" prompt="PUR_LINE_LOCATIONS_ALL.S_ATTRIBUTE4" width="80"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="pur_order_detail_tf"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

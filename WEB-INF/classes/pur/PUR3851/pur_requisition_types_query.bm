@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: ldd  
+    $Date: 2011-10-8 涓嬪崍03:36:57  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t.REQUISITION_TYPE_ID,
+                    t.REQUISITION_TYPE_CODE,
+                    t.description,
+                    t.company_id,
+                    (SELECT
+                        fv.COMPANY_SHORT_NAME
+                    FROM
+                        fnd_companies_vl fv
+                    WHERE
+                        fv.COMPANY_ID = t.company_id
+                    ) company_desc,
+                    t.currency_code,
+                    t.enabled_flag,
+                    t.auto_approve_flag,
+                    t.reserve_budget,
+                    t.budget_control_enabled,
+                    t.requisition_type_id,
+                    DECODE(
+                    (SELECT
+                        * FROM
+                        (SELECT
+                            u.requisition_type_id
+                        FROM
+                            PUR_REQUISITION_TYPES u
+                        WHERE
+                            EXISTS
+                            (SELECT
+                                1
+                            FROM
+                                PUR_REQUISITION_HEADERS H
+                            WHERE
+                                H.PUR_REQUISITION_TYPE_ID = u.requisition_TYPE_ID
+                            )
+                        ) l WHERE l.requisition_type_id =t.REQUISITION_TYPE_ID
+                    ) ,'','Y','N') flag,
+                    t.pur_order_type_id,
+                    (SELECT
+                        a.description
+                    FROM
+                        pur_purchase_order_types_vl a
+                    WHERE
+                        a.order_type_id=t.pur_order_type_id
+                    ) order_type_code,
+                    unique_template_flag,
+                    default_template_id,
+                    (SELECT
+                        tv.template_desc
+                    FROM
+                        fnd_flex_templates_vl tv
+                    WHERE
+                        tv.template_id = t.default_template_id
+                    ) default_template_desc
+                FROM
+                    pur_requisition_types_vl t #WHERE_CLAUSE#
+                ORDER BY
+                    t.REQUISITION_TYPE_CODE
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="requisition_type_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="REQUISITION_TYPE_ID"/>
+        <bm:field name="requisition_type_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="REQUISITION_TYPE_CODE" prompt="PUR_REQUISITION_TYPES.REQUISITION_TYPE_CODE"/>
+        <bm:field name="description" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DESCRIPTION" prompt="PUR_REQUISITION_TYPES.DESCRIPTION"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID"/>
+        <bm:field name="currency_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CURRENCY_CODE"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG"/>
+        <bm:field name="auto_approve_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="AUTO_APPROVE_FLAG"/>
+        <bm:field name="reserve_budget" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="RESERVE_BUDGET"/>
+        <bm:field name="budget_control_enabled" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BUDGET_CONTROL_ENABLED"/>
+        <bm:field name="flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FLAG"/>
+        <bm:field name="pur_order_type_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PUR_ORDER_TYPE_ID"/>
+        <bm:field name="order_type_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ORDER_TYPE_CODE"/>
+        <bm:field name="company_desc" prompt="FND_COMPANIES.COMPANY"/>
+        <bm:field name="unique_template_flag" prompt="PUR_REQUISITION_TYPES.UNIQUE_TEMPLATE_FLAG"/>
+        <bm:field name="default_template_id"/>
+        <bm:field name="default_template_desc" prompt="PUR_REQUISITION_TYPES.DEFAULT_TEMPLATE"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="requisition_type_code" queryExpression="requisition_type_code  like &apos;%&apos;||upper(${@requisition_type_code})||&apos;%&apos;"/>
+        <bm:query-field name="description" queryExpression="description  like &apos;%&apos;||${@description}||&apos;%&apos;"/>
+        <bm:query-field name="quick_value" queryExpression="(requisition_type_code like upper(${@quick_value})||&apos;%&apos; or description like &apos;%&apos;||${@quick_value}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter name="companye_id" enforceOperations="query" expression="company_id =${@company_id}"/>
+    </bm:data-filters>
+</bm:model>

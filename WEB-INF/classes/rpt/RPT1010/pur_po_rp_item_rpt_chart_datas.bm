@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-9-17 下午5:18:21  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="PUR_PO_RP_DETAILS">
+    <bm:fields>
+        <bm:field name="rp_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="RP_HEADER_ID" prompt="PUR_PO_RP_DETAILS.RP_HEADER_ID"/>
+        <bm:field name="period_name"/>
+        <bm:field name="item_category_name1"/>
+        <bm:field name="item_category_name2"/>
+        <bm:field name="item_category_name3"/>
+        <bm:field name="item_category_name4"/>
+        <bm:field name="item_category_name5"/>
+        <bm:field name="item_category_name6"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t1.name1 / 10000 item_category_name1,
+                    DECODE(${@show_number},'1',NULL,t1.name2 / 10000) item_category_name2,
+                    DECODE(${@show_number},'1',NULL,'2',NULL,t1.name3 / 10000) item_category_name3,
+                    DECODE(${@show_number},'1',NULL,'2',NULL,'3',NULL,t1.name4 / 10000) item_category_name4,
+                    DECODE(${@show_number},'1',NULL,'2',NULL,'3',NULL,'4',NULL,t1.name5 / 10000) item_category_name5,
+                    DECODE(${@show_number},'1',NULL,'2',NULL,'3',NULL,'4',NULL,'5',NULL,t1.name6 / 10000) item_category_name6,
+                    t1.period_name,
+                    t1.rp_header_id
+                FROM
+                    (SELECT
+                        sum(decode(n.item_category_id,n1.item_category_id,n.total_amount,0)) name1,
+                        sum(decode(n.item_category_id,n2.item_category_id,n.total_amount,0)) name2,
+                        sum(decode(n.item_category_id,n3.item_category_id,n.total_amount,0)) name3,
+                        sum(decode(n.item_category_id,n4.item_category_id,n.total_amount,0)) name4,
+                        sum(decode(n.item_category_id,n5.item_category_id,n.total_amount,0)) name5,
+                        sum(decode(n.item_category_id,n6.item_category_id,n.total_amount,0)) name6,
+                        n.period_name,
+                        n.rp_header_id
+                    FROM
+                        (SELECT
+                            sc.item_category_id,
+                            pd.total_amount,
+                            pd.rp_header_id,
+                            pd.period_name
+                        FROM
+                            (SELECT
+                                item_category_id
+                            FROM
+                                (SELECT
+                                    SUM(total_amount) SUM,
+                                    item_category_id
+                                FROM
+                                    PUR_PO_RP_DETAILS pr,
+                                    rpt_setting_frequency sf
+                                WHERE
+                                    pr.rp_header_id = sf.rp_header_id AND
+                                    sf.rpt_code = 'RPT5010'
+                                GROUP BY
+                                    item_category_id
+                                ORDER BY
+                                    SUM DESC
+                                )
+                            WHERE
+                                rownum < 7
+                            ) sc,
+                            PUR_PO_RP_DETAILS pd,
+                            rpt_setting_frequency sf
+                        WHERE
+                            pd.rp_header_id     = sf.rp_header_id AND
+                            sf.rpt_code = 'RPT5010' AND
+                            pd.item_category_id = sc.item_category_id
+                        ) n,
+                        (SELECT
+                                item_category_id
+                            FROM
+                                (SELECT
+                                    SUM(total_amount) SUM,
+                                    item_category_id
+                                FROM
+                                    PUR_PO_RP_DETAILS pr,
+                                    rpt_setting_frequency sf
+                                WHERE
+                                    pr.rp_header_id = sf.rp_header_id AND
+                                    sf.rpt_code = 'RPT5010' 
+                                GROUP BY
+                                    item_category_id
+                                ORDER BY
+                                    SUM DESC
+                                )
+                            WHERE
+                                rownum = 1
+                            ) n1,
+                        (SELECT
+                                item_category_id
+                            FROM
+                                (SELECT
+                                    item_category_id,
+                                    SUM
+                                FROM
+                                    (SELECT
+                                        SUM(total_amount) SUM,
+                                        item_category_id
+                                    FROM
+                                        PUR_PO_RP_DETAILS pr,
+                                        rpt_setting_frequency sf
+                                    WHERE
+                                        pr.rp_header_id = sf.rp_header_id AND
+                                        sf.rpt_code = 'RPT5010' 
+                                    GROUP BY
+                                        item_category_id
+                                    ORDER BY
+                                        SUM DESC
+                                    )
+                                WHERE
+                                    rownum < 3
+                                ORDER BY
+                                    SUM
+                                )
+                            WHERE
+                                rownum = 1
+                            ) n2,
+                        (SELECT
+                                item_category_id
+                            FROM
+                                (SELECT
+                                    item_category_id,
+                                    SUM
+                                FROM
+                                    (SELECT
+                                        SUM(total_amount) SUM,
+                                        item_category_id
+                                    FROM
+                                        PUR_PO_RP_DETAILS pr,
+                                        rpt_setting_frequency sf
+                                    WHERE
+                                        pr.rp_header_id = sf.rp_header_id AND
+                                        sf.rpt_code = 'RPT5010'
+                                    GROUP BY
+                                        item_category_id
+                                    ORDER BY
+                                        SUM DESC
+                                    )
+                                WHERE
+                                    rownum < 4
+                                ORDER BY
+                                    SUM
+                                )
+                            WHERE
+                                rownum = 1
+                            )  n3,
+                        (SELECT
+                                item_category_id
+                            FROM
+                                (SELECT
+                                    item_category_id,
+                                    SUM
+                                FROM
+                                    (SELECT
+                                        SUM(total_amount) SUM,
+                                        item_category_id
+                                    FROM
+                                        PUR_PO_RP_DETAILS pr,
+                                        rpt_setting_frequency sf
+                                    WHERE
+                                        pr.rp_header_id = sf.rp_header_id AND
+                                        sf.rpt_code = 'RPT5010'
+                                    GROUP BY
+                                        item_category_id
+                                    ORDER BY
+                                        SUM DESC
+                                    )
+                                WHERE
+                                    rownum < 5
+                                ORDER BY
+                                    SUM
+                                )
+                            WHERE
+                                rownum = 1
+                            ) n4,
+                        (SELECT
+                                item_category_id
+                            FROM
+                                (SELECT
+                                    item_category_id,
+                                    SUM
+                                FROM
+                                    (SELECT
+                                        SUM(total_amount) SUM,
+                                        item_category_id
+                                    FROM
+                                        PUR_PO_RP_DETAILS pr,
+                                        rpt_setting_frequency sf
+                                    WHERE
+                                        pr.rp_header_id = sf.rp_header_id AND
+                                        sf.rpt_code = 'RPT5010'
+                                    GROUP BY
+                                        item_category_id
+                                    ORDER BY
+                                        SUM DESC
+                                    )
+                                WHERE
+                                    rownum < 6
+                                ORDER BY
+                                    SUM
+                                )
+                            WHERE
+                                rownum = 1
+                            ) n5,
+                        (SELECT
+                                item_category_id
+                            FROM
+                                (SELECT
+                                    item_category_id,
+                                    SUM
+                                FROM
+                                    (SELECT
+                                        SUM(total_amount) SUM,
+                                        item_category_id
+                                    FROM
+                                        PUR_PO_RP_DETAILS pr,
+                                        rpt_setting_frequency sf
+                                    WHERE
+                                        pr.rp_header_id = sf.rp_header_id AND
+                                        sf.rpt_code = 'RPT5010'
+                                    GROUP BY
+                                        item_category_id
+                                    ORDER BY
+                                        SUM DESC
+                                    )
+                                WHERE
+                                    rownum < 7
+                                ORDER BY
+                                    SUM
+                                )
+                            WHERE
+                                rownum = 1
+                            ) n6
+                      group by n.period_name,n.rp_header_id
+                    ) t1,
+                    (select sd.flex_value_code from rpt_setting_headers sh,rpt_setting_lines sl,rpt_setting_details sd
+                    where sh.rpt_code = 'RPT5010' and
+                          sh.business_group = )
+                ORDER BY
+                    to_date(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(period_name,'年','-1'),'上半-1','1'),'下半-1','2'),'一季度','1'),'二季度','2'),'三季度','3'),'四季度','4'),'月'),'YYYY-MM') DESC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <!-- <bm:query-field field="rp_header_id" queryExpression="t1.rp_header_id = ${@rp_header_id}"/> -->
+        <!-- <bm:query-field name="show_number" queryExpression="show_number = ${@show_number}"/> --><![CDATA[
+        
+        
+        
+        
+    ]]></bm:query-fields>
+    <!--     <bm:data-filters>
+        <bm:data-filter enforceOperations="query" expression="t1.rp_header_id = ${@rp_header_id}"/>
+    </bm:data-filters> -->
+</bm:model>

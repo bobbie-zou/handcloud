@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-6-5 下午2:32:34  
+    $Revision: 1.0  
+    $Purpose: 组织架构树型数据BM 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.data_type,
+                    v.data_id,
+                    v.data_code,
+                    v.data_desc,
+                    v.data_parent_id,
+                    --v.client,
+                    v.sequence,
+                    v.checked_flag,
+                    v.expand_flag
+                FROM
+                    (SELECT
+                        'COMPANY' AS data_type,
+                        fcv.company_id AS data_id,
+                        fcv.company_code AS data_code,
+                        fcv.company_full_name AS data_desc,
+                        fcv.parent_company_id AS data_parent_id,
+                        --fcv.client AS client,
+                        fcv.sequence AS sequence,
+                        NULL AS checked_flag,
+                        'N' AS expand_flag
+                    FROM
+                        fnd_companies_vl fcv
+                    WHERE
+                        fcv.enabled_flag = 'Y' AND
+                        (
+                            fcv.end_date_active IS NULL OR
+                            SYSDATE BETWEEN TRUNC(fcv.start_date_active) AND TRUNC(fcv.end_date_active)
+                        )
+                    UNION ALL
+                    SELECT
+                        'UNIT' AS data_type,
+                        ouv.unit_id AS data_id,
+                        ouv.unit_code AS data_code,
+                        ouv.unit_desc AS data_desc,
+                        ouv.parent_unit_id AS data_parent_id,
+                        --ouv.client AS client,
+                        ouv.sequence AS sequence,
+                        NULL AS checked_flag,
+                        'N' AS expand_flag
+                    FROM
+                        exp_org_unit_vl ouv
+                    WHERE
+                        ouv.enabled_flag    = 'Y' AND
+                        ouv.parent_unit_id IS NOT NULL
+                    UNION ALL
+                    SELECT
+                        'COMPANY_UNIT' AS data_type,
+                        ouv.unit_id AS data_id,
+                        ouv.unit_code AS data_code,
+                        ouv.unit_desc AS data_desc,
+                        ouv.company_id AS data_parent_id,
+                        --ouv.client AS client,
+                        ouv.sequence AS sequence,
+                        NULL AS checked_flag,
+                        'N' AS expand_flag
+                    FROM
+                        exp_org_unit_vl ouv
+                    WHERE
+                        ouv.enabled_flag    = 'Y' AND
+                        ouv.parent_unit_id IS NULL
+                    UNION ALL
+                    SELECT
+                        'POSITION' AS data_type,
+                        opv.position_id AS data_id,
+                        opv.position_code AS data_code,
+                        opv.description AS data_desc,
+                        opv.parent_position_id AS data_parent_id,
+                        --opv.client AS client,
+                        opv.sequence AS sequence,
+                        NULL AS checked_flag,
+                        'N' AS expand_flag
+                    FROM
+                        exp_org_position_vl opv
+                    WHERE
+                        opv.enabled_flag        = 'Y' AND
+                        opv.parent_position_id IS NOT NULL
+                    UNION ALL
+                    SELECT
+                        'UNIT_POSITION' AS data_type,
+                        opv.position_id AS data_id,
+                        opv.position_code AS data_code,
+                        opv.description AS data_desc,
+                        opv.unit_id AS data_parent_id,
+                        --opv.client AS client,
+                        opv.sequence AS sequence,
+                        NULL AS checked_flag,
+                        'N' AS expand_flag
+                    FROM
+                        exp_org_position_vl opv
+                    WHERE
+                        opv.enabled_flag        = 'Y' AND
+                        opv.parent_position_id IS NULL
+                    ) v 
+                    /* #AUTHORIY_FROM#  */
+                    #WHERE_CLAUSE# 
+                    /* #AUTHORIY_WHERE# */
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_unit_position" queryExpression="v.data_desc like &apos;%&apos;||trim(${@company_unit_position})||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <!-- <authority client_alias="v" client_name="client"/> -->
+    <!-- <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features> -->
+</bm:model>

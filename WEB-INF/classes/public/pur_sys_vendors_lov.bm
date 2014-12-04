@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-9-3 下午2:29:50  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            SELECT 
+            t1.VENDOR_ID,
+       t1.data_source_code AS vendor_code,
+       t1.VENDOR_TYPE_ID,
+       (SELECT d.description_text
+          FROM pur_vender_types t, fnd_descriptions d
+         WHERE t.description_id = d.description_id
+           AND t.vender_type_id = t1.vendor_type_id
+           AND d.language = ${/session/@lang}) AS vendor_type_name,
+       t1.SHORT_NAME_ID,
+       (SELECT DESCRIPTION_TEXT
+          FROM fnd_descriptions
+         WHERE DESCRIPTION_ID = t1.short_name_id
+           AND Language = ${/session/@lang}) AS short_name,
+       (SELECT DESCRIPTION_TEXT
+          FROM fnd_descriptions
+         WHERE DESCRIPTION_ID = t1.full_name_id
+           AND Language = ${/session/@lang}) AS full_name,
+       t1.FULL_NAME_ID,
+       t1.VERSION_NUMBER 
+       from pur_system_venders t1
+       #WHERE_CLAUSE#
+       order by vendor_code asc
+       ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="vendor_id"/>
+        <bm:field name="vendor_code" displayWidth="150" forDisplay="true" forQuery="true" prompt="供应商编码"/>
+        <bm:field name="vendor_type_id"/>
+        <bm:field name="vendor_type_name"/>
+        <bm:field name="short_name_id"/>
+        <bm:field name="short_name"/>
+        <bm:field name="full_name" displayWidth="300" forDisplay="true" forQuery="true" prompt="供应商全称"/>
+        <bm:field name="full_name_id"/>
+        <bm:field name="version_number"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="vendor_id" queryExpression="vendor_id = ${@vendor_id}"/>
+        <bm:query-field name="vendor_code" queryExpression="data_source_code = ${@vendor_code}"/>
+        <bm:query-field name="full_name" queryExpression="exists (select 1 from fnd_descriptions d where d.description_id = t1.full_name_id and d.language = ${/session/@lang} and d.description_text like &apos;%&apos;||${@full_name}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="not exists (select 1 from (SELECT p.vendor_id, f.company_id FROM pur_vendor_company_maintain_v p, fnd_auth_company_v f WHERE p.COMPANY_ID = f.company_id AND f.session_id = ${/session/@session_id} and f.company_id = ${@company_id}) t3 where t1.vendor_id = t3.vendor_id)"/>
+    </bm:data-filters>
+</bm:model>

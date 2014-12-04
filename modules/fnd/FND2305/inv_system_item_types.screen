@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duxiaofu4653 $
+    $Date: 2014/02/10 02:15:46 $
+    $Revision: 1.6 $
+    $Purpose: 物品类型定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.flex_value_set_code = &apos;INV_ITEM_TYPE_METHODS&apos;" model="public.fnd_flex_value_v_lov" rootPath="inv_item_type_methods"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="inv_system_item_types_allocate_link" url="${/request/@context_path}/modules/fnd/FND2305/inv_system_item_types_allocate.screen"/>
+        <script><![CDATA[
+            function item_code(record, name) {
+                if (name == "item_type_code" && record.isNew) {
+                    return "inv_system_item_types_textField";
+                } else {
+                    return '';
+                }
+            }
+            
+            function allocate(value, record, name) {
+                if (!record.isNew) {
+                    var itemtypeid = record.get('item_type_id');
+                    return '<a href="javascript:ItemAllocate(' + itemtypeid + ')">${l:INV_SYSTEM_ITEM_TYPES.ALLOCATE}</a>';
+                }
+            }
+            
+            function ItemAllocate(itemtypeid) {
+                new Aurora.Window({
+                    id: 'inv_system_item_types_allocate_window',
+                    url: $('inv_system_item_types_allocate_link').getUrl() + '?item_type_id=' + itemtypeid,
+                    title: '${l:INV_SYSTEM_ITEM_TYPES.ALLOCATE}',
+                    height: 469,
+                    width: 650
+                });
+            }
+            
+            function dbquery() {
+                $('inv_system_item_types_result_ds').query();
+            }
+            
+            function reset() {
+                $('inv_system_item_types_query_ds').reset();
+            }
+            
+            //物品类型定义grid编辑器调用方法，用以控制保存后是否可维护
+            
+            function inv1060_sysItemTypeEditFunction(record, name) {
+                //物品类型代码，保存后不可修改
+                if (name == "item_type_code") {
+                    if (record.isNew) {
+                        return 'inv_system_item_types_textField';
+                    } else {
+                        return '';
+                    }
+                }
+            
+                //物品编码方式，保存后不可修改
+                if (name == "coding_method_display") {
+                    if (record.isNew) {
+                        return 'fnd2305_inv_sys_item_type_result_grid_cb';
+                    } else {
+                        return '';
+                    }
+                }
+            
+                //编码规则，保存后不可修改
+                if (name == "coding_rule_display") {
+                    if(record.get('coding_method') && record.get('coding_method') == 'SIMPLIFIED' && record.isNew){
+                        return 'fnd2305_inv_sys_item_type_result_grid_lov';
+                    }else{
+                        return '';
+                    }
+                }
+            
+                //编码规则，保存后不可修改
+                if (name == 'flex_template_instance_display') {
+                    if(record.get('coding_method') && record.get('coding_method') == 'ADVANCED' && record.isNew){
+                        return 'fnd2305_inv_sys_item_type_result_grid_lov';
+                    }else{
+                        return '';
+                    }
+                }
+            }
+            
+            //物品类型grid数据发生修改时，执行update事件
+            
+            function fnd2305_sysItemTypeResultUpdate(ds, record, name, value, oldvalue) {
+                //物品编码方式更改时
+                if (name == "coding_method") {
+                    //清空编码规则LOV带出的值
+                    record.set('complex_coding_rule', null);
+                    record.set('flex_template_instance_display', null);
+                    record.set('coding_rule_display', null);
+                    record.set('coding_rule', null);
+                    record.set('coding_rule_object_id', null);
+                    //简单编码时，编码规则选择的是编码规则LOV
+                    if (value == "SIMPLIFIED") {
+            
+                        //设置编码规则LOV的只读、必输属性
+                        record.getMeta().getField('flex_template_instance_display').setRequired(false);
+                        record.getMeta().getField('flex_template_instance_display').setReadOnly(false);
+                        record.getMeta().getField('coding_rule_display').setRequired(true);
+                        record.getMeta().getField('coding_rule_display').setReadOnly(false);
+            
+                        //高级编码时，编码规则选择的是弹性域模板ID
+                    } else if (value == "ADVANCED") {
+            
+                        //设置编码规则LOV的只读、必输属性
+                        record.getMeta().getField('flex_template_instance_display').setReadOnly(false);
+                        record.getMeta().getField('flex_template_instance_display').setRequired(true);
+                        record.getMeta().getField('coding_rule_display').setRequired(false);
+                        record.getMeta().getField('coding_rule_display').setReadOnly(true);
+            
+                        //为空时，编码规则为只读,不必输
+                    } else {
+                        record.getMeta().getField('flex_template_instance_display').setRequired(false);
+                        record.getMeta().getField('flex_template_instance_display').setReadOnly(true);
+                        record.getMeta().getField('coding_rule_display').setRequired(false);
+                        record.getMeta().getField('coding_rule_display').setReadOnly(true);
+            
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2305_inv_item_type_methods_list_ds">
+                <a:datas dataSource="/model/inv_item_type_methods"/>
+            </a:dataSet>
+            <a:dataSet id="inv_system_item_types_query_ds" autoCreate="true"/>
+            <a:dataSet id="inv_system_item_types_result_ds" autoQuery="true" model="fnd.FND2305.inv_system_item_types" queryDataSet="inv_system_item_types_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="item_type_code" required="true" requiredMessage="物品类型代码不能为空"/>
+                    <a:field name="item_type_name" required="true" requiredMessage="物品类型描述不能为空"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="allocateid"/>
+                    <a:field name="coding_method_display" displayField="flex_desc" options="fnd2305_inv_item_type_methods_list_ds" prompt="INV_SYSTEM_ITEM_TYPES.CODING_METHOD" required="true" requiredMessage="编码方式不能为空" returnField="coding_method" valueField="flex_value"/>
+                    <a:field name="coding_rule_display" autoComplete="true" autoCompleteField="document_category_display" lovGridHeight="300" lovHeight="450" lovService="public.fnd_coding_rule_category_lov" lovWidth="550" prompt="INV_SYSTEM_ITEM_TYPES.CODING_RULE" requiredMessage="编码规则不能为空" title="INV_ORG.SYS_CODING_RULE_LOV_TITLE">
+                        <a:mapping>
+                            <a:map from="document_category_display" to="coding_rule_display"/>
+                            <a:map from="document_category" to="coding_rule"/>
+                            <a:map from="coding_rule_object_id" to="coding_rule_object_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="flex_template_instance_display" lovHeight="500" lovService="fnd.FND2305.inv_system_item_types_advanced_lov" lovWidth="500" prompt="INV_SYSTEM_ITEM_TYPES.FLEX_TEMPLATE_INSTANCE_ID" requiredMessage="弹性域模版不能为空" title="INV_ORG.FLEX_TEMPLATE_LOV_TITLE">
+                        <a:mapping>
+                            <a:map from="template_desc" to="flex_template_instance_display"/>
+                            <a:map from="temp_instance_id" to="flex_template_instance_id"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd2305_sysItemTypeResultUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="grid" className="item-rbtn-blue button-add" style="margin-left:20px;" type="add" width="100"/>
+            <a:gridButton bind="grid" className="item-rbtn-blue button-clear" style="margin-left:20px;" type="clear" width="100"/>
+            <a:gridButton bind="grid" className="item-rbtn-blue button-save" style="margin-left:20px;" type="save" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="inv_system_item_types_query_ds" defaultQueryField="item_type_code_name" defaultQueryHint="物品类型代码、物品类型描述" resultTarget="inv_system_item_types_result_ds" style="width:100%;border:none"/>
+        <a:grid id="grid" bindTarget="inv_system_item_types_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="item_type_code" align="center" editorFunction="item_code" width="100"/>
+                <a:column name="item_type_name" align="left" editor="inv_system_item_types_textField" width="100"/>
+                <a:column name="coding_method_display" align="center" editorFunction="inv1060_sysItemTypeEditFunction" width="80"/>
+                <a:column name="coding_rule_display" align="center" editorFunction="inv1060_sysItemTypeEditFunction" width="100"/>
+                <a:column name="flex_template_instance_display" align="center" editorFunction="inv1060_sysItemTypeEditFunction" width="100"/>
+                <a:column name="enabled_flag" editor="inv_system_item_types_checkbox" width="80"/>
+                <!-- <a:column name="allocateid" align="center" prompt="INV_SYSTEM_ITEM_TYPES.ALLOCATE" renderer="allocate" width="100"/> -->
+            </a:columns>
+            <a:editors>
+                <a:checkBox id="inv_system_item_types_checkbox"/>
+                <a:textField id="inv_system_item_types_textField" typeCase="upper"/>
+                <a:lov id="editor_grid_lov"/>
+                <a:comboBox id="fnd2305_inv_sys_item_type_result_grid_cb"/>
+                <a:lov id="fnd2305_inv_sys_item_type_result_grid_lov"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

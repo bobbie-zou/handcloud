@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tangrunyu3837 $
+    $Date: 2013/06/27 07:23:32 $
+    $Revision: 1.2 $
+    $Purpose: “会计期间控制”中，用于查询没有打开的期间信息
+-->
+<ns1:model xmlns:ns1="http://www.aurora-framework.org/schema/bm">
+    <ns1:operations>
+        <ns1:operation name="query">
+            <ns1:query-sql><![CDATA[
+                SELECT
+                    t.*,
+                    TO_CHAR(t.start_date,'yyyy-mm-dd') start_date_c,
+                    TO_CHAR(t.end_date,'yyyy-mm-dd') end_date_c,
+                    ${@company_id} company_id
+                FROM
+                    gld_periods t,
+                    (SELECT
+                        MAX(s.internal_period_num) internal_period_num,
+                        s.period_set_code
+                    FROM
+                        gld_period_status s
+                    WHERE
+                        s.period_set_code = ${@period_set_code} AND
+                        s.company_id      =${@company_id}
+                    GROUP BY
+                        period_set_code
+                    UNION
+                    SELECT
+                        NULL,
+                        NULL
+                    FROM
+                        dual
+                    WHERE
+                        NOT EXISTS
+                        (SELECT
+                            1
+                        FROM
+                            gld_period_status s
+                        WHERE
+                            s.period_set_code = ${@period_set_code} AND
+                            s.company_id      = ${@company_id}
+                        )
+                    ) b
+                WHERE
+                    (
+                        b.internal_period_num IS NULL OR
+                        t.internal_period_num  >b.internal_period_num
+                    )
+                    AND
+                    (
+                        b.period_set_code IS NULL OR
+                        t.period_set_code  =b.period_set_code
+                    )
+                ORDER BY
+                    t.internal_period_num
+            ]]></ns1:query-sql>
+        </ns1:operation>
+    </ns1:operations>
+</ns1:model>

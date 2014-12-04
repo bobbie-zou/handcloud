@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Administrator  
+    $Date: 2013-6-6 上午10:58:30  
+    $Revision: 1.0  
+    $Purpose: 供应商主数据明细
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="pur2020_sys_vendor_attachment_file_download_link" url="${/request/@context_path}/atm_download.svc"/>
+        <script><![CDATA[
+			
+			//返回按钮事件
+			function pur2020_goBack(){
+			    //供应商是否作废
+			    var deleted_flag = $('pur2020_pur_system_venders_ds').getCurrentRecord().get('deleted_flag');
+			    //已作废，直接返回
+			    if(deleted_flag == 'Y'){
+			        $('pur2020_vendorEditWin').close();
+			    }else{//未作废
+			        //判断当前是否有未保存的数据
+				    if(modified_flag){
+				        //提示是否对数据进行保存
+				     	Aurora.showConfirm('${l:PROMPT}', '${l:PUR_SYS_VENDOR_BASICS.UNSAVED_WARNING}?', function(){
+				     	    pur2020_vendorSave();
+				     	}, function(){
+				     	    $('pur2020_vendorEditWin').close();
+				     	});
+				     	return;
+				    }else{
+				        $('pur2020_vendorEditWin').close();
+				    }
+			    }
+			}
+			//供应商附件渲染方法，点击超链接可直接下载
+			function pur2020_sysVendorAttachmentFileRenderer(value, record, name) {
+                var attachment_id = record.get('attachment_id');
+                var file_name = record.get('file_name');
+                if (attachment_id) {
+                    return '<a href="' + $('pur2020_sys_vendor_attachment_file_download_link').getUrl() + '?attachment_id=' + attachment_id + '">' + file_name + '</a>';
+                }
+            }
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur2010_pur_vendor_property_ds" fetchAll="true" lookupCode="PUR_VENDOR_PROPERTIES"/>
+            <a:dataSet id="pur2010_pur_vendor_id_type_ds" fetchAll="true" lookupCode="ID_TYPE"/>
+            <a:dataSet id="pur2020_pur_sys_vendor_status_ds" lookupCode="PUR_VENDOR_STATUS"/>
+            <a:dataSet id="pur2020_pur_sys_vendor_foreign_flag_ds" autoQuery="true" fetchAll="true" model="pur.PUR2010.pur_sys_vendor_internation_type"/>
+            <a:dataSet id="pur2020_pur_system_venders_ds" autoQuery="true" model="pur.PUR2010.pur_sys_vendor_basic_query" queryUrl="${/request/@context_path}/autocrud/pur.PUR2010.pur_sys_vendor_basic_query/query?vendor_id=${/parameter/@vendor_id}">
+                <a:fields>
+                    <a:field name="version_number" readOnly="true"/>
+                    <a:field name="vendor_code" readOnly="true"/>
+                    <a:field name="national_organization_code" readOnly="true"/>
+                    <a:field name="tax_id_number" readOnly="true"/>
+                    <a:field name="vendor_type_id"/>
+                    <a:field name="coding_rule_code"/>
+                    <a:field name="vendor_type_name" lovGridHeight="300" lovHeight="500" lovService="public.pur_sys_vendor_type_lov" lovWidth="600" readOnly="true" title="SYS_VENDOR_TYPE_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="vender_type_id" to="vendor_type_id"/>
+                            <a:map from="coding_rule_code" to="coding_rule_code"/>
+                            <a:map from="description" to="vendor_type_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="registered_currency_code"/>
+                    <a:field name="registered_currency_name" lovHeight="510" lovLabelWidth="100" lovService="public.pur_currency_code_lov" lovWidth="580" title="CURRENCY_SELECTION">
+                        <a:mapping>
+                            <a:map from="currency_code" to="registered_currency_code"/>
+                            <a:map from="currency_name" to="registered_currency_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="d_b_code" readOnly="true"/>
+                    <a:field name="full_name" readOnly="true"/>
+                    <a:field name="status"/>
+                    <a:field name="status_display" displayField="code_value_name" options="pur2020_pur_sys_vendor_status_ds" readOnly="true" required="true" returnField="status" valueField="code_value"/>
+                    <a:field name="artificial_person" required="true"/>
+                    <a:field name="enabled_flag" defaultValue="Y" readOnly="true"/>
+                    <a:field name="foreign_vendor_flag"/>
+                    <a:field name="foreign_vendor_flag_display" readOnly="true"/>
+                    <a:field name="country_code"/>
+                    <a:field name="country_name" lovHeight="500" lovService="public.fnd_country_lov" lovWidth="500" required="true" title="SYS_VENDOR_COUNTRY_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="country_code" to="country_code"/>
+                            <a:map from="country_name" to="country_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="province_id"/>
+                    <a:field name="province_name" lovHeight="500" lovWidth="500" title="SYS_VENDOR_REGION_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="region_id" to="province_id"/>
+                            <a:map from="region_name" to="province_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="city_id"/>
+                    <a:field name="city_name" lovHeight="500" lovWidth="500" title="SYS_VENDOR_CITY_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="region_id" to="city_id"/>
+                            <a:map from="region_name" to="city_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="payment_term_id"/>
+                    <a:field name="payment_term_code" lovHeight="500" lovLabelWidth="100" lovService="public.csh_payment_terms_lov" lovWidth="600" required="true" title="PUR_SYSTEM_VENDERS.PAYMENT_TERM">
+                        <a:mapping>
+                            <a:map from="payment_term_id" to="payment_term_id"/>
+                            <a:map from="payment_term_code" to="payment_term_code"/>
+                            <a:map from="payment_term_name" to="payment_term_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="payment_term_name"/>
+                    <a:field name="payment_method_id"/>
+                    <a:field name="payment_method_code" lovHeight="500" lovLabelWidth="100" lovService="public.csh_payment_method_lov" lovWidth="600" required="true" title="PUR_SYSTEM_VENDERS.PAYMENT_METHOD">
+                        <a:mapping>
+                            <a:map from="payment_method_id" to="payment_method_id"/>
+                            <a:map from="payment_method_code" to="payment_method_code"/>
+                            <a:map from="payment_method_name" to="payment_method_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="payment_method_name"/>
+                    <a:field name="trade_currency_code" lovHeight="510" lovLabelWidth="100" lovService="public.pur_currency_code_lov" lovWidth="580" required="true" title="CURRENCY_SELECTION">
+                        <a:mapping>
+                            <a:map from="currency_code" to="trade_currency_code"/>
+                            <a:map from="currency_name" to="trade_currency_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="trade_currency_name"/>
+                    <a:field name="tax_type_id"/>
+                    <a:field name="tax_type_code" lovHeight="500" lovService="public.fnd_tax_type_code_lov" lovWidth="500" required="true" title="SYS_VENDOR_TAX_SELECTION.TITLE">
+                        <a:mapping>
+                            <a:map from="tax_type_id" to="tax_type_id"/>
+                            <a:map from="tax_type_code" to="tax_type_code"/>
+                            <a:map from="description" to="tax_type_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="tax_type_name"/>
+                    <a:field name="offical_email" validator="pur2020_email_Validator"/>
+                    <a:field name="address"/>
+                    <a:field name="vendor_property"/>
+                    <a:field name="vendor_property_display" displayField="code_value_name" options="pur2010_pur_vendor_property_ds" readOnly="true" required="true" returnField="vendor_property" valueField="code_value"/>
+                    <a:field name="id_type"/>
+                    <a:field name="id_type_display" displayField="code_value_name" options="pur2010_pur_vendor_id_type_ds" readOnly="true" returnField="id_type" valueField="code_value"/>
+                    <a:field name="business_license_num" readOnly="true"/>
+                    <a:field name="license_validity_from" readOnly="true"/>
+                    <a:field name="license_validity_to" readOnly="true"/>
+                    <a:field name="id_code" readOnly="true"/>
+                    <a:field name="note" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur2020_pur_sys_vendor_contacts_ds" autoQuery="true" bindName="vendor_contact" bindTarget="pur2020_pur_system_venders_ds" model="pur.pur_sys_vendor_contacts" queryUrl="${/request/@context_path}/autocrud/pur.pur_sys_vendor_contacts/query?vendor_id=${/parameter/@vendor_id}">
+                <a:fields>
+                    <a:field name="enable_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="linkman_name" required="true"/>
+                    <a:field name="department" required="true"/>
+                    <a:field name="position" required="true"/>
+                    <a:field name="mobile_phone" required="true"/>
+                    <a:field name="telephone" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="N" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="default_contact_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur2020_pur_sys_vendor_org_ds" bindName="vendor_org" bindTarget="pur2020_pur_system_venders_ds" model="pur.pur_sys_vendor_org" queryUrl="${/request/@context_path}/autocrud/pur.pur_sys_vendor_org/query?vendor_id=${/parameter/@vendor_id}">
+                <a:fields>
+                    <a:field name="pur_org_id" defaultValue="1"/>
+                    <a:field name="pur_org_code" lovHeight="500" lovLabelWidth="100" lovService="public.pur_organization_lov" lovWidth="550" required="true" title="PUR_ORGANIZATIONS_ALLOCATE_INV_ORG_SERVICE.PUR_ORG">
+                        <a:mapping>
+                            <a:map from="pur_organization_id" to="pur_org_id"/>
+                            <a:map from="pur_organization_code" to="pur_org_code"/>
+                            <a:map from="pur_organization_name" to="pur_org_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur2020_pur_sys_vendor_categories_ds" bindName="vendor_category" bindTarget="pur2020_pur_system_venders_ds" model="pur.pur_sys_vendor_categories" queryUrl="${/request/@context_path}/autocrud/pur.pur_sys_vendor_categories/query?vendor_id=${/parameter/@vendor_id}">
+                <a:fields>
+                    <!-- 供应商分类集lov，预置 -->
+                    <!-- <a:field name="total_category_code" lovUrl="${/request/@context_path}/modules/pur/PUR2020/pur_sys_vendor_category_query.screen" lovWidth="700" lovHeight="600" title="供应商分类集维护" /> -->
+                    <a:field name="total_category_code" required="true"/>
+                    <a:field name="total_category_name" required="false"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="category_id" defaultValue="1"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur2020_pur_sys_vendor_attachment_ds" bindName="vendor_file" bindTarget="pur2020_pur_system_venders_ds" model="pur.PUR2010.pur_sys_vendor_attachment_file_query" queryUrl="${/request/@context_path}/autocrud/pur.PUR2010.pur_sys_vendor_attachment_file_query/query?vendor_id=${/parameter/@vendor_id}">
+                <a:fields>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur2010_pur_period_ds" autoQuery="true" fetchAll="true" model="public.get_current_period_year"/>
+            <a:dataSet id="pur2010_pur_sys_vendor_finance_info_ds" bindName="vendor_finance" bindTarget="pur2020_pur_system_venders_ds" model="pur.pur_sys_vendor_finance_info" queryUrl="${/request/@context_path}/autocrud/pur.pur_sys_vendor_finance_info/query?vendor_id=${/parameter/@vendor_id}">
+                <a:fields>
+                    <a:field name="year"/>
+                    <a:field name="year_display" displayField="period_year" options="pur2010_pur_period_ds" required="true" returnField="year" valueField="period_year"/>
+                    <a:field name="total_assets" required="true"/>
+                    <a:field name="prime_operating_revenue" required="true"/>
+                    <a:field name="net_profit" required="true"/>
+                    <a:field name="profit_margin" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:gridButton click="pur2020_goBack" style="margin-left:20px;" text="HAP_BACK" width="100"/>
+        </a:screenTopToolbar>
+        <a:vBox>
+            <a:hBox labelWidth="140">
+                <a:numberField name="version_number" bindTarget="pur2020_pur_system_venders_ds" decimalPrecision="1" readOnly="true"/>
+                <a:textField name="vendor_type_name" bindTarget="pur2020_pur_system_venders_ds" readOnly="true"/>
+                <a:textField name="vendor_code" bindTarget="pur2020_pur_system_venders_ds"/>
+            </a:hBox>
+            <a:hBox labelWidth="140">
+                <a:textField name="short_name" bindTarget="pur2020_pur_system_venders_ds" readOnly="true"/>
+                <a:textField name="full_name" bindTarget="pur2020_pur_system_venders_ds" width="448"/>
+            </a:hBox>
+            <a:hBox labelWidth="140">
+                <a:textField name="status_display" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYS_VENDOR_BASICS.STATUS"/>
+                <a:textField name="vendor_property_display" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYSTEM_VENDORS.VENDOR_PROPERTY"/>
+                <a:textField name="foreign_vendor_flag_display" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYSTEM_VENDERS.INTERNATIONAL_RELATION">
+                    <!--  <a:events>
+	                        <a:event name="select" handler="pur2020_foreignFlagChgHandler"/>
+	                    </a:events> --><![CDATA[
+                    
+                        
+                        
+                        
+	                   
+	                ]]></a:textField>
+            </a:hBox>
+            <a:hBox labelWidth="140">
+                <a:textField name="d_b_code" bindTarget="pur2020_pur_system_venders_ds"/>
+                <a:textField name="national_organization_code" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYS_VENDOR_BASICS.NATIONAL_ORGANIZATION_CODE"/>
+                <a:numberField name="tax_id_number" allowDecimals="false" allowFormat="false" allowNegative="false" bindTarget="pur2020_pur_system_venders_ds"/>
+            </a:hBox>
+            <a:hBox labelWidth="140">
+                <a:textField name="business_license_num" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYSTEM_VENDORS.BUSINESS_LICENSE_NUM"/>
+                <a:datePicker name="license_validity_from" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYSTEM_VENDORS.LICENSE_VALIDITY_FROM"/>
+                <a:datePicker name="license_validity_to" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYSTEM_VENDORS.LICENSE_VALIDITY_TO"/>
+            </a:hBox>
+            <a:hBox labelWidth="140">
+                <a:comboBox name="id_type_display" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYSTEM_VENDORS.ID_TYPE"/>
+                <a:textField name="id_code" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYSTEM_VENDORS.ID_CODE"/>
+                <a:radio name="enabled_flag" bindTarget="pur2020_pur_system_venders_ds">
+                    <a:items>
+                        <a:item label="PUR_SYS_VENDOR_BASICS.ENABLED" value="Y"/>
+                        <a:item label="PUR_SYS_VENDOR_BASICS.DISABLED" value="N"/>
+                    </a:items>
+                </a:radio>
+            </a:hBox>
+            <a:hBox labelWidth="140">
+                <a:textArea name="note" bindTarget="pur2020_pur_system_venders_ds" height="50" width="748"/>
+            </a:hBox>
+        </a:vBox>
+        <a:tabPanel height="500" style="margin-left:15px;" width="950">
+            <a:tabs>
+                <a:tab prompt="PUR_SYSTEM_VENDERS.BASIC_INFORMATION" width="100">
+                    <a:form column="1" width="900">
+                        <a:hBox labelWidth="135">
+                            <a:textField name="artificial_person" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="155"/>
+                            <a:numberField name="registered_capital" allowDecimals="true" allowFormat="true" allowNegative="false" bindTarget="pur2020_pur_system_venders_ds" decimalPrecision="2" readOnly="true" width="155"/>
+                            <a:textField name="registered_currency_name" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYS_VENDOR_BASICS.REGISTERED_CURRENCY_CODE" readOnly="true" width="155"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="135">
+                            <a:textField name="country_name" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYS_VENDOR_BASICS.COUNTRY_CODE" readOnly="true" width="155"/>
+                            <a:textField name="province_name" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYSTEM_VENDERS.PROVINCE" readOnly="true" width="155"/>
+                            <a:textField name="city_name" bindTarget="pur2020_pur_system_venders_ds" prompt="PUR_SYSTEM_VENDERS.CITY" readOnly="true" width="155"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="135">
+                            <a:textField name="address" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="753"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="135">
+                            <a:textField name="post_code" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="155"/>
+                            <a:textField name="offical_email" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="155"/>
+                            <a:textField name="fax_no" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="155"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="135">
+                            <a:textField name="customer_service_phone" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="155"/>
+                            <a:textField name="offical_telephone" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="155"/>
+                            <a:textField name="websize" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="155"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="140">
+                            <a:textArea name="vendor_abstruct" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="748"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="140">
+                            <a:textArea name="area_of_business" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="748"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="140">
+                            <a:textArea name="scope_of_business" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="748"/>
+                        </a:hBox>
+                        <a:hBox labelWidth="140">
+                            <a:textArea name="partner_information" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="748"/>
+                        </a:hBox>
+                        <!-- <a:hBox labelWidth="135">
+                                <a:textField name="note_of_address" bindTarget="pur2020_pur_system_venders_ds" width="753"/>
+                            </a:hBox> -->
+                    </a:form>
+                </a:tab>
+                <a:tab prompt="PUR_SYSTEM_VENDERS.CONTACT_INFORMATION" width="100">
+                    <a:grid bindTarget="pur2020_pur_sys_vendor_contacts_ds" height="450" navBar="true" style="margin:10px 20px;" width="900">
+                        <a:columns>
+                            <a:column name="linkman_name" width="100"/>
+                            <a:column name="department" width="100"/>
+                            <a:column name="position" width="100"/>
+                            <a:column name="mobile_phone" width="100"/>
+                            <a:column name="telephone" width="100"/>
+                            <a:column name="email" width="120"/>
+                            <a:column name="other_contact" width="120"/>
+                            <a:column name="default_contact_flag" align="center" width="60"/>
+                            <a:column name="enabled_flag" align="center" width="50"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab>
+                <a:tab prompt="PUR_SYSTEM_VENDERS.FINANCE_INFORMATION" width="100">
+                    <a:form column="2" labelWidth="100" style="width:100%;text-align:center;">
+                        <a:hBox height="50" labelWidth="100">
+                            <a:textField name="payment_term_code" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="100"/>
+                            <a:textField name="payment_term_name" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="200"/>
+                        </a:hBox>
+                        <a:hBox height="50" labelWidth="100">
+                            <a:textField name="payment_method_code" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="100"/>
+                            <a:textField name="payment_method_name" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="200"/>
+                        </a:hBox>
+                        <a:hBox height="50" labelWidth="100">
+                            <a:textField name="tax_type_code" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="100"/>
+                            <a:textField name="tax_type_name" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="200"/>
+                        </a:hBox>
+                        <a:hBox height="50" labelWidth="100">
+                            <a:textField name="trade_currency_code" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="100"/>
+                            <a:textField name="trade_currency_name" bindTarget="pur2020_pur_system_venders_ds" readOnly="true" width="200"/>
+                        </a:hBox>
+                    </a:form>
+                    <a:grid bindTarget="pur2010_pur_sys_vendor_finance_info_ds" height="330" navBar="true" showRowNumber="true" style="margin:10px 10px;" width="900">
+                        <a:columns>
+                            <a:column name="year_display" align="center" prompt="PUR_SYS_VENDOR_FINANCE_INFO.YEAR" width="100"/>
+                            <a:column name="total_assets" align="right" width="150"/>
+                            <a:column name="prime_operating_revenue" align="right" width="150"/>
+                            <a:column name="net_profit" align="right" width="150"/>
+                            <a:column name="profit_margin" align="right" width="150"/>
+                            <a:column name="enabled_flag" width="100"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab>
+                <a:tab prompt="PUR_SYSTEM_VENDERS.PUR_ORG_INFORMATION" width="100">
+                    <a:grid bindTarget="pur2020_pur_sys_vendor_org_ds" height="450" navBar="true" style="margin:10px 20px;" width="900">
+                        <a:columns>
+                            <a:column name="pur_org_code" prompt="" width="250"/>
+                            <a:column name="pur_org_name" width="300"/>
+                            <a:column name="enabled_flag" width="60"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab>
+                <a:tab prompt="PUR_SYSTEM_VENDERS.CATEGORY_INFORMATION" width="100">
+                    <a:grid bindTarget="pur2020_pur_sys_vendor_categories_ds" height="450" navBar="true" style="margin:10px 20px;" width="900">
+                        <a:columns>
+                            <a:column name="total_category_code" prompt="PUR_SYSTEM_VENDERS.CATEGORY_SET_CODE" width="250"/>
+                            <a:column name="total_category_name" width="350"/>
+                            <a:column name="enabled_flag" width="60"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab>
+                <a:tab prompt="INV_SYS_ITEMS.ATTACHMENT_INFO" width="100">
+                    <a:grid bindTarget="pur2020_pur_sys_vendor_attachment_ds" height="450" navBar="true" style="margin:10px 20px;" width="900">
+                        <a:columns>
+                            <a:column name="file_name" prompt="INV_SYS_ITEMS.ATTACHMENT_NAME" renderer="pur2020_sysVendorAttachmentFileRenderer" width="250"/>
+                            <a:column name="note" prompt="INV_SYS_ITEMS.ATTACHMENT_COMMENT" width="300"/>
+                            <a:column name="enabled_flag" prompt="SYS_CODE.ENABLED_FLAG" width="50"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab>
+            </a:tabs>
+        </a:tabPanel>
+        <script><![CDATA[
+            	// Aurora.onReady(function(){            	    
+            		// init();
+            	// });
+            ]]></script>
+    </a:view>
+</a:screen>

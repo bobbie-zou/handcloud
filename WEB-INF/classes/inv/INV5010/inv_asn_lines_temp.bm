@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-10 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 送货单创建，送货单临时行数据查询BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="asn_line_num asc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    l.asn_line_id,
+                    l.asn_line_num,
+                    l.item_id AS require_item_id,
+                    l.item_code AS require_item_code,
+                    l.item_name AS require_item_name,
+                    (SELECT
+                        imv.partner_item_id
+                    FROM
+                        mtl_item_mapping_vendor_v imv
+                    WHERE
+                        imv.item_id = l.item_id
+                    ) AS supply_item_id,
+                    (SELECT
+                        imv.partner_item_code
+                    FROM
+                        mtl_item_mapping_vendor_v imv
+                    WHERE
+                        imv.item_id = l.item_id
+                    ) AS supply_item_code,
+                    (SELECT
+                        imv.partner_item_name
+                    FROM
+                        mtl_item_mapping_vendor_v imv
+                    WHERE
+                        imv.item_id = l.item_id
+                    ) AS supply_item_name,
+                    l.segment1,
+                    l.line_num,
+                    l.shipment_num,
+                    (SELECT
+                        ph.display_release_num
+                    FROM
+                        pur_headers_all ph
+                    WHERE
+                        ph.pur_header_id = lla.pur_header_id
+                    ) release_num,
+                    l.quantity,
+                    l.unit_meas_lookup_code,
+                    l.unit_price,
+                    (lla.quantity - NVL(lla.occupy_quantity, 0) + NVL(lla.quantity_return_to_vendor, 0)) AS quantity_enable_shipped,
+                    l.ship_quantity,
+                    TO_CHAR(l.need_by_date, 'yyyy-mm-dd') AS need_by_date,
+                    TO_CHAR(l.promised_date, 'yyyy-mm-dd') AS promised_date,
+                    l.lots_num,
+                    TO_CHAR(l.lots_validity_date, 'yyyy-mm-dd') lots_validity_date,
+                    l.invoice_num,
+                    l.serial_num,
+                    l.revision_num,
+                    l.comments,
+                    (SELECT
+                        NVL(iio.serial_required_flag, 'N')
+                    FROM
+                        mtl_item_inv_organization iio
+                    WHERE
+                        iio.item_id                   = l.item_id AND
+                        iio.inventory_organization_id = lla.ship_to_organization_id
+                    ) AS serial_required_flag,
+                    (SELECT
+                        NVL(iio.lot_required_flag, 'N')
+                    FROM
+                        mtl_item_inv_organization iio
+                    WHERE
+                        iio.item_id                   = l.item_id AND
+                        iio.inventory_organization_id = lla.ship_to_organization_id
+                    ) AS lot_required_flag,
+                    l.vendor_id,
+                    l.asn_header_id,
+                    l.session_id,
+                    l.copy_flag
+                FROM
+                    pur_line_locations_all lla,
+                    inv_asn_lines_temp l
+                WHERE
+                    lla.pur_line_location_id = l.pur_line_location_id AND
+                    l.session_id             = ${/session/@session_id} AND
+                    l.asn_header_id          = ${/parameter/@asn_header_id}
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                  inv_asn_pkg.save_inv_asn_lines(p_asn_line_id 			=> ${@asn_line_id},
+                  								 p_ship_quantity      	=> ${@ship_quantity},
+                               					 p_comments          	=> ${@comments},
+                               					 p_lots_num           	=> ${@lots_num},
+                               					 p_lots_validity_date	=> to_Date(${@lots_validity_date},'yyyy-mm-dd'),
+                               					 p_invoice_num        	=> ${@invoice_num},
+                               					 p_serial_num         	=> ${@serial_num},
+                               					 p_copy_flag		  	=> ${@copy_flag},
+                               					 p_asn_line_num		  	=> ${@asn_line_num},
+				                                 p_user_id 				=> ${/session/@user_id});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:query-sql><![CDATA[
+                BEGIN
+                  inv_asn_pkg.delete_inv_asn_line_temp(p_asn_line_id	=> ${@asn_line_id},
+				                                  	   p_user_id  		=> ${/session/@user_id});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:parameters>
+                <bm:parameter name="last_flag" dataType="java.lang.String" input="false" output="true" outputPath="@last_flag"/>
+            </bm:parameters>
+            <bm:query-sql><![CDATA[
+                BEGIN
+                  inv_asn_pkg.submit_inv_asn_headers(p_asn_header_id 	=> ${@asn_header_id},
+				                                     p_business_group	=> ${/session/@business_group},
+				                                     p_session_id 		=> ${/session/@session_id},
+				                                     p_user_id 			=> ${/session/@user_id},
+				                                     x_last_flag 		=> ${@last_flag});
+                END;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

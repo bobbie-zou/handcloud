@@ -1,0 +1,1094 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: huyijun 
+    $Date: 2013-5-20 上午10:01:47  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <!-- <a:init-procedure>
+    	<a:model-query model="fnd.FND7010.fnd_message_current_dialogue_count" rootPath="dialogue_count"/>
+	</a:init-procedure> -->
+    <a:view>
+        <a:link id="fnd7010_msg_delete_link" model="fnd.FND7010.delete_dialogue" modelaction="execute"/>
+        <a:link id="fnd7010_msg_clear_link" model="fnd.FND7010.delete_dialogue" modelaction="delete"/>
+        <a:link id="fnd7010_msg_mark_read_all_link" model="fnd.FND7010.delete_dialogue" modelaction="update"/>
+        <a:link id="fnd7010_msg_group_delete_link" model="fnd.FND7010.fnd_message_user_group_hds" modelaction="delete"/>
+        <a:link id="fnd7010_fnd_message_user_group_create_link" url="${/request/@context_path}/modules/fnd/FND7010/fnd_message_user_group_create.screen"/>
+        <a:link id="fnd7010_fnd_message_to_select_link" url="${/request/@context_path}/modules/fnd/FND7010/fnd_message_to_select.screen"/>
+        <a:link id="fnd7010_fnd_message_add_new_friend_link" url="${/request/@context_path}/modules/fnd/FND7010/fnd_message_add_new_friend.screen"/>
+        <a:link id="fnd7010_fnd_message_move_friend_select_group_link" url="${/request/@context_path}/modules/fnd/FND7010/fnd_message_move_friend_select_group.screen"/>
+        <a:link id="fnd7010_fnd_message_remove_friend_link" model="fnd.FND7010.fnd_message_remove_friend_group" modelaction="delete"/>
+        <a:link id="fnd7010_fnd_message_remove_group_link" model="fnd.FND7010.fnd_message_remove_friend_group" modelaction="execute"/>
+        <a:link id="fnd7010_fnd_message_friend_list_save_link" model="fnd.FND7010.fnd_message_friend_list" modelaction="update"/>
+        <a:link id="fnd7010_fnd_message_user_group_hds_remove_link" model="fnd.FND7010.fnd_message_user_group_hds" modelaction="delete"/>
+        <a:link id="fnd7010_fnd_message_user_group_lns_remove_link" model="fnd.FND7010.fnd_message_user_group_lns" modelaction="delete"/>
+        <script><![CDATA[
+            function talkRenderer(value, record, name) {
+                return value;
+            }
+            
+            function rowRenderer(record, rowIndex) {
+                // if(record.get('auto') == 1) {
+                return 'height:50px;';
+                // }else {
+                // return 'height:50px;';
+                // }
+            }
+            
+            function beforeLoadData(datas) {
+                if (datas.length < 10) {
+                    //datas.push({auto:1});
+                }
+                return datas;
+            }
+            
+            function switchMenu(menu) {
+                Ext.get('msg-card').setStyle('display', 'none');
+                Ext.get('publish-card').setStyle('display', 'none');
+                Ext.get('friend-card').setStyle('display', 'none');
+                Ext.get('black-card').setStyle('display', 'none');
+                Ext.get(menu + '-card').setStyle('display', 'block');
+                Ext.get('msg-menu').removeClass('active');
+                Ext.get('publish-menu').removeClass('active');
+                Ext.get('friend-menu').removeClass('active');
+                Ext.get('black-menu').removeClass('active');
+                Ext.get(menu + '-menu').addClass('active');
+            }
+            
+            
+            function msgContextValidate(record, name, value) {
+                var content = $('msg_reply_ds').getCurrentRecord().get('content');
+                if (content && !Ext.isEmpty(content)) {
+                    if (content.length <= 1000) {
+                        return true;
+                    } else {
+                        return '${l:FND.SYS_MESSAGE_CONTENT_TOO_LONG}';
+                    }
+                }
+            }
+            
+            ////校验新撰写的站内信
+            
+            function msgSend() {
+                var record = $('fnd_message_ds').getCurrentRecord();
+                if (record.get('message_to') == undefined || Ext.isEmpty(record.get('message_to'))) {
+                    Aurora.showErrorMessage('${l:PROMPT.ERROR}', '${l:FND_MESSAGE.RECIPIENT_NOT_EMPTY}');
+                    return;
+                } else if (record.get('content') == undefined || Ext.isEmpty(record.get('content'))) {
+                    Aurora.showErrorMessage('${l:PROMPT.ERROR}', '${l:FND.SYS_MESSAGE_CONTENT_NULL}');
+                    return;
+                } else {
+                    var content = record.get('content');
+                    if (content.length <= 1000) {
+                        msgSendImmediate();
+                    } else {
+                        Aurora.showWarningMessage('${l:PROMPT.WARN}', '${l:FND_MESSAGE.MESSAGE_1000}');
+                        return;
+                    }
+                }
+            }
+            
+            //站内信提交事件
+            
+            function msgSendImmediate() {
+                var ds = $('fnd_new_message_ds');
+                var content = $('fnd_message_ds').getCurrentRecord().get('content');
+                //清空ds记录
+                ds.removeAll();
+                //对接收人进行拆分
+                //接收人ID以“;”拼接
+                var receiver = $('fnd_message_ds').getCurrentRecord().get('message_to') + '';
+                var receivers = [];
+                if (receiver.indexOf(';') == -1) {
+                    receivers.push(receiver);
+                } else {
+                    receivers = receiver.split(';');
+                }
+                //循环新增记录
+                for (var i = 0;i < receivers.length;i++) {
+                    ds.create();
+                    var record = ds.getCurrentRecord();
+                    record.set('message_from', parseInt('${/session/@user_id}'));
+                    record.set('message_to', parseInt(receivers[i]));
+                    record.set('content', content);
+                }
+                ds.submit();
+            }
+            
+            //站内信发送成功回调事件
+            
+            function msgSendSuccess() {
+                document.getElementById('reply_content').value = '';
+                Aurora.showMessage('${l:PROMPT}', '${l:FND_MESSAGE.SEND_SUCCEED}', function() {
+                    document.getElementById('msg_tip').innerHTML = '0/300';
+                    $('fnd_message_ds').reset();
+                    $('fnd_message_ds').create();
+                    $('msg_reply_ds').reset();
+                    $('fnd_msg_dialogue_ds').query();
+                });
+            }
+            
+            //左侧会话列表行索引切换事件
+            
+            function dialogueIndexChg(ds, record) {
+                var dialogue_id = record.get('dialogue_id');
+                var opposite_id = record.get('opposite_id');
+                if (dialogue_id != undefined || dialogue_id != null) {
+                    document.getElementById('msg_detial').src = '${/request/@context_path}/modules/fnd/FND7010/fnd_message_view.screen?dialogue_id=' + dialogue_id + '&opposite_id=' + opposite_id;
+                } else {
+                    document.getElementById('msg_detial').src = '${/request/@context_path}/modules/fnd/FND7010/fnd_message_wellcome.screen';
+                }
+            }
+            
+            //会话列表加载事件
+            
+            function dialogueLoadAfter(ds) {
+                var rowHeight = 50;
+                var explore = navigator.userAgent.toLowerCase();
+                //Chrome
+                if (explore.match(/chrome\/([\d.]+)/)) {
+                    rowHeight = 53;
+                }
+            
+                // document.getElementById('fnd7010_current_contact_user_count').innerHTML = '当前来往用户数: '+ $('fnd_msg_dialogue_ds').getAll().length;
+                if ($('fnd_msg_dialogue_ds').getAll().length == 0) {
+                    document.getElementById('msg_detial').src = '${/request/@context_path}/modules/fnd/FND7010/fnd_message_wellcome.screen';
+                    document.getElementById('msg_list_blank').style.height = 501 + 'px';
+                } else {
+                    document.getElementById('msg_list_blank').style.height = (519 - $('fnd_msg_dialogue_ds').getAll().length * rowHeight) + 'px';
+                }
+            }
+            
+            //右侧回复按钮事件
+            
+            function msgReply() {
+                var len = $('fnd_msg_dialogue_ds').getAll().length;
+                if (len > 0) {
+                    $('send_btn').disable();
+                    var message_to = $('fnd_msg_dialogue_ds').getCurrentRecord().get('opposite_id');
+                    var ds = $('msg_reply_ds');
+                    var content = ds.getCurrentRecord().get('content');
+                    ds.removeAll();
+                    ds.create();
+                    if (content == undefined || Ext.isEmpty(content)) {
+                        $('send_btn').enable();
+                        Aurora.showMessage('${l:PROMPT}', '${l:FND.SYS_MESSAGE_REPLY_CONTENT_NULL}');
+                        return;
+                    }
+                    if (content.length > 300) {
+                        $('send_btn').enable();
+                        Aurora.showMessage('${l:PROMPT}', '${l:FND.SYS_MESSAGE_REPLY_CONTENT_TOO_LONG}');
+                        return;
+                    }
+                    var record = ds.getCurrentRecord();
+                    record.set('message_from', parseInt('${/session/@user_id}'));
+                    record.set('message_to', parseInt(message_to));
+                    record.set('content', content);
+                    ds.submit();
+                    $('send_btn').enable();
+                }
+            }
+            
+            //刷新消息事件
+            
+            function msgRefresh() {
+                var record = $('fnd_msg_dialogue_ds').getCurrentRecord();
+                var dialogue_id = record.get('dialogue_id');
+                var opposite_id = record.get('opposite_id');
+                if (dialogue_id != undefined || dialogue_id != null) {
+                    document.getElementById('msg_detial').src = '${/request/@context_path}/modules/fnd/FND7010/fnd_message_view.screen?dialogue_id=' + dialogue_id + '&opposite_id=' + opposite_id;
+                } else {
+                    document.getElementById('msg_detial').src = '${/request/@context_path}/modules/fnd/FND7010/fnd_message_wellcome.screen';
+                }
+            }
+            
+            function refreshDialogue() {
+                var ds = $('fnd_msg_dialogue_ds');
+                var index = ds.indexOf(ds.getCurrentRecord());
+                ds.query();
+                $('msg_reply_ds').reset();
+                ds.locate(index + 1);
+            }
+            
+            function dialogueQuery() {
+                $('fnd_msg_dialogue_ds').query();
+            }
+            
+            //快捷组创建
+            
+            function createGroup() {
+                new Aurora.Window({
+                    id: 'fnd7010_fnd_message_user_group_create_link_window',
+                    title: '${l:MODULES/FND/FND7010/FND_MESSAGE_USER_GROUP_CREATE.SCREEN.TITLE}',
+                    url: $('fnd7010_fnd_message_user_group_create_link').getUrl(),
+                    width: 900,
+                    height: 630
+                }).on('close', function() {
+                    $('msg_send_group_ds').query();
+                });
+            }
+            
+            //群发组renderer
+            
+            function groupRenderer(value, record, name) {
+                return '<a href="javascript:groupView(' + record.get('hds_id') + ');">' + value + '</a>';
+            }
+            
+            function groupView(hds_id) {
+                new Aurora.Window({
+                    id: 'CreateUserGroupWin',
+                    title: '${l:MODULES/FND/FND7010/FND_MESSAGE_USER_GROUP_CREATE.SCREEN.TITLE}',
+                    url: '${/request/@context_path}/modules/fnd/FND7010/fnd_message_user_group_create.screen?hds_id=' + hds_id,
+                    width: 530,
+                    height: 420
+                });
+                $('CreateUserGroupWin').on('close', function() {
+                    $('msg_send_group_ds').query();
+                });
+            }
+            
+            //快速选择
+            
+            function quickChoose() {
+            
+                //右侧快捷组ds
+                var records = $('msg_send_group_ds').getAll();
+                if (records.length < 1) {
+                    return false;
+                }
+            
+                for (var i = 0;i < records.length;i++) {
+                    if(records[i].get('type') == 'USER' && records[i].get('checked') == 'Y'){
+	                    var user_id = records[i].get('message_to');
+	                    var user_desc = records[i].get('name');
+	                    var message_to;
+	                    if (Aurora.isEmpty($('fnd_message_ds').getCurrentRecord().get('message_to'))) {
+	                        message_to = '';
+	                    } else {
+	                        message_to = $('fnd_message_ds').getCurrentRecord().get('message_to') + '';
+	                    }
+	                    var message_to_name = $('fnd_message_ds').getCurrentRecord().get('message_to_name');
+	                    if (Aurora.isEmpty(message_to)) {
+	                        $('fnd_message_ds').getCurrentRecord().set('message_to', user_id);
+	                        $('fnd_message_ds').getCurrentRecord().set('message_to_name', user_desc);
+	                    } else {
+	                        var message_to_array = [];
+	                        if (message_to.indexOf(';') == -1) {
+	                            message_to_array.push(message_to);
+	                        } else {
+	                            message_to_array = message_to.split(';');
+	                        }
+	                        var exists_flag = false;
+	                        for (var j = 0;j < message_to_array.length;j++) {
+	                            if (message_to_array[j] == user_id) {
+	                                exists_flag = true;
+	                                continue;
+	                            }
+	                        }
+	                        if (!exists_flag) {
+	                            $('fnd_message_ds').getCurrentRecord().set('message_to', message_to + ';' + user_id);
+	                            $('fnd_message_ds').getCurrentRecord().set('message_to_name', message_to_name + ';' + user_desc);
+	                        }
+	                    }
+                    }
+                }
+            }
+            
+            //快捷选择组用户查询完后的load事件
+            
+            function loadAfter() {
+                //排除已输入的接收人之外的快速选择组中的用户记录
+                var records = $('fnd_msg_group_lns').getAll();
+                //发信ds
+                var ds = $('fnd_message_ds');
+                var users_id = '';
+                var users_name = '';
+                //拼接收人ID、接收人描述
+                for (var i = 0;i < records.length;i++) {
+                    users_id = users_id + records[i].get('message_to') + ';';
+                    users_name = users_name + records[i].get('description') + ';';
+                }
+                users_id = users_id.substr(0, users_id.length - 1);
+                users_name = users_name.substr(0, users_name.length - 1);
+                //已输入的接收人ID、描述
+                var old_message_to = ds.getCurrentRecord().get('message_to');
+                var old_message_to_name = ds.getCurrentRecord().get('message_to_name');
+                //判断是否查询到数据，避免一个恶心的bug
+                if (users_id.length > 0) {
+                    //判断是否已输入接收人
+                    if (old_message_to != undefined && !Ext.isEmpty(old_message_to)) {
+                        ds.getCurrentRecord().set('message_to', old_message_to + ";" + users_id);
+                        ds.getCurrentRecord().set('message_to_name', old_message_to_name + ";" + users_name);
+                    } else {
+                        ds.getCurrentRecord().set('message_to', users_id);
+                        ds.getCurrentRecord().set('message_to_name', users_name);
+                    }
+                }
+            }
+            
+            //黑名单查询
+            
+            function blacklistQuery() {
+                $('fnd_message_blacklist_ds').query();
+            }
+            
+            //黑名单重置
+            
+            function blacklistReset() {
+                $('fnd_message_blacklist_query_ds').reset();
+            }
+            
+            //黑名单->用户名editFunction
+            
+            function blacklistUserEditFunction(record, name) {
+                if (record.isNew) {
+                    return 'fnd_message_blacklist_lov';
+                } else {
+                    return '';
+                }
+            }
+            
+            //黑名单提交成功
+            
+            function blacklistSubmitSuccess() {
+                blacklistQuery();
+                dialogueQuery();
+            }
+            
+            //删除会话
+            
+            function fnd7010_dialogueDelete(dialogue_id) {
+                Aurora.showConfirm('${l:PROMPT}', '${l:FND.SYS_MESSAGE_DIALOGUE_DELETE_CONFIRM}', function() {
+                    Aurora.request({
+                        url: $('fnd7010_msg_delete_link').getUrl(),
+                        para: {
+                            'dialogue_id': dialogue_id
+                        },
+                        success: function() {
+                            dialogueQuery();
+                        },
+                        error: function() {},
+                        failure: function() {},
+                        scope: this
+                    });
+                }, function() {});
+                return;
+            }
+            
+            function fnd7010_context_keyup_handler() {
+                if (document.getElementById('reply_content').value) {
+                    // if(document.getElementById('reply_content').value.length <= 20){
+                    $('msg_reply_ds').getCurrentRecord().set('content', document.getElementById('reply_content').value);
+                    document.getElementById('msg_tip').innerHTML = document.getElementById('reply_content').value.length + '/300';
+                    // }else{
+                    // document.getElementById('msg_tip').innerHTML = '最多只能输入300个字符!';
+                    // }
+                } else {
+                    $('msg_reply_ds').getCurrentRecord().set('content', '');
+                    document.getElementById('msg_tip').innerHTML = '0/300';
+                }
+            }
+            
+            function fnd7010_group_delete_renderer(value, record, name) {
+                return '<a href="javascript:fnd7010_group_delete(' + record.get('hds_id') + ');">${l:PROMPT.DELETE}</a>';
+            }
+            
+            function fnd7010_group_delete(hds_id) {
+                Aurora.showConfirm('${l:PROMPT}', '${l:FND.SYS_MESSAGE_GROUP_DELETE_CONFIRM}', function() {
+                    Aurora.request({
+                        url: $('fnd7010_msg_group_delete_link').getUrl(),
+                        para: {
+                            hds_id: hds_id
+                        },
+                        success: function() {
+                            $('msg_send_group_ds').query();
+                        },
+                        error: function() {},
+                        failure: function() {},
+                        scope: this
+                    });
+                }, function() {});
+            }
+            
+            function fnd7010_clear_rcv_box() {
+                Aurora.showConfirm('${l:PROMPT}', '${l:FND.SYS_MESSAGE_RECEIVE_BOX_CLEAR_CONFIRM}', function() {
+                    Aurora.request({
+                        url: $('fnd7010_msg_clear_link').getUrl(),
+                        success: function() {
+                            dialogueQuery();
+                        },
+                        error: function() {},
+                        failure: function() {},
+                        scope: this
+                    });
+                }, function() {});
+            }
+            
+            function fnd7010_mark_as_read() {
+                Aurora.showConfirm('${l:PROMPT}', '${l:FND.SYS_MESSAGE_MARK_READ_CONFIRM}', function() {
+                    Aurora.request({
+                        url: $('fnd7010_msg_mark_read_all_link').getUrl(),
+                        success: function() {
+                            dialogueQuery();
+                        },
+                        error: function() {},
+                        failure: function() {},
+                        scope: this
+                    });
+                }, function() {});
+            }
+            
+            function fnd7010_messageTo() {
+                new Aurora.Window({
+                    id: 'fnd7010_fnd_message_to_select_link_window',
+                    title: '${l:FND_USER_MESSAGES.MESSAGE_TO}',
+                    url: $('fnd7010_fnd_message_to_select_link').getUrl(),
+                    width: 900,
+                    height: 630
+                });
+            }
+            
+            function fnd7010_msgSendGroupDsRenderer(value, record, name) {
+                if (name == 'edit') {
+                    if (record.get('father_flag') == 'Y') {
+                        return '<a href="javascript:fnd7010_msgSendGroupDsRendererEditorMessageGroup(' + record.get('id') + ');">${l:PROMPT.EDIT}</a>';
+                    }
+                }
+            
+                if (name == 'remove') {
+                    if (!Aurora.isEmpty(record.get('type')) && record.get('type') == 'GROUP') {
+                        return '<a href="javascript:fnd7010_msgSendGroupDsRendererGroupRemoveMessageGroup(' + record.get('id') + ');">${l:PROMPT.DELETE}</a>';
+                    } else if (!Aurora.isEmpty(record.get('type')) && record.get('type') == 'USER') {
+                        return '<a href="javascript:fnd7010_msgSendGroupDsRendererUserRemoveMessageGroup(' + record.get('parent_id') + ',' + record.get('message_to') + ');">${l:PROMPT.DELETE}</a>';
+                    }
+                }
+            }
+            
+            function fnd7010_msgSendGroupDsRendererEditorMessageGroup(hds_id) {
+                new Aurora.Window({
+                    id: 'fnd7010_fnd_message_user_group_create_link_window',
+                    title: '${l:MODULES/FND/FND7010/FND_MESSAGE_USER_GROUP_CREATE.SCREEN.TITLE}',
+                    url: $('fnd7010_fnd_message_user_group_create_link').getUrl() + '?hds_id=' + hds_id,
+                    width: 900,
+                    height: 630
+                }).on('close', function() {
+                    $('msg_send_group_ds').query();
+                });
+            }
+            
+            function fnd7010_msgSendGroupDsRendererGroupRemoveMessageGroup(hds_id) {
+                Aurora.showConfirm('${l:PROMPT}', '删除快捷组会将此组下所有用户一并删除，确定删除该组吗？', function() {
+                    Aurora.request({
+                        url: $('fnd7010_fnd_message_user_group_hds_remove_link').getUrl(),
+                        para: {
+                            hds_id: hds_id
+                        },
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '操作成功!', function() {
+                                $('msg_send_group_ds').query();
+                            });
+                        },
+                        error: function() {},
+                        failure: function() {},
+                        scope: this
+                    });
+                });
+            }
+            
+            function fnd7010_msgSendGroupDsRendererUserRemoveMessageGroup(hds_id, message_to) {
+                Aurora.showConfirm('${l:PROMPT}', '确定删除该用户吗？', function() {
+                    Aurora.request({
+                        url: $('fnd7010_fnd_message_user_group_lns_remove_link').getUrl(),
+                        para: {
+                            hds_id: hds_id,
+                            message_to: message_to
+                        },
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '操作成功!', function() {
+                                $('msg_send_group_ds').query();
+                            });
+                        },
+                        error: function() {},
+                        failure: function() {},
+                        scope: this
+                    });
+                });
+            }
+            
+            function fnd7010_messageFriendListEdit() {
+                var record = $('fnd7010_message_friend_list_result_ds').getCurrentRecord();
+                if (!Aurora.isEmpty(record.get('type')) && record.get('type') == 'GROUP') {
+                    if (record.get('default_group_flag') == 'Y') {
+                        record.getMeta().getField('name').setReadOnly(true);
+                        record.getMeta().getField('nickname').setReadOnly(true);
+                        record.getMeta().getField('sequence_number').setReadOnly(true);
+                        record.getMeta().getField('note').setReadOnly(true);
+                    } else {
+                        record.getMeta().getField('name').setReadOnly(false);
+                        record.getMeta().getField('sequence_number').setReadOnly(false);
+                    }
+                } else if (!Aurora.isEmpty(record.get('type')) && record.get('type') == 'USER') {
+                    record.getMeta().getField('nickname').setReadOnly(false);
+                    record.getMeta().getField('sequence_number').setReadOnly(false);
+                    record.getMeta().getField('note').setReadOnly(false);
+                }
+                $('fnd7010_messageFriendListEdit_btn').disable();
+                $('fnd7010_messageFriendListSave_btn').enable();
+            }
+            
+            function fnd7010_messageFriendListSave() {
+                var record = $('fnd7010_message_friend_list_result_ds').getCurrentRecord();
+                if (!Aurora.isEmpty(record.get('type')) && record.get('type') == 'GROUP') {
+                    if (Aurora.isEmpty(record.get('name'))) {
+                        Aurora.showMessage('${l:PROMPT}', '好友组名称不能为空!');
+                        return false;
+                    }
+                }
+            
+                Aurora.request({
+                    url: $('fnd7010_fnd_message_friend_list_save_link').getUrl(),
+                    para: record.data,
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '保存成功!', function() {
+                            $('fnd7010_message_friend_list_result_ds').query();
+                        });
+                    },
+                    error: function() {},
+                    failure: function() {},
+                    scope: this
+                });
+            }
+            
+            function fnd7010_messageFriendListAddNewFriend() {
+                new Aurora.Window({
+                    id: 'fnd7010_fnd_message_add_new_friend_link_window',
+                    title: '添加好友',
+                    url: $('fnd7010_fnd_message_add_new_friend_link').getUrl(),
+                    width: 450,
+                    height: 210
+                });
+            }
+            
+            function fnd7010_messageFriendListExpendAll() {
+                var records = $('fnd7010_message_friend_list_result_ds').getAll();
+                for (var i = 0;i < records.length;i++) {
+                    $('fnd7010_message_friend_list_result_ds_grid').unlockTree.getNodeById(records[i].id).expand();
+                }
+            }
+            
+            function fnd7010_messageFriendCollapseAll() {
+                var records = $('fnd7010_message_friend_list_result_ds').getAll();
+                for (var i = 0;i < records.length;i++) {
+                    $('fnd7010_message_friend_list_result_ds_grid').unlockTree.getNodeById(records[i].id).collapse();
+                }
+            }
+            
+            function fnd7010_messageFriendListResultDsGridRenderer(value, record, name) {
+                var type = record.get('type');
+                var default_group_flag = record.get('default_group_flag');
+                if (name == 'moveUser') {
+                    if (!Aurora.isEmpty(type) && type == 'USER') {
+                        return '<a href="javascript:fnd7010_messageFriendListResultDsGridRendererMoveUser(' + record.get('friend_user_id') + ');">移动</a>';
+                    }
+                }
+            
+                if (name == 'removeUser') {
+                    if (!Aurora.isEmpty(type) && type == 'USER') {
+                        return '<a href="javascript:fnd7010_messageFriendListResultDsGridRendererRemoveUser(' + record.get('friend_user_id') + ');">删除</a>';
+            
+                    } else if (!Aurora.isEmpty(type) && type == 'GROUP' && Aurora.isEmpty(default_group_flag) && !record.isNew) { //非默认好友组才能删除
+                        return '<a href="javascript:fnd7010_messageFriendListResultDsGridRendererRemoveGroup(' + record.get('id') + ');">删除</a>';
+            
+                    } else if (record.isNew) {
+                        return '<a href="javascript:fnd7010_messageFriendListResultDsGridRendererRemoveLine();">删除</a>';
+                    }
+                }
+            }
+            
+            function fnd7010_messageFriendListResultDsGridRendererMoveUser(friend_user_id) {
+                new Aurora.Window({
+                    id: 'fnd7010_fnd_message_move_friend_select_group_link_window',
+                    title: '移动好友',
+                    url: $('fnd7010_fnd_message_move_friend_select_group_link').getUrl() + '?friend_user_id=' + friend_user_id,
+                    width: 450,
+                    height: 210
+                }).on('close', function() {
+                    $('fnd7010_message_friend_list_result_ds').query();
+                });
+            }
+            
+            function fnd7010_messageFriendListResultDsGridRendererRemoveUser(friend_user_id) {
+                Aurora.showConfirm('${l:PROMPT}', '删除好友同时将自己从对方好友列表中删除，确定删除该好友吗？', function() {
+                    Aurora.request({
+                        url: $('fnd7010_fnd_message_remove_friend_link').getUrl(),
+                        para: {
+                            'friend_user_id': friend_user_id
+                        },
+                        success: function() {
+                            $('fnd7010_message_friend_list_result_ds').query();
+                        },
+                        error: function() {},
+                        failure: function() {},
+                        scope: this
+                    });
+                });
+            }
+            
+            function fnd7010_messageFriendListResultDsGridRendererRemoveGroup(friend_group_id) {
+                Aurora.showConfirm('${l:PROMPT}', '会将该组下所有好友移动到默认好友组下，确定删除该好友组吗？', function() {
+                    Aurora.request({
+                        url: $('fnd7010_fnd_message_remove_group_link').getUrl(),
+                        para: {
+                            'friend_group_id': friend_group_id
+                        },
+                        success: function() {
+                            $('fnd7010_message_friend_list_result_ds').query();
+                        },
+                        error: function() {},
+                        failure: function() {},
+                        scope: this
+                    });
+                });
+            }
+            
+            function fnd7010_messageFriendListResultDsGridRendererRemoveLine() {
+                var ds = $('fnd7010_message_friend_list_result_ds');
+                var record = ds.getCurrentRecord();
+                ds.remove(record);
+            }
+            
+            function fnd7010_messageFriendListAddNewGroup() {
+                var ds = $('fnd7010_message_friend_list_result_ds');
+                var records = ds.getAll();
+                var max_sequence = 0;
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].get('type') == 'GROUP') {
+                        max_sequence = (max_sequence >= records[i].get('sequence_number')) ? max_sequence : records[i].get('sequence_number');
+                    }
+                }
+                var new_record = ds.create({
+                    'type': 'GROUP',
+                    'user_id': '',
+                    'id': '',
+                    'parent_id': '',
+                    'friend_list_id': '',
+                    'friend_user_id': '',
+                    'name': '',
+                    'sequence_number': max_sequence + 1,
+                    'default_group_flag': 'N',
+                    'max_group_members': '',
+                    'nickname': '',
+                    'show_nickname_flag': '',
+                    'note': ''
+                });
+            
+                $('fnd7010_messageFriendListSave_btn').enable();
+                var record = ds.getCurrentRecord();
+                record.getMeta().getField('name').setReadOnly(false);
+                record.getMeta().getField('nickname').setReadOnly(true);
+                record.getMeta().getField('sequence_number').setReadOnly(false);
+                record.getMeta().getField('note').setReadOnly(true);
+            
+                fnd7010_messageFriendListEdit();
+            }
+            
+            function fnd7010_messageFriendListResultDsLoad(dataset) {
+                var records = dataset.getAll();
+                if (records.length == 0) {
+                    $('fnd7010_messageFriendListAddNewGroup_btn').disable();
+                    $('fnd7010_messageFriendListEdit_btn').disable();
+                    $('fnd7010_messageFriendListSave_btn').disable();
+                }
+            }
+            
+            function fnd7010_messageFriendListResultDsIndexChange(dataset, record) {
+                if (record.get('default_group_flag') == 'Y') {
+                    $('fnd7010_messageFriendListEdit_btn').disable();
+                    $('fnd7010_messageFriendListSave_btn').disable();
+                } else {
+                    $('fnd7010_messageFriendListEdit_btn').enable();
+                    $('fnd7010_messageFriendListSave_btn').disable();
+                }
+                record.getMeta().getField('name').setReadOnly(true);
+                record.getMeta().getField('nickname').setReadOnly(true);
+                record.getMeta().getField('sequence_number').setReadOnly(true);
+                record.getMeta().getField('note').setReadOnly(true);
+            }
+            
+            /**************************************************************
+             * 树形数据查询开始
+             **************************************************************/
+            
+            /**************************************************************
+             * tree型数据查询说明：（静态全局参数）
+             * 	每组树形数据查询所需多个全局变量(多个tree多组变量，分别以_01,_02...表示)
+             *	参数1：显示位置（初始为0）
+             *	参数2：匹配结果数组
+             *	参数3：是否初始化匹配结果数组标识
+             **************************************************************/
+            var show_index_01 = 0; //显示位置
+            var row_list_01 = []; //匹配结果数组
+            var init_flag_01 = false; //初始化标识
+            
+            /**************************************************************
+             * tree型数据查询说明：（动态全局参数）
+             * 	每组树形数据查询所需多个全局变量(多个tree多组变量，分别以_01,_02...表示)
+             *	参数1：treegrid绑定的DS对象
+             *	参数2：查询条件绑定的DS对象
+             *	参数3：treegrid对象
+             *	参数4：查询条件的参数名称
+             *	参数5：查询匹配的参数名称（可以有多个，用_1,_2表示）
+             **************************************************************/
+            var treegrid_ds_01 = 'fnd7010_message_friend_list_result_ds'; //treegrid绑定的DS
+            var query_ds_01 = 'fnd7010_message_friend_list_query_ds'; //查询条件绑定的DS
+            var treegrid_01 = 'fnd7010_message_friend_list_result_ds_grid'; //treegrid对象
+            var query_name_01 = 'friend_name'; //查询条件的参数名称
+            var indexof_01_1 = 'name'; //匹配参数1
+            var indexof_01_2 = 'nickname'; //匹配参数2
+            
+            //初始全局变量
+            
+            function initGlobalPara() {
+                show_index_01 = 0;
+                row_list_01 = [];
+                init_flag_01 = false;
+            }
+            
+            //初始化定位数组
+            
+            function initRowList(para) {
+            
+                //获取树形结果数据
+                var records = $(treegrid_ds_01).getAll();
+            
+                //对数据进行遍历
+                for (var i = 0;i < records.length;i++) {
+            
+                    //判断是否包含当前查询字符，包含则将其位置放入匹配结果数组
+                    if ((!Aurora.isEmpty(records[i].get(indexof_01_1)) && records[i].get(indexof_01_1).indexOf(para) != -1) || (!Aurora.isEmpty(records[i].get(indexof_01_2)) && records[i].get(indexof_01_2).indexOf(para) != -1)) {
+                        row_list_01.push($(treegrid_ds_01).indexOf(records[i]));
+                    }
+                }
+            
+                //改变初始化标识
+                init_flag_01 = true;
+            }
+            
+            //采购品类tree查询按钮执行方法
+            
+            function fnd7010_messageFriendListQuery() {
+            
+                //获取查询条件字符串
+                var record = $(query_ds_01).getCurrentRecord();
+            
+                //判断查询条件的值是否为空，为空不做查询操作
+                if (!Ext.isEmpty(record.get(query_name_01))) {
+            
+                    //判断是否初始化定位数组
+                    if (!init_flag_01) {
+                        initRowList(record.get(query_name_01));
+                    }
+            
+                    //结果匹配数组有值时
+                    if (row_list_01.length > 0) {
+            
+                        //显示匹配数组里的位置
+                        $(treegrid_01).selectRow(row_list_01[show_index_01]);
+            
+                        //判断显示位置是否越界,没有则++，有责回到初始0
+                        if (show_index_01 < row_list_01.length - 1) {
+                            show_index_01++;
+                        } else {
+                            show_index_01 = 0;
+                        }
+                    }
+                }
+            }
+            
+            //查询dataset更新事件
+            
+            function fnd7010_messageFriendListQueryDsUpdate(ds, record, name, value, oldvalue) {
+                $(query_ds_01).getCurrentRecord().dirty = false;
+                if (name == query_name_01) {
+                    //查询条件改变，重置全局定位变量
+                    initGlobalPara();
+                }
+            }
+            /**************************************************************
+             * 树形数据查询结束
+             **************************************************************/
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd_msg_dialogue_ds" autoCount="true" autoQuery="true" model="fnd.FND7010.fnd_message_dialogue_query" pageSize="9" processFunction="beforeLoadData">
+                <a:events>
+                    <a:event name="load" handler="dialogueLoadAfter"/>
+                    <a:event name="indexchange" handler="dialogueIndexChg"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd_message_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="message_to"/>
+                    <a:field name="message_to_name" autoComplete="true" autoCompleteField="user_name" fetchRemote="true" fetchSingle="true" lovService="fnd.FND7010.fnd_message_recipients_lov">
+                        <a:mapping>
+                            <a:map from="user_id" to="message_to"/>
+                            <a:map from="description" to="message_to_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="content"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd_new_message_ds" model="fnd.FND7010.send_message">
+                <a:fields>
+                    <a:field name="message_from"/>
+                    <a:field name="message_to"/>
+                    <a:field name="content"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="msgSendSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="msg_reply_ds" autoCreate="true" model="fnd.FND7010.send_message">
+                <a:fields>
+                    <a:field name="message_from"/>
+                    <a:field name="message_to"/>
+                    <a:field name="content" validator="msgContextValidate"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="msgSendSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="msg_send_group_ds" autoCount="true" autoQuery="true" fetchAll="true" model="fnd.FND7010.fnd_message_user_group_list">
+                <a:fields>
+                    <a:field name="name"/>
+                    <!-- <a:field name="group_name"/> -->
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd_msg_group_lns" autoQuery="false" fetchAll="true" model="fnd.FND7010.fnd_message_group_lns_query">
+                <a:events>
+                    <a:event name="load" handler="loadAfter"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd_message_blacklist_query_ds"/>
+            <a:dataSet id="fnd_message_blacklist_ds" autoPageSize="true" autoQuery="false" model="fnd.FND7010.fnd_message_blacklist" queryDataSet="fnd_message_blacklist_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="user_name" lovHeight="500" lovService="fnd.FND7010.fnd_message_recipients_lov" lovWidth="500" required="true" title="FND_MESSAGE.USER_SELECTION">
+                        <a:mapping>
+                            <a:map from="user_id" to="message_to"/>
+                            <a:map from="user_name" to="user_name"/>
+                            <a:map from="description" to="description"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="description"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="blacklistSubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd7010_message_friend_list_query_ds" autoCreate="true">
+                <a:events>
+                    <a:event name="update" handler="fnd7010_messageFriendListQueryDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd7010_message_friend_list_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="fnd.FND7010.fnd_message_friend_list">
+                <a:fields>
+                    <a:field name="name" prompt="组/好友名称"/>
+                    <a:field name="nickname" prompt="昵称"/>
+                    <a:field name="sequence_number" prompt="序号"/>
+                    <a:field name="note" prompt="备注"/>
+                    <a:field name="show_nickname_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd7010_messageFriendListResultDsLoad"/>
+                    <a:event name="indexchange" handler="fnd7010_messageFriendListResultDsIndexChange"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <table class="msg-box layout-form">
+            <tbody>
+                <tr>
+                    <td class="msg-nav" height="555px" valign="top" width="70">
+                        <ul>
+                            <li id="msg-menu" class="menu active">
+                                <a class="msg-button" href="javascript:switchMenu(&apos;msg&apos;)">
+                                    <span><![CDATA[${l:FND_MESSAGE.INBOX}]]></span>
+                                </a>
+                            </li>
+                            <li id="publish-menu" class="menu">
+                                <a class="publish-button" href="javascript:switchMenu(&apos;publish&apos;)">
+                                    <span><![CDATA[${l:FND_MESSAGE.OUTBOX}]]></span>
+                                </a>
+                            </li>
+                            <li id="friend-menu" class="menu">
+                                <a class="friend-button" href="javascript:switchMenu(&apos;friend&apos;)">
+                                    <span><![CDATA[好友]]></span>
+                                </a>
+                            </li>
+                            <li id="black-menu" class="menu">
+                                <a class="black-button" href="javascript:switchMenu(&apos;black&apos;)">
+                                    <span><![CDATA[${l:FND_MESSAGE.BLACKLIST}]]></span>
+                                </a>
+                            </li>
+                        </ul>
+                        <!-- <ul class="nav-bottom">
+                            <li class="block-normal blockli" onclick="javascript:switchMenu(&apos;black&apos;)">
+                                <div class="navli-inner">
+                                    <div class="icon"/>
+                                    <div class="msg-nav-title"><![CDATA[${l:FND_MESSAGE.BLACKLIST}]]></div>
+                                </div>
+                            </li>
+                        </ul> -->
+                    </td>
+                    <td class="msg-content" valign="top" width="900">
+                        <div id="msg-card">
+                            <div id="msg-list">
+                                <div id="dialogue_toolbar" class="dialogue_toolbar" style="display: block;">
+                                    <a:hBox>
+                                        <!-- <span id="fnd7010_current_contact_user_count" style="font-size:13px;margin-left:20px;line-height:26px;margin-right:20px;"><![CDATA[当前来往用户数:${/model/dialogue_count/record/@dialogue_count}]]></span> -->
+                                        <a:button className="item-btn-default" click="fnd7010_clear_rcv_box" text="FND_MESSAGE.EMPTY_INBOX" width="100"/>
+                                        <a:button className="item-btn-default" click="fnd7010_mark_as_read" text="FND_MESSAGE.MARK_ALL_READ" width="100"/>
+                                    </a:hBox>
+                                </div>
+                                <a:table id="talk-list" bindTarget="fnd_msg_dialogue_ds" canWheel="true" maxPageCount="4" navBar="true" navbartype="simple" rowrenderer="rowRenderer" showhead="false" width="400">
+                                    <a:columns>
+                                        <a:column name="dialogue_name" align="left" renderer="talkRenderer"/>
+                                    </a:columns>
+                                </a:table>
+                                <div id="msg_list_blank" style="border-right:1px solid #ccc;margin:0px 0px 0px 0px;"/>
+                            </div>
+                            <div id="msg-detail">
+                                <iframe id="msg_detial" frameborder="0" height="435px" scrolling="no" src="${/request/@context_path}/modules/fnd/FND7010/fnd_message_wellcome.screen" style="border-bottom:1px solid #ccc;" width="500px"/>
+                                <div style="position: relative; bottom:0px;left:0px;height:140px;">
+                                    <!-- <a:textArea name="content" bindTarget="msg_reply_ds" style="margin-left:2px;margin-top:2px;height:100px;" width="490"/> -->
+                                    <a:hBox>
+                                        <textarea name="reply_content" id="reply_content" onkeyup="javascript:fnd7010_context_keyup_handler();" style="resize:none;width:465px;margin-left:2px;margin-right:2px;margin-top:2px;height:85px;padding:4px;border:1px solid #ccc;overflow-y:auto;"/>
+                                    </a:hBox>
+                                    <a:hBox>
+                                        <a:button id="refresh_btn" click="refreshDialogue" text="FND.SYS_MESSAGE_REFRESH"/>
+                                        <a:label width="250"/>
+                                        <span id="msg_tip" style="color:#a9a9a9;text-align:right;position:absolute;bottom:7px;right:70px;"><![CDATA[0/300]]></span>
+                                        <a:button id="send_btn" click="msgReply" style="position:absolute;bottom:7px;right:3px;" text="FND_MESSAGE.REPLY"/>
+                                    </a:hBox>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="publish-card" style="display:none;">
+                            <a:vBox style="margin:10px;float:left;width:600px;">
+                                <a:vBox labelWidth="150">
+                                    <a:hBox>
+                                        <a:button click="fnd7010_messageTo" icon="${/request/@context_path}/images/png_icon_500.png" text="FND_USER_MESSAGES.MESSAGE_TO"/>
+                                        <a:multiTextField name="message_to_name" bindTarget="fnd_message_ds" width="500"/>
+                                    </a:hBox>
+                                </a:vBox>
+                                <a:textArea name="content" bindTarget="fnd_message_ds" height="470" width="570"/>
+                                <a:hBox>
+                                    <a:button click="msgSend" height="20" text="FND_MESSAGE.SEND" width="100"/>
+                                    <span style="color:red;text-align:right;"><![CDATA[${l:FND.SYS_MESSAGE_CONTENT_1000_HINT}]]></span>
+                                </a:hBox>
+                            </a:vBox>
+                            <div style="float:right;height:575px;width:260px;">
+                                <a:hBox>
+                                    <a:button click="createGroup" style="margin-top:15px;" text="创建快捷组" width="120"/>
+                                    <a:button click="quickChoose" style="margin-top:15px;" text="FND.CHOOSE_SYS_MESSAGE_TO" width="120"/>
+                                </a:hBox>
+                                <a:treeGrid id="fnd7010_msg_send_group_ds" bindTarget="msg_send_group_ds" expandField="expanded" height="486" idField="id" parentField="parent_id" sequenceField="sequence" showCheckBox="true" style="margin: 10px 2px;" width="245">
+                                    <a:columns>
+                                        <a:column name="name" align="left" prompt="FND.GROUP_DESC_EMPLOYEE_NAME" width="145"/>
+                                        <a:column name="operate" align="center" prompt="操作">
+                                            <a:column name="edit" align="center" prompt="编辑" renderer="fnd7010_msgSendGroupDsRenderer" width="40"/>
+                                            <a:column name="remove" align="center" prompt="删除" renderer="fnd7010_msgSendGroupDsRenderer" width="40"/>
+                                        </a:column>
+                                    </a:columns>
+                                </a:treeGrid>
+                            </div>
+                        </div>
+                        <div id="friend-card" style="display:none;">
+                            <div style="margin-left:10px;height:575px;">
+                                <a:hBox>
+                                    <a:textField name="friend_name" bindTarget="fnd7010_message_friend_list_query_ds" emptyText="好友组名/好友名称/昵称" style="margin-top:15px;" width="750"/>
+                                    <a:button click="fnd7010_messageFriendListQuery" style="margin-top:15px;margin-left:5px;" text="查询" width="80"/>
+                                </a:hBox>
+                                <a:hBox>
+                                    <a:button click="fnd7010_messageFriendListAddNewFriend" style="margin-top:5px;" text="添加好友" width="80"/>
+                                    <a:button click="fnd7010_messageFriendListExpendAll" style="margin-top:5px;margin-left:10px;" text="全部展开" width="80"/>
+                                    <a:button click="fnd7010_messageFriendCollapseAll" style="margin-top:5px;margin-left:10px;" text="全部收起" width="80"/>
+                                    <a:label width="300"/>
+                                    <a:button id="fnd7010_messageFriendListAddNewGroup_btn" click="fnd7010_messageFriendListAddNewGroup" style="margin-top:5px;margin-left:12px;" text="创建好友组" width="80"/>
+                                </a:hBox>
+                                <a:hBox>
+                                    <a:treeGrid id="fnd7010_message_friend_list_result_ds_grid" bindTarget="fnd7010_message_friend_list_result_ds" expandField="expanded" height="470" idField="id" parentField="parent_id" sequenceField="sequence_number" showCheckBox="false" style="margin-top:5px;" width="580">
+                                        <a:columns>
+                                            <a:column name="name" align="left" width="150"/>
+                                            <a:column name="nickname" align="center" width="100"/>
+                                            <a:column name="sequence_number" align="center" width="60"/>
+                                            <a:column name="note" align="left" width="150"/>
+                                            <a:column name="operate" prompt="操作">
+                                                <a:column name="moveUser" align="center" prompt="移动" renderer="fnd7010_messageFriendListResultDsGridRenderer" width="50"/>
+                                                <a:column name="removeUser" align="center" prompt="删除" renderer="fnd7010_messageFriendListResultDsGridRenderer" width="50"/>
+                                            </a:column>
+                                        </a:columns>
+                                        <a:editors>
+                                            <a:textField id="fnd7010_message_friend_list_result_ds_grid_textField"/>
+                                            <a:numberField id="fnd7010_message_friend_list_result_ds_grid_numberField" allowDecimals="false" allowFormat="false" allowNegative="false" decimalPrecision="0"/>
+                                        </a:editors>
+                                    </a:treeGrid>
+                                    <a:form column="1" style="margin-left:10px;margin-top:5px;" title="组信息/好友信息">
+                                        <a:hBox labelWidth="90">
+                                            <a:button id="fnd7010_messageFriendListEdit_btn" click="fnd7010_messageFriendListEdit" style="margin-top:5px;margin-left:10px;" text="编辑" width="80"/>
+                                            <a:button id="fnd7010_messageFriendListSave_btn" click="fnd7010_messageFriendListSave" disabled="true" style="margin-top:5px;margin-left:10px;" text="保存" width="80"/>
+                                        </a:hBox>
+                                        <a:hBox labelWidth="90" style="margin-top:10px;">
+                                            <a:textField name="name" bindTarget="fnd7010_message_friend_list_result_ds" readOnly="true"/>
+                                        </a:hBox>
+                                        <a:hBox labelWidth="90">
+                                            <a:textField name="nickname" bindTarget="fnd7010_message_friend_list_result_ds" readOnly="true"/>
+                                        </a:hBox>
+                                        <a:hBox labelWidth="90">
+                                            <a:numberField name="sequence_number" allowDecimals="false" allowFormat="false" allowNegative="false" bindTarget="fnd7010_message_friend_list_result_ds" decimalPrecision="0" readOnly="true"/>
+                                        </a:hBox>
+                                        <a:hBox labelWidth="90">
+                                            <a:textArea name="note" bindTarget="fnd7010_message_friend_list_result_ds" height="50" readOnly="true" width="128"/>
+                                        </a:hBox>
+                                    </a:form>
+                                </a:hBox>
+                            </div>
+                        </div>
+                        <div id="black-card" style="display:none;">
+                            <div style="margin:10px;height:555px;">
+                                <a:form column="1" title="FND.SYS_MESSAGE_BLACKLIST_USER_MGR" width="700">
+                                    <a:hBox labelWidth="100">
+                                        <a:textField name="user_name" bindTarget="fnd_message_blacklist_query_ds" prompt="FND.SYS_MESSAGE_USER_NAME"/>
+                                        <a:textField name="description" bindTarget="fnd_message_blacklist_query_ds" prompt="FND.SYS_MESSAGE_USER_DESCRIPTION"/>
+                                    </a:hBox>
+                                    <a:hBox labelWidth="100">
+                                        <a:datePicker name="join_date_from" bindTarget="fnd_message_blacklist_query_ds" prompt="FND.SYS_MESSAGE_BLACK_DATE_FROM"/>
+                                        <a:datePicker name="join_date_to" bindTarget="fnd_message_blacklist_query_ds" prompt="FND.SYS_MESSAGE_BLACK_DATE_TO"/>
+                                    </a:hBox>
+                                </a:form>
+                                <a:hBox height="30">
+                                    <a:button click="blacklistQuery" text="HAP_QUERY"/>
+                                    <a:button click="blacklistReset" text="HAP_RESET"/>
+                                </a:hBox>
+                                <a:grid bindTarget="fnd_message_blacklist_ds" height="400" navBar="true" width="700">
+                                    <a:toolBar>
+                                        <a:button type="add"/>
+                                        <a:button type="save"/>
+                                        <a:button type="delete"/>
+                                    </a:toolBar>
+                                    <a:columns>
+                                        <a:column name="user_name" editorFunction="blacklistUserEditFunction" width="120"/>
+                                        <a:column name="description" width="200"/>
+                                        <a:column name="join_date" align="center" width="150"/>
+                                    </a:columns>
+                                    <a:editors>
+                                        <a:lov id="fnd_message_blacklist_lov"/>
+                                    </a:editors>
+                                </a:grid>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </a:view>
+</a:screen>

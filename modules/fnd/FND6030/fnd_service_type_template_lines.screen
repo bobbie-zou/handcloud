@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui6743 $
+    $Date: 2014/10/08 10:20:55 $
+    $Revision: 1.0 $
+    $Purpose: 服务委托管理规则模板行
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="cont.sys_date" rootpath="sysdate"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            
+            function fnd6030_service_type_template_line_grid_onClose() {
+                $('fnd6030_serviceTypeTemplateDetails_window').close();
+                fnd6030_serviceTypeTemplateDetails_query();
+            }
+            
+            function fnd6030_serviceTypeTemplate_init() {
+                $('fnd6030_service_type_template_line_foundation_ds').query();
+                $('fnd6030_service_type_template_line_header_ds').query();
+                var line_ds = $('fnd6030_service_type_template_line_line_ds');
+                line_ds.query();
+                var foundation_records = $('fnd6030_service_type_template_line_foundation_ds').getAll();
+                var line_records = $('fnd6030_service_type_template_line_line_ds').getAll();
+                var flag = false;
+                var new_record;
+                for (var i = 0;i < foundation_records.length;i++) {
+                    //循环所有单据类型
+                    for (var j = 0;j < line_records.length;j++) {
+                        //循环所有line记录，与所有单据类型对比
+                        //如果能在line中找不到对应的单据类型，则在line表中插入该条新数据
+                        if (foundation_records[i].get('foundation_id') == line_records[j].get('foundation_id')) {
+                            flag = true;
+                            break;
+                        }
+                    }
+                    if (!flag) {
+                        new_record = line_ds.create();
+                        new_record.set('foundation_id', foundation_records[i].get('foundation_id'));
+                    }
+            
+                }
+            }
+            
+            function fnd6030_serviceTypeTemplate_query() {
+                $('fnd6030_service_type_template_line_result_ds').query();
+            }
+            
+            //触发保存成功事件
+            
+            function fnd6030_serviceTypeTemplate_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd6030_service_type_template_line_foundation_ds" autoQuery="true" fetchAll="true" model="public.sys_document_foundation_lov"/>
+            <a:dataSet id="fnd6030_service_type_template_line_header_ds" model="fnd.FND6030.fnd_service_type_template" queryUrl="${/request/context_path}/autocrud/fnd.FND6030.fnd_service_type_template/query?srv_type_temp_id=${/parameter/@srv_type_temp_id}"/>
+            <a:dataSet id="fnd6030_service_type_template_line_line_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="fnd.FND6030.fnd_service_type_template_lines" queryDataSet="fnd6030_service_type_template_line_header_ds">
+                <a:fields>
+                    <a:field name="srv_type_temp_line_id"/>
+                    <a:field name="srv_type_temp_id"/>
+                    <a:field name="company_name" autoComplete="true" autoCompleteField="company_name" lovHeight="490" lovLabelWidth="100" lovService="public.fnd_companies_lov" lovWidth="540" required="true" title="">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="foundation_id"/>
+                    <a:field name="service_company_name" autoComplete="true" autoCompleteField="service_company_name" lovHeight="490" lovLabelWidth="100" lovService="public.fnd_coop_partner_ac_service_lov" lovWidth="540" required="true" title="">
+                        <a:mapping>
+                            <a:map from="cooperative_company_id" to="service_company_id"/>
+                            <a:map from="cooperative_company_full_name" to="service_company_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="create_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="receive_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="fnd6030_serviceTypeTemplate_onLoad"/>
+                    <a:event name="query" handler="fnd6030_serviceTypeTemplate_onQuery"/>
+                    <a:event name="update" handler="fnd6030_serviceTypeTemplate_onUpdate"/>
+                    <a:event name="submitsuccess" handler="fnd6030_serviceTypeTemplate_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:gridButton id="fnd6030_service_type_template_line_grid_saveButton" bind="fnd6030_service_type_template_line_grid" style="margin-left:20px;" type="save" width="100"/>
+            <a:toolbarButton click="fnd6030_service_type_template_line_grid_onClose" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+            <a:gridButton id="fnd6030_service_type_template_line_grid_backButton" bind="fnd6030_service_type_template_line_grid" style="margin-left:20px;" type="back" width="100"/>
+        </a:screenTopToolbar>
+        <a:vBox bindTarget="fnd6030_service_type_template_line_header_ds" marginWidth="580" textFieldWidth="120">
+            <a:textField name="srv_type_temp_name" bindTarget="ap7110_invoice_header_info_ds" prompt="ERP_AP_INVOICE_HEADERS.INVOICE_NUM" readOnly="true" width="200"/>
+            <a:textField name="description" bindTarget="ap7110_invoice_header_info_ds" prompt="ERP_AP_INVOICE_HEADERS.INVOICE_NUM" readOnly="true" width="200"/>
+        </a:vBox>
+        <a:grid id="fnd6030_service_type_template_line_grid" bindTarget="fnd6030_service_type_template_line_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="foundation_name" align="left" editor="fnd6030_service_type_template_line_grid_cb" prompt="FND_SRV_TYPE_TEMP_LINES.FOUNDATION_ID" width="100"/>
+                <a:column name="create_flag" align="left" editor="fnd6030_service_type_template_line_grid_chb" prompt="FND_SRV_TYPE_TEMP_LINES.CREATE_FLAG" width="100"/>
+                <a:column name="receive_flag" align="left" editor="fnd6030_service_type_template_line_grid_chb" prompt="FND_SRV_TYPE_TEMP_LINES.RECEIVE_FLAG" width="100"/>
+            </a:columns>
+            <a:editors>
+                <a:comboBox id="fnd6030_service_type_template_line_grid_cb"/>
+                <a:checkBox id="fnd6030_service_type_template_line_grid_chb"/>
+            </a:editors>
+        </a:grid>
+        <script><![CDATA[
+            Aurora.onReady(function() {
+                fnd6030_serviceTypeTemplate_init();
+            });
+        ]]></script>
+    </a:view>
+</a:screen>

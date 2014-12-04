@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-1-18 下午01:08:39  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="t.company_id asc,t.segment1 asc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t.pur_header_id,
+                    t.segment1,
+                    t.order_type,
+                    t.order_type_desc,
+                    t.company_name,
+                    t.vendor_id,
+                    t.vendor_code,
+                    t.vendor_name,
+                    t.vendor_site_id,
+                    t.vendor_site_code,
+                    t.vendor_site_name,
+                    t.currency_code,
+                    t.agent_id,
+                    t.agent_name,
+                    DECODE(t.quotation_tax_flag,'Y','是','否') AS quotation_tax_flag_desc,
+                    t.tax_rate,
+                    t.net_amount,
+                    t.tax_amount,
+                    t.sum_amount,
+                    t.functional_amount,
+                    t.exchange_rate,
+                    t.company_id
+                FROM
+                    pur_headers_temp t #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                      pur_req_pur_pkg.delete_pur_header_temp(p_header_id => ${@pur_header_id},
+					                                         p_session_id => ${/session/@session_id},
+					                                         p_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                      pur_req_pur_pkg.update_pur_header_temp(p_header_id => ${@pur_header_id},
+					                                         p_agent_id => ${@agent_id},
+					                                         p_vendor_site_id => ${@vendor_site_id},
+					                                         p_sesion_id => ${/session/@session_id},
+					                                         p_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                      pur_req_pur_pkg.create_pur(p_action => ${@action},
+					                             p_header_id => ${@pur_header_id},
+					                             p_session_id => ${/session/@session_id},
+					                             p_user_id => ${/session/@user_id});
+					                             
+					  pur_req_pur_pkg.update_req(p_action =>  ${@action},
+					                             p_header_id => ${@pur_header_id},
+					                             p_session_id =>  ${/session/@session_id},
+					                             p_user_id => ${/session/@user_id},
+					                             x_last_flag => ${@last_flag});                            
+                END;
+            ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="last_flag" dataType="java.lang.String" input="false" output="true" outputPath="@last_flag"/>
+            </bm:parameters>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="t.session_id=${/session/@session_id}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="pur_header_id" queryExpression="t.pur_header_id = ${@pur_header_id}"/>
+    </bm:query-fields>
+</bm:model>

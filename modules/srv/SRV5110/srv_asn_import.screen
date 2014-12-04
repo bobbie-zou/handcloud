@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-9 下午5:52:51  
+    $Revision: 1.0  
+    $Purpose: 送货单创建，送货单导入页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.imp_template_code = &apos;INV_ASN_CREATE_IMPORT&apos;" fetchAll="true" model="public.get_fnd_excel_import_template" rootPath="import_template"/>
+        <a:model-query model="srv.SRV5110.srv_asn_get_import_batch_id" rootPath="batch_id"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="srv51101_asn_header_link" url="${/request/@context_path}/modules/srv/SRV5110/srv_asn_header.screen"/>
+        <a:link id="srv51101_asn_import_link" url="${/request/@context_path}/modules/srv/SRV5110/srv_asn_import.screen"/>
+        <a:link id="srv51101_asn_import_error_link" url="${/request/@context_path}/modules/srv/SRV5110/srv_asn_import_error.screen"/>
+        <a:link id="srv51101_asn_import_commit_link" model="srv.SRV5110.srv_asn_import_commit" modelaction="execute"/>
+        <a:link id="srv51101_asn_import_check_link" model="srv.SRV5110.srv_asn_import_check" modelaction="execute"/>
+        <a:link id="srv51101_asn_import_upload_link" url="${/request/@context_path}/modules/srv/SRV5110/srv_asn_import_upload.screen"/>
+        <a:link id="srv51101_asn_excel_import_template_uploadtimes_link" model="public.get_fnd_excel_import_template" modelaction="execute"/>
+        <script><![CDATA[
+        
+        	function srv51101_loadComplete(){
+        		$('srv51101_result_ds').setQueryParameter('batch_id', '${/model/batch_id/record/@batch_id}');
+        		$('srv51101_result_ds').query();
+        		$('srv51101_data_ds').setQueryParameter('batch_id', '${/model/batch_id/record/@batch_id}');
+        		$('srv51101_data_ds').query();
+        	}
+        	
+			function srv51101_loadData(){
+				new Aurora.Window({id:'upload_window',url:$('srv51101_asn_import_upload_link').getUrl()+'?batch_id=${/model/batch_id/record/@batch_id}',title:'${l:INV5010.ASN_IMPORT}',width:450,height:275});
+			}
+			
+			function srv51101_checkData(){
+				var allData = $('srv51101_data_ds').getAll();
+				if (allData.length == 0){
+					Aurora.showMessage('${l:PROMPT}', '${l:BGT_BUDGET_ITEMS_INTERFACE.CHECK1}');
+				} else{
+					var param	= {};
+					param['batch_id']	 = '${/model/batch_id/record/@batch_id}';
+					Aurora.request({
+						url		: $('srv51101_asn_import_check_link').getUrl(),
+						para	: param,
+						success	: function(){
+						  Aurora.showMessage('${l:PROMPT}', '${l:CON_CONTRACT_INTERFACE.CHECK_SUCCESS}');  
+						},
+						scope	: this
+					});
+				}
+			}
+			
+			function srv51101_submitData(){
+				var allData = $('srv51101_data_ds').getAll();
+				if (allData.length == 0){
+					Aurora.showMessage('${l:PROMPT}', '${l:BGT_BUDGET_ITEMS_INTERFACE.CHECK2}');
+				} else{
+					var param	= {};
+					param['batch_id']	 = '${/model/batch_id/record/@batch_id}';
+					Aurora.request({
+						url		: $('srv51101_asn_import_commit_link').getUrl(),
+						para	: param,
+						success	: function(){
+						    Aurora.showMessage('${l:PROMPT}', '${l:SUCCESSFUL_OPERATION}');
+							//window.location.reload();
+							$('srv51101_result_ds').query();
+							new Aurora.Window({
+		                       id: 'inv5010_asn_header_window',
+		                       url: $('srv51101_asn_header_link').getUrl(),
+		                       fullScreen: true
+		                   });
+						},
+						scope	: this
+					});
+				}
+			}
+			
+			function srv51101_window_reload(){
+	         	  var url = $('srv51101_asn_import_link').getUrl();
+	         	  $('srv51101_asn_import_window').load(url);
+	         	  
+	        }
+			
+			function srv51101_errorData(){
+				window.open($('srv51101_asn_import_error_link').getUrl()+'?batch_id=${/model/batch_id/record/@batch_id}');
+			}
+			
+			function srv51101_asnImportTemplateDownload() {
+                var attachment_id = '${/model/import_template/record/@attachment_id}';
+                if (attachment_id == undefined || Aurora.isEmpty(attachment_id)) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:MTL_SYSTEM_VENDOR_ITEMS.NO_IMPORT_TEMPLATE_TO_DOWNLOAD}');
+                    return;
+                } else {
+                    Aurora.request({
+                        url: $('srv51101_asn_excel_import_template_uploadtimes_link').getUrl(),
+                        para: {
+                            imp_template_code:'INV_ASN_CREATE_IMPORT'
+                        },
+                        success: function() {
+                            document.getElementById('attachment_id').value = attachment_id;
+                            document.downloadform.submit();
+                        },
+                        scope: this
+                    });
+                }
+            }
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="srv51101_data_ds" fetchAll="true" model="srv.SRV5110.srv_asn_import_interface_query"/>
+            <a:dataSet id="srv51101_result_ds" autoCount="true" fetchAll="false" model="srv.SRV5110.srv_asn_import_interface_query" pageSize="15">
+                <a:fields>
+                    <a:field name="line_sequence" prompt="WORKFLOW_APPR.SEQ_NUMBER"/>
+                    <a:field name="item_code" prompt="INV_ASN_LINES_TEMP.ITEM_CODE"/>
+                    <a:field name="segment1" prompt="INV_ASN_LINES_TEMP.SEGMENT1"/>
+                    <a:field name="line_num" prompt="INV_ASN_LINES_TEMP.LINE_NUM"/>
+                    <a:field name="shipment_num" prompt="INV_ASN_LINES_TEMP.SHIPMENT_NUM"/>
+                    <a:field name="ship_quantity" prompt="INV_ASN_LINES_TEMP.SHIP_QUANTITY"/>
+                    <a:field name="ship_date" prompt="INV_ASN_HEADERS.SHIP_DATE"/>
+                    <a:field name="expected_date" prompt="INV_ASN_HEADERS_TEMP.EXPECTED_DATE"/>
+                    <a:field name="lots_num" prompt="INV_ASN_LINES_TEMP.LOTS_NUM"/>
+                    <a:field name="lots_validity_date" prompt="INV_ASN_LINES_TEMP.LOTS_VALIDITY_DATE"/>
+                    <a:field name="invoice_num" prompt="INV_ASN_LINES_TEMP.INVOICE_NUM"/>
+                    <a:field name="serial_num" prompt="INV_ASN_LINES_TEMP.SERIAL_NUM"/>
+                    <a:field name="invps" prompt="发票轨号"/>
+                    <a:field name="invoice_source" prompt="发票来源"/>
+                    <a:field name="invoice_barcode" prompt="发票条码号"/>
+                    <a:field name="apprival_number" prompt="批准文号"/>
+                    <a:field name="comments" prompt="INV_ASN_LINES.LINE_DESC"/>
+                    <a:field name="batch_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="srv51101_asnImportTemplateDownload" style="margin-left:20px;" text="PROMPT.DOWNLOAD_IMPORT_TEMPLATE" width="100"/>
+            <a:toolbarButton click="srv51101_loadData" text="PROMPT.LOADDATA" width="100"/>
+            <a:toolbarButton click="srv51101_checkData" text="PROMPT.CHECK" width="100"/>
+            <a:toolbarButton click="srv51101_submitData" text="PROMPT.SUBMIT" width="100"/>
+            <a:toolbarButton click="srv51101_errorData" text="PROMPT.ERROR" width="100"/>
+        </a:screenTopToolbar>
+        <a:grid id="srv51101_asn_result_grid" autoAppend="false" bindTarget="srv51101_result_ds" marginHeight="90" marginWidth="65" navBar="true">
+            <a:columns>
+                <a:column name="line_sequence" align="left" width="40"/>
+                <a:column name="item_code" align="left" width="100"/>
+                <a:column name="segment1" align="left" width="80"/>
+                <a:column name="line_num" align="left" width="60"/>
+                <a:column name="shipment_num" align="left" width="60"/>
+                <a:column name="ship_quantity" align="left" width="60"/>
+                <a:column name="ship_date" align="left" width="80"/>
+                <a:column name="expected_date" align="left" width="80"/>
+                <a:column name="lots_num" align="left" width="60"/>
+                <a:column name="lots_validity_date" align="left" width="60"/>
+                <a:column name="invoice_num" align="left" width="80"/>
+                <a:column name="serial_num" align="left" width="60"/>
+                <a:column name="invps" align="left" width="60"/>
+                <a:column name="invoice_source" align="left" width="60"/>
+                <a:column name="invoice_barcode" align="left" width="60"/>
+                <a:column name="apprival_number" align="left" width="60"/>
+                <a:column name="comments" align="left" width="150"/>
+            </a:columns>
+        </a:grid>
+        <form name="downloadform" action="${/request/@context_path}/atm_download.svc" enctype="multipart/form-data" method="get" style="display:none;">
+            <input name="attachment_id" id="attachment_id" type="hidden"/>
+        </form>
+        <script><![CDATA[
+    		srv51101_loadComplete();
+    	]]></script>
+    </a:view>
+</a:screen>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangcheng6595
+    $Date: 2014-10-22 18:18:47  
+    $Revision: 1.0  
+    $Purpose: 系统日程
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.flex_value_set_code = &apos;SCHEDULE_COLOR&apos;" model="public.fnd_flex_value_v_lov" rootPath="schedule_color"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function sys7010_getLength(str) {
+        	    if (!Aurora.isEmpty(str)) {
+        	        var realLength = 0,
+        	            len = str.length,
+        	            charCode = -1;
+        	        for (var i = 0;i < len;i++) {
+        	            charCode = str.charCodeAt(i);
+        	            if (charCode >= 0 && charCode <= 128) {
+        	                realLength += 1;
+        	            } else {
+        	                realLength += 3;
+        	            }
+        	        }
+        	        return realLength;
+        	    }
+        	    return 0;
+        	}
+        	
+        	function sys7010_scheduleValidate(record, name, value) {
+        	    var schedule_type_name = record.get('schedule_type_name');
+        	    var comments = record.get('comments');
+        	    if (name == 'schedule_type_name') {
+        	        if (sys7010_getLength(schedule_type_name) > 1000) {
+        	            return '${l:SYS_SCHEDULE_TYPE_NAME_OVERLENGTH}';
+        	        }
+        	    }
+        	    if (name == 'comments') {
+        	        if (sys7010_getLength(comments) > 2000) {
+        	            return '${l:SYS_COMMENTS_OVERLENGTH}';
+        	        }
+        	    }
+        	    return true;
+        	}
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys7010_schedule_color_list_ds">
+                <a:datas dataSource="/model/schedule_color"/>
+            </a:dataSet>
+            <a:dataSet id="sys7010_schedule_types_query_ds"/>
+            <a:dataSet id="sys7010_schedule_types_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="sys.SYS7010.sys_default_schedule_types" queryDataSet="sys7010_schedule_types_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="schedule_type_name" validator="sys7010_scheduleValidate"/>
+                    <a:field name="comments" validator="sys7010_scheduleValidate"/>
+                    <a:field name="schedule_color_display" displayField="flex_desc" options="sys7010_schedule_color_list_ds" returnField="schedule_color" valueField="flex_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="sys7010_schedule_types_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="sys7010_schedule_types_grid" style="margin-left:20px;" type="save" width="100"/>
+                <a:gridButton bind="sys7010_schedule_types_grid" style="margin-left:20px;" type="delete" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="sys7010_schedule_types_query_ds" defaultQueryField="schedule_type_name" defaultQueryHint="SYS_SCHEDULE_TYPE_NAME" resultTarget="sys7010_schedule_types_result_ds" style="width:100%;border:none"/>
+            <a:grid id="sys7010_schedule_types_grid" bindTarget="sys7010_schedule_types_result_ds" marginHeight="160" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="schedule_type_name" editor="sys7010_tf" prompt="日程类型"/>
+                    <a:column name="schedule_color_display" editor="sys7010_cob" prompt="颜色"/>
+                    <a:column name="source_type" editor="sys7010_tf" prompt="来源类型"/>
+                    <a:column name="comments" editor="sys7010_tf" prompt="备注" width="150"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="sys7010_tf"/>
+                    <a:comboBox id="sys7010_cob"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

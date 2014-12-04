@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[			select * from
+		(SELECT V.TRANSACTION_HEADER_ID,
+			   V.TRANSACTION_HEADER_ID PAYMENT_HEADER_ID,
+			   V.TRANSACTION_NUM,
+			   V.TRANSACTION_DATE,
+			   TO_CHAR(V.TRANSACTION_DATE, 'YYYY-MM-DD') P_TRANSACTION_DATE,
+			   V.CURRENCY_CODE,
+			   gld.currency_name,
+			   V.TRANSACTION_AMOUNT,
+			   V.BANK_ACCOUNT_CODE,
+			   V.BANK_ACCOUNT_NAME,
+			   V.BANK_ACCOUNT_NUM,
+			   V.PARTNER_CATEGORY,
+			   (SELECT B.CODE_VALUE_NAME
+				  FROM SYS_CODES_VL A, SYS_CODE_VALUES_VL B
+				 WHERE A.CODE_ID = B.CODE_ID
+				   AND A.CODE = 'PAYMENT_OBJECT'
+				   AND B.CODE_VALUE = V.PARTNER_CATEGORY) P_PARTNER_CATEGORY,
+			   V.PARTNER_ID,
+			   DECODE(V.PARTNER_CATEGORY,
+					  'EMPLOYEE',
+					  (SELECT EE.EMPLOYEE_CODE || '-' || EE.NAME
+						 FROM EXP_EMPLOYEES EE
+						WHERE EE.EMPLOYEE_ID = V.PARTNER_ID),
+					  'VENDER',
+					  (SELECT SVV.VENDER_CODE || '-' || SVV.DESCRIPTION
+						 FROM PUR_SYSTEM_VENDERS_VL SVV
+						WHERE SVV.VENDER_ID = V.PARTNER_ID),
+					  'CUSTOMER',
+					  (SELECT SCV.CUSTOMER_CODE || '-' || SCV.DESCRIPTION
+						 FROM ORD_SYSTEM_CUSTOMERS_VL SCV
+						WHERE SCV.CUSTOMER_ID = V.PARTNER_ID)) PARENER_CODE_NAME,
+			   V.DOCUMENT_NUM,
+			   V.USER_NAME,
+			   V.USER_DESC,
+			   V.PAYMENT_METHOD_ID,
+			   V.AGENT_NAME,
+			   V.POSTED_FLAG,
+			   V.TRANSACTION_CATEGORY,
+			   (SELECT B.CODE_VALUE_NAME
+				  FROM SYS_CODES_VL A, SYS_CODE_VALUES_VL B
+				 WHERE A.CODE_ID = B.CODE_ID
+				   AND A.CODE = 'CSH_TRANSACTION_CATEGORY'
+				   AND B.CODE_VALUE = V.TRANSACTION_CATEGORY) P_TRANSACTION_CATEGORY,
+				   V.contact_number,
+				   V.UNRETURNED_AMOUNT
+				  
+		  FROM (SELECT V1.*, (select cch.contract_number
+				  from con_contract_headers cch,con_document_flows s
+				 where contract_header_id =s.document_id
+				 and s.document_type='CON_CONTRACT'
+				 and s.source_document_type ='CSH_TRANSACTION_HEADERS'
+				 and  s.source_document_id =v1.TRANSACTION_HEADER_ID) contact_number,
+
+				 (SELECT  V_AMOUNT.TRANSACTION_AMOUNT - V_AMOUNT.RETURNED_AMOUNT-V_AMOUNT.PRE_PAYMENTED_AMOUNT UNRETURNED_AMOUNT
+                    FROM (SELECT CTH.TRANSACTION_HEADER_ID,
+                                 CTL.TRANSACTION_AMOUNT,
+                 (SELECT NVL(SUM(TL.TRANSACTION_AMOUNT), 0)
+          FROM csh_transaction_headers th,
+			   csh_transaction_lines   tl
+		 where th.transaction_header_id =
+			   tl.transaction_header_id
+		   and th.posted_flag = 'Y'
+		   and th.returned_flag = 'R'
+		   and th.reversed_flag is null
+		   and th.source_header_id =
+			   cth.transaction_header_id) RETURNED_AMOUNT,
+                nvl((select sum(cwo.csh_write_off_amount)
+                                       from csh_write_off cwo, csh_write_off cwo2
+                                      where cwo2.csh_transaction_line_id = ctl.transaction_line_id
+                                        AND cwo2.SOURCE_CSH_TRX_LINE_ID = CWO.CSH_TRANSACTION_LINE_ID
+                                        AND cwo2.write_off_type = 'PAYMENT_PREPAYMENT'),0) PRE_PAYMENTED_AMOUNT 
+              FROM CSH_TRANSACTION_HEADERS CTH, CSH_TRANSACTION_LINES CTL
+             WHERE CTH.TRANSACTION_HEADER_ID = CTL.TRANSACTION_HEADER_ID) V_AMOUNT
+             where V_AMOUNT.TRANSACTION_HEADER_ID = v1.transaction_header_id) UNRETURNED_AMOUNT
+               
+				  FROM CSH_TRANSACTION_V V1
+				 WHERE V1.COMPANY_ID = ${/session/@company_id}
+				   AND V1.POSTED_FLAG = 'Y'
+				   AND V1.TRANSACTION_TYPE = 'PAYMENT'
+				   AND V1.RETURNED_FLAG in('Y','N')
+				   AND (V1.REVERSED_FLAG IS NULL OR V1.REVERSED_FLAG = 'N')
+				   AND sys_user_secure_exit_pkg.csh_payment_return(v1.transaction_header_id,${/session/@session_id})='Y') V,gld_currency_vl gld
+                   where  V.UNRETURNED_AMOUNT != 0 and v.currency_code=gld.currency_code(+))
+
+		#WHERE_CLAUSE# ORDER BY TRANSACTION_NUM DESC]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="partner_category" dataType="java.lang.String" queryExpression="PARTNER_CATEGORY like  &apos;%&apos;||${@partner_category}||&apos;%&apos;"/>
+        <bm:query-field name="partner_id" dataType="java.lang.String" queryExpression="PARTNER_ID like ${@partner_id}"/>
+        <bm:query-field name="currency_code" dataType="java.lang.String" queryExpression="CURRENCY_CODE like  &apos;%&apos;||${@currency_code}||&apos;%&apos;"/>
+        <bm:query-field name="transaction_num" dataType="java.lang.String" queryExpression="TRANSACTION_NUM like &apos;%&apos;||${@transaction_num}||&apos;%&apos;"/>
+        <bm:query-field name="transaction_date_from" dataType="java.lang.String" queryExpression="to_char(TRANSACTION_DATE,&apos;rrrr-mm-dd&apos;) &gt;= ${@transaction_date_from}"/>
+        <bm:query-field name="transaction_date_to" dataType="java.lang.String" queryExpression="to_char(TRANSACTION_DATE,&apos;rrrr-mm-dd&apos;) &lt;= ${@transaction_date_to}"/>
+        <bm:query-field name="bank_account_code" dataType="java.lang.String" queryExpression="BANK_ACCOUNT_CODE like ${@bank_account_code}"/>
+        <bm:query-field name="payment_method_id" dataType="java.lang.String" queryExpression="PAYMENT_METHOD_ID like  &apos;%&apos;||${@payment_method_id}||&apos;%&apos;"/>
+        <bm:query-field name="user_name" dataType="java.lang.String" queryExpression="USER_NAME like  &apos;%&apos;||${@user_name}||&apos;%&apos;"/>
+        <bm:query-field name="agent_name" dataType="java.lang.String" queryExpression="AGENT_NAME like  &apos;%&apos;||${@agent_name}||&apos;%&apos;"/>
+        <bm:query-field name="transaction_category" dataType="java.lang.String" queryExpression="TRANSACTION_CATEGORY like  &apos;%&apos;||${@transaction_category}||&apos;%&apos;"/>
+        <bm:query-field name="contact_number" dataType="java.lang.String" queryExpression="CONTACT_NUMBER like  &apos;%&apos;||${@contact_number}||&apos;%&apos;"/>
+        <bm:query-field name="number_from" dataType="java.lang.Float" queryExpression="TRANSACTION_AMOUNT &gt;= ${@number_from}"/>
+        <bm:query-field name="number_to" dataType="java.lang.Float" queryExpression="TRANSACTION_AMOUNT &lt;= ${@number_to}"/>
+    </bm:query-fields>
+</bm:model>

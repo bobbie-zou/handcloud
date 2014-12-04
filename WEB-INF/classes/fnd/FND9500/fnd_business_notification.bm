@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-14 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 业务通知单发布管理，查询BM
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="update">
+            <bm:parameters>
+                <bm:parameter name="notification_id" dataType="java.lang.Long" input="true" output="true" outputPath="@notification_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+	        	begin
+				  fnd_business_notification_pkg.save_notification
+				  	(
+				  		p_notification_id		=> ${@notification_id},
+				  		p_notification_type		=> ${@notification_type},
+				  		p_notification_title	=> ${@notification_title},
+				  		p_notification_content	=> ${@notification_content},
+				  		p_company_id			=> ${@owner_company_id},
+				  		p_business_unit_id		=> ${@business_unit_id},
+				  		p_old_pkvalue_id		=> ${@old_pkvalue_id},
+				  		p_session_user_id   	=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  fnd_business_notification_pkg.notification_release
+				  	(
+				  		p_notification_id	=> ${@notification_id},
+				  		p_session_user_id	=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT *
+				  FROM (SELECT bn.notification_id,
+				  			   bn.notification_number,
+				               bn.notification_type,
+				               (SELECT fvv.flex_desc
+				                  FROM fnd_flex_values_v fvv
+				                 WHERE fvv.flex_value_set_code = 'FND_NOTIFICATION_TYPE'
+				                       AND fvv.flex_value = bn.notification_type
+				                       AND fvv.value_set_enabled_flag = 'Y'
+				                       AND fvv.values_enabled_flag = 'Y') AS notification_type_desc,
+				               bn.notification_title,
+				               bn.notification_content,
+				               bn.release_flag,
+				               decode(bn.release_flag,
+				                      'Y',
+				                      '已发布',
+				                      '未发布') AS release_flag_desc,
+				               bn.release_date,
+				               to_char(bn.release_date,
+				                       'yyyy-mm-dd') AS release_date_fmt,
+				               (SELECT su.description FROM sys_user su WHERE su.user_id = bn.release_by) AS release_user_name,
+				               bn.creation_date,
+				               to_char(bn.creation_date,
+				                       'yyyy-mm-dd') AS creation_date_fmt,
+				               bn.business_unit_id,
+				               (SELECT buv.business_unit_name
+				                  FROM fnd_business_units_vl buv
+				                 WHERE buv.business_unit_id = bn.business_unit_id) AS business_unit_name,
+				               bn.company_id as owner_company_id,
+				               (SELECT fcv.company_full_name FROM fnd_companies_vl fcv WHERE fcv.company_id = bn.company_id) AS owner_company_name,
+				               bn.business_group,
+				               bn.created_by,
+				               bn.status,
+				               nvl((SELECT fvv.flex_desc
+				                     FROM fnd_flex_values_v fvv
+				                    WHERE fvv.flex_value_set_code = 'FND_NOTIFICATION_STATUS'
+				                          AND fvv.flex_value = bn.status),
+				                   '未签收') AS status_desc,
+				               NULL AS useless_id_1,
+				               NULL AS useless_id_2,
+				               NULL AS useless_id_3,
+				               NULL AS useless_id_4,
+				               NULL AS useless_id_5,
+				               NULL AS useless_id_6,
+				               NULL AS useless_id_7,
+				               NULL AS useless_id_8,
+				               NULL AS useless_id_9,
+				               NULL AS useless_id_10
+				          FROM fnd_business_notification bn
+				         ORDER BY bn.release_date desc) v
+                #AUTHORIY_FROM#
+                #WHERE_CLAUSE#
+                #AUTHORIY_WHERE# 
+                #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="notification_id" queryExpression="v.notification_id = ${@notification_id}"/>
+        <bm:query-field name="notification_type" queryExpression="v.notification_type = ${@notification_type}"/>
+        <bm:query-field name="notification_title" queryExpression="v.notification_title like &apos;%&apos;||trim(${@notification_title})||&apos;%&apos;"/>
+        <bm:query-field name="coop_company_id" queryExpression="v.coop_company_id = ${@coop_company_id}"/>
+        <bm:query-field name="creation_date_from" queryExpression="v.creation_date &gt;= to_date(${@creation_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="creation_date_to" queryExpression="v.creation_date &lt;= to_date(${@creation_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="release_date_from" queryExpression="v.release_date &gt;= to_date(${@release_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="release_date_to" queryExpression="v.release_date &lt;= to_date(${@release_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="release_flag" queryExpression="nvl(v.release_flag,&apos;N&apos;) = ${@release_flag}"/>
+        <bm:query-field name="release_status" queryExpression="((${@release_status} = &apos;Y&apos; and v.release_flag = &apos;Y&apos;) or (${@release_status} = &apos;N&apos; and nvl(v.release_flag,&apos;N&apos;) = &apos;N&apos;) or (${@release_status} = &apos;ALL&apos; and 1=1))"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+        <bm:data-filter expression="v.business_group = ${/session/@business_group}"/>
+    </bm:data-filters>
+    <authority foundation_code="BUSINESS_DOCUMENT">
+        <authority-segment source_alias="v" source_name="owner_company_id" type="COMPANY"/>
+        <authority-segment source_alias="v" source_name="business_unit_id" type="BUSINESS_UNIT"/>
+        <authority-segment source_alias="v" source_name="created_by" type="CREATER"/>
+        <authority-segment source_alias="v" source_name="useless_id_1" type="PURHASE_MATERIAL"/>
+        <authority-segment source_alias="v" source_name="useless_id_2" type="RECEIVER"/>
+        <authority-segment source_alias="v" source_name="useless_id_3" type="VENDOR"/>
+        <authority-segment source_alias="v" source_name="useless_id_4" type="VENDOR_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id_5" type="CLIENT"/>
+        <authority-segment source_alias="v" source_name="useless_id_6" type="CLIENT_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id_7" type="SALES_PRODUCTION"/>
+        <authority-segment source_alias="v" source_name="useless_id_8" type="PUR_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_9" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_10" type="SD_ORGANIZATION"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+      		Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+          	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

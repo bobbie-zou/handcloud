@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: FelixDru  
+    $Date: 2014-07-22 下午06:50:56  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="segment1 desc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        h.pur_header_id,
+                        h.srm_status,
+                        (SELECT
+                            v.code_value_name
+                        FROM
+                            sys_code_values_v v
+                        WHERE
+                            v.code       = 'SRM_STATUS' AND
+                            v.code_value = h.srm_status
+                        ) AS srm_name_desc,
+                        h.company_id,
+                        h.company_name,
+                        h.vendor_id,
+                        NVL(pv.display_vendor_code,h.vendor_code) vendor_code,
+                        h.vendor_name,
+                        h.segment1,
+                        h.display_po_number,
+                        h.revision_num,
+                        h.release_id,
+                        h.release_num,
+                        h.display_release_num,
+                        (SELECT
+                            gc.CURRENCY_NAME
+                        FROM
+                            gld_currency_vl gc
+                        WHERE
+                            gc.CURRENCY_CODE = h.currency_code
+                        ) currency_code,
+                        h.type_lookup_code,
+                        h.type_lookup_desc,
+                        h.vendor_site_id,
+                        h.vendor_site_code,
+                        h.vendor_site_name,
+                        h.agent_id,
+                        h.agent_code,
+                        h.agent_name,
+                        h.ship_to_location_id,
+                        h.ship_to_location_code,
+                        h.ship_to_location_name,
+                        h.bill_to_location_id,
+                        h.bill_to_location_code,
+                        h.bill_to_location_name,
+                        TO_CHAR(h.creation_date,'yyyy-mm-dd hh24:mi:ss') AS creation_date_desc,
+                        h.release_date,
+                        TO_CHAR(h.release_date,'yyyy-mm-dd hh24:mi:ss') AS release_date_desc,
+                        h.confirm_date,
+                        TO_CHAR(h.confirm_date,'yyyy-mm-dd hh24:mi:ss') AS confirm_date_desc,
+                        h.reply_date,
+                        TO_CHAR(h.reply_date,'yyyy-mm-dd') AS reply_date_desc,
+                        h.data_source,
+                        h.reply_over_flag,
+                        h.urgent_status,
+                        (SELECT
+                            code_value_name
+                        FROM
+                            sys_code_values_v sc
+                        WHERE
+                            sc.code_value = h.urgent_status AND
+                            sc.code       = 'PUR_PO_URGENT_STATUS'
+                        ) urgent_status_desc,
+                        TO_CHAR(h.urgent_date,'yyyy-mm-dd hh24:mi:ss') urgent_date_desc,
+                        h.urgent_date,
+                        h.last_version,
+                        (SELECT
+                            su.user_id
+                        FROM
+                            sys_user su,
+                            pur_buyers pb
+                        WHERE
+                            su.user_id  = pb.user_id AND
+                            pb.buyer_id = h.agent_id AND
+                            ROWNUM      = 1
+                        ) agent_user_id,
+                        h.coop_company_id,
+                        h.coop_business_group,
+                        h.owner_company_id,
+                        h.owner_business_group,
+                        h.inv_organization_id,
+                        io.business_unit_id,
+                        NULL useless_id_3,
+                        NULL useless_id_4,
+                        NULL useless_id_5,
+                        NULL useless_id_6,
+                        NULL useless_id_7,
+                        NULL useless_id_8,
+                        NULL useless_id_9,
+                        NULL useless_id_10,
+                        NULL useless_id_11
+                    FROM
+                        pur_vendors pv,
+                        inv_organizations io,
+                        pur_headers_all_v h
+                    WHERE
+                        pv.vendor_id           = h.vendor_id AND
+                        io.inv_organization_id = h.inv_organization_id AND
+                        last_version           = 'Y' AND
+                        owner_business_group   = ${/session/@business_group}
+                    ) v #WHERE_CLAUSE# 
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="display_po_number" queryExpression="v.display_po_number like &apos;%&apos;||trim(${@display_po_number})||&apos;%&apos;"/>
+        <bm:query-field name="company_id" queryExpression="v.company_id = ${@company_id}"/>
+        <bm:query-field name="agent_id" queryExpression="v.agent_id = ${@agent_id}"/>
+        <bm:query-field name="srm_status" queryExpression="v.srm_status = ${@srm_status}"/>
+        <bm:query-field name="type_lookup_code" queryExpression="v.type_lookup_code = ${@type_lookup_code}"/>
+        <bm:query-field name="release_num" queryExpression="v.release_num = ${@release_num}"/>
+        <bm:query-field name="vendor_id" queryExpression="v.vendor_id = ${@vendor_id}"/>
+        <bm:query-field name="release_date_from" queryExpression="trunc(v.release_date) &gt;= to_date(${@release_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="release_date_to" queryExpression="trunc(v.release_date) &lt;= to_date(${@release_date_to},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="confirm_date_from" queryExpression="trunc(v.confirm_date) &gt;= to_date(${@confirm_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="confirm_date_to" queryExpression="trunc(v.confirm_date) &lt;= to_date(${@confirm_date_to},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="reply_over_flag" queryExpression="v.reply_over_flag = ${@reply_over_flag}"/>
+        <bm:query-field name="urgent_status" queryExpression="v.urgent_status = ${@urgent_status}"/>
+        <bm:query-field name="urgent_date_from" queryExpression="v.urgent_date &gt;= to_date(${@urgent_date_from},&apos;YYYY-MM-DD hh24:mi:ss&apos;)"/>
+        <bm:query-field name="urgent_date_to" queryExpression="v.urgent_date &lt;= to_date(${@urgent_date_to},&apos;YYYY-MM-DD hh24:mi:ss&apos;)"/>
+        <bm:query-field name="invoice_id" queryExpression="v.pur_header_id in (select eail.pur_header_id from erp_ap_invoice_lines eail where eail.invoice_id=${@invoice_id}"/>
+        <bm:query-field name="pur_header_id" queryExpression="v.pur_header_id = ${@pur_header_id}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <!-- 
+    <authority foundation_code="PUR_PO">
+        <authority-segment source_alias="v" source_name="agent_user_id" type="CREATER"/>
+        <authority-segment source_alias="v" source_name="owner_company_id" type="COMPANY"/>
+        <authority-segment source_alias="v" source_name="useless_id_3" type="RECEIVER"/>
+        <authority-segment source_alias="v" source_name="business_unit_id" type="BUSINESS_UNIT"/>
+        <authority-segment source_alias="v" source_name="useless_id_5" type="PUR_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="inv_organization_id" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_7" type="SD_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="coop_company_id" type="VENDOR"/>
+        <authority-segment source_alias="v" source_name="useless_id_9" type="CLIENT"/>
+        <authority-segment source_alias="v" source_name="useless_id_10" type="PURHASE_MATERIAL"/>
+        <authority-segment source_alias="v" source_name="useless_id_11" type="SALES_PRODUCTION"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+            var cx = Packages.aurora.javascript.Context.getCurrentContext();
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features> -->
+</bm:model>

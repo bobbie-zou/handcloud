@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Administrator  
+    $Date: 2013-6-7 上午11:21:19  
+    $Revision: 1.0  
+    $Purpose: 采购组织LOV
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        t1.pur_organization_id,
+                        t1.pur_organization_code,
+                        (SELECT
+                            d.description_text
+                        FROM
+                            fnd_descriptions d
+                        WHERE
+                            d.description_id = t1.description_id AND
+                            d.language       = ${/session/@lang}
+                        ) pur_organization_name,
+                        t1.enabled_flag,
+                        t1.address,
+                        t1.vender_item_management,
+                        t2.COMPANY_ID,
+                        t2.COMPANY_CODE
+                    FROM
+                        pur_organizations t1,
+                        fnd_companies_vl t2
+                    WHERE
+                        t1.data_source    = t2.DATA_SOURCE AND
+                        t1.data_source_id = t2.DATA_SOURCE_ID AND
+                        t1.enabled_flag   = 'Y'
+                    ) t3,
+                    fnd_auth_company_v t4
+                    
+                #WHERE_CLAUSE#
+                ORDER BY
+                    pur_organization_code
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="pur_organization_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="PUR_ORGANIZATION_ID"/>
+        <bm:field name="pur_organization_code" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="200" forDisplay="true" forQuery="true" physicalName="PUR_ORGANIZATION_CODE" prompt="采购组织代码"/>
+        <bm:field name="pur_organization_name" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="250" forDisplay="true" forQuery="true" physicalName="PUR_ORGANIZATION_NAME" prompt="采购组织名称"/>
+        <bm:field name="address" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ADDRESS"/>
+        <bm:field name="vender_item_management" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="VENDER_ITEM_MANAGEMENT"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="pur_organization_code" queryExpression="pur_organization_code like &apos;%&apos;||upper(${@pur_organization_code})||&apos;%&apos;"/>
+        <bm:query-field name="pur_organization_name" queryExpression="pur_organization_name like &apos;%&apos;||${@pur_organization_name}||&apos;%&apos;"/>
+        <bm:query-field name="pur_org_code" queryExpression="(pur_organization_code like &apos;%&apos;||upper(${@pur_org_code})||&apos;%&apos; or pur_organization_name like &apos;%&apos;||${@pur_org_code}||&apos;%&apos;)"/>
+        <bm:query-field name="pur_organization_code_name" queryExpression="(pur_organization_code like &apos;%&apos;||upper(${@pur_organization_code_name})||&apos;%&apos; or pur_organization_name like &apos;%&apos;||${@pur_organization_code_name}||&apos;%&apos;)"/>
+        <!--         <bm:query-field name="vendor_id" queryExpression="pur_organization_id in (select po.pur_org_id from pur_sys_vendor_org po where po.vendor_id = ${@vendor_id})"/>
+ -->
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="t3.company_id = t4.company_id AND t4.session_id = ${/session/@session_id}"/>
+    </bm:data-filters>
+</bm:model>

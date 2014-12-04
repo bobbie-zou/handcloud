@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-6 下午1:17:06  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="xcve5010_xc_ve_profiles_query_link" url="${/request/@context_path}/modules/xcve/XCVE5010/xc_ve_profiles_query.screen"/>
+        <a:link id="xcve5010_xc_ve_profile_errlog_link" url="${/request/@context_path}/modules/xcve/XCVE5010/xc_ve_profile_errlog.screen"/>
+        <a:link id="xcve5010_xc_ve_profile_cd_authorization_link" url="${/request/@context_path}/modules/xcve/XCVE5010/xc_ve_profile_cd_authorization.screen"/>
+        <a:link id="xcve5010_xc_ve_profile_submit_check_link" model="db.xc_ve_profile_pkg.xc_ve_profile_submit_check" modelaction="execute"/>
+        <a:link id="xcve5010_xc_ve_profile_submit_link" model="db.xc_ve_profile_pkg.xc_ve_profile_submit" modelaction="execute"/>
+        <a:link id="xcve5010_xc_ve_profile_cancel_link" model="db.xc_ve_profile_pkg.xc_ve_profile_cancel" modelaction="execute"/>
+        <a:link id="xcve5010_xc_ve_template_item_group_link" url="${/request/@context_path}/modules/xcve/XCVE5010/xc_ve_profiles_item_group_query.screen"/>
+        <script><![CDATA[
+            function xcve5010_bgcolorRenderer(value, record, name) {
+                var scoring_method = record.get('scoring_method');
+                var score = record.get('score');
+                if (scoring_method == 'MANUAL' && score == null) {
+                    if (value == null) {
+                        return "<div style='background-color:#FF0000'>&nbsp;</div>";
+                    } else {
+                        return "<div style='background-color:#FF0000'>" + value + "</div>";
+                    }
+                } else {
+                    if (value == null) {
+                        return null;
+                    } else {
+                        return value;
+                    }
+                }
+            }
+            
+            function xcve5010_backToQuery() {
+                Aurora.go($('xcve5010_xc_ve_profiles_query_link').getUrl());
+            }
+            
+            function xcve5010_submitCalculate() {
+                var record = $('xcve5010_ve_profiles_ds').getCurrentRecord();
+                if (record.get('status') == 'CALCULATING') {
+                    Aurora.showErrorMessage('${l:PROMPT.ERROR}', '${l:XCVE.CALCULATING_STATUS_ERROR}', function() {});
+                    return;
+                }
+                if (record.get('status') == 'CANCELED') {
+                    Aurora.showErrorMessage('${l:PROMPT.ERROR}', '${l:XCVE.CANCELED_STATUS_ERROR}', function() {});
+                    return;
+                }
+                var profileId = record.get('ve_profile_id');
+                Aurora.request({
+                    url: $('xcve5010_xc_ve_profile_submit_check_link').getUrl(),
+                    para: {
+                        ve_profile_id: profileId
+                    },
+                    success: function(response) {
+                        var check_result = response.result.check_result;
+                        if (check_result == 0) {
+                            xcve5010_continueSubmit(profileId);
+                        } else {
+                            Aurora.showErrorMessage('${l:PROMPT.ERROR}', '${l:XCVE.IMCOMPLETE_PROFILE_DATE}', function() {});
+                            return;
+                        }
+                    },
+                    failture: function() {},
+                    error: function() {},
+                    scope: this
+                });
+            }
+            
+            function xcve5010_continueSubmit(profileId) {
+                Aurora.request({
+                    url: $('xcve5010_xc_ve_profile_submit_link').getUrl(),
+                    para: {
+                        ve_profile_id: profileId
+                    },
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '${l:XCVE.SUBMIT_CALCULATING_SUCCESSFULLY}', function() {});
+                        $('xcve5010_ve_profiles_ds').query();
+                    },
+                    failture: function() {},
+                    error: function() {},
+                    scope: this
+                });
+            }
+            
+            function xcve5010_cancel() {
+                var record = $('xcve5010_ve_profiles_ds').getCurrentRecord();
+                if (record.get('status') == 'CALCULATING') {
+                    Aurora.showErrorMessage('${l:PROMPT.ERROR}', '${l:XCVE.CALCEL_CALCULATING_PROFILE_ERROR}', function() {});
+                    return;
+                }
+                if (record.get('status') == 'CANCELED') {
+                    Aurora.showErrorMessage('${l:PROMPT.ERROR}', '${l:XCVE.CANCEL_CALCELED_PROFILE_ERROR}', function() {});
+                    return;
+                }
+                var profileId = record.get('ve_profile_id');
+                Aurora.showConfirm('${l:PROMPT}', '${l:XCVE.CALCEL_CONFIRM}', xcve5010_continueCancel(profileId), xcve5010_stopCancel);
+            }
+            
+            function xcve5010_continueCancel(profileId) {
+                Aurora.request({
+                    url: $('xcve5010_xc_ve_profile_cancel_link').getUrl(),
+                    para: {
+                        ve_profile_id: profileId
+                    },
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.OPERATION_SUCCESS}', function() {});
+                        $('xcve5010_ve_profiles_ds').query();
+                    },
+                    failture: function() {},
+                    error: function() {},
+                    scope: this
+                });
+            }
+            
+            function xcve5010_stopCancel() {
+                return;
+            }
+            
+            function xcve5010_errorLog() {
+                new Aurora.Window({
+                    id: 'xcve5010_xc_ve_profile_errlog',
+                    url: $('xcve5010_xc_ve_profile_errlog_link').getUrl() + '?ve_profile_id=${/parameter/@ve_profile_id}',
+                    title: '${l:XCVE.ERROR_LOG}',
+                    height: 460,
+                    width: 750
+                });
+            }
+            
+            function xcve5010_authorizationRenderer(value, record, name) {
+                if (!record.isNew) {
+                    return '<a href="javascript:xcve5010_authorizationAsgn(' + record.get('ve_profile_cd_score_id') + ')">${l:XCVE.FILL_AUTHORITION}</a>';
+                } else {
+                    return '';
+                }
+            }
+            
+            function xcve5010_authorizationAsgn(veProfileCdScoreId) {
+                new Aurora.Window({
+                    id: 'xcve5010_xc_ve_profile_cd_authorization',
+                    url: $('xcve5010_xc_ve_profile_cd_authorization_link').getUrl() + '?ve_profile_cd_score_id=' + veProfileCdScoreId,
+                    title: '${l:XCVE.FILL_AUTHORITION}',
+                    height: 420,
+                    width: 710
+                });
+            }
+            
+            function xcve5010_itemgroupRenderer(value, record, name){
+            	return '<a href="javascript:xcve5010_itemgroupAssign(' + record.get('ve_template_id') + ','+record.get('vendor_id')+')">${l:XCVE.PROFILE_ITEM_GROUP}</a>';
+            }
+            
+            function xcve5010_itemgroupAssign(ve_template_id, vendor_id) {
+                new Aurora.Window({
+                    id: 'xcve5010_xc_ve_template_item_group',
+                    url: $('xcve5010_xc_ve_template_item_group_link').getUrl() + '?ve_template_id=' + ve_template_id+'&vendor_id='+vendor_id,
+                    title: '${l:XCVE.PROFILE_ITEM_GROUP}',
+                    height: 460,
+                    width: 750
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="xcve5010_ve_profiles_ds" autoQuery="true" model="xcve.XCVE5010.xc_ve_profiles" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE5010.xc_ve_profiles/query?company_id=${/session/@company_id}&amp;ve_profile_id=${/parameter/@ve_profile_id}">
+                <a:fields>
+                    <a:field name="company_id" readOnly="true"/>
+                    <a:field name="ve_profile_num" readOnly="true"/>
+                    <a:field name="status" readOnly="true"/>
+                    <a:field name="status_desc" readOnly="true"/>
+                    <a:field name="ve_profile_desc" readOnly="true"/>
+                    <a:field name="ve_template_id" readOnly="true"/>
+                    <a:field name="ve_template_id_desc" readOnly="true"/>
+                    <a:field name="period_name" readOnly="true"/>
+                    <a:field name="version_number" readOnly="true"/>
+                    <a:field name="estimate_date_from" readOnly="true"/>
+                    <a:field name="estimate_date_to" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="xcve5010_score_ds" autoQuery="true" model="xcve.XCVE5010.xc_ve_profile_cd_score" pageSize="100" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE5010.xc_ve_profile_cd_score/query?ve_profile_id=${/parameter/@ve_profile_id}">
+                <a:fields>
+                    <a:field name="vendor_name" readOnly="true"/>
+                    <a:field name="item_group_code" readOnly="true"/>
+                    <a:field name="detail_code" readOnly="true"/>
+                    <a:field name="detail_note" readOnly="true"/>
+                    <a:field name="scoring_method" readOnly="true"/>
+                    <a:field name="scoring_method_desc" readOnly="true"/>
+                    <a:field name="score" readOnly="true"/>
+                    <a:field name="note" readOnly="true"/>
+                    <a:field name="score_from" readOnly="true"/>
+                    <a:field name="score_to" readOnly="true"/>
+                    <a:field name="last_updated_by_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="xcve5010_vendor_ds" autoQuery="true" model="xcve.XCVE5010.xc_ve_profile_vendor" pageSize="100" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE5010.xc_ve_profile_vendor/query?ve_profile_id=${/parameter/@ve_profile_id}">
+                <a:fields>
+                    <a:field name="ve_profile_id"/>
+                    <a:field name="vendor_id"/>
+                    <a:field name="vendor_srm_code" readOnly="true"/>
+                    <a:field name="vendor_erp_code" readOnly="true"/>
+                    <a:field name="vendor_name" readOnly="true"/>
+                    <a:field name="vendor_type_name" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <!--  <a:dataSet id="item_group_ds" autoQuery="true" model="xcve.XCVE5010.xc_ve_profile_item_group" pageSize="100" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE5010.xc_ve_profile_item_group/query?ve_profile_id=${/parameter/@ve_profile_id}">
+                <a:fields>
+                    <a:field name="item_group_code" readOnly="true"/>
+                    <a:field name="item_group_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet> -->
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" labelWidth="100" title="XCVE.PROFILE_DETIAL" width="600">
+                <a:textField name="ve_profile_num" bindTarget="xcve5010_ve_profiles_ds"/>
+                <a:textField name="status_desc" bindTarget="xcve5010_ve_profiles_ds"/>
+                <a:textField name="ve_profile_desc" bindTarget="xcve5010_ve_profiles_ds"/>
+                <a:textField name="ve_template_id_desc" bindTarget="xcve5010_ve_profiles_ds"/>
+                <a:textField name="period_name" bindTarget="xcve5010_ve_profiles_ds"/>
+                <a:textField name="version_number" bindTarget="xcve5010_ve_profiles_ds"/>
+                <a:textField name="estimate_date_from" bindTarget="xcve5010_ve_profiles_ds" renderer="Aurora.formatDate"/>
+                <a:textField name="estimate_date_to" bindTarget="xcve5010_ve_profiles_ds" renderer="Aurora.formatDate"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="xcve5010_backToQuery" text="XCVE.BACK_TO_LIST"/>
+                <a:button click="xcve5010_submitCalculate" text="XCVE.SUBMIT_CALCULATE"/>
+                <a:button click="xcve5010_errorLog" text="XCVE.ERROR_LOG"/>
+                <a:button click="xcve5010_cancel" text="HAP_REMOVE"/>
+            </a:hBox>
+            <a:tabPanel id="xcve5010_tabpanel" height="450" width="750">
+                <a:tabs>
+                    <a:tab prompt="XCVE.PROFILE_SCORE">
+                        <a:grid bindTarget="xcve5010_score_ds" height="400" navBar="true" style="margin:10px;" width="720">
+                            <a:columns>
+                                <a:column name="vendor_name" lock="true" renderer="xcve5010_bgcolorRenderer" sortable="true" width="120"/>
+                                <a:column name="item_group_code" lock="true" renderer="xcve5010_bgcolorRenderer" sortable="true" width="120"/>
+                                <a:column name="detail_code" lock="true" renderer="xcve5010_bgcolorRenderer" sortable="true" width="100"/>
+                                <a:column name="detail_note" renderer="xcve5010_bgcolorRenderer" sortable="true" width="200"/>
+                                <a:column name="scoring_method_desc" align="center" renderer="xcve5010_bgcolorRenderer" sortable="true" width="70"/>
+                                <a:column name="score" align="center" renderer="xcve5010_bgcolorRenderer" sortable="true" width="70"/>
+                                <a:column name="note" align="center" renderer="xcve5010_bgcolorRenderer" sortable="true" width="70"/>
+                                <a:column name="score_from" align="right" renderer="xcve5010_bgcolorRenderer" sortable="true" width="80"/>
+                                <a:column name="score_to" align="right" renderer="xcve5010_bgcolorRenderer" sortable="true" width="80"/>
+                                <a:column name="last_updated_by_desc" renderer="xcve5010_bgcolorRenderer" sortable="true" width="100"/>
+                                <a:column name="authorization" align="center" renderer="xcve5010_authorizationRenderer" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="XCVE.VENDOR">
+                        <a:grid bindTarget="xcve5010_vendor_ds" height="400" navBar="true" style="margin:10px;" width="720">
+                            <a:columns>
+                                <a:column name="vendor_code" prompt="PUR_VENDORS.VENDOR_CODE" width="240">
+                                    <a:column name="vendor_srm_code" prompt="PUR_VENDORS.VENDOR_SRM_CODE" sortable="true" width="120"/>
+                                    <a:column name="vendor_erp_code" prompt="PUR_VENDORS.VENDOR_ERP_CODE" sortable="true" width="120"/>
+                                </a:column>
+                                <a:column name="vendor_name" prompt="PUR_VENDORS.VENDOR_DESCRIPTION" sortable="true" width="200"/>
+                                <a:column name="vendor_type_name" prompt="PUR_VENDORS.VENDOR_TYPE_ID" sortable="true" width="120"/>
+                                <a:column name="item_group" align="center" prompt="XCVE.PROFILE_ITEM_GROUP" renderer="xcve5010_itemgroupRenderer" width="100"/>
+                                <a:column name="platform" prompt="PUR_VENDORS.PLATFORM" sortable="true" width="300"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <!-- <a:tab prompt="物料组">
+                        <a:grid bindTarget="item_group_ds" height="400" navBar="true" style="margin:10px;" width="720">
+                            <a:columns>
+                                <a:column name="item_group_code" prompt="物料组编码" sortable="true" width="200"/>
+                                <a:column name="item_group_desc" prompt="物料组描述" sortable="true" width="400"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab> -->
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

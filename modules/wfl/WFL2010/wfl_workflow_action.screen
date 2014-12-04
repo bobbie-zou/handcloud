@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: niujiaqing1265 $
+    $Date: 2010/09/08 08:48:05 $
+    $Revision: 1.1 $
+    $Purpose: 工作流动作
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" fieldNameCase="lower" model="wfl.WFL2010.wfl_workflow_action" rootPath="wfl2010_workflow_action_rootpath"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="wfl2010_workflow_actions_batch_assign_link" url="${/request/@context_path}/modules/wfl/WFL2010/wfl_workflow_actions_batch_assign.svc"/>
+        <div/>
+        <script><![CDATA[
+            function wfl2010WorkflowActionEditor(record) {
+                var actionType = record.get('action_type');
+                if (actionType == 3) {
+                    return "wfl2010_workflow_action_cmb";
+                } else {
+                    return "";
+                }
+            }
+            
+            function wfl2010WorkflowActionOnUpdate(ds, record, name, value) {
+                if (name == 'action_type') {
+                    if (value == 3) {
+                        record.getField('sendback_node_id_display').setRequired(true);
+                        $('wfl2010_workflow_action_grid').setEditor('sendback_node_id_display', "wfl2010_workflow_action_cmb");
+                    } else {
+                        record.getField('sendback_node_id_display').setRequired(false);
+                        record.set('sendback_node_id_display', '');
+                        record.set('sendback_node_id', '');
+                        $('wfl2010_workflow_action_grid').setEditor('sendback_node_id_display', "");
+                    }
+                }
+            }
+            
+            function wfl2010WorkflowActionBatchAssign() {
+                var records = $('wfl2010_workflow_action_ds').getJsonData(true);
+                Aurora.request({
+                    url: /*wfl_workflow_actions_batch_assign.svc*/
+                    $('wfl2010_workflow_actions_batch_assign_link').getUrl(),
+                    para: records,
+                    scope: this
+                });
+            
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl2010_workflow_action_type_ds" autoCount="false" fetchAll="true" loadData="true" model="wfl.WFL2010.wfl_workflow_action_type"/>
+            <a:dataSet id="wfl2010_workflow_action_ds" bindName="actions" bindTarget="wfl2010_workflow_edit_ds" fetchAll="true" model="wfl.WFL2010.wfl_workflow_action" selectable="true">
+                <a:datas dataSource="/model/wfl2010_workflow_action_rootpath"/>
+                <a:fields>
+                    <a:field name="workflow_id" defaultValue="${/parameter/@workflow_id}"/>
+                    <a:field name="action_title"/>
+                    <a:field name="status" defaultValue="0"/>
+                    <a:field name="action_type_display" displayField="name" options="wfl2010_workflow_action_type_ds" returnField="action_type" valueField="value"/>
+                    <a:field name="sendback_node_id_display" displayField="name" options="wfl2010_workflow_node_edit_ds" returnField="sendback_node_id" valueField="node_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="wfl2010WorkflowActionOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:grid id="wfl2010_workflow_action_grid" bindTarget="wfl2010_workflow_action_ds" marginHeight="250" marginWidth="120">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="delete"/>
+                    <a:button click="wfl2010WorkflowActionBatchAssign" icon="${/request/@context_path}/images/save.gif" text="HEC_BATCH_ASSIGN"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="action_title" editor="wfl2010_workflow_action_tf" width="150"/>
+                    <a:column name="action_type_display" editor="wfl2010_workflow_action_cmb" width="150"/>
+                    <a:column name="sendback_node_id_display" editorFunction="wfl2010WorkflowActionEditor" width="250"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="wfl2010_workflow_action_tf"/>
+                    <a:comboBox id="wfl2010_workflow_action_cmb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-10-22 下午4:44:10  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="RPT_SETTING_FREQUENCY">
+    <bm:fields>
+        <bm:field name="rpt_setting_freq_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="RPT_SETTING_FREQ_ID" prompt="RPT_SETTING_FREQUENCY.RPT_SETTING_FREQ_ID"/>
+        <bm:field name="rp_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="RP_HEADER_ID" prompt="RPT_SETTING_FREQUENCY.RP_HEADER_ID"/>
+        <bm:field name="refresh_date" databaseType="DATE" datatype="java.util.Date" physicalName="REFRESH_DATE" prompt="RPT_SETTING_FREQUENCY.REFRESH_DATE"/>
+        <bm:field name="business_group" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BUSINESS_GROUP" prompt="RPT_SETTING_FREQUENCY.BUSINESS_GROUP"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID" prompt="RPT_SETTING_FREQUENCY.COMPANY_ID"/>
+        <bm:field name="business_unit_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="BUSINESS_UNIT_ID" prompt="RPT_SETTING_FREQUENCY.BUSINESS_UNIT_ID"/>
+        <bm:field name="rpt_code"/>
+        <bm:field name="nowdate" forInsert="false" forUpdate="false"/>
+        <bm:field name="date_diff" forInsert="false" forUpdate="false"/>
+    </bm:fields>
+    <bm:features>
+        <f:standard-who/>
+    </bm:features>
+    <bm:query-fields>
+        <bm:query-field field="rpt_code" queryExpression="t1.rpt_code = ${@rpt_code}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t1.rpt_setting_freq_id,
+                    t1.rp_header_id,
+                    t1.refresh_date,
+                    t1.business_group,
+                    t1.company_id,
+                    t1.business_unit_id,
+                    t1.rpt_code,
+                    to_date(to_char(sysdate,'yyyy-mm-dd'),'yyyy-mm-dd') nowdate,
+                    to_number(sysdate-t1.refresh_date) date_diff
+                FROM
+                    RPT_SETTING_FREQUENCY t1  #WHERE_CLAUSE#
+                ORDER BY
+                    t1.rpt_setting_freq_id
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            begin
+              update RPT_SETTING_FREQUENCY
+              set refresh_date = decode(${@rp_header_id},-1,sysdate,refresh_date),
+                  rp_header_id = decode(${@rp_header_id},'-1',rp_header_id,${@rp_header_id}),
+                  LAST_UPDATE_DATE = sysdate,
+                  LAST_UPDATED_BY = ${/session/@user_id}
+              where rpt_code = ${@rpt_code};
+            end;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

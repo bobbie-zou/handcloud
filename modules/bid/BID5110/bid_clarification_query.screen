@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013年12月27日 上午10:24:03  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="bid5110_entrustment_detail_link" url="${/request/@context_path}/modules/bid/BID7030/bid_entrustment_detail.screen"/>
+        <a:link id="bid5110_entrustment_query_link" url="${/request/@context_path}/modules/bid/BID5110/bid_entrustment_query.screen"/>
+        <a:link id="bid5110_clarification_edit_link" url="${/request/@context_path}/modules/bid/BID5110/bid_clarification_edit.screen"/>
+        <a:link id="bid5110_clarification_detail_link" url="${/request/@context_path}/modules/bid/BID5110/bid_clarification_detail.screen"/>
+        <a:link id="bid5110_operation_record_link" url="${/request/@context_path}/modules/bid/public/bid_operation_record.screen"/>
+        <script><![CDATA[
+            function bid5110Create() {
+                new Aurora.Window({
+                    id: 'bid5110_entrustment_query_window',
+                    title: '${l:BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_APPLICATION}',
+                    url: $('bid5110_entrustment_query_link').getUrl(),
+                    height: 500,
+                    width: 800
+                });
+            }
+            
+            function bid5110Query() {
+                $('bid5110_clarification_result_ds').query();
+            }
+            
+            function bid5110ClarificationResultRender(value, record, name) {
+                var clarification_id = record.get('clarification_id');
+                var entrustment_header_id = record.get('entrustment_header_id');
+                var round = record.get('round');
+                var version = record.get('version');
+                var released_flag = record.get('released_flag');
+                if (name == 'clarification_number') {
+                    if (released_flag == 'N') {
+                        return '<a href="javascript:bid5110ClarificationEdit(' + clarification_id + ')">' + value + '</a>';
+                    }else if (released_flag == 'Y') {
+                        return '<a href="javascript:bid5110ClarificationDetail(' + clarification_id + ')">' + value + '</a>';
+                    }
+                } else if (name == 'entrustment_header_number') {
+                    return '<a href="javascript:bid5110EntrustmentDetail(' + entrustment_header_id + ')">' + value + '</a>';
+                } else if (name == 'operation_record') {
+                    return '<a href="javascript:bid5110OperationRecord(' + clarification_id + ')">${l:PROMPT.OPERATION_RECORD}</a>';
+                }
+            }
+            
+            function bid5110ClarificationEdit(clarification_id) {
+                new Aurora.Window({
+                    id: 'bid5110_clarification_edit_window',
+                    title: '${l:BID_CLARIFICATIONS.CLARIFICATION_MAINTAIN}',
+                    url: $('bid5110_clarification_edit_link').getUrl() + '?clarification_id=' + clarification_id,
+                    fullScreen: true
+                });
+            }
+            
+            function bid5110ClarificationDetail(clarification_id) {
+                new Aurora.Window({
+                    id: 'bid5110_clarification_detail_window',
+                    title: '${l:BID_CLARIFICATIONS.CLARIFICATION_DETAIL}',
+                    url: $('bid5110_clarification_detail_link').getUrl() + '?clarification_id=' + clarification_id,
+                    fullScreen: true
+                });
+            }
+            
+            function bid5110EntrustmentDetail(entrustment_header_id) {
+                new Aurora.Window({
+                    id: 'bid5110_entrustment_window',
+                    title: '${l:BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_APPLICATION_DETAIL}',
+                    url: $('bid5110_entrustment_detail_link').getUrl() + '?entrustment_header_id=' + entrustment_header_id,
+                    fullScreen: true
+                });
+            }
+            
+            function bid5110OperationRecord(clarification_id) {
+                new Aurora.Window({
+                    id: 'bid5110_operation_record_window',
+                    title: '${l:PROMPT.OPERATION_RECORD}',
+                    url: $('bid5110_operation_record_link').getUrl() + '?operation_table=BID_CLARIFICATIONS' + '&operation_table_id=' + clarification_id,
+                    height: 450,
+                    width: 600
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5110_clarification_query_ds"/>
+            <a:dataSet id="bid5110_clarification_result_ds" autoCount="true" autoPageSize="true" model="bid.BID5110.bid_clarification_query" queryDataSet="bid5110_clarification_query_ds"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid5110Create" text="PROMPT.INSERT" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="bid5110_clarification_query_ds" resultTarget="bid5110_clarification_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="clarification_number" bindTarget="bid5110_clarification_query_ds" prompt="BID_CLARIFICATIONS.CLARIFICATION_NUMBER">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5110Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="entrustment_header_number" bindTarget="bid5110_clarification_query_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_HEADER_NUMBER">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5110Query"/>
+                        </a:events>
+                    </a:textField>
+                </a:formToolBar>
+                <a:formBody/>
+            </a:queryForm>
+            <a:grid id="bid5110_clarification_result_grid" autoAppend="false" bindTarget="bid5110_clarification_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="clarification_number" align="center" lock="true" prompt="BID_CLARIFICATIONS.CLARIFICATION_NUMBER" renderer="bid5110ClarificationResultRender" width="80"/>
+                    <a:column name="entrustment_header_number" align="center" lock="true" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_HEADER_NUMBER" renderer="bid5110ClarificationResultRender" sortable="true" width="80"/>
+                    <a:column name="title" align="left" lock="true" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TITLE" width="80"/>
+                    <a:column name="round" align="left" prompt="BID_ENTRUSTMENT_HEADERS.ROUND" width="30"/>
+                    <a:column name="version" align="left" prompt="BID_ENTRUSTMENT_HEADERS.VERSION" width="30"/>
+                    <a:column name="publisher_name" align="left" prompt="BID_CLARIFICATIONS.PUBLISHER_NAME" width="60"/>
+                    <a:column name="released_flag_desc" align="center" prompt="BID_CLARIFICATIONS.PUBLISH_STATUS" width="40"/>
+                    <a:column name="operation_record" align="center" prompt="PROMPT.OPERATION_RECORD" renderer="bid5110ClarificationResultRender" width="60"/>
+                </a:columns>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

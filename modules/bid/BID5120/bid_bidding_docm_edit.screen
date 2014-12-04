@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-27 下午4:12:57  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="bid5120_edit_bidding_docm_save_link" url="${/request/@context_path}/modules/bid/BID5130/bid_bidding_docm_save.svc"/>
+        <a:link id="bid5120_edit_bidding_docm_submit_link" url="${/request/@context_path}/modules/bid/BID5130/bid_bidding_docm_submit.svc"/>
+        <a:link id="bid5120_edit_bidding_docm_cancel_link" model="bid.BID5130.bid_bidding_docm_cancel" modelaction="execute"/>
+        <script><![CDATA[
+            function bid5120BiddingDocmEditLinesOnUpdate(ds, record, name, value, oldvalue) {
+                if (name == "base_price" || name == 'quantity' || name == 'tax_type_rate') {
+                    var base_price = record.get('base_price');
+                    var quantity = record.get('quantity');
+                    var unit_price = record.get('unit_price');
+                    var net_price = record.get('net_price');
+                    var net_amount = record.get('net_amount');
+                    var tax_amount = record.get('tax_amount');
+                    var total_amount = record.get('total_amount');
+                    var tax_included_flag = record.get('tax_included_flag');
+                    var tax_type_rate = record.get('tax_type_rate');
+            
+                    if (!Aurora.isEmpty(quantity) && !Aurora.isEmpty(base_price) && !Aurora.isEmpty(tax_type_rate)) {
+                        if (tax_included_flag == 'N') {
+                            record.set('unit_price', parseFloat((base_price * (1 + tax_type_rate / 100)).toFixed(8)));
+                            record.set('net_price', parseFloat(base_price.toFixed(8)));
+                            unit_price = record.get('unit_price');
+                            net_price = record.get('net_price');
+                            record.set('net_amount', parseFloat((net_price * quantity).toFixed(2)));
+                            record.set('tax_amount', parseFloat(((unit_price - net_price) * quantity).toFixed(2)));
+                            net_amount = record.get('net_amount');
+                            tax_amount = record.get('tax_amount');
+                            record.set('total_amount', parseFloat((net_amount + tax_amount).toFixed(2)));
+                        } else if (tax_included_flag == 'Y') {
+                            record.set('unit_price', parseFloat(base_price.toFixed(8)));
+                            record.set('net_price', parseFloat((base_price / (1 + (tax_type_rate / 100))).toFixed(8)));
+                            unit_price = record.get('unit_price');
+                            net_price = record.get('net_price');
+                            record.set('net_amount', parseFloat((net_price * quantity).toFixed(2)));
+                            record.set('tax_amount', parseFloat(((unit_price - net_price) * quantity).toFixed(2)));
+                            net_amount = record.get('net_amount');
+                            tax_amount = record.get('tax_amount');
+                            record.set('total_amount', parseFloat((net_amount + tax_amount).toFixed(2)));
+                        }
+                    } else {
+                        record.set('unit_price', '');
+                        record.set('net_price', '');
+                        record.set('net_amount', '');
+                        record.set('tax_amount', '');
+                        record.set('total_amount', '');
+                    }
+                }
+            }
+            
+            function bid5120BiddingDocmEditSave() {
+                var header_ds = $('bid5120_edit_bidding_docm_header_ds');
+                var item_ds = $('bid5120_edit_bidding_docm_lines_ds');
+            
+                if (!header_ds.validate()) {
+                    return;
+                }
+                if (!item_ds.validate()) {
+                    return;
+                }
+            
+                Aurora.Masker.mask($('bid5120_create_bidding_docm_edit_window').wrap, '${l:LOADING}');
+            
+                var header_rec = header_ds.getCurrentRecord();
+            
+                var header_data = header_rec.data;
+            
+                header_data['items'] = item_ds.getJsonData();
+            
+                Aurora.request({
+                    url: $('bid5120_edit_bidding_docm_save_link').getUrl(),
+                    para: header_data,
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SAVED}', function() {
+                            header_ds.query();
+                            item_ds.query();
+                        });
+                    },
+                    failure: function() {
+                        return;
+                    },
+                    error: function() {
+                        return;
+                    }
+                });
+            
+                Aurora.Masker.unmask($('bid5120_create_bidding_docm_edit_window').wrap);
+            }
+            
+            function bid5120BiddingDocmEditSubmit() {
+                var header_ds = $('bid5120_edit_bidding_docm_header_ds');
+                var item_ds = $('bid5120_edit_bidding_docm_lines_ds');
+            
+                if (!header_ds.validate()) {
+                    return;
+                }
+                if (!item_ds.validate()) {
+                    return;
+                }
+            
+                Aurora.Masker.mask($('bid5120_create_bidding_docm_edit_window').wrap, '${l:LOADING}');
+            
+                var header_rec = header_ds.getCurrentRecord();
+            
+                var header_data = header_rec.data;
+            
+                header_data['items'] = item_ds.getJsonData();
+            
+                Aurora.showConfirm('${l:PROMPT}', '${l:BID_ENTRUSTMENT_HEADERS.CONFIRM_SUBMIT_BID_MSG}？', function() {
+                    Aurora.request({
+                        url: $('bid5120_edit_bidding_docm_submit_link').getUrl(),
+                        para: header_data,
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SUBMITED}', function() {
+                                $('bid5120_create_bidding_docm_edit_window').close();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+                });
+            
+                Aurora.Masker.unmask($('bid5120_create_bidding_docm_edit_window').wrap);
+            }
+            
+            function bid5120BiddingDocmEditCancel() {
+                var header_ds = $('bid5120_edit_bidding_docm_header_ds');
+                var header_rec = header_ds.getCurrentRecord();
+                var bid_header_id = header_rec.get('bid_header_id');
+                var status = header_rec.get('status');
+                var round = header_rec.get('round');
+                var version = header_rec.get('version');
+            
+                Aurora.Masker.mask($('bid5120_create_bidding_docm_edit_window').wrap, '${l:LOADING}');
+            
+                Aurora.showConfirm('${l:PROMPT}', '${l:BID_ENTRUSTMENT_HEADERS.CONFIRM_CANCEL_BID_MSG}？', function() {
+                    Aurora.request({
+                        url: $('bid5120_edit_bidding_docm_cancel_link').getUrl(),
+                        para: {
+                            'bid_header_id': bid_header_id,
+                            'status': status,
+                            'round': round,
+                            'version': version
+                        },
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.CANCELED}', function() {
+                                $('bid5120_create_bidding_docm_edit_window').close();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+                });
+            
+                Aurora.Masker.unmask($('bid5120_create_bidding_docm_edit_window').wrap);
+            }
+            
+            function bid5120BiddingDocmEditReturn() {
+                $('bid5120_create_bidding_docm_edit_window').close();
+            }
+            
+            function bid5120BiddingDocmEditAtmUpload() {
+                if ('${/parameter/@entrustment_header_id}') {
+                    var url = "${/request/@context_path}/uploadFile.screen?table_name=BID_BIDDING_DOCM_HEADERS&header_id=${/parameter/@bid_header_id}";
+                    new Aurora.Window({
+                        url: url,
+                        title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                        id: 'bid5120_bidding_docm_edit_atm_window',
+                        width: 350,
+                        height: 400
+                    }).on('beforeclose', function() {
+                        $('bid5120_edit_bidding_docm_atm_files_ds').query();
+                    });
+                }
+            }
+            
+            function bid5120BiddingDocmEditAtmRender(value, rec, name) {
+                if (name == 'file_download_link') {
+                    var file_download_link = rec.get('file_download_link');
+                    return file_download_link;
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5120_edit_bidding_docm_header_ds" autoQuery="true" fetchAll="true" model="bid.BID5130.bid_bidding_docm_headers" queryUrl="${/request/@context_path}/autocrud/bid.BID5130.bid_bidding_docm_headers/query?bid_header_id=${/parameter/@bid_header_id}">
+                <a:fields>
+                    <a:field name="application_date" required="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="bid5120_edit_bidding_docm_lines_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="bid.BID5130.bid_bidding_docm_lines" queryUrl="${/request/@context_path}/autocrud/bid.BID5130.bid_bidding_docm_lines/query?bid_header_id=${/parameter/@bid_header_id}">
+                <a:fields>
+                    <a:field name="quantity" required="true"/>
+                    <a:field name="base_price" required="true"/>
+                    <a:field name="promised_date" required="true"/>
+                    <a:field name="tax_type_id"/>
+                    <a:field name="tax_included_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="tax_type_code" autoComplete="true" autoCompleteField="tax_type_code" lovGridHeight="350" lovHeight="500" lovService="public.fnd_tax_type_code_lov" lovWidth="500" required="true" title="BID_ENTRUSTMENT_LN_ITEMS.TAX_RATE">
+                        <a:mapping>
+                            <a:map from="tax_type_id" to="tax_type_id"/>
+                            <a:map from="tax_type_code" to="tax_type_code"/>
+                            <a:map from="tax_type_rate" to="tax_type_rate"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="bid5120BiddingDocmEditLinesOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5120_edit_bidding_docm_atm_files_ds" autoCount="true" autoQuery="true" fetchAll="true" model="public.fnd_attachment_file" queryUrl="${/request/@context_path}/autocrud/public.fnd_attachment_file/query?table_name=BID_BIDDING_DOCM_HEADERS&amp;pk_value=${/parameter/@bid_header_id}"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid5120BiddingDocmEditSave" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="bid5120BiddingDocmEditSubmit" text="PROMPT.SUBMIT" width="100"/>
+                <a:toolbarButton click="bid5120BiddingDocmEditCancel" text="PROMPT.CANCEL" width="100"/>
+                <a:toolbarButton click="bid5120BiddingDocmEditReturn" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100">
+                <a:vBox labelWidth="100">
+                    <a:label name="bid_header_number" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.BID_NUMBER"/>
+                    <a:label name="company_desc" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_COMPANY_DESC"/>
+                    <a:label name="currency_name" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.CURRENCY_NAME"/>
+                    <a:label name="bidder_desc" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_NAME"/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:label name="entrustment_header_number" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_APPLICATION_NUMBER"/>
+                    <a:label name="entrustment_type_desc" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_TYPE_DESC"/>
+                    <a:label name="margin_required_flag_desc" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.MARGIN_REQUIRED_FLAG"/>
+                    <a:datePicker name="application_date" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.APPLICATION_DATE" renderer="Aurora.formatDate"/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:label name="round" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.ROUND"/>
+                    <a:label name="bid_closing_date" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HDS_HIST.BID_CLOSING_DATE" renderer="Aurora.formatDate"/>
+                    <a:label/>
+                    <a:label/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:label name="version" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.VERSION"/>
+                    <a:label name="complete_date" bindTarget="bid5120_create_bidding_docm_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.COMPLETE_DATE" renderer="Aurora.formatDate"/>
+                    <a:label/>
+                    <a:label/>
+                </a:vBox>
+            </a:hBox>
+            <a:hBox labelWidth="100">
+                <a:textArea name="comments" bindTarget="bid5120_create_bidding_docm_header_ds" height="60" marginWidth="360" prompt="BID_BIDDING_DOCM_HEADERS.COMMENTS"/>
+            </a:hBox>
+            <a:tabPanel height="380" marginWidth="50">
+                <a:tabs>
+                    <a:tab prompt="BID_ENTRUSTMENT_HEADERS.ITEM" width="100">
+                        <a:grid id="bid5120_edit_bidding_docm_lines_grid" bindTarget="bid5120_edit_bidding_docm_lines_ds" height="350" marginWidth="60" navBar="true">
+                            <a:columns>
+                                <a:column name="line_num" align="center" prompt="BID_ENTRUSTMENT_LN_ITEMS.LINE_NUM" sortable="true" width="30"/>
+                                <a:column name="item_code" align="left" prompt="BID_ENTRUSTMENT_LN_ITEMS.ITEM_CODE" width="100"/>
+                                <a:column name="item_desc" align="left" prompt="BID_ENTRUSTMENT_LN_ITEMS.ITEM_DESC" width="150"/>
+                                <a:column name="uom_code" align="center" prompt="BID_ENTRUSTMENT_LN_ITEMS.UOM" width="40"/>
+                                <a:column name="entrustment_quantity" align="right" prompt="BID_ENTRUSTMENT_LN_ITEMS.QUANTITY" width="80"/>
+                                <a:column name="quantity" align="right" editor="bid5120_edit_bidding_docm_lines_quantity_nf" prompt="BID_ENTRUSTMENT_HEADERS.BID_QUANTITY" width="80"/>
+                                <a:column name="base_price" align="right" editor="bid5120_edit_bidding_docm_lines_amount_nf" prompt="BID_ENTRUSTMENT_LN_ITEMS.BASE_PRICE" renderer="Aurora.formatMoney" width="80"/>
+                                <a:column name="tax_included_flag" align="center" prompt="BID_ENTRUSTMENT_LN_ITEMS.TAX_FLAG" width="30"/>
+                                <a:column name="tax_type_code" align="center" editor="bid5120_edit_bidding_docm_lines_lov" prompt="BID_ENTRUSTMENT_LN_ITEMS.TAX_RATE_CODE" width="60"/>
+                                <a:column name="tax_type_rate" align="right" prompt="BID_ENTRUSTMENT_LN_ITEMS.TAX_RATE" width="60"/>
+                                <a:column name="net_price" align="right" prompt="BID_ENTRUSTMENT_LN_ITEMS.PRE_TAX_NET_PRICE" width="80"/>
+                                <a:column name="net_amount" align="right" prompt="BID_ENTRUSTMENT_LN_ITEMS.NET_AMOUNT" width="80"/>
+                                <a:column name="tax_amount" align="right" prompt="BID_ENTRUSTMENT_LN_ITEMS.TAX_AMOUNT" width="80"/>
+                                <a:column name="total_amount" align="right" prompt="BID_ENTRUSTMENT_LN_ITEMS.AMOUNT" width="80"/>
+                                <a:column name="need_by_date" align="center" prompt="BID_ENTRUSTMENT_LN_ITEMS.NEED_BY_DATE" renderer="Aurora.formatDate" width="60"/>
+                                <a:column name="promised_date" align="center" editor="bid5120_edit_bidding_docm_lines_dp" prompt="BID_ENTRUSTMENT_HEADERS.PROMISED_DATE" renderer="Aurora.formatDate" width="60"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="bid5120_edit_bidding_docm_lines_lov"/>
+                                <a:numberField id="bid5120_edit_bidding_docm_lines_quantity_nf" allowDecimals="true" allowNegative="false" decimalPrecision="2"/>
+                                <a:numberField id="bid5120_edit_bidding_docm_lines_amount_nf" allowDecimals="true" allowFormat="true" allowNegative="false" decimalPrecision="2"/>
+                                <a:datePicker id="bid5120_edit_bidding_docm_lines_dp"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="PROMPT.ATTACHMENT" width="100">
+                        <a:grid id="bid5120_edit_bidding_docm_atm_files_grid" bindTarget="bid5120_edit_bidding_docm_atm_files_ds" height="350" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button click="bid5120BiddingDocmEditAtmUpload" text="PROMPT.UPLOAD_DELETE"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="file_download_link" align="left" prompt="PROMPT.ATTACHMENT_NAME" renderer="bid5120BiddingDocmEditAtmRender" width="150"/>
+                                <a:column name="upload_user_name" align="left" prompt="PROMPT.UPLOADED_BY" width="80"/>
+                                <a:column name="upload_date" align="center" prompt="PROMPT.UPLOAD_DATE" renderer="Aurora.formatDateTime" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

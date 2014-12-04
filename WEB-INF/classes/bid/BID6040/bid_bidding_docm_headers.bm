@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-27 下午4:49:14  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    ${@entrustment_header_id} AS entrustment_header_id,
+                    dh.bid_header_id,
+                    dh.bid_header_number,
+                    dh.bidder_id,
+                    dl.bid_line_id,
+                    b.bidder_code,
+                    b.bidder_desc,
+                    dh.created_by,
+                    su.description AS bidder_user_desc,
+                    (SELECT
+                        SUM(NVL(dl.unit_price, 0))
+                    FROM
+                        bid_bidding_docm_lines dl
+                    WHERE
+                        dl.bid_header_id = dh.bid_header_id
+                    ) AS sum_unit_price,
+                    bid_score_pkg.get_min_price_weight(dh.bid_header_id, ${/session/@user_id}) AS min_price_weight,
+                    bid_score_pkg.get_bidding_score(dh.bid_header_id, ${/session/@user_id}) AS bidding_score,
+                    dl.success_bid_quantity,
+                    dl.base_price
+                FROM
+                    bid_bidding_docm_lines dl,
+                    bid_bidding_docm_headers dh,
+                    bid_bidders_v b,
+                    sys_user su
+                WHERE
+                    dl.entrustment_line_item_id = ${@line_item_id} AND
+                    dl.bid_header_id            = dh.bid_header_id AND
+                    EXISTS
+                    (SELECT
+                        1
+                    FROM
+                        bid_entrustment_ln_bidders lb
+                    WHERE
+                        lb.entrustment_header_id = ${@entrustment_header_id} AND
+                        lb.shortlisted_flag      = 'Y' AND
+                        dh.bidder_id             = lb.bidder_id
+                    ) AND
+                    dh.entrustment_header_id = ${@entrustment_header_id} AND
+                    dh.round                 = ${@round} AND
+                    dh.bidder_id             = b.bidder_id(+) AND
+                    dh.created_by            = su.user_id(+)
+                ORDER BY
+                    bid_header_number ASC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

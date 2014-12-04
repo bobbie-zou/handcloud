@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	$Author: qiuhaowen4053 $
+	$Date: 2013/06/19 05:56:38 $
+	$Revision: 1.4 $
+	$Purpose: 角色分配功能
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="sys_1003_sys_role_function_link_1" url="${/request/@context_path}/modules/sys/public/sys_role_function.svc"/>
+        <script><![CDATA[
+            
+            function sys_1003_save(){
+                var record = $('sys_1003_role_ds').getCurrentRecord();
+                var ds = $('sys_1003_function_tree_ds');
+                var role_id = record.get('role_id');
+                var data = {role_id:role_id};
+                var functions = [];
+                var items = ds.getAll();
+                var count = items.length;
+                if(count==0){
+                    Aurora.showMessage('${l:PROMPT.HINT}','${l:NO_MENU_INFO}!');
+                }else{
+                    var d = items[0].data;
+                    var dr = d['role_id'];
+                    if(dr && dr != role_id){
+                        Aurora.showMessage('${l:PROMPT.HINT}','${l:CHECK_MENU_DATA}');
+                        return;
+                    }
+                
+                    for(var i=0,l=count;i<l;i++){
+                        var d = items[i].data;
+                        d['role_id'] = role_id;
+                        functions[functions.length] = d;
+                    }
+                    data['functions'] = functions;
+                    Aurora.request({url:/*sys_role_function.svc*/$('sys_1003_sys_role_function_link_1').getUrl(), para:data, success:ds.onSubmitSuccess, error:ds.onSubmitError, scope:ds,failure:ds.onAjaxFailed});
+                }
+            }
+            
+            function sys_1003_expandEditorFunction(record,name){
+                if (record.get('function_level') == 'G'){
+                    return 'sys1003_grid_cb';
+                }else{
+                    return '';
+                }
+            }
+            
+            function sys_1003_expandRenderer(value,record, name){
+                if (record.get('function_level') == 'F'){
+                    return '';
+                }
+            }
+            
+        
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys_1003_role_ds">
+                <a:fields>
+                    <a:field name="role_name" autoComplete="true" autoCompleteField="role_name" lovGridHeight="300" lovHeight="460" lovService="sys.sys_role" lovWidth="500" required="true" title="HAP_SELECT_ROLE">
+                        <a:mapping>
+                            <a:map from="role_id" to="role_id"/>
+                            <a:map from="role_name" to="role_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys_1003_function_tree_ds" autoCount="false" fetchAll="true" model="sys.sys_role_function_view" queryDataSet="sys_1003_role_ds">
+                <a:fields>
+                    <a:field name="function_code" readOnly="true"/>
+                    <a:field name="function_name" readOnly="true"/>
+                    <a:field name="expanded" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="sys_1003_save" style="margin-left:20px;" text="PROMPT.SAVE" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="sys1003_sys_role_function_query_form" bindTarget="sys_1003_role_ds" resultTarget="sys_1003_function_tree_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:lov name="role_name" prompt="FND_SYS_PARA_VALUE.ROLE"/>
+            </a:formToolBar>
+        </a:queryForm>
+        <a:treeGrid id="sys1003_functionTreeGrid" bindTarget="sys_1003_function_tree_ds" expandField="_expanded" idField="function_id" marginHeight="180" marginWidth="70" parentField="parent_function_id" sequenceField="sequence" showCheckBox="true">
+            <a:columns>
+                <a:column name="function_name" prompt="FND_FUNCTION.FUNCTION_NAME" width="250"/>
+                <a:column name="function_code" prompt="FND_FUNCTION.FUNCTION_CODE" width="120"/>
+                <a:column name="expanded" editorFunction="sys_1003_expandEditorFunction" prompt="TO_EXPLAND" renderer="sys_1003_expandRenderer" width="80"/>
+                <a:column name="sequence" align="right" editor="sys1003_grid_nf" prompt="WFL_WORKFLOW_NODE.SEQUENCE_NUM" width="100"/>
+            </a:columns>
+            <a:editors>
+                <a:numberField id="sys1003_grid_nf"/>
+                <a:checkBox id="sys1003_grid_cb"/>
+            </a:editors>
+        </a:treeGrid>
+    </a:view>
+</a:screen>

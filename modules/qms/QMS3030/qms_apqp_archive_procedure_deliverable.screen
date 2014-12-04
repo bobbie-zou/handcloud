@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2013-5-30 上午10:07:40  
+    $Revision: 1.0  
+    $Purpose: APQP档案流程、交付物维护
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="t1.apqp_archive_id = ${/parameter/@apqp_archive_id}" fetchAll="true" model="qms.QMS3030.qms_apqp_archives_query" rootPath="apqp_archive"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="link_uploadFile" url="${/request/@context_path}/uploadFile.screen"/>
+        <script><![CDATA[
+            function archiveProcedureDataIndexChange(ds, record) {
+                var procedure_rec = $('qms_apqp_archive_procedures_query_result_ds').getCurrentRecord();
+                var archive_procedure_id = procedure_rec.get('archive_procedure_id');
+                if (!Ext.isEmpty(archive_procedure_id)) {
+                    $('qms_apqp_archive_procedure_deliveable_query_result_ds').setQueryParameter('archive_procedure_id', archive_procedure_id);
+                    $('qms_apqp_archive_procedure_deliveable_query_result_ds').query();
+                }
+            }
+            
+            function uploadAttachment(value, record, name){
+                var prcd_devr_id = record.get('prcd_devr_id');
+                if (!Ext.isEmpty(prcd_devr_id)) {
+                    return '<a href="javascript:uploadAttachmentWindow(' + prcd_devr_id + ')">附件</a>';
+                }
+            }
+            
+            function uploadAttachmentWindow(id) {
+                new Aurora.Window({
+                    id: 'link_uploadFile_window',
+                    url: $('link_uploadFile').getUrl() + '?table_name=QMS_APQP_ARCHIVE_PRCD_DEVR&header_id=' + id,
+                    title: '${l:ATM.UPLOAD_ATTACHMENT}',
+                    width: 820,
+                    height: 400
+                }).on('beforeclose', qmsApqpArchiveProcedureDeliverableQuery);
+            }
+            
+            function qmsApqpArchiveProcedureDeliverableQuery(){
+                $('qms_apqp_archive_procedure_deliveable_query_result_ds').query();
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="apqp_archive_view_ds" autoCreate="true">
+                <a:datas dataSource="/model/apqp_archive"/>
+                <a:fields>
+                    <a:field name="apqp_archive_number" readOnly="true"/>
+                    <a:field name="reference_number" readOnly="true"/>
+                    <a:field name="vendor_code" readOnly="true"/>
+                    <a:field name="vendor_name" readOnly="true"/>
+                    <a:field name="item_code" readOnly="true"/>
+                    <a:field name="item_name" readOnly="true"/>
+                    <a:field name="projects" readOnly="true"/>
+                    <a:field name="part_importance" readOnly="true"/>
+                    <a:field name="apqp_archive_status_display" readOnly="true"/>
+                    <a:field name="creation_date_fmt" readOnly="true"/>
+                    <a:field name="transfer_date_fmt" readOnly="true"/>
+                    <a:field name="transfer_by_name" readOnly="true"/>
+                    <a:field name="comments" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="qms_apqp_archive_procedures_query_result_ds" autoPageSize="true" autoQuery="true" model="qms.QMS3030.qms_apqp_archive_procedures_query" queryUrl="${/request/@context_path}/autocrud/qms.QMS3030.qms_apqp_archive_procedures_query/query?apqp_archive_id=${/parameter/@apqp_archive_id}" selectable="false">
+                <a:events>
+                    <a:event name="indexchange" handler="archiveProcedureDataIndexChange"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="qms_apqp_archive_procedure_deliveable_query_result_ds" autoPageSize="true" autoQuery="false" model="qms.QMS3030.qms_apqp_archive_procedure_deliveable_query" selectable="false">
+                <a:fields>
+                    <a:field name="must_attachment_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+        </a:screenTopToolbar>
+        <a:fieldSet style="margin-top:20px;">
+            <a:vBox>
+                <a:hBox labelWidth="110">
+                    <a:textField name="apqp_archive_number" bindTarget="apqp_archive_view_ds" prompt="APQP档案编号"/>
+                    <a:textField name="reference_number" bindTarget="apqp_archive_view_ds" prompt="参考档案编号"/>
+                    <a:textField name="vendor_code" bindTarget="apqp_archive_view_ds" prompt="供应商编码"/>
+                    <a:textField name="vendor_name" bindTarget="apqp_archive_view_ds" prompt="供应商名称"/>
+                </a:hBox>
+                <a:hBox labelWidth="110">
+                    <a:textField name="item_code" bindTarget="apqp_archive_view_ds" prompt="物料号"/>
+                    <a:textField name="item_name" bindTarget="apqp_archive_view_ds" prompt="物料名称"/>
+                    <a:textField name="projects" bindTarget="apqp_archive_view_ds" prompt="项目"/>
+                    <a:textField name="part_importance" bindTarget="apqp_archive_view_ds" prompt="零件重要度"/>
+                </a:hBox>
+                <a:hBox labelWidth="110">
+                    <a:textField name="apqp_archive_status_display" bindTarget="apqp_archive_view_ds" prompt="状态"/>
+                    <a:textField name="creation_date_fmt" bindTarget="apqp_archive_view_ds" prompt="创建时间"/>
+                    <a:textField name="transfer_date_fmt" bindTarget="apqp_archive_view_ds" prompt="流转时间"/>
+                    <a:textField name="transfer_by_name" bindTarget="apqp_archive_view_ds" prompt="流转人"/>
+                </a:hBox>
+                <a:hBox labelWidth="110">
+                    <a:textField name="comments" bindTarget="apqp_archive_view_ds" prompt="APQP档案说明" width="955"/>
+                </a:hBox>
+            </a:vBox>
+        </a:fieldSet>
+        <a:form height="320" marginWidth="60" padding="0" style="margin-top:20px;" title="流程明细">
+            <a:grid id="qms_apqp_archive_procedures_query_result_grid" bindTarget="qms_apqp_archive_procedures_query_result_ds" canWheel="false" height="340" marginWidth="60" navBar="true">
+                <a:columns>
+                    <a:column name="procedure_index_num" align="center" prompt="流程索引号" sortable="true" width="100"/>
+                    <a:column name="sequence_number" prompt="流程序号" sortable="true" width="40"/>
+                    <a:column name="procedure_code" prompt="流程代码" sortable="true" width="80"/>
+                    <a:column name="procedure_name" prompt="流程名称" sortable="true" width="100"/>
+                    <a:column name="responsible_person_name" prompt="责任人" sortable="true" width="60"/>
+                    <a:column name="apqp_procedure_status_display" prompt="状态" sortable="true" width="80"/>
+                    <a:column name="creation_date_fmt" prompt="创建时间" sortable="true" width="70"/>
+                    <a:column name="transfer_date_fmt" prompt="流转时间" sortable="true" width="70"/>
+                    <a:column name="comments" prompt="流程说明" sortable="true" width="100"/>
+                    <a:column name="parent_procedure_name" prompt="前一流程名称" sortable="true" width="80"/>
+                </a:columns>
+            </a:grid>
+        </a:form>
+        <a:form height="320" marginWidth="60" padding="0" style="margin-top:20px;" title="交付物明细">
+            <a:grid id="qms_apqp_archive_procedure_deliveable_query_result_grid" bindTarget="qms_apqp_archive_procedure_deliveable_query_result_ds" height="340" marginWidth="60" navBar="true">
+                <a:columns>
+                    <a:column name="deliverable_name" prompt="交付物" sortable="true" width="100"/>
+                    <a:column name="deliverable_type_display" prompt="交付物分类" sortable="true" width="110"/>
+                    <a:column name="must_attachment_flag" prompt="必须上传附件" sortable="true" width="50"/>
+                    <a:column name="attachment_name" align="left" prompt="附件名" sortable="true" width="120"/>
+                    <a:column name="attachment_size" align="center" prompt="附件大小(M)" sortable="true" width="50"/>
+                    <a:column name="upload_date" align="center" prompt="上传时间" sortable="true" width="70"/>
+                    <a:column name="upload_by" align="center" prompt="上传人" sortable="true" width="50"/>
+                    <a:column name="comments" prompt="说明" sortable="true" width="100"/>
+                    <a:column name="uploadAttachment" align="center" prompt="附件" renderer="uploadAttachment" width="30"/>
+                    <a:column name="comments2" prompt="备注" sortable="true" width="100"/>
+                </a:columns>
+            </a:grid>
+        </a:form>
+    </a:view>
+</a:screen>

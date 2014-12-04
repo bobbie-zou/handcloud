@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Lichen  
+    $Date: 2012-2-13 上午09:50:09  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="CSH1051_csh_companies_batch_assign_link" url="${/request/@context_path}/modules/csh/CSH1051/csh_batch_assign_companiex.svc"/>
+        <script><![CDATA[
+            function CSH1051_queryCompanyCode() {
+                $('CSH1051_assign_company_ds').query();
+            }
+            
+            function CSH1051_resetCompanyCode() {
+                $('CSH1051_assign_company_query_ds').reset();
+            }
+            
+            function CSH1051_batchSave(){
+                var companyRecordsData = $('CSH1051_assign_company_ds').getJsonData(true);
+                if (companyRecordsData.length == 0) {
+                    Aurora.showInfoMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}', null, 250, 100);
+                    return;
+                }
+                for(var i = 0 ; i < companyRecordsData.length ; i ++){
+                    //companyRecordsData[i]['detail'] = {csh_transaction_class_code:'${/parameter/@csh_transaction_class_code}'};
+                    companyRecordsData[i]['csh_transaction_class_code'] = '${/parameter/@csh_transaction_class_code}';
+                }
+    			
+                Aurora.request({
+                    url: $('CSH1051_csh_companies_batch_assign_link').getUrl(),
+                    para: companyRecordsData,
+                    success: CSH1051_closeAssignPage,
+                    scope: this
+                });
+                Aurora.showInfoMessage('${l:PROMPT}', '${l:FND_DIMENSION_VALUES.OPR_SUC}', null, 250, 100);
+            }
+            
+            function CSH1051_closeAssignPage() {
+                $('CSH1051_csh_companies_batch_screen').close();
+                $('csh1051_company_group_relations_ds').query();
+            
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="CSH1051_assign_company_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_code_from_display" autoComplete="true" lovGridHeight="300" lovHeight="450" lovService="csh.CSH1051.csh_batch_assign_company_lov?csh_transaction_class_code=${/parameter/@csh_transaction_class_code}" lovWidth="500" prompt="FND_COMPANIES.COMPANY_FROM" title="FND_COMPANIES.COMPANY_FROM">
+                        <a:mapping>
+                            <a:map from="code_name" to="company_code_from_display"/>
+                            <a:map from="company_code" to="company_code_from"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_code_to_display" autoComplete="true" lovGridHeight="300" lovHeight="450" lovService="csh.CSH1051.csh_batch_assign_company_lov?csh_transaction_class_code=${/parameter/@csh_transaction_class_code}" lovWidth="500" prompt="FND_COMPANIES.COMPANY_TO" title="FND_COMPANIES.COMPANY_TO">
+                        <a:mapping>
+                            <a:map from="code_name" to="company_code_to_display"/>
+                            <a:map from="company_code" to="company_code_to"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_code_from"/>
+                    <a:field name="company_code_to"/>
+                    <a:field name="csh_transaction_class_code"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="CSH1051_assign_company_ds" autoCount="true" autoQuery="true" fetchAll="false" model="csh.CSH1051.csh_batch_assign_company" queryDataSet="CSH1051_assign_company_query_ds" queryUrl="${/request/@context_path}/autocrud/csh.CSH1051.csh_batch_assign_company/query?csh_transaction_class_code=${/parameter/@csh_transaction_class_code}" selectable="true"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" title="HAP_QUERY_TITLE">
+                <a:lov name="company_code_from_display" bindTarget="CSH1051_assign_company_query_ds">
+                    <a:events>
+                        <a:event name="enterdown" handler="CSH1051_queryCompanyCode"/>
+                    </a:events>
+                </a:lov>
+                <a:lov name="company_code_to_display" bindTarget="CSH1051_assign_company_query_ds">
+                    <a:events>
+                        <a:event name="enterdown" handler="CSH1051_queryCompanyCode"/>
+                    </a:events>
+                </a:lov>
+            </a:form>
+            <a:hBox>
+                <a:button click="CSH1051_queryCompanyCode" text="HAP_QUERY"/>
+                <a:button click="CSH1051_resetCompanyCode" text="HAP_RESET"/>
+                <a:button click="CSH1051_closeAssignPage" text="HAP_BACK"/>
+            </a:hBox>
+            <a:hBox>
+                <a:button click="CSH1051_batchSave" text="BUDGET_ITEM_COMPANY_ASSIGNED_BATCH" width="90"/>
+            </a:hBox>
+            <a:grid bindTarget="CSH1051_assign_company_ds" height="300" navBar="true" width="520">
+                <a:columns>
+                    <a:column name="company_code" align="center" prompt="COMPANY_CODE" sortable="true" width="200"/>
+                    <a:column name="company_short_name" align="center" prompt="COMPANY_SHORT_NAME" width="200"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

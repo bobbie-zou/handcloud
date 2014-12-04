@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-3-11 上午10:45:02  
+    $Revision: 1.0  
+    $Purpose: 专家变更申请 主界面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="bid_5050_create_apply_link" url="${/request/@context_path}/modules/bid/BID5050/bid_5050_expert_alteration_create_apply.screen"/>
+        <script><![CDATA[
+            function bid_5050_load() {
+                var record = $('bid_5050_query_ds').getAt(0);
+                record.set('using_unit_type', 'COMPANY');
+                record.set('using_unit_type_display', '${l:BID_EXPERT_ALTERATION.COMPANY}');
+            }
+            
+            function bid5050_query() {
+                $('bid51200_entrustment_header_result_ds').query();
+            }
+            
+            function bid5050_entrustment_header_query_ds_update(ds, record, name, value, oldvalue){
+             if(name == "tendering_company_id"){
+                 record.set('organization_id','');
+                 record.set('organization_desc','');
+                 record.getField('organization_desc').setLovPara('company_id', value);
+                 
+             }else if(name == "using_unit_type"){
+                 record.set('using_unit_id','');
+                 record.set('using_unit_code','');
+                 record.set('using_unit_desc','');
+                 if(value == 'COMPANY'){
+                 	record.getMeta().getField('using_unit_desc').setLovService('bid.BID5040.bid_company_lov');
+                 }else if(value == 'DEPARTMENT'){
+                    record.getMeta().getField('using_unit_desc').setLovService('bid.BID5040.bid_unit_lov'); 
+                 }
+             }
+         }
+            
+            function bid5050ExpertAlterationMaintainRenderer(value, record, name) {
+                var entrustment_header_id = record.get('entrustment_header_id');
+                if (entrustment_header_id) {
+                    return '<a href="javascript:bid5050ExpertAlterationMaintain(' + entrustment_header_id + ')">${l:BID_EXPERT_ALTERATION.CREATE_APPLY}</a>';
+                }
+            }
+            
+            function bid5050ExpertAlterationMaintain(entrustment_header_id) {
+                new Aurora.Window({
+                    id: 'bid_5050_create_apply_window',
+                    url: $('bid_5050_create_apply_link').getUrl() + '?entrustment_header_id=' + entrustment_header_id,
+                    title: '${l:BID_EXPERT_ALTERATION.EXPERT_ALTERATION_APPLY}',
+                    fullScreen: true
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid_5050_using_unit_type_list" loadData="true" lookupCode="BID_USING_UNIT_TYPES"/>
+            <a:dataSet id="bid_5050_bidding_methods_list" loadData="true" lookupCode="BID_BIDDING_METHODS"/>
+            <a:dataSet id="bid_5050_yes_no_list" loadData="true" lookupCode="YES_NO"/>
+            <a:dataSet id="bid_5050_status_list" loadData="true" lookupCode="BID_GENERAL_DOCUMENT_STATUS"/>
+            <a:dataSet id="bid5050_bid_using_unit_types_ds" lookupCode="BID_USING_UNIT_TYPES"/>
+            <a:dataSet id="bid5050_bid_bidding_methods_ds" lookupCode="BID_BIDDING_METHODS"/>
+            <a:dataSet id="bid5050_yes_no_ds" lookupCode="YES_OR_NO"/>
+            <a:dataSet id="bid5050_currency_code_ds" autoCount="false" autoQuery="true" fetchAll="true" model="public.currency_list"/>
+            <a:dataSet id="bid_5050_query_ds">
+                <a:fields>
+                    <a:field name="entrustment_header_id"/>
+                    <a:field name="entrustment_header_number"/>
+                    <a:field name="title"/>
+                    <a:field name="tenderee_id"/>
+                    <a:field name="tenderee_name" lovGridHeight="320" lovHeight="450" lovService="expm.exp_employees_lov" lovWidth="500" title="委托人">
+                        <a:mapping>
+                            <a:map from="employee_id" to="tenderee_id"/>
+                            <a:map from="name" to="tenderee_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="private_date_from"/>
+                    <a:field name="private_date_to"/>
+                    <a:field name="tendering_company_id"/>
+                    <a:field name="tendering_company_desc" lovGridHeight="320" lovHeight="450" lovService="public.fnd_companies_lov" lovWidth="500" title="委托方">
+                        <a:mapping>
+                            <a:map from="company_id" to="tendering_company_id"/>
+                            <a:map from="company_short_name" to="tendering_company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="organization_id"/>
+                    <a:field name="organization_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="public.inv_organizations_lov" lovWidth="500" title="库存组织">
+                        <a:mapping>
+                            <a:map from="organization_id" to="organization_id"/>
+                            <a:map from="organization_name" to="organization_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="using_unit_type"/>
+                    <a:field name="using_unit_type_desc" displayField="code_value_name" options="bid5050_bid_using_unit_types_ds" returnField="using_unit_type" valueField="code_value"/>
+                    <a:field name="using_unit_id"/>
+                    <a:field name="using_unit_code"/>
+                    <a:field name="using_unit_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovWidth="500" title="使用方">
+                        <a:mapping>
+                            <a:map from="unit_id" to="using_unit_id"/>
+                            <a:map from="unit_code" to="using_unit_code"/>
+                            <a:map from="unit_desc" to="using_unit_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="entrustment_type_id"/>
+                    <a:field name="entrustment_type_desc" autoComplete="true" autoCompleteField="quick_value" lovGridHeight="320" lovHeight="450" lovService="bid.public.bid_entrustment_types_lov" lovWidth="500" title="委托类型">
+                        <a:mapping>
+                            <a:map from="entrustment_type_id" to="entrustment_type_id"/>
+                            <a:map from="description" to="entrustment_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="tendering_tmpl_id"/>
+                    <a:field name="tendering_tmpl_desc" autoComplete="true" autoCompleteField="quick_value" lovGridHeight="320" lovHeight="450" lovService="public.bid_templates_lov" lovWidth="500" title="委托类型">
+                        <a:mapping>
+                            <a:map from="template_id" to="tendering_tmpl_id"/>
+                            <a:map from="template_desc" to="tendering_tmpl_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="suggested_bidding_method"/>
+                    <a:field name="suggested_bidding_method_desc" displayField="code_value_name" options="bid5050_bid_bidding_methods_ds" returnField="suggested_bidding_method" valueField="code_value"/>
+                    <a:field name="reversed_entrust_flag"/>
+                    <a:field name="reversed_entrust_flag_desc" displayField="code_value_name" options="bid5050_yes_no_ds" returnField="reversed_entrust_flag" valueField="code_value"/>
+                    <a:field name="necessary_lead_time"/>
+                    <a:field name="completion_date"/>
+                    <a:field name="suggested_qty_of_bidders"/>
+                    <a:field name="winning_bidder_maxcount"/>
+                    <a:field name="currency_code"/>
+                    <a:field name="currency_code_desc" displayField="currency_name" options="bid5050_currency_code_ds" returnField="currency_code" valueField="currency_code"/>
+                    <a:field name="margin_required_flag"/>
+                    <a:field name="margin_required_flag_desc" displayField="code_value_name" options="bid5050_yes_no_ds" returnField="margin_required_flag" valueField="code_value"/>
+                    <a:field name="bidder_qualified_flag"/>
+                    <a:field name="bidder_qualified_flag_desc" displayField="code_value_name" options="bid5050_yes_no_ds" returnField="bidder_qualified_flag" valueField="code_value"/>
+                    <a:field name="note"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="bid5050_entrustment_header_query_ds_update"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid_5050_result_ds" autoCount="false" autoPageSize="true" model="bid.BID5050.bid_entrustment_headers" queryDataSet="bid_5050_query_ds"/>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="bid_5050_query_ds" resultTarget="bid_5050_result_ds" style="width:100%;border:none">
+            <a:formToolBar labelWidth="100">
+                <a:textField name="entrustment_header_number" bindTarget="bid_5050_query_ds" prompt="招标申请编号">
+                    <a:events>
+                        <a:event name="enterdown" handler="bid5050_query"/>
+                    </a:events>
+                </a:textField>
+                <a:datePicker name="private_date_from" bindTarget="bid_5050_query_ds" prompt="招标申请日期从">
+                    <a:events>
+                        <a:event name="enterdown" handler="bid5050_query"/>
+                    </a:events>
+                </a:datePicker>
+                <a:datePicker name="private_date_to" bindTarget="bid_5050_query_ds" prompt="招标申请日期至">
+                    <a:events>
+                        <a:event name="enterdown" handler="bid5050_query"/>
+                    </a:events>
+                </a:datePicker>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox labelWidth="100">
+                    <a:comboBox name="suggested_bidding_method_desc" bindTarget="bid_5050_query_ds" prompt="招标方式"/>
+                    <a:lov name="entrustment_type_desc" bindTarget="bid_5050_query_ds" prompt="申请类型">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5050_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:datePicker name="completion_date_from" bindTarget="bid_5050_query_ds" prompt="交付日期从">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5050_query"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="completion_date_to" bindTarget="bid_5050_query_ds" prompt="交付日期至">
+                        <a:events>
+                            <a:event name="enterdown" handler="bid5050_query"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="bid_5050_grid" bindTarget="bid_5050_result_ds" marginHeight="150" marginWidth="50" navBar="true">
+            <a:columns>
+                <a:column name="create_apply" align="center" prompt="创建申请" renderer="bid5050ExpertAlterationMaintainRenderer" width="50"/>
+                <a:column name="entrustment_header_number" align="center" prompt="招标申请编号" sortable="true" width="70"/>
+                <a:column name="title" align="left" prompt="申请名称" width="80"/>
+                <a:column name="tenderee_name" align="center" prompt="申请人" width="60"/>
+                <a:column name="entrustment_type_desc" align="left" prompt="申请类型" width="80"/>
+                <a:column name="private_date_desc" align="center" prompt="申请日期" width="60"/>
+                <a:column name="completion_date_desc" align="center" prompt="截止日期" width="60"/>
+                <a:column name="tendering_company_desc" align="center" prompt="申请公司" width="80"/>
+                <a:column name="suggested_bidding_method_desc" align="center" prompt="招标方式" width="60"/>
+            </a:columns>
+        </a:grid>
+        <script><![CDATA[
+            Aurora.onReady(function() {
+                bid_5050_load();
+            });
+        ]]></script>
+    </a:view>
+</a:screen>

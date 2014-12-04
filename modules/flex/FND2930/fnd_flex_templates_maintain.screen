@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-2-25 下午3:18:11  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <!-- <a:model-query /> --><![CDATA[
+        
+        
+        
+        
+        
+        
+        
+	]]></a:init-procedure>
+    <a:view>
+        <a:link id="fnd2930_flex_tmpl_tabs_link" url="${/request/@context_path}/modules/flex/FND2930/fnd_flex_tmpl_tabs_maintain.screen"/>
+        <a:link id="fnd2930_flex_tmpl_insc_link" url="${/request/@context_path}/modules/flex/FND2930/fnd_flex_tmpl_insc_attrs_maintain.screen"/>
+        <a:link id="fnd2930_tmpl_group_attrs_link" url="${/request/@context_path}/modules/flex/FND2930/fnd_tmpl_group_attrs_query.screen"/>
+        <a:link id="fnd2930_tmpl_decision_link" url="${/request/@context_path}/modules/flex/FND2930/fnd_flex_tmpl_decisions_maintain.screen"/>
+        <script><![CDATA[
+         	function fnd2930_query(){
+	        	 $('fnd2930_flex_templates_result_ds').query();
+	        }    
+	        
+	        function fnd2930_flex_templates_query_ds_update(ds, record, name, value, oldvalue){
+	             if(name == "tmpl_category_id"){
+	                 record.set('tmpl_group_id','');
+	                 record.set('tmpl_group_desc','');
+	                 record.getField('tmpl_group_desc').setLovPara('tmpl_category_id', value);
+	             }
+         	}
+         	
+         	function fnd2930_flex_templates_result_ds_update(ds, record, name, value, oldvalue){
+	             // if(name == "tmpl_category_id"){
+	                 // record.set('tmpl_group_id','');
+	                 // record.set('tmpl_group_desc','');
+	                 // record.getField('tmpl_group_desc').setLovPara('tmpl_category_id', value);
+	             // }
+         	}
+         	
+         	function fnd2930_sys_flag_check(record){
+         		var sys_flag=record.get('sys_flag');
+         		if(sys_flag == 'Y'){
+         		 	return true;   
+         		}
+         		return false;
+         	}
+         	
+         	function fnd2930_compiled_flag_check(record){
+         		var compiled_flag=record.get('compiled_flag');
+         		if(compiled_flag == 'Y'){
+         		 	return true;   
+         		}
+         		return false;
+         	}
+         	
+         	function fnd2930_used_flag_check(record){
+         		var used_flag=record.get('used_flag');
+         		if(used_flag == 'Y'){
+         		 	return false;   
+         		}
+         		return true;
+         	}
+         	
+         	function fnd2930_template_code_ef(record,name){
+         	    if(record.isNew&&!fnd2930_sys_flag_check(record)){
+                    return 'fnd2930_template_code_tf';
+                }
+                return;
+         	}
+         	
+         	function fnd2930_template_desc_ef(record,name){
+               if(!fnd2930_sys_flag_check(record)){
+                    return 'fnd2930_template_desc_tf';
+                }
+                return;
+         	}
+         	
+         	function fnd2930_enabled_flag_edited(record,name){
+               if(!fnd2930_sys_flag_check(record)){
+                    return 'fnd2930_enabled_flag_chb';
+                }
+                return;
+         	}
+         	
+         	function fnd2930_tmpl_group_desc_ef(record,name){
+         	 	if(record.isNew){
+                    return 'fnd2930_tmpl_group_desc_lov';
+                }
+                return;
+         	}
+         	
+         	function fnd29302_flex_tmpl_tabs_renderer(value,record,name){
+	            var template_id = record.get('template_id');
+	            var tmpl_instance_id = record.get('tmpl_instance_id');
+	            var version = record.get('version');
+	            var framework_type=record.get('framework_type');
+	            var desc;
+	            
+	            if(framework_type=='DYNAMIC_PAGE'){
+	                desc='动态页面';
+	            }else if (framework_type=='SEGMENT'){
+	                desc='标准段';
+	            }else if(framework_type == 'KEY'){
+	                desc='键弹性域';
+	            }
+	            if(framework_type == 'DYNAMIC_PAGE'||framework_type == 'SEGMENT'||framework_type == 'KEY'){
+		            if(!Aurora.isEmpty(template_id)&&!Aurora.isEmpty(tmpl_instance_id)){
+		            	return '<a href="javascript:fnd29302_new_flex_tmpl_tabs_window(\'' + template_id + '\',\''+tmpl_instance_id + '\',\''+version+'\',\''+framework_type+'\');">'+desc+'</a>';
+		            }
+	            }
+	            return '';
+	        }
+	         
+	        function fnd29302_new_flex_tmpl_tabs_window(template_id,tmpl_instance_id,version,framework_type){
+	            var url;
+	            if(framework_type=='DYNAMIC_PAGE'){
+	                url = $('fnd2930_flex_tmpl_tabs_link').getUrl();
+	            }else if (framework_type=='SEGMENT'){
+	                url = $('fnd2930_flex_tmpl_insc_link').getUrl();
+	            }else if (framework_type=='KEY'){
+	                url = $('fnd2930_flex_tmpl_insc_link').getUrl();
+	            }
+	            new Aurora.Window({
+	                id:'fnd29302_flex_tmpl_insc_window',
+	                url:url+'?template_id='+template_id+'&tmpl_instance_id='+tmpl_instance_id+'&version='+version,
+	                title:'子段维护',
+	                fullScreen:true}).on('beforeclose',function(){
+        	        		$('fnd2930_flex_templates_result_ds').query();
+        	    	});
+	        }
+	        
+	        function fnd2930_tmpl_group_attrs_renderer(value,record,name){
+	            var tmpl_group_id = record.get('tmpl_group_id');
+	            var framework_type = record.get('framework_type');  
+	            if(!Aurora.isEmpty(tmpl_group_id)&&framework_type == 'SEGMENT'){
+	            	return '<a href="javascript:fnd2930_new_tmpl_group_attrs_window(' + tmpl_group_id + ');">'+'属性集'+'</a>';
+	            }
+	            return '';
+	        }
+	         
+	        function fnd2930_new_tmpl_group_attrs_window(tmpl_group_id){
+	            new Aurora.Window({
+	                id:'fnd29302_tmpl_group_attrs_window',
+	                url:$('fnd2930_tmpl_group_attrs_link').getUrl()+'?tmpl_group_id='+tmpl_group_id,
+	                title:'属性集',
+	                fullScreen:true});
+	        }
+	        
+	        function fnd2930_tmpl_decision_renderer(value,record,name){
+	            var template_id = record.get('template_id');
+	            if(!Aurora.isEmpty(template_id)){
+	            	return '<a href="javascript:fnd2930_new_tmpl_decision_window(' + template_id + ');">'+'决定机制'+'</a>';
+	            }
+	            return '';
+	        }
+	         
+	        function fnd2930_new_tmpl_decision_window(template_id){
+	            new Aurora.Window({
+	                id:'fnd293010_tmpl_decision_window',
+	                url:$('fnd2930_tmpl_decision_link').getUrl()+'?template_id='+template_id,
+	                title:'决定机制',
+	                fullScreen:true});
+	        }
+	        
+	        function fnd2930_flex_templates_result_ds_add(ds,record,index){
+       		    var header_record = $('fnd2930_flex_templates_query_ds').getCurrentRecord();
+       		    if(!Aurora.isEmpty(header_record.get('tmpl_group_id'))){
+       		        record.set('tmpl_group_id',header_record.get('tmpl_group_id'));
+       		        record.set('tmpl_group_desc',header_record.get('tmpl_group_desc'));
+       		        record.set('framework_type',header_record.get('framework_type'));
+       		        record.set('framework_type_desc',header_record.get('framework_type_desc'));
+       		    }
+       		}
+		
+	
+		]]></script>
+        <a:dataSets>
+            <!-- <a:dataSet id="fnd2930_tmpl_groups_query_ds"/> -->
+            <a:dataSet id="fnd2930_framework_type_options" lookupCode="FND_FLEX_FRAMEWORK_TYPE"/>
+            <a:dataSet id="fnd2930_flex_templates_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="tmpl_category_id"/>
+                    <a:field name="tmpl_category_desc" lovGridHeight="320" lovHeight="450" lovService="public.fnd_flex_tmpl_categories_lov" lovWidth="500" title="模版类型">
+                        <a:mapping>
+                            <a:map from="tmpl_category_id" to="tmpl_category_id"/>
+                            <a:map from="tmpl_category_desc" to="tmpl_category_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="tmpl_group_id"/>
+                    <a:field name="tmpl_group_desc" lovGridHeight="320" lovHeight="450" lovService="public.fnd_flex_tmpl_groups_lov" lovWidth="500" title="模版组">
+                        <a:mapping>
+                            <a:map from="tmpl_group_id" to="tmpl_group_id"/>
+                            <a:map from="tmpl_group_desc" to="tmpl_group_desc"/>
+                            <a:map from="framework_type" to="framework_type"/>
+                            <a:map from="framework_type_desc" to="framework_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="framework_type"/>
+                    <a:field name="framework_type_desc" displayField="code_value_name" options="fnd2930_framework_type_options" returnField="framework_type" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd2930_flex_templates_query_ds_update"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd2930_flex_templates_result_ds" autoPageSize="true" autoQuery="true" fetchAll="false" model="flex.FND2930.fnd_flex_templates" queryDataSet="fnd2930_flex_templates_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="template_id"/>
+                    <a:field name="tmpl_instance_id"/>
+                    <a:field name="tmpl_group_id"/>
+                    <a:field name="tmpl_group_desc" lovGridHeight="320" lovHeight="450" lovService="public.fnd_flex_tmpl_groups_lov" lovWidth="500" required="true" title="模版组">
+                        <a:mapping>
+                            <a:map from="tmpl_group_id" to="tmpl_group_id"/>
+                            <a:map from="tmpl_group_desc" to="tmpl_group_desc"/>
+                            <a:map from="framework_type" to="framework_type"/>
+                            <a:map from="framework_type_desc" to="framework_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="template_code" required="true"/>
+                    <a:field name="template_desc" required="true"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="sys_flag" defaultValue="N"/>
+                    <a:field name="sys_flag_desc" defaultValue="用户级"/>
+                    <a:field name="compiled_flag" defaultValue="N"/>
+                    <a:field name="compiled_flag_desc" defaultValue="否"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="fnd2930_flex_templates_result_ds_add"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar id="fnd2930_screenTopToolbar">
+                <a:screenTitle/>
+                <a:gridButton id="fnd2930_addbtn" bind="fnd2930_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="fnd2930_grid" type="save" width="100"/>
+                <a:gridButton bind="fnd2930_grid" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd2930_flex_templates_query_ds" resultTarget="fnd2930_flex_templates_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:lov name="tmpl_category_desc" bindTarget="fnd2930_flex_templates_query_ds" prompt="模版类型">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd2930_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="tmpl_group_desc" bindTarget="fnd2930_flex_templates_query_ds" prompt="模版组">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd2930_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField name="template_code" bindTarget="fnd2930_flex_templates_query_ds" prompt="模版代码">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd2930_query"/>
+                        </a:events>
+                    </a:textField>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox>
+                        <a:textField name="template_desc" bindTarget="fnd2930_flex_templates_query_ds" prompt="模版描述">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd2930_query"/>
+                            </a:events>
+                        </a:textField>
+                        <a:comboBox name="framework_type_desc" bindTarget="fnd2930_flex_templates_query_ds" prompt="结构样式"/>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="fnd2930_grid" bindTarget="fnd2930_flex_templates_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+                <a:columns>
+                    <a:column name="tmpl_group_desc" align="left" editorFunction="fnd2930_tmpl_group_desc_ef" prompt="模版组" width="100"/>
+                    <a:column name="framework_type_desc" align="left" prompt="结构样式" width="60"/>
+                    <a:column name="template_code" align="left" editorFunction="fnd2930_template_code_ef" prompt="模版代码" width="80"/>
+                    <a:column name="template_desc" align="left" editorFunction="fnd2930_template_desc_ef" prompt="模版描述" width="100"/>
+                    <a:column name="version" align="right" prompt="版本" width="40"/>
+                    <a:column name="tmpl_instance" align="left" prompt="结构维护" renderer="fnd29302_flex_tmpl_tabs_renderer" width="60"/>
+                    <a:column name="tmpl_group_attr" align="left" prompt="属性集" renderer="fnd2930_tmpl_group_attrs_renderer" width="60"/>
+                    <a:column name="tmpl_decision" align="left" prompt="决定机制" renderer="fnd2930_tmpl_decision_renderer" width="60"/>
+                    <a:column name="enabled_flag" align="left" editorFunction="fnd2930_enabled_flag_edited" prompt="启用" width="50"/>
+                    <a:column name="compiled_flag_desc" align="left" prompt="已编译" width="40"/>
+                    <a:column name="released_flag_desc" align="left" prompt="已发布" width="40"/>
+                    <a:column name="sys_flag_desc" align="left" prompt="系统级别" width="40"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd2930_template_code_tf" typeCase="upper"/>
+                    <a:textField id="fnd2930_template_desc_tf"/>
+                    <a:checkBox id="fnd2930_enabled_flag_chb" checkedValue="Y" uncheckedValue="N"/>
+                    <a:lov id="fnd2930_tmpl_group_desc_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-10 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 送货单创建，入口页面数据查询BM（采购订单信息查询）
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT rownum AS line_sequence,
+				       v.*
+				  FROM (SELECT ll.pur_line_location_id,
+				               l.item_id AS require_item_id,
+				               nvl((SELECT m.display_item_code FROM mtl_system_items_vl m WHERE m.item_id = l.item_id),
+				                   l.item_code) AS require_item_code,
+				               nvl((SELECT m.item_name FROM mtl_system_items_vl m WHERE m.item_id = l.item_id),
+				                   l.item_code) AS require_item_name,
+				               (SELECT imv.partner_item_id FROM mtl_item_mapping_vendor_v imv WHERE imv.item_id = l.item_id) AS supply_item_id,
+				               (SELECT imv.partner_item_code FROM mtl_item_mapping_vendor_v imv WHERE imv.item_id = l.item_id) AS supply_item_code,
+				               (SELECT imv.partner_item_name FROM mtl_item_mapping_vendor_v imv WHERE imv.item_id = l.item_id) AS supply_item_name,
+				               h.business_unit_id,
+				               h.coop_business_group AS business_group,
+				               h.coop_company_id AS company_id,
+				               h.owner_company_id,
+				               (SELECT fcv.company_code FROM fnd_companies_vl fcv WHERE fcv.company_id = h.owner_company_id) AS company_code,
+				               (SELECT fcv.company_full_name FROM fnd_companies_vl fcv WHERE fcv.company_id = h.owner_company_id) AS company_name,
+				               h.display_po_number AS po_num,
+				               l.line_num,
+				               ll.shipment_num,
+				               ll.quantity,
+				               ll.unit_meas_lookup_code,
+				               nvl((SELECT ucv.uom_desc
+				                     FROM fnd_uom_codes_vl ucv
+				                    WHERE ucv.uom_code = ll.unit_meas_lookup_code
+				                          AND ucv.business_group = h.owner_business_group),
+				                   ll.unit_meas_lookup_code) AS uom_name,
+				               (ll.quantity - nvl(ll.occupy_quantity,
+				                                  0)) AS quantity_enable_shipped,
+				               nvl(ll.occupy_quantity,
+				                   0) AS quantity_shipped,
+				               nvl(ll.quantity_received,
+				                   0) AS quantity_received,
+				               nvl(ll.quantity_shipped,
+				                   0) AS quantity_on_the_way,
+				               NULL AS lots_num,
+				               NULL AS lots_validity_date,
+				               NULL AS invoice_num,
+				               NULL AS serial_num,
+				               ll.need_by_date,
+				               ll.promised_date,
+				               to_char(ll.need_by_date,
+				                       'yyyy-mm-dd') AS need_by_date_fmt,
+				               to_char(ll.promised_date,
+				                       'yyyy-mm-dd') AS promised_date_fmt,
+				               h.revision_num,
+				               h.display_release_num release_num,
+				               h.vendor_id,
+				               h.vendor_site_id,
+				               h.vendor_site_name,
+				               ll.ship_to_location_id,
+				               ll.ship_to_location_code,
+				               nvl(ll.ship_to_location_name,
+				                   ll.ship_to_location_address) AS ship_to_location_name,
+				               h.agent_id,
+				               h.agent_name,
+				               ll.ship_to_organization_id,
+				               ll.ship_to_organization_name,
+				               NULL AS ship_date,
+				               NULL AS expected_date,
+				               NULL AS comments,
+				               ll.warehouse_id,
+				               (SELECT iwv.description FROM inv_warehouses_vl iwv WHERE iwv.warehouse_id = ll.warehouse_id) AS warehouse_name,
+				               ll.inv_location_id,
+				               (SELECT ilv.description FROM inv_locations_vl ilv WHERE ilv.location_id = ll.inv_location_id) AS location_name,
+				               NULL AS useless_id_1,
+				               NULL AS useless_id_2,
+				               NULL AS useless_id_3,
+				               NULL AS useless_id_4,
+				               NULL AS useless_id_5,
+				               NULL AS useless_id_6,
+				               NULL AS useless_id_7,
+				               NULL AS useless_id_8,
+				               NULL AS useless_id_9,
+				               NULL AS useless_id_10
+				          FROM pur_headers_all_v      h,
+				               pur_lines_all          l,
+				               pur_line_locations_all ll
+				         WHERE h.pur_header_id = l.pur_header_id
+				               AND l.pur_line_id = ll.pur_line_id
+				               AND l.pur_header_id = h.pur_header_id
+				               AND h.last_version = 'Y'
+				               AND h.srm_status = 'CONFIRMED'
+				               AND l.cancel_flag = 'N'
+				               AND ll.cancel_flag = 'N'
+				               AND (ll.quantity - nvl(ll.occupy_quantity,
+				                                      0)) > 0
+				               AND ll.asn_can_create_flag = 'Y') v
+            	#AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# 
+            	  ORDER BY v.owner_company_id,
+		                  v.po_num,
+		                  v.line_num,
+		                  v.shipment_num ASC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="po_num" queryExpression="v.po_num like &apos;%&apos;||trim(${@po_num})||&apos;%&apos;"/>
+        <bm:query-field name="company_id" queryExpression="v.owner_company_id = ${@company_id}"/>
+        <bm:query-field name="item_id" queryExpression="v.require_item_id = ${@item_id}"/>
+        <bm:query-field name="need_by_date_from" queryExpression="v.need_by_date &gt;= to_date(${@need_by_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="need_by_date_to" queryExpression="v.need_by_date &lt;= to_date(${@need_by_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="promised_date_from" queryExpression="v.promised_date &lt;= to_date(${@promised_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="promised_date_to" queryExpression="v.promised_date &lt;= to_date(${@promised_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="agent_name" queryExpression="v.agent_name like &apos;%&apos;||trim(${@agent_name})||&apos;%&apos;"/>
+        <bm:query-field name="vendor_site_id" queryExpression="v.vendor_site_id = ${@vendor_site_id}"/>
+        <bm:query-field name="ship_to_organization_id" queryExpression="v.ship_to_organization_id = ${@ship_to_organization_id}"/>
+        <bm:query-field name="warehouse_id" queryExpression="v.warehouse_id = ${@warehouse_id}"/>
+        <bm:query-field name="release_num" queryExpression="v.release_num like &apos;%&apos;||trim(${@release_num})||&apos;%&apos;"/>
+        <bm:query-field name="line_num" queryExpression="v.line_num like &apos;%&apos;||trim(${@line_num})||&apos;%&apos;"/>
+        <bm:query-field name="shipment_num" queryExpression="v.shipment_num like &apos;%&apos;||trim(${@shipment_num})||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+        <bm:data-filter expression="business_group=${/session/@business_group} "/>
+    </bm:data-filters>
+    <authority foundation_code="INV_ASN">
+        <authority-segment source_alias="v" source_name="company_id" type="COMPANY"/>
+        <authority-segment source_alias="v" source_name="useless_id_1" type="CREATER"/>
+        <authority-segment source_alias="v" source_name="useless_id_2" type="RECEIVER"/>
+        <authority-segment source_alias="v" source_name="useless_id_3" type="CLIENT"/>
+        <authority-segment source_alias="v" source_name="useless_id_4" type="CLIENT_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id_5" type="BUSINESS_UNIT"/>
+        <authority-segment source_alias="v" source_name="useless_id_6" type="PUR_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_7" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_8" type="SD_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_9" type="VENDOR"/>
+        <authority-segment source_alias="v" source_name="useless_id_10" type="VENDOR_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id_11" type="PURHASE_MATERIAL"/>
+        <authority-segment source_alias="v" source_name="useless_id_12" type="SALES_PRODUCTION"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+      		Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+          	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

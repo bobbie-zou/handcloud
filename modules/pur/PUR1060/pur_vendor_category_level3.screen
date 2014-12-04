@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Administrator  
+    $Date: 2013-6-14 上午9:30:34  
+    $Revision: 1.0  
+    $Purpose: 2级供应商分类
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="pur1060_vendor_category_child4_link" url="${/request/@context_path}/modules/pur/PUR1060/pur_vendor_category_level4.screen"/>
+        <script><![CDATA[
+    		//采购分类类渲染函数，定义超链接
+			function pur1060_childCategoryRenderer3(value, record, name){
+			    if(record.isNew){
+			        return '';
+			    }else{
+			        return '<a href="javascript:childCategory3('+record.get('vendor_category_id')+', ' + (parseInt('${/parameter/@level}')+1) + ');">${l:PUR_VENDOR_CATEGORIES.CHILD_LEVEL}</a>';
+			    }
+			}
+			
+			//子分类定义窗口
+			function childCategory3(vendor_category_id, level){
+			    new Aurora.Window({
+			        id:'pur1060_category_child4',
+			        title:'${l:PUR_VENDOR_CATEGORIES.CHILD_CATEGORY_MODIFY}',
+			        url:$('pur1060_vendor_category_child4_link').getUrl()+'?vendor_category_id='+vendor_category_id+'&level='+level,
+			        fullScreen:true
+			    });
+			}
+			
+			//子分类保存操作
+			function pur1060_vendorCategorySave3(){
+			    if($('pur1060_vendor_category_child3_ds').validate()){
+			        $('pur1060_vendor_category_child3_ds').submit();
+			    }
+			}
+			
+			//保存成功提示
+			function pur1060_vendorCategorySubmitSuccessHandler3(){
+			    $('pur1060_vendor_category_child3_ds').setQueryParameter('parent_category_id', '${/parameter/@vendor_category_id}');
+			    $('pur1060_vendor_category_child3_ds').query();
+			}
+			
+			//返回按钮事件
+			function pur1060_categoryGoBack3(){
+			    $('pur1060_category_child3').close();
+			}
+			
+			//供应商分类代码EditFunction
+			function pur1060_categoryCodeEditFunction3(record, name){
+			    if(record.isNew){
+			        return 'pur1060_vendor_category_nf3';
+			    }else {
+			        return '';
+			    }
+			}
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur1060_parent_category3_ds" autoQuery="true" queryUrl="${/request/@context_path}/autocrud/pur.pur_vendor_categories/query?vendor_category_id=${/parameter/@vendor_category_id}"/>
+            <a:dataSet id="pur1060_vendor_category_child3_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="current_level" defaultValue="${/parameter/@level}" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur1060_vendor_category_child3_ds" autoQuery="true" model="pur.pur_vendor_categories" queryDataSet="pur1060_vendor_category_child3_query_ds" queryUrl="${/request/@context_path}/autocrud/pur.pur_vendor_categories/query?parent_category_id=${/parameter/@vendor_category_id}" selectable="true">
+                <a:fields>
+                    <a:field name="vendor_category_code" required="true"/>
+                    <a:field name="vendor_category_name" required="true"/>
+                    <a:field name="parent_category_id" defaultValue="${/parameter/@vendor_category_id}"/>
+                    <a:field name="category_level" defaultValue="${/parameter/@level}"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitSuccess" handler="pur1060_vendorCategorySubmitSuccessHandler3"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton bind="pur1060_vendor_category_child_grid3" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton click="pur1060_vendorCategorySave3" style="margin-left:20px;" text="HAP_SAVE" type="add" width="100"/>
+                <a:gridButton bind="pur1060_vendor_category_child_grid3" style="margin-left:20px;" type="clear" width="100"/>
+                <a:gridButton click="pur1060_categoryGoBack3" style="margin-left:20px;" text="HAP_BACK" type="add" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="pur1060_vendor_category_child3_form" bindTarget="pur1060_vendor_category_child3_query_ds" defaultQueryField="vendor_category_code" defaultQueryHint="请输入供应商分类代码或名称" resultTarget="pur1060_vendor_category_child3_ds" style="width:100%;border:none"/>
+            <a:form labelWidth="100" row="1">
+                <a:textField name="current_level" bindTarget="pur1060_vendor_category_child3_query_ds" prompt="PUR_VENDOR_CATEGORIES.CURRENT_LEVEL"/>
+                <a:textField name="vendor_category_code" bindTarget="pur1060_parent_category3_ds" prompt="PUR_VENDOR_CATEGORIES.VENDOR_CATEGORY_CODE" readOnly="true"/>
+                <a:textField name="vendor_category_name" bindTarget="pur1060_parent_category3_ds" prompt="PUR_VENDOR_CATEGORIES.VENDOR_CATEGORY_NAME" readOnly="true"/>
+            </a:form>
+            <a:grid id="pur1060_vendor_category_child_grid3" bindTarget="pur1060_vendor_category_child3_ds" marginHeight="220" marginWidth="60" navBar="true">
+                <a:columns>
+                    <a:column name="vendor_category_code" align="center" editorFunction="pur1060_categoryCodeEditFunction3" width="120"/>
+                    <a:column name="vendor_category_name" editor="pur1060_vendor_category_tf3" width="120"/>
+                    <a:column align="center" prompt="PUR_VENDOR_CATEGORIES.CHILD_LEVEL" renderer="pur1060_childCategoryRenderer3" width="100"/>
+                    <a:column name="enabled_flag" editor="pur1060_vendor_category_cb3" width="60"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="pur1060_vendor_category_cb3"/>
+                    <a:numberField id="pur1060_vendor_category_nf3" allowDecimals="false" allowFormat="false" allowNegative="false"/>
+                    <a:textField id="pur1060_vendor_category_tf3"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

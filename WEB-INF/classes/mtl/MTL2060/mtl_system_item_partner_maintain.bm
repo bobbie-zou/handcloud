@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-6-9 下午3:12:07  
+    $Revision: 1.0  
+    $Purpose: 物品管理，合作伙伴维护查询BM（我的供应商、我的客户）
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="data_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="data_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="data_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="parent_data_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="data_type" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="partner_item_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="partner_item_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT v.data_id,
+				       v.data_code,
+				       v.data_name,
+				       v.parent_data_id,
+				       v.data_type,
+				       v.partner_item_id,
+				       v.partner_item_name
+				  FROM (SELECT cpv.coop_company_id AS data_id,
+				               (SELECT fcv.company_code FROM fnd_companies_vl fcv WHERE fcv.company_id = cpv.coop_company_id) AS data_code,
+				               (SELECT fcv.company_full_name FROM fnd_companies_vl fcv WHERE fcv.company_id = cpv.coop_company_id) AS data_name,
+				               (SELECT bgv.business_group_id
+				                  FROM fnd_business_groups_vl bgv
+				                 WHERE bgv.business_group_code = cpv.coop_business_group) AS parent_data_id,
+				               'COMPANY' AS data_type,
+				               NULL AS partner_item_id,
+				               NULL AS partner_item_name
+				          FROM ${:@coop_partner_view} cpv
+				         WHERE cpv.owner_business_group = ${/session/@business_group}
+				        UNION ALL
+				        SELECT (SELECT bgv.business_group_id
+				                  FROM fnd_business_groups_vl bgv
+				                 WHERE bgv.business_group_code = cpv.coop_business_group) AS data_id,
+				               cpv.coop_business_group AS data_code,
+				               (SELECT bgv.business_group_name
+				                  FROM fnd_business_groups_vl bgv
+				                 WHERE bgv.business_group_code = cpv.coop_business_group) AS data_name,
+				               NULL AS parent_date_id,
+				               'BUSINESS_GROUP' AS data_type,
+				               (SELECT imv.partner_item_id
+				                  FROM ${:@coop_item_view} imv
+				                 WHERE imv.item_id = ${@item_id}
+				                       AND imv.partner_business_group = cpv.coop_business_group) AS partner_item_id,
+				               (SELECT imv.partner_item_name
+				                  FROM ${:@coop_item_view} imv
+				                 WHERE imv.item_id = ${@item_id}
+				                       AND imv.partner_business_group = cpv.coop_business_group) AS partner_item_name
+				          FROM ${:@coop_partner_view} cpv
+				         WHERE cpv.owner_business_group = ${/session/@business_group}) v
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  mtl_system_item_pkg.create_item_partners
+				  	(
+				  		p_item_id 			=> ${/parameter/@item_id},
+				  		p_partner_way		=> ${@partner_way},
+				    	p_partner_item_id   => ${@partner_item_id},
+					    p_business_group    => ${@partner_business_group},
+					    p_company_id    	=> ${@partner_company_id},
+					    p_enabled_flag      => ${@enabled_flag},
+				  		p_user_id   		=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  mtl_system_item_pkg.remove_item_partners
+				  	(
+				  		p_item_id 			=> ${/parameter/@item_id},
+				  		p_partner_status	=> ${@_partner_status},
+				  		p_user_id  		 	=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+	        	begin
+				  mtl_system_item_pkg.modify_item_partners
+				  	(
+				  		p_item_id	=> ${/parameter/@item_id},
+				  		p_user_id  	=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

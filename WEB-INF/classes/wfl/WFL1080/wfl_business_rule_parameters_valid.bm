@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duanjian 
+    $Date: 2012-3-9 下午01:39:46  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        'WORKFLOW_TYPE_PARAMETER' type,
+                        tp.workflow_type_para_id AS parameter_id,
+                        tp.parameter_code AS workflow_type_para_code,
+                        tp.parameter_desc AS workflow_type_para_desc
+                    FROM
+                        wfl_workflow_type_parameter tp,
+                        wfl_workflow_type j
+                    WHERE
+                        tp.workflow_type_id  = j.workflow_type_id AND
+                        j.workflow_type_code = ${/parameter/@workflow_category}
+                    UNION
+                    SELECT
+                        'WORKFLOW_RULE_PARAMETER' type,
+                        t.parameter_id AS parameter_id,
+                        t.parameter_code AS workflow_type_para_code,
+                        (SELECT
+                            description_text
+                        FROM
+                            fnd_descriptions fd
+                        WHERE
+                            fd.description_id = t.description_id AND
+                            fd.language       =${/session/@lang}
+                        ) AS workflow_type_para_desc
+                    FROM
+                        wfl_business_rule_paras t
+                    WHERE
+                        t.workflow_category = ${/parameter/@workflow_category}
+                    )
+                WHERE
+                    type = ${@type}
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="parameter_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="parameter_id"/>
+        <bm:field name="workflow_type_para_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="workflow_type_para_code" prompt="WFL_BUSINESS_RULE_PARAMETERS.PARAMETER_CODE"/>
+        <bm:field name="workflow_type_para_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="workflow_type_para_desc" prompt="WFL_BUSINESS_RULE_PARAMETERS.DESCRIPTION_ID"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="workflow_type_para_code" queryExpression="workflow_type_para_code like &apos;%&apos; || ${@workflow_type_para_code} || &apos;%&apos;"/>
+        <bm:query-field field="workflow_type_para_desc" queryExpression="workflow_type_para_desc like &apos;%&apos; || ${@workflow_type_para_desc} || &apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

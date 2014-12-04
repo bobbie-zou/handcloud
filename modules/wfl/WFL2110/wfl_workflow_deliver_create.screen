@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: ouyangzhaochang2663 $
+    $Date: 2010/11/16 03:01:30 $
+    $Revision: 1.1 $
+    $Purpose: 工作流转交设置
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="wfl2110_workflow_deliver_condition_link" url="${/request/@context_path}/modules/wfl/WFL2110/wfl_workflow_deliver_condition.screen"/>
+        <script><![CDATA[
+            function wfl2110WorkflowDeliverBatchQuery() {
+                $('wfl2110_workflow_deliver_batch_result_ds').query();
+            }
+            
+            function wfl2110WorkflowDeliverQuery() {
+                $('wfl2110_workflow_deliver_result_ds').query();
+            }
+            
+            function wfl2110WorkflowDeliverBatchDeliver() {
+                var records = $('wfl2110_workflow_deliver_batch_result_ds').getSelected();
+                if (records.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PLEASE_SELECT_THE_WORKFLOW_TO_DELIVER}', function() {
+                        return;
+                    });
+                } else {
+                    new Aurora.Window({
+                        id: 'wfl_workflow_deliver_condition_window',
+                        url: /*wfl_workflow_deliver_condition.screen*/
+                        $('wfl2110_workflow_deliver_condition_link').getUrl(),
+                        title: '${l:BATCH_DELIVER}',
+                        height: 400,
+                        width: 400
+                    });
+                }
+            }
+            
+            function wfl2110WorkflowDeliverBatchResultOnSubmitsuccess(dateSet, datas, results) {
+                Aurora.showMessage('${l:PROMPT.HINT}', '${l:EXP_POLICY_PLACE_TYPE.OPE_SUC}！', function(cmp) {
+                    wfl2110WorkflowDeliverClose();
+                    $('wfl2110_workflow_deliver_tabpanel').selectTab(1);
+                    cmp.close();
+                });
+            }
+            
+            function wfl2110WorkflowDeliverResultEditor(record, name) {
+                if (record.isNew) {
+                    return 'wfl2110_workflow_deliver_result_cmb';
+                }
+                return '';
+            }
+            
+            function wfl2110WorkflowDeliverClose() {
+                $('wfl_workflow_deliver_condition_window').close();
+            }
+            
+            function wfl2110WorkflowDeliverResultOnUpdate(ds, record, name, value) {
+                if (name == 'date_from' || name == 'date_to') {
+                    record.validate((name == 'date_from') ? 'date_to' : 'date_from');
+                }
+            }
+            
+            function wfl2110WorkflowDeliverCompareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function wfl2110WorkflowDeliverResultValidator(record, name, value) {
+                if (name == 'date_from' || name == 'date_to') {
+                    var date_from = record.get('date_from');
+                    var date_to = record.get('date_to');
+                    if (typeof(date_to) != 'undefined' && !Ext.isEmpty(date_to)) {
+                        if (!wfl2110WorkflowDeliverCompareDate(date_from, date_to)) {
+                            return '${l:START_GREATER_THAN_END}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function wfl2110WorkflowDeliverTabpanelOnSelect(tab, index) {
+                if (index == 0) {
+                    var record = $('wfl2110_workflow_deliver_batch_query_ds').getCurrentRecord();
+                    record.set('workflow_code', null);
+                    record.set('name', null);
+                    wfl2110WorkflowDeliverBatchQuery();
+                }
+                if (index == 1) {
+                    var record = $('wfl2110_workflow_deliver_query_ds').getCurrentRecord();
+                    record.set('workflow_name', null);
+                    wfl2110WorkflowDeliverQuery();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl2110_workflow_deliver_batch_query_ds" model="wfl.WFL2110.wfl_workflow_deliver_batch_workflow"/>
+            <a:dataSet id="wfl2110_workflow_deliver_batch_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="wfl.WFL2110.wfl_workflow_deliver_batch_workflow" queryDataSet="wfl2110_workflow_deliver_batch_query_ds" queryUrl="${/request/@context_path}/autocrud/wfl.WFL2110.wfl_workflow_deliver_batch_workflow/query?ORDER_FIELD=workflow_code" selectable="true" submitUrl="${/request/@context_path}/autocrud/wfl.WFL2110.wfl_workflow_deliver_batch/batch_update">
+                <a:events>
+                    <a:event name="submitsuccess" handler="wfl2110WorkflowDeliverBatchResultOnSubmitsuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl2110_workflow_ds" autoQuery="true" fetchAll="true" model="wfl.wfl_workflow" queryUrl="${/request/@context_path}/autocrud/wfl.wfl_workflow/query?ORDER_FIELD=w.workflow_code,t.date_from" selectable="true"/>
+            <a:dataSet id="wfl2110_workflow_deliver_query_ds" model="wfl.WFL2110.wfl_workflow_deliver_query"/>
+            <a:dataSet id="wfl2110_workflow_deliver_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="wfl.WFL2110.wfl_workflow_deliver_query" queryDataSet="wfl2110_workflow_deliver_query_ds" queryUrl="${/request/@context_path}/autocrud/wfl.WFL2110.wfl_workflow_deliver_query/query?ORDER_FIELD=w.name,t.date_from" selectable="true" submitUrl="${/request/@context_path}/autocrud/wfl.WFL2110.wfl_workflow_deliver_modify/batch_update">
+                <a:fields>
+                    <a:field name="workflow_id" required="true"/>
+                    <a:field name="workflow_name" displayField="name" options="wfl2110_workflow_ds" prompt="WORKFLOW.WORKFLOW_NAME" required="true" returnField="workflow_id" valueField="workflow_id"/>
+                    <a:field name="date_from" required="true" validator="wfl2110WorkflowDeliverResultValidator"/>
+                    <a:field name="date_to" required="true" validator="wfl2110WorkflowDeliverResultValidator"/>
+                    <a:field name="employee_name" lovHeight="480" lovUrl="${/request/@context_path}/modules/wfl/public/wfl_users_lov.screen" lovWidth="990" prompt="WFL_WORKFLOW_DELIVER.DELIVER_TO" required="true" title="WFL_WORKFLOW_DELIVER.USER_QUERY">
+                        <a:mapping>
+                            <a:map from="user_id" to="deliver_to_id"/>
+                            <a:map from="employee_name" to="employee_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="deliver_to_id" required="true"/>
+                    <a:field name="deliver_reason"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="wfl2110WorkflowDeliverResultOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:tabPanel id="wfl2110_workflow_deliver_tabpanel" marginHeight="60" marginWidth="60">
+                <a:tabs>
+                    <a:tab marginHeight="185" marginWidth="75" prompt="WFL_WORKFLOW_DELIVER.DELIVER_BATCH" width="100">
+                        <a:screenTopToolbar>
+                            <a:toolbarButton click="wfl2110WorkflowDeliverBatchDeliver" text="WFL_WORKFLOW_DELIVER.DELIVER_BATCH" width="100"/>
+                        </a:screenTopToolbar>
+                        <a:queryForm bindTarget="wfl2110_workflow_deliver_batch_query_ds" resultTarget="wfl2110_workflow_deliver_batch_result_ds" style="width:100%;border:none">
+                            <a:formToolBar labelWidth="100">
+                                <a:textField name="workflow_code" bindTarget="wfl2110_workflow_deliver_batch_query_ds" typeCase="upper">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="wfl2110WorkflowDeliverBatchQuery"/>
+                                    </a:events>
+                                </a:textField>
+                                <a:textField name="name" bindTarget="wfl2110_workflow_deliver_batch_query_ds">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="wfl2110WorkflowDeliverBatchQuery"/>
+                                    </a:events>
+                                </a:textField>
+                            </a:formToolBar>
+                        </a:queryForm>
+                        <a:grid bindTarget="wfl2110_workflow_deliver_batch_result_ds" marginHeight="185" marginWidth="70" navBar="true">
+                            <a:columns>
+                                <a:column name="workflow_code" align="center" sortable="true" width="300"/>
+                                <a:column name="name" align="center" width="400"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab marginHeight="185" marginWidth="75" prompt="WFL_WORKFLOW_DELIVER.DELIVER_BATCH.DELIVER_QUERY" width="100">
+                        <a:screenTopToolbar>
+                            <a:gridButton bind="wfl2110_workflow_deliver_result_grid" type="add" width="100"/>
+                            <a:gridButton bind="wfl2110_workflow_deliver_result_grid" type="save" width="100"/>
+                            <a:gridButton bind="wfl2110_workflow_deliver_result_grid" type="delete" width="100"/>
+                        </a:screenTopToolbar>
+                        <a:queryForm bindTarget="wfl2110_workflow_deliver_query_ds" resultTarget="wfl2110_workflow_deliver_result_ds" style="width:100%;border:none">
+                            <a:formToolBar labelWidth="100">
+                                <a:textField name="workflow_name" bindTarget="wfl2110_workflow_deliver_query_ds" typeCase="upper">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="wfl2110WorkflowDeliverQuery"/>
+                                    </a:events>
+                                </a:textField>
+                            </a:formToolBar>
+                        </a:queryForm>
+                        <a:grid id="wfl2110_workflow_deliver_result_grid" bindTarget="wfl2110_workflow_deliver_result_ds" marginHeight="185" marginWidth="70" navBar="true">
+                            <a:columns>
+                                <a:column name="workflow_name" align="center" editorFunction="wfl2110WorkflowDeliverResultEditor" width="120"/>
+                                <a:column name="date_from" align="center" editor="wfl2110_workflow_deliver_result_dp" renderer="Aurora.formatDate" width="100"/>
+                                <a:column name="date_to" align="center" editor="wfl2110_workflow_deliver_result_dp" renderer="Aurora.formatDate" width="100"/>
+                                <a:column name="employee_name" align="center" editor="wfl2110_workflow_deliver_result_lov" width="110"/>
+                                <a:column name="deliver_reason" align="center" editor="wfl2110_workflow_deliver_result_tf" width="250"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:comboBox id="wfl2110_workflow_deliver_result_cmb"/>
+                                <a:textField id="wfl2110_workflow_deliver_result_tf"/>
+                                <a:lov id="wfl2110_workflow_deliver_result_lov"/>
+                                <a:datePicker id="wfl2110_workflow_deliver_result_dp"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+                <a:events>
+                    <a:event name="select" handler="wfl2110WorkflowDeliverTabpanelOnSelect"/>
+                </a:events>
+            </a:tabPanel>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

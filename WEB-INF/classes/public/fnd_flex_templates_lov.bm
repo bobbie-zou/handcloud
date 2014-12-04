@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-2-25 下午7:40:32  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select * from (
+select ft.template_id,
+       ft.template_code,
+       ftd.description_text template_desc,
+       ft.compiled_flag,
+       ft.used_flag,
+       fg.flexfield_group_id,
+       fg.flexfield_group_code,
+       fg.flexfield_group_desc,
+       fc.flexfield_category_id,
+       fc.flexfield_category_code,
+       fc.flexfield_category_desc,
+       fc.framework_type,
+       fc.framework_type_desc,
+       fc.sys_flag flexfield_category_sys_flag,
+       ft.enabled_flag
+  from fnd_flex_templates ft,
+       fnd_descriptions ftd,
+       (select c.flexfield_category_id,
+               c.flexfield_category_code,
+               d.description_text flexfield_category_desc,
+               c.framework_type,
+               (select scv.code_value_name
+                  from sys_code_values_vl scv, sys_codes_vl sc
+                 where sc.code_id = scv.code_id
+                   and scv.code_value = c.framework_type
+                   and sc.code = 'FND_FLEX_FRAMEWORK_TYPE') framework_type_desc,
+               c.sys_flag
+          from fnd_flexfield_categories c, fnd_descriptions d
+         where c.description_id = d.description_id
+           and d.language = ${/session/@lang}) fc,
+       (select g.flexfield_group_id,
+               g.flexfield_group_code,
+               g.flexfield_category_id,
+               d.description_text flexfield_group_desc,
+               g.enabled_flag
+          from fnd_flexfield_groups g, fnd_descriptions d
+         where g.description_id = d.description_id
+           and d.language = ${/session/@lang}) fg
+
+ where ft.description_id = ftd.description_id
+   and ftd.language = ${/session/@lang}
+   and ft.flexfield_group_id = fg.flexfield_group_id
+   and fg.flexfield_category_id = fc.flexfield_category_id) t
+ #WHERE_CLAUSE# 
+ order by t.flexfield_category_code,flexfield_group_code,template_code]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter inputPath="/session/@lang"/>
+            </bm:parameters>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="template_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="TEMPLATE_ID"/>
+        <bm:field name="template_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="TEMPLATE_CODE" prompt="模版代码"/>
+        <bm:field name="template_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="TEMPLATE_DESC" prompt="模版描述"/>
+        <bm:field name="flexfield_group_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="FLEXFIELD_GROUP_ID"/>
+        <bm:field name="flexfield_group_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FLEXFIELD_GROUP_CODE"/>
+        <bm:field name="flexfield_group_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" physicalName="FLEXFIELD_GROUP_DESC" prompt="模板组"/>
+        <bm:field name="flexfield_category_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="FLEXFIELD_CATEGORY_ID"/>
+        <bm:field name="flexfield_category_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FLEXFIELD_CATEGORY_CODE"/>
+        <bm:field name="flexfield_category_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FLEXFIELD_CATEGORY_DESC"/>
+        <bm:field name="framework_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FRAMEWORK_TYPE" prompt="结构样式"/>
+        <bm:field name="framework_type_desc" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" physicalName="FRAMEWORK_TYPE_DESC"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="flexfield_group_id" queryExpression="t.flexfield_group_id = ${@flexfield_group_id}"/>
+        <bm:query-field name="flexfield_category_id" queryExpression="t.flexfield_category_id = ${@flexfield_category_id}"/>
+        <bm:query-field name="framework_type" queryExpression="t.framework_type = ${@framework_type}"/>
+        <bm:query-field name="compiled_flag" queryExpression="t.compiled_flag = ${@compiled_flag}"/>
+        <bm:query-field name="used_flag" queryExpression="t.used_flag = ${@used_flag}"/>
+        <bm:query-field name="template_code" queryExpression="t.template_code like &apos;%&apos;||${@template_code}||&apos;%&apos;"/>
+        <bm:query-field name="template_desc" queryExpression="t.template_desc like &apos;%&apos;||${@template_desc}||&apos;%&apos;"/>
+        <bm:query-field name="quick_value" queryExpression="t.template_code like &apos;%&apos;||${@quick_value}||&apos;%&apos; or t.template_desc like &apos;%&apos;||${@quick_value}||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

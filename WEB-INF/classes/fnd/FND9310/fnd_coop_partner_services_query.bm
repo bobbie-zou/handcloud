@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT cp.coop_partner_id,
+               cp.owner_business_group,
+               cp.owner_company_id,
+               cp.coop_business_group,
+               bg.business_group_name coop_business_group_name,
+               cp.coop_company_id,
+               fc.company_code coop_company_code,
+               fc.company_full_name coop_company_name,
+               nvl(cp.vendor_flag,'N') vendor_flag,
+               nvl(cp.client_flag,'N') client_flag,
+               nvl(cp.service_flag,'N') service_flag,
+               nvl(cp.accept_service_flag,'N') accept_service_flag,
+               cp.initiative_flag,
+               cp.rel_coop_partner_id,
+               cp.directory_id,
+               cp.comments,
+               nvl(cp.enabled_flag,
+                   'N') enabled_flag
+          FROM fnd_companies_vl         fc,
+               fnd_business_groups_vl   bg,
+               fnd_coop_partner_services_vl cp
+         WHERE fc.company_id = cp.coop_company_id
+               AND bg.business_group_code = cp.coop_business_group
+               AND cp.owner_business_group = ${/session/@business_group}
+               AND cp.owner_company_id = ${@owner_company_id})
+      #WHERE_CLAUSE# #ORDER_BY_CLAUSE#]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+               BEGIN
+  fnd_cooperative_partner_pkg.modify_coop_partner(p_coop_partner_id => ${@coop_partner_id},
+                                                  p_directory_id    => ${@directory_id},
+                                                  p_comments        => ${@comments},
+                                                  p_enabled_flag    => ${@enabled_flag},
+                                                  p_user_id         => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="cooperative_company_code" queryExpression="coop_company_code like &apos;%&apos;||trim(${@cooperative_company_code})||&apos;%&apos;"/>
+        <bm:query-field name="cooperative_company_name" queryExpression="coop_company_name like &apos;%&apos;||trim(${@cooperative_company_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

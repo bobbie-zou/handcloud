@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: gaoyang  
+    $Date: 2011-9-6 下午2:54:35  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure><![CDATA[
+	]]></a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+        	function doQuery(){
+        		$('wfl_set_wfl_workflow_transaction_result_ds').query();
+        	}
+        	function doReset(){
+        		$('wfl_set_wfl_workflow_transaction_query_ds').reset();
+        	}
+        	function aboutLov(ds,record,name,value,oldvalue){
+        		var sob_id = record.get('set_of_books_id');
+				var machineField=record.getMeta().getField('transaction_type_code');
+				var current_field=record.getMeta().getField('workflow_code');
+			    var category = record.get('transaction_category');
+					if(category=='EXP_REQUISITION' && sob_id != '' &&sob_id!=null){
+						machineField.setLovPara('set_of_books_id',sob_id);
+						machineField.setLovService('exp.WFL5060.exp_wfl_workflow_transaction_req_lov');
+					}
+					else if(category=='EXP_REPORT' && sob_id != '' &&sob_id!=null){
+						machineField.setLovPara('set_of_books_id',sob_id);
+						machineField.setLovService('exp.WFL5060.exp_wfl_workflow_transaction_rpt_lov');
+					}
+					else if(category=='PAYMENT_REQUISITION'){
+						machineField.setLovService('exp.WFL5060.exp_wfl_workflow_transaction_csh_pay_lov');
+					}
+					else if(category=='BGT_CHANGE_REQ'){
+						machineField.setLovPara('set_of_books_id',sob_id);
+						machineField.setLovService('exp.WFL5060.exp_bgt_wfl_workflow_transaction_bgt_change_req_code_lov');
+					}
+					else if(category=='BGT_PREPARE'){
+						machineField.setLovPara('set_of_books_id',sob_id);
+						machineField.setLovService('exp.WFL5060.exp_bgt_wfl_workflow_transaction_bgt_import_code_lov');
+					}
+					else if(category=='BGT_CER_REQ'){
+						machineField.setLovPara('set_of_books_id',sob_id);
+						machineField.setLovService('exp.WFL5060.exp_bgt_wfl_workflow_transaction_bgt_ver_code_lov');
+					}
+					else {
+						record.set('transaction_type_code',null);
+						machineField.setLovService('');
+						record.set('description_text',null);
+					}
+					if(name=='transaction_type_code'){
+						if(value==null || value==''){
+						record.set('description_text',null);
+						}
+					}
+					if(name == 'transaction_category'){
+						
+						if(value!=null && value != ''){
+							current_field.setLovPara('category',category);
+							current_field.setLovService('exp.WFL5060.exp_wfl_workflow_transaction_wf_lov');
+						}
+						else{
+							current_field.setLovService('');
+						}
+						record.set('name',null);
+						record.set('workflow_code',null);
+					}
+					if(name=='workflow_code'){
+						if(value == null || value == ''){
+							record.set('name',null);
+						}
+					}
+					
+        	}
+        		function save_ok(){
+        			Aurora.showMessage('${l:EXP1900_ASK_COMMIT}','${l:EBS_SAVE_SUCCESS}');
+        		}
+        		function newAdd(record,name){
+        			if(record.isNew){
+        				return'transaction_type_code_lov_ds';
+        			}
+        			else {
+        			return'';
+        			}
+        		}
+        		function newFunction(record,name){
+        			if(record.isNew){
+        				return'transaction_category_comboBox_ds';
+        			}
+        			else {
+        			return'';
+        			}
+        		}
+        		
+        		/***addby zhl 20120504 增加处理保存后不可维护***/
+        		function newcomfunc(record,name){
+        			if(record.isNew){
+        				return'company_z_ds';
+        			}
+        			else {
+        			return'';
+        			}
+        		}
+
+
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="transaction_category_ds" loadData="true" model="exp.WFL5060.exp_wfl_workflow_category"/>
+            <a:dataSet id="set_of_books_id_ds" loadData="true" model="exp.WFL5060.exp_wfl_set_of_books_id"/>
+            <a:dataSet id="wfl_set_wfl_workflow_transaction_query_ds" model="exp.WFL5060.exp_set_exp_wfl_workflow_transaction_query">
+                <a:fields>
+                    <a:field name="transaction_category_display" displayField="code_value_name" options="transaction_category_ds" returnField="transaction_category" valueField="code_value"/>
+                    <a:field name="transaction_type_code"/>
+                    <a:field name="workflow_code"/>
+                    <a:field name="set_of_books_id_display" displayField="sob_name" options="set_of_books_id_ds" returnField="set_of_books_id" valueField="set_of_books_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl_set_wfl_workflow_transaction_result_ds" autoQuery="true" model="exp.WFL5060.exp_set_exp_wfl_workflow_transaction_query" queryDataSet="wfl_set_wfl_workflow_transaction_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="transaction_category_display" displayField="code_value_name" options="transaction_category_ds" required="true" returnField="transaction_category" valueField="code_value"/>
+                    <a:field name="set_of_books_id_display" displayField="sob_name" options="set_of_books_id_ds" required="true" returnField="set_of_books_id" valueField="set_of_books_id"/>
+                    <a:field name="transaction_type_code" lovGridHeight="350" lovHeight="500" lovWidth="500" required="true" title="BGT_BUDGET_ITEM_MAPPING.DOCUMENT_TYPE_SEARCH">
+                        <a:mapping>
+                            <a:map from="type_code" to="transaction_type_code"/>
+                            <a:map from="description" to="description_text"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="description_text"/>
+                    <a:field name="workflow_code" lovGridHeight="350" lovHeight="500" lovWidth="500" required="true" title="WORKFLOW_QUERY">
+                        <a:mapping>
+                            <a:map from="workflow_code" to="workflow_code"/>
+                            <a:map from="name" to="name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="name"/>
+                    <a:field name="company_h" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="company_b" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="company_c" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="aboutLov"/>
+                    <a:event name="submitsuccess" handler="save_ok"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form bindTarget="wfl_set_wfl_workflow_transaction_query_ds" column="2" title="WFL.WFL_BUSINESS_JOB_DEFINE" width="800">
+                <a:comboBox name="transaction_category_display" bindTarget="wfl_set_wfl_workflow_transaction_query_ds" prompt="BGT_BUDGET_ITEM_MAPPING.BUSINESS_TYPE"/>
+                <a:textField name="transaction_type_code" bindTarget="wfl_set_wfl_workflow_transaction_query_ds" prompt="ACP_REQUISITION.REQ_TYPES"/>
+                <a:textField name="workflow_code" bindTarget="wfl_set_wfl_workflow_transaction_query_ds" prompt="EXP_WF_BUSINESS_APPROVAL_RULE.WORKFLOW_ID"/>
+                <a:comboBox name="set_of_books_id_display" bindTarget="wfl_set_wfl_workflow_transaction_query_ds" prompt="BGT_BALANCE_RUNNING_PARAMETERS.SET_OF_BOOKS_ID"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="doQuery" text="HAP_QUERY"/>
+                <a:button click="doReset" text="HAP_RESET"/>
+            </a:hBox>
+            <a:grid id="wfl_set_wfl_workflow_transaction_grid" bindTarget="wfl_set_wfl_workflow_transaction_result_ds" height="330" navBar="true" width="800">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="delete"/>
+                    <a:button type="save"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="transaction_category_display" editorFunction="newFunction" prompt="BGT_BUDGET_ITEM_MAPPING.BUSINESS_TYPE" width="100"/>
+                    <a:column name="set_of_books_id_display" editorFunction="newFunction" prompt="BGT_JOURNAL_BALANCES.SET_OF_BOOKS_ID" width="100"/>
+                    <a:column name="transaction_type_code" editorFunction="newAdd" prompt="ACP_REQUISITION.REQ_TYPES" width="80"/>
+                    <a:column name="description_text" prompt="CSH_CASH_PLAN_TYPES.DESCRIPTION_TEXT" width="100"/>
+                    <a:column name="workflow_code" editorFunction="newAdd" prompt="EXP_WF_BUSINESS_APPROVAL_RULE.WORKFLOW_ID" width="100"/>
+                    <a:column name="name" prompt="EXP_WFL_TRANSACTION.NAME" width="80"/>
+                    <a:column name="company_h" editor="company_z_ds" editorFunction="newcomfunc" prompt="WFL.WFL_ALL_COMPANY" width="68"/>
+                    <a:column name="company_b" editor="company_z_ds" editorFunction="newcomfunc" prompt="WFL.SUB_COMPANY" width="68"/>
+                    <a:column name="company_c" editor="company_z_ds" editorFunction="newcomfunc" prompt="WFL.WFL_HOST_COMPANY" width="68"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="company_z_ds"/>
+                    <a:lov id="transaction_type_code_lov_ds"/>
+                    <a:comboBox id="transaction_category_comboBox_ds"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

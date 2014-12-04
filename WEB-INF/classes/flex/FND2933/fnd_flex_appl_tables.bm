@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-12-6 上午11:11:52  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select * from (           
+select t.appl_table_id,
+       t.appl_table_name,
+       t.appl_table_alias_name,
+       t.appl_table_desc,
+       t.column_pk_name,
+       t.flex_auto_create_flag,
+       t.flex_column_prefix,
+       t.function_id,
+       f.function_code,
+       f.description function_name,
+       t.enabled_flag
+  from fnd_flex_appl_tables_vl t, sys_function_vl f
+ where t.function_id = f.function_id(+) ) t
+                #WHERE_CLAUSE#    
+                ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="appl_table_id" dataType="java.lang.Long" input="false" output="true" outputPath="@appl_table_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              BEGIN
+                fnd_flex_appl_tables_pkg.create_fnd_flex_appl_tables
+                (
+                  x_appl_table_id=>${@appl_table_id},
+                  p_function_id=>${@function_id},
+                  p_appl_table_name=>${@appl_table_name},
+                  p_appl_table_alias_name=>${@appl_table_alias_name},
+                  p_description1=>${@appl_table_desc},
+                  p_column_pk_name=>${@column_pk_name},
+                  p_flex_auto_create_flag=>${@flex_auto_create_flag},
+                  p_flex_column_prefix=>${@flex_column_prefix},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                fnd_flex_appl_tables_pkg.modify_fnd_flex_appl_tables
+                (
+                  p_appl_table_id=>${@appl_table_id},
+                  p_function_id=>${@function_id},
+                  p_appl_table_alias_name=>${@appl_table_alias_name},
+                  p_description=>${@appl_table_desc},
+                  p_column_pk_name=>${@column_pk_name},
+                  p_flex_column_prefix=>${@flex_column_prefix},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                fnd_flex_appl_tables_pkg.refresh_appl_table
+                (
+                  p_appl_table_id=>${@appl_table_id},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="appl_table_name" queryExpression="appl_table_name like &apos;%&apos;||${@appl_table_name}||&apos;%&apos; "/>
+        <bm:query-field name="appl_table_desc" queryExpression="appl_table_desc like &apos;%&apos;||${@appl_table_desc}||&apos;%&apos; "/>
+        <bm:query-field name="column_pk_name" queryExpression="column_pk_name like &apos;%&apos;||${@column_pk_name}||&apos;%&apos; "/>
+        <bm:query-field name="flex_auto_create_flag" queryExpression="flex_auto_create_flag = ${@flex_auto_create_flag} "/>
+        <bm:query-field name="function_id" queryExpression="function_id = ${@function_id} "/>
+    </bm:query-fields>
+</bm:model>

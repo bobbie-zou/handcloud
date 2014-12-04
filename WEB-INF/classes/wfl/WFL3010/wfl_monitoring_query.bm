@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="instance_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="INSTANCE_ID"/>
+        <bm:field name="workflow_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="WORKFLOW_ID"/>
+        <bm:field name="workflow_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="WORKFLOW_CODE"/>
+        <bm:field name="workflow_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="WORKFLOW_DESC"/>
+        <bm:field name="current_seq" databaseType="NUMBER" datatype="java.lang.Long" physicalName="CURRENT_SEQ"/>
+        <bm:field name="current_node_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CURRENT_NODE_DESC"/>
+        <bm:field name="last_approve_date" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="LAST_APPROVE_DATE"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID"/>
+        <bm:field name="company_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_CODE"/>
+        <bm:field name="company_short_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_SHORT_NAME"/>
+        <bm:field name="approve_user_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="APPROVE_USER_CODE"/>
+        <bm:field name="approve_user_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="APPROVE_USER_NAME"/>
+        <bm:field name="approve_user_post" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="APPROVE_USER_POST"/>
+        <bm:field name="graphic_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="GRAPHIC_ID"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	select t.instance_id,
+            		   t.workflow_id,
+            		   t.workflow_code,
+            		   t.workflow_desc,
+            		   t.current_seq,
+            		   t.current_node_desc,
+            		   t.last_approve_date,
+            		   t.company_id,
+            		   t.company_code,
+            		   t.company_short_name,
+            		   t.approve_user_code,
+            		   t.approve_user_name,
+            		   t.approve_user_post,
+            		   nvl((SELECT DISTINCT SGD.GRAPHIC_ID
+FROM   WFL_WORKFLOW_NODE WWN1,SYS_GRAPHICS_DETAIL SGD
+WHERE SGD.TABLE_ID(+) = WWN1.NODE_ID
+AND WWN1.WORKFLOW_ID = t.workflow_id AND SGD.GRAPHIC_ID is not NULL),-1) graphic_id
+            	  from ( select wi.instance_id,
+						       (select ww.workflow_id
+						          from wfl_workflow ww
+						         where ww.workflow_id = wi.workflow_id)as workflow_id,
+						       (select ww.workflow_code
+						          from wfl_workflow ww
+						         where ww.workflow_id = wi.workflow_id)as workflow_code,
+						       (select ww.workflow_desc
+						          from wfl_workflow ww
+						         where ww.workflow_id = wi.workflow_id)as workflow_desc,
+						       wi.current_seq,
+						       wfl_workflow_pkg.get_current_node_desc(wi.instance_id) as current_node_desc,
+						       (select TO_CHAR(max(ar.creation_date),'yyyy-mm-dd hh24:mi:ss')
+						          from wfl_approve_record ar
+						         where ar.instance_id = wi.instance_id) as last_approve_date,
+						       (select cv.company_id
+						          from wfl_workflow_companies_vl cv
+						         where cv.company_id = wi.company_id)as company_id,
+						       (select cv.company_code
+						          from wfl_workflow_companies_vl cv
+						         where cv.company_id = wi.company_id)as company_code,
+						       (select cv.company_short_name
+						          from wfl_workflow_companies_vl cv
+						         where cv.company_id = wi.company_id)as company_short_name,       
+						       wfl_workflow_pkg.get_approve_user_code(wi.instance_id)as approve_user_code,
+						       wfl_workflow_pkg.get_approve_user_name(wi.instance_id)as approve_user_name,
+						       wfl_workflow_pkg.get_approve_user_post(wi.instance_id)as approve_user_post
+						  from wfl_workflow_instance wi
+						 where wi.status = 1) t
+					#WHERE_CLAUSE#
+				  order by t.workflow_id desc
+			]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="workflow_code" queryExpression="t.workflow_code like ${@workflow_code}"/>
+        <bm:query-field name="node_desc" queryExpression="t.current_node_desc like ${@node_desc}"/>
+        <bm:query-field name="company_id" queryExpression="t.company_id = ${@company_id}"/>
+        <bm:query-field name="approve_user_name" queryExpression="t.approve_user_name like ${@approve_user_name}"/>
+        <bm:query-field name="approve_user_post" queryExpression="t.approve_user_post like ${@approve_user_post}"/>
+    </bm:query-fields>
+</bm:model>

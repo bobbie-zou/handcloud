@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-6-13 上午11:03:03  
+    $Revision: 1.0  
+    $Purpose: modules/wfl/WFL1001/sys_favorite_function_view.screen 界面对于的计数
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT (SELECT COUNT(*)
+  FROM inv_asn_headers        h,
+       inv_asn_lines          l,
+       pur_line_locations_all pll
+ WHERE h.asn_header_id = l.asn_header_id
+       AND l.pur_line_location_id = pll.pur_line_location_id
+       AND l.status IN ('NEW',
+                        'PARTIALLY RECEIVED')
+       AND h.client = ${/session/@client}) receive_number,
+    
+    
+(SELECT count(*)
+  FROM pur_headers_all        h,
+       pur_lines_all          l,
+       pur_line_locations_all pll
+ WHERE h.pur_header_id = l.pur_header_id
+       AND h.pur_header_id = pll.pur_header_id
+       AND l.pur_line_id = pll.pur_line_id
+       AND (SELECT nvl(SUM(q.quantity_shipped),
+           0)
+         FROM pur_line_locations_quantity q
+         WHERE q.line_location_id = pll.PUR_LINE_LOCATION_ID) = 0
+       AND h.last_version = 'Y'
+       and pll.URGENT_STATUS = 'URGENT'
+       AND h.client = ${/session/@client}
+       AND h.CREATED_BY = ${/session/@user_id}) urgent_order_number
+    
+  FROM dual
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

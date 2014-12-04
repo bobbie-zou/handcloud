@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-14 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 业务通知单发布管理，快捷组树形查询
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT *
+				  FROM (SELECT 'GROUP' AS data_type,
+				               cg.group_id * -1 AS data_id,
+				               cg.group_name AS data_name,
+				               NULL AS parent_data_id,
+				               NULL AS vendor_id,
+				               NULL AS vendor_code,
+				               NULL AS vendor_name,
+				               NULL AS coop_company_id,
+				               NULL AS coop_company_code,
+				               cg.group_id,
+				               NULL AS sequence,
+				               'N' AS expanded
+				          FROM fnd_notify_convenient_group cg
+				         WHERE cg.user_id = ${/session/@user_id}
+				               AND cg.company_id = ${/parameter/@company_id}
+				        UNION ALL
+				        SELECT 'VENDOR' AS data_type,
+				               gm.member_id AS data_id,
+				               (SELECT pv.full_name FROM pur_vendors_v pv WHERE pv.vendor_id = gm.member_vendor_id) AS data_name,
+				               gm.group_id * -1 AS parent_data_id,
+				               gm.member_vendor_id AS vendor_id,
+				               (SELECT pv.display_vendor_code FROM pur_vendors_v pv WHERE pv.vendor_id = gm.member_vendor_id) AS vendor_code,
+				               (SELECT pv.full_name FROM pur_vendors_v pv WHERE pv.vendor_id = gm.member_vendor_id) AS vendor_name,
+				               gm.member_company_id AS coop_company_id,
+				               (SELECT fcv.company_code FROM fnd_companies_vl fcv WHERE fcv.company_id = gm.member_company_id) AS coop_company_code,
+				               NULL AS group_id,
+				               NULL AS sequence,
+				               'N' AS expanded
+				          FROM fnd_notify_conv_group_mbers gm
+				         WHERE EXISTS (SELECT 1
+				                  FROM fnd_notify_convenient_group cg
+				                 WHERE cg.group_id = gm.group_id
+				                       AND cg.user_id = ${/session/@user_id}
+				                       AND cg.company_id = ${/parameter/@company_id})) v
+            	#WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

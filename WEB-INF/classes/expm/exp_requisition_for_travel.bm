@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: LiuZhiMin  
+    $Date: 2012-8-29 下午04:16:01  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:update-sql><![CDATA[select t1.exp_req_travel_line_id,
+             t1.exp_req_head_id,
+             t1.line_number,
+             t1.description,
+             t1.expense_type_id,
+             t1.exp_item_id,
+             t1.responsibility_center_id,
+             (select frc.responsibility_center_code || ' - ' ||
+       (select description_text
+          from fnd_descriptions fd
+         where fd.description_id =
+               (select rc.responsibility_center_name_id
+                  from fnd_responsibility_centers rc
+                 where rc.responsibility_center_id =
+                       (select erf.responsibility_center_id from exp_req_for_travel erf where erf.exp_req_head_id = ${@exp_req_head_id}))
+           and fd.language = ${/session/@lang})
+  from fnd_responsibility_centers frc where frc.responsibility_center_id = (select erft.responsibility_center_id from exp_req_for_travel erft where erft.exp_req_head_id = ${@exp_req_head_id})) responsibility_center_code,
+             (select fd.description_text
+                from exp_expense_items eei, fnd_descriptions fd
+               where t1.exp_item_id = eei.expense_item_id
+                 and fd.language = ${/session/@lang}
+                 and fd.description_id = eei.description_id) exp_req_item_name,
+             t1.place_id,
+             (select v.place_desc
+                from exp_policy_places_vl v
+               where v.place_id = t1.place_id) place,
+             t1.place_type_id,
+             (select e.description
+                from exp_policy_place_types_vl e
+               where e.place_type_id = t1.place_type_id) place_type,
+             (select e.employee_code||' - '||e.name from exp_employees e where e.employee_id=t1.employee_id) employee_name,
+             t1.employee_id,
+             
+             to_char(t1.date_from,'yyyy-mm-dd') date_from,
+             to_char(t1.date_to,'yyyy-mm-dd') date_to,
+             t1.standard_subsidy,
+             t1.acc_costs,
+             t1.date_total,
+             t1.acc_subsidies,
+             t1.transport_costs,
+             t1.other_costs,
+             t1.segment_1,
+             t1.segment_2,
+             t1.segment_3,
+             t1.segment_4,
+             t1.segment_5
+        from exp_req_for_travel t1
+        #WHERE_CLAUSE#]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter inputPath="/session/@lang"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+                DELETE FROM EXP_REQ_FOR_TRAVEL t
+ WHERE t.EXP_REQ_TRAVEL_LINE_ID = ${@exp_req_travel_line_id}
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="exp_req_head_id" queryExpression="t1.exp_req_head_id=${@exp_req_head_id}"/>
+    </bm:query-fields>
+</bm:model>

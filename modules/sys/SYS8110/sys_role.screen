@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-8-26 下午1:40:40  
+    $Revision: 1.0  
+    $Purpose: 角色管理-云级，入口页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="cvv.code = &apos;SYS_ROLE_TYPE&apos; and cvv.code_value in (&apos;INTERFACE&apos;,&apos;NORMAL&apos;)" model="public.sys_code_part_list" rootPath="role_type_list"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="sys8110_sys_role_assign_function_link" url="${/request/@context_path}/modules/sys/SYS8110/sys_role_assign_function.screen"/>
+        <script><![CDATA[
+            function sys8110_queryRole() {
+                $('sys8110_role_result_ds').query();
+            }
+            
+            function sys8110_resetRole() {
+                $('sys8110_role_query_ds').reset();
+            }
+            
+            function sys8110_roleResultDsGridRenderer(value, record, name) {
+                var role_id = record.get('role_id');
+                if (name == 'function_assign') {
+                    if (role_id) {
+                        return '<a href="javascript:sys8110_roleAssignFunction(' + role_id + ')">${l:HEC_ASSIGN_FUNCTION}</a>';
+                    } else {
+                        return '';
+                    }
+                }
+            }
+            
+            function sys8110_roleAssignFunction(role_id) {
+                new Aurora.Window({
+                    id: 'sys8110_sys_role_assign_function_link_window',
+                    url: $('sys8110_sys_role_assign_function_link').getUrl() + '?role_id=' + role_id,
+                    title: '${l:HEC_ASSIGN_FUNCTION}',
+                    height: 500,
+                    width: 620
+                });
+            }
+            
+            function sys8110_roleResultDsGridEditorFunction(record, name) {
+                if (name == 'role_code') {
+                    if (record.isNew) {
+                        return 'sys8110_role_result_ds_grid_textfield_upper';
+                    }
+                }
+                if (name == 'role_camp_display') {
+                    if (record.isNew) {
+                        return 'sys8110_role_result_ds_grid_combobox';
+                    }
+                }
+                if (name == 'role_type_display') {
+                    if (record.isNew) {
+                        return 'sys8110_role_result_ds_grid_combobox';
+                    }
+                }
+            }
+            
+            function sys8110_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function sys8110_roleResultDsValidator(record, name, value) {
+                if (name == 'role_code') {
+                    if (!Aurora.isEmpty(value) && sys8110_getLength(value) >= 30) {
+                        return '${l:SYS8110.ROLE_CODE_OVERLENGTH}';
+                    }
+                    return true;
+                }
+            
+                if (name == 'role_name') {
+                    if (!Aurora.isEmpty(value) && sys8110_getLength(value) >= 1000) {
+                        return '${l:SYS8110.ROLE_NAME_OVERLENGTH}';
+                    }
+                    return true;
+                }
+            
+                if (name == 'role_description') {
+                    if (!Aurora.isEmpty(value) && sys8110_getLength(value) >= 1000) {
+                        return '${l:SYS8110.ROLE_DESCRIPTION_OVERLENGTH}';
+                    }
+                    return true;
+                }
+            
+                if (name == 'start_date' || name == 'end_date') {
+                    var start_date = record.get('start_date');
+                    var end_date = record.get('end_date');
+                    if (typeof(end_date) != 'undefined' && !Ext.isEmpty(end_date)) {
+                        if (!sys8110_compareDate(start_date, end_date)) {
+                            return '${l:START_GREATER_THAN_END}';
+                        }
+                    }
+	                return true;
+                }
+            }
+            
+            function sys8110_roleResultDsUpdate(ds, record, name, value) {
+                if (name == 'start_date' || name == 'end_date') {
+                    record.validate((name == 'start_date') ? 'end_date' : 'start_date');
+                }
+            }
+            
+            function sys8110_roleResultDsAdd(dataset, record, index) {
+                var now = new Date();
+                var month = now.getMonth() + 1;
+                month = month > 9 ? month : '0' + month;
+                var day = now.getDate();
+                day = day > 9 ? day : '0' + day;
+                var date = now.getFullYear() + '-' + month + '-' + day; //STRING类型
+                record.set('start_date', date);
+            }
+            
+            function sys8110_getLength(str) {
+                var realLength = 0,
+                    len = str.length,
+                    charCode = -1;
+                for (var i = 0;i < len;i++) {
+                    charCode = str.charCodeAt(i);
+                    if (charCode >= 0 && charCode <= 128) {
+                        realLength += 1;
+                    } else {
+                        realLength += 3;
+                    }
+                }
+                return realLength;
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys8110_role_camp_list_ds" lookupCode="SYS_ROLE_CAMP"/>
+            <a:dataSet id="sys8110_role_type_list_ds">
+                <a:datas dataSource="/model/role_type_list"/>
+            </a:dataSet>
+            <a:dataSet id="sys8110_role_query_ds" model="sys.sys_role">
+                <a:fields>
+                    <a:field name="role_code_name"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys8110_role_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="sys.SYS8110.sys_role_manage" queryDataSet="sys8110_role_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="role_code" required="true" requiredMessage="${l:SYS8110.ROLE_CODE_NOT_NULL}" validator="sys8110_roleResultDsValidator"/>
+                    <a:field name="role_name" required="true" requiredMessage="${l:SYS8110.ROLE_NAME_NOT_NULL}" validator="sys8110_roleResultDsValidator"/>
+                    <a:field name="start_date" required="true" requiredMessage="${l:SYS8110.START_DATE_NOT_NULL}" validator="sys8110_roleResultDsValidator"/>
+                    <a:field name="end_date" validator="sys8110_roleResultDsValidator"/>
+                    <a:field name="role_description" validator="sys8110_roleResultDsValidator"/>
+                    <a:field name="role_camp_display" displayField="code_value_name" options="sys8110_role_camp_list_ds" required="true" requiredMessage="${l:SYS8110.ROLE_CAMP_NOT_NULL}" returnField="role_camp" valueField="code_value"/>
+                    <a:field name="role_type_display" displayField="code_value_name" options="sys8110_role_type_list_ds" required="true" requiredMessage="${l:SYS8110.ROLE_TYPE_NOT_NULL}" returnField="role_type" valueField="code_value"/>
+                    <a:field name="login_screen_name" autoComplete="true" autoCompleteField="service_name" lovAutoQuery="true" lovGridHeight="350" lovHeight="520" lovService="sys.sys_service" lovWidth="460" title="PAGE_SELECT">
+                        <a:mapping>
+                            <a:map from="service_id" to="service_id"/>
+                            <a:map from="service_name" to="login_screen_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="sys8110_roleResultDsAdd"/>
+                    <a:event name="update" handler="sys8110_roleResultDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="sys8110_role_result_ds_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="sys8110_role_result_ds_grid" style="margin-left:20px;" type="save" width="100"/>
+                <a:gridButton bind="sys8110_role_result_ds_grid" style="margin-left:20px;" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="sys8110_role_query_ds" defaultQueryField="role_code_name_desc" defaultQueryHint="SYS8110.ROLE_CODE_NAME_DESC" resultTarget="sys8110_role_result_ds" style="width:100%;border:none"/>
+            <a:grid id="sys8110_role_result_ds_grid" autoAppend="false" bindTarget="sys8110_role_result_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="role_code" align="center" editorFunction="sys8110_roleResultDsGridEditorFunction" sortable="true" width="80"/>
+                    <a:column name="role_name" align="left" editor="sys8110_role_result_ds_grid_textfield" sortable="true" width="80"/>
+                    <a:column name="role_description" align="left" editor="sys8110_role_result_ds_grid_textfield" sortable="true" width="100"/>
+                    <a:column name="role_camp_display" align="center" editorFunction="sys8110_roleResultDsGridEditorFunction" sortable="true" width="50"/>
+                    <a:column name="role_type_display" align="center" editorFunction="sys8110_roleResultDsGridEditorFunction" sortable="true" width="50"/>
+                    <a:column name="start_date" align="center" editor="sys8110_role_result_ds_grid_datepicker" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                    <a:column name="end_date" align="center" editor="sys8110_role_result_ds_grid_datepicker" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                    <a:column name="login_screen_name" align="left" editor="sys8110_role_result_ds_grid_lov" sortable="true" width="200"/>
+                    <a:column name="max_user_number" align="center" editor="sys8110_role_result_ds_grid_numberfield" sortable="true" width="80"/>
+                    <a:column name="function_assign" align="center" prompt="HEC_ASSIGN_FUNCTION" renderer="sys8110_roleResultDsGridRenderer" width="50"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="sys8110_role_result_ds_grid_textfield"/>
+                    <a:datePicker id="sys8110_role_result_ds_grid_datepicker"/>
+                    <a:lov id="sys8110_role_result_ds_grid_lov"/>
+                    <a:textField id="sys8110_role_result_ds_grid_textfield_upper" typeCase="upper"/>
+                    <a:numberField id="sys8110_role_result_ds_grid_numberfield" allowDecimals="false" allowFormat="false" allowNegative="false" decimalPrecision="0"/>
+                    <a:comboBox id="sys8110_role_result_ds_grid_combobox"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

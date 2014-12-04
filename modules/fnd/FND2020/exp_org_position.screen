@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duxiaofu4653 $
+    $Date: 2013/01/10 11:14:04 $ 
+    $Revision: 1.2 $
+    $Purpose: 岗位定义 $
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+            function queryPosition(){
+                if($('exp_org_position_query_form_ds').validate()){
+		            $('exp_org_position_result_ds').setQueryDataSet($('exp_org_position_query_form_ds'));
+	                $('exp_org_position_result_ds').query();
+                }
+            }
+            
+            function codeEditFunction(record,name){
+                if (record.isNew){
+                    return 'position_code_tf';
+                }else{
+                    return '';
+                }
+            }
+            
+            function gridCellClick(grid, row, name, record){
+                if(name == 'parent_position_name_display'){
+                    if(!record.isNew){
+                        record.getMeta().getField(name).setLovPara('current_position_id',record.get('position_id'));
+                    }
+                }
+            }
+
+            function exp_1020_queryHook(value, ds) {
+                var record = ds.getCurrentRecord();
+                record.set('position_code', null);
+                record.set('position_name', null);
+                record.set('query_hook', value);
+            }
+            
+            //岗位新增
+            //1、判断是否选择公司
+            //2、对新增行手工设置选择的公司ID，替代原来从session中取
+            function exp1020_positionAdd(){
+                var company_id = $('exp_org_position_query_form_ds').getCurrentRecord().get('company_id');
+                if(company_id == undefined || Ext.isEmpty(company_id)){
+                    Aurora.showMessage('${l:PROMPTS}', '${l:CHOOSE_COMPANY_FIRST}');
+                    return;
+                }
+                $('exp_org_position_result_ds').create();
+                var record = $('exp_org_position_result_ds').getCurrentRecord();
+                record.set('company_id', company_id);
+                record.getField('org_unit_description_display').setLovPara('company_id', company_id);
+            }
+            
+            //查询dataset更新事件，动态设置部门lov查询参数
+            function exp1020_positionUpdateHandler(ds, record, name, value, oldvalue){
+                if(name == 'company_desc'){
+                    if(value){
+	                    var company_id = record.get('company_id');
+	                    $('exp_org_position_result_ds').setQueryDataSet($('exp_org_position_query_form_ds'));
+	                    $('exp_org_position_result_ds').setQueryParameter('company_id', company_id);
+	                    $('exp_org_position_result_ds').query();
+                    }else{
+	                    $('exp_org_position_result_ds').setQueryDataSet($('exp1020_null_ds'));
+	                    $('exp_org_position_result_ds').setQueryParameter('company_id', 0);
+	                    $('exp_org_position_result_ds').query();
+	                    // $('pur1020_grid').clear();
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="unit_ds" autoCount="false" fetchAll="true" loadData="true" model="exp.EXP1020.exp_org_position_unit_select"/>
+            <a:dataSet id="job_ds" autoCount="false" fetchAll="true" loadData="true" model="exp.EXP1020.exp_org_position_job_select"/>
+            <a:dataSet id="exp1020_null_ds"/>
+            <a:dataSet id="exp_org_position_query_form_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/parameter/@company_id}"/>
+                    <a:field name="unit_id" defaultValue="${/parameter/@unit_id}"/>
+                    <a:field name="position_code"/>
+                    <a:field name="position_name"/>
+                    <a:field name="query_hook"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="exp1020_positionUpdateHandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="exp_org_position_result_ds" autoCount="true" autoQuery="true" fetchAll="false" model="exp.exp_org_position" queryDataSet="exp_org_position_query_form_ds" selectable="true" submitUrl="${/request/@context_path}/modules/exp/EXP1020/exp_org_position.svc">
+                <a:fields>
+                    <a:field name="parent_position_desc" autoComplete="true" autoCompleteField="code_name" lovHeight="474" lovService="exp.EXP1020.exp_org_position_parent_position_select?company_id=${/parameter/@company_id}&amp;unit_id=${/parameter/@unit_id}" lovWidth="500" title="EXP_ORG_POSITION.PARENT_POSITION_ID">
+                        <a:mapping>
+                            <a:map from="position_desc" to="parent_position_desc"/>
+                            <a:map from="position_id" to="parent_position_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="position_id"/>
+                    <a:field name="unit_id" defaultValue="${/parameter/@unit_id}"/>
+                    <!-- <a:field name="org_unit_description_display" lovHeight="500" lovService="exp.EXP1020.exp_org_company_unit_lov?company_id=${/parameter/@company_id}" lovWidth="500" title="PUR_PURCHASE_ORDER.ORG_UNIT_SELECTED">
+                        <a:mapping>
+                            <a:map from="unit_id" to="unit_id"/>
+                            <a:map from="unit_desc" to="org_unit_description_display"/>
+                        </a:mapping>
+                    </a:field> -->
+                    <a:field name="employee_job_desc_display" displayField="employee_job_desc_display" options="job_ds" returnField="employee_job_id" valueField="employee_job_id"/>
+                    <a:field name="position_code" required="true"/>
+                    <a:field name="position_desc" required="true"/>
+                    <a:field name="company_id"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" unCheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:gridButton bind="pur1020_grid" click="exp1020_positionAdd" text="HAP_NEW" width="100"/>
+            <a:gridButton bind="pur1020_grid" text="HAP_SAVE" type="save" width="100"/>
+            <a:gridButton bind="pur1020_grid" text="HAP_CLEAR" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="exp_1020_query_form" bindTarget="exp_org_position_query_form_ds" defaultQueryHint="Code Or Description" queryHook="queryPosition" resultTarget="exp_org_position_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:textField style="width:100%;display:none"/>
+                <a:hBox>
+                    <a:textField name="position_code" bindTarget="exp_org_position_query_form_ds" emptyText="Code Or Description" prompt="EXP_ORG_POSITION.POSITION_CODE">
+                        <a:events>
+                            <a:event name="enterdown" handler="queryPosition"/>
+                        </a:events>
+                    </a:textField>
+                </a:hBox>
+            </a:formToolBar>
+        </a:queryForm>
+        <a:grid id="pur1020_grid" bindTarget="exp_org_position_result_ds" marginHeight="170" marginWidth="60" navBar="true" width="1000">
+            <a:columns>
+                <a:column name="position_code" align="center" editorFunction="codeEditFunction" prompt="EXP_ORG_POSITION.POSITION_CODE" sortable="true" width="80"/>
+                <a:column name="position_desc" editor="position_name_tf" prompt="EXP_ORG_POSITION.POSITION_NAME" width="160"/>
+                <a:column name="sequence" editor="enabled_flag_grid_nf" prompt="SORT_NUM" width="80"/>
+                <a:column name="parent_position_desc" align="center" editor="parent_position_desc_lov" prompt="EXP_ORG_POSITION.PARENT_POSITION" width="160"/>
+                <!-- <a:column name="org_unit_description_display" align="center" editor="org_unit_description_display_cmb" width="160"/> -->
+                <a:column name="employee_job_desc_display" align="center" editor="employee_job_desc_display_cmb" prompt="EXP_EMPLOYEE_JOBS.EMPLOYEE_JOB_CODE" width="160"/>
+                <a:column name="enabled_flag" align="center" editor="enabled_flag_grid_checkBox" prompt="EXP_ORG_POSITION.ENABLED_FLAG" width="60"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="position_code_tf" typeCase="upper"/>
+                <a:textField id="position_name_tf"/>
+                <a:lov id="parent_position_desc_lov"/>
+                <a:lov id="org_unit_description_display_cmb"/>
+                <a:comboBox id="employee_job_desc_display_cmb"/>
+                <a:checkBox id="enabled_flag_grid_checkBox"/>
+                <a:numberField id="enabled_flag_grid_nf" allowDecimals="false" allowNegative="false"/>
+            </a:editors>
+            <a:events>
+                <a:event name="cellclick" handler="gridCellClick"/>
+            </a:events>
+        </a:grid>
+    </a:view>
+</a:screen>

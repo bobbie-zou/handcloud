@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zhangjiasheng5122 $
+    $Date: 2013/10/17 06:16:28 $
+    $Revision: 1.3 $
+    $Purpose: 员工定义 - 员工分配
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure><![CDATA[
+    ]]></a:init-procedure>
+    <a:view>
+        <style><![CDATA[
+	    	#exp1050_exp_employee_assigns_ds_grid .item-ckb-readonly-u,
+	    	#exp1050_exp_employee_assigns_ds_grid .item-ckb-readonly-c{
+	    		background-image:none;
+	    	}
+	    ]]></style>
+        <a:link id="exp1050_exp_employee_assign_query_save_link" model="exp.EXP1050.exp_employee_assign_query" modelaction="batch_update"/>
+        <script><![CDATA[
+            function exp1050_closeEmployeeAssignWindow() {
+                $('exp_employee_assign_window').close();
+            }
+            
+            function exp1050_expEmployeeAssignsDsGridEditorFunction(record, name) {
+                if (name == 'checked_flag') {
+                    if (record.get('data_type') == 'POSITION' || record.get('data_type') == 'UNIT_POSITION') {
+                        return 'exp1050_exp_employee_assigns_ds_grid_checkBox';
+                    } else {
+                        return '';
+                    }
+                }
+            }
+            
+            function exp1050_saveEmployeeAssign() {
+                var records = $('exp1050_exp_employee_assigns_ds').getAll();
+                var datas = [];
+                for (var i = 0;i < records.length;i++) {
+                    if(records[i].dirty){
+                        records[i].set('_status', 'update');
+                        records[i].set('employee_id', '${/parameter/@employee_id}');
+                        datas.push(records[i].data);
+                    }
+                }
+                Aurora.request({
+                    url: $('exp1050_exp_employee_assign_query_save_link').getUrl(),
+                    para: datas,
+                    success: function() {
+                        $('exp1050_exp_employee_assigns_ds').query();
+                    },
+                    failure: function() {},
+                    error: function() {},
+                    scope: this
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="exp1050_exp_employee_query_ds"/>
+            <a:dataSet id="exp1050_exp_employee_assigns_ds" autoQuery="true" fetchAll="true" model="exp.EXP1050.exp_employee_assign_query" queryDataSet="exp1050_exp_employee_query_ds" queryUrl="${/request/@context_path}/autocrud/exp.EXP1050.exp_employee_assign_query/query?employee_id=${/parameter/@employee_id}">
+                <a:fields>
+                    <a:field name="checked_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="exp1050_saveEmployeeAssign" style="margin-left:20px;" text="HAP_SAVE" width="100"/>
+            <a:toolbarButton click="exp1050_closeEmployeeAssignWindow" style="margin-left:20px;" text="HAP_BACK" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="exp1050_exp_employee_query_ds_form" bindTarget="exp1050_exp_employee_query_ds" defaultQueryField="data_desc" defaultQueryHint="公司名称、部门描述、岗位描述" resultTarget="exp1050_exp_employee_assigns_ds" style="width:100%;border:none"/>
+        <a:hBox>
+            <a:label name="employee_code" bindTarget="exp1050_employees_result_ds" prompt="EXP_EMPLOYEE.EMPLOYEE_CODE"/>
+            <a:label name="name" bindTarget="exp1050_employees_result_ds" prompt="EXP_EMPLOYEES.EXP_EMPLOYEES_CHOOSE"/>
+        </a:hBox>
+        <a:treeGrid id="exp1050_exp_employee_assigns_ds_grid" bindTarget="exp1050_exp_employee_assigns_ds" expandField="expand_flag" height="560" idField="data_id" navBar="false" parentField="data_parent_id" sequenceField="sequence" showCheckBox="false" style="margin-top:5px;" width="960">
+            <a:columns>
+                <a:column name="data_desc" prompt="公司名称/部门描述/岗位描述" width="880"/>
+                <a:column name="checked_flag" editorFunction="exp1050_expEmployeeAssignsDsGridEditorFunction" prompt="分配" width="50"/>
+            </a:columns>
+            <a:editors>
+                <a:checkBox id="exp1050_exp_employee_assigns_ds_grid_checkBox"/>
+            </a:editors>
+        </a:treeGrid>
+    </a:view>
+</a:screen>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangcheng  
+    $Date: 2014-11-03  19:50:03
+    $Revision: 1.0  
+    $Purpose: 送货单信息查询，送货单按单查询BM(行标志为FAILED)
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT *
+				  FROM (SELECT iah.asn_header_id,
+				               iah.display_asn_number as asn_number,
+				               (SELECT atv.asn_type_name FROM inv_asn_types_vl atv WHERE atv.asn_type_code = iah.asn_type_code) AS asn_type_name,
+				               iah.coop_business_unit_id,
+				               iah.coop_business_group,
+				               iah.coop_company_id,
+				               (SELECT fcv.company_full_name FROM fnd_companies_vl fcv WHERE fcv.company_id = iah.coop_company_id) AS company_name,
+				               iah.vendor_id,
+						       (select pvv.full_name
+						          from pur_vendors_v pvv
+						         where pvv.vendor_id = iah.vendor_id)as vendor_name,
+						       iah.vendor_site_id,
+				               (SELECT vsv.site_name FROM pur_vendor_sites_vl vsv WHERE vsv.vendor_site_id = iah.vendor_site_id) AS vendor_site_name,
+				               iah.status,
+				               (SELECT cvv.code_value_name
+				                  FROM sys_code_values_v cvv
+				                 WHERE cvv.code = 'INV_ASN_HEADERS_STATUS'
+				                       AND cvv.code_value = iah.status) AS header_status,
+				               iah.ship_date,
+				               to_char(iah.ship_date,
+				                       'yyyy-mm-dd') AS ship_date_fmt,
+				               iah.expected_date,
+				               to_char(iah.expected_date,
+				                       'yyyy-mm-dd') AS expected_date_fmt,
+				               iah.creation_date,
+				               to_char(iah.creation_date,
+				                       'yyyy-mm-dd')AS creation_date_fmt,
+				               iah.comments,
+				               iah.location_id,
+				               (SELECT fl.address_line_1 FROM fnd_locations fl WHERE fl.location_id = iah.location_id) AS location_name,
+				               iah.ship_to_organization_id,
+				               (SELECT iov.description
+				                  FROM inv_organizations_vl iov
+				                 WHERE iov.inv_organization_id = iah.ship_to_organization_id) AS ship_to_organization_name,
+				               NULL as useless_id_1,
+				               NULL as useless_id_2,
+				               NULL as useless_id_3,
+				               NULL as useless_id_4,
+				               NULL as useless_id_5,
+				               NULL as useless_id_6,
+				               NULL as useless_id_7,
+				               NULL as useless_id_8
+				          FROM inv_asn_headers iah
+				         ORDER BY iah.asn_header_id DESC) v
+ 				#AUTHORIY_FROM#
+ 				#WHERE_CLAUSE# 
+ 				#AUTHORIY_WHERE# 
+ 				#ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="asn_number" queryExpression="v.asn_number like &apos;%&apos;||trim(${@asn_number})||&apos;%&apos;"/>
+        <bm:query-field name="company_id" queryExpression="v.coop_company_id = ${@company_id}"/>
+        <bm:query-field name="status" queryExpression="v.status = ${@status}"/>
+        <bm:query-field name="vendor_id" queryExpression="v.vendor_id = ${@vendor_id}"/>
+        <bm:query-field name="ship_to_organization_id" queryExpression="v.ship_to_organization_id = ${@ship_to_organization_id}"/>
+        <bm:query-field name="expected_date_from" queryExpression="v.expected_date &gt;=to_date(${@expected_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="expected_date_to" queryExpression="v.expected_date &lt;=to_date(${@expected_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="ship_date_from" queryExpression="v.ship_date &gt;=to_date(${@ship_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="ship_date_to" queryExpression="v.ship_date &lt;=to_date(${@ship_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="creation_date_from" queryExpression="v.creation_date &gt;= to_date(${@creation_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="creation_date_to" queryExpression="v.creation_date &lt;= to_date(${@creation_date_to},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="exclude_all_close" queryExpression="((${@exclude_all_close} = &apos;Y&apos; and v.status != &apos;ALL_CLOSE&apos;) or (${@exclude_all_close} = &apos;N&apos; and 1=1))"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+        <bm:data-filter expression="coop_business_group=${/session/@business_group}"/>
+        <bm:data-filter expression="exists (select 1 from inv_asn_lines ial where ial.asn_header_id=v.asn_header_id and ial.process_status=&apos;FAILED&apos;)"/>
+    </bm:data-filters>
+    <authority foundation_code="INV_ASN">
+        <authority-segment source_alias="v" source_name="coop_company_id" type="COMPANY"/>
+        <authority-segment source_alias="v" source_name="coop_business_unit_id" type="BUSINESS_UNIT"/>
+        <authority-segment source_alias="v" source_name="ship_to_organization_id" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="vendor_id" type="VENDOR"/>
+        <authority-segment source_alias="v" source_name="vendor_site_id" type="VENDOR_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id_1" type="CREATER"/>
+        <authority-segment source_alias="v" source_name="useless_id_2" type="RECEIVER"/>
+        <authority-segment source_alias="v" source_name="useless_id_3" type="CLIENT"/>
+        <authority-segment source_alias="v" source_name="useless_id_4" type="CLIENT_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id_5" type="PUR_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_6" type="SD_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id_7" type="PURHASE_MATERIAL"/>
+        <authority-segment source_alias="v" source_name="useless_id_8" type="SALES_PRODUCTION"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

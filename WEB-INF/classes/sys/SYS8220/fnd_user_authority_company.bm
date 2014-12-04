@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-9-4 下午2:21:14  
+    $Revision: 1.0  
+    $Purpose: 子账户管理，权限管理页面，公司查询BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+	            SELECT *
+				  FROM (SELECT 'COMPANY_' || fcv.company_id AS data_id,
+				               fcv.company_code AS data_code,
+				               '[公司]' || fcv.company_full_name AS data_name,
+				               NULL AS parent_data_id,
+				               NULL AS expand,
+				               NULL AS sequence,
+				               'COMPANY' AS authority_type,
+				               fcv.company_id AS authority_id,
+				               decode((SELECT fua.authority_id
+				                        FROM fnd_user_authority fua
+				                       WHERE fua.user_id = ${@user_id}
+				                             AND fua.authority_type = 'COMPANY'
+				                             AND fua.assign_id = fcv.company_id),
+				                      NULL,
+				                      'N',
+				                      'Y') AS checked
+				          FROM fnd_companies_vl fcv
+				         WHERE fcv.enabled_flag = 'Y'
+				               AND (fcv.end_date_active IS NULL OR
+				               trunc(SYSDATE) BETWEEN trunc(fcv.start_date_active) AND trunc(fcv.end_date_active))
+				               AND fcv.business_group = ${/session/@business_group}
+				        UNION ALL
+				        SELECT 'BU_' || buv.business_unit_id AS data_id,
+				               buv.business_unit_code AS data_code,
+				               '[业务单元]' || buv.business_unit_name AS data_name,
+				               'COMPANY_' || buv.company_id AS parent_data_id,
+				               NULL AS expand,
+				               NULL AS sequence,
+				               'BUSINESS_UNIT' AS authority_type,
+				               buv.business_unit_id AS authority_id,
+				               decode((SELECT fua.authority_id
+				                        FROM fnd_user_authority fua
+				                       WHERE fua.user_id = ${@user_id}
+				                             AND fua.authority_type = 'BUSINESS_UNIT'
+				                             AND fua.assign_id = buv.business_unit_id),
+				                      NULL,
+				                      'N',
+				                      'Y') AS checked
+				          FROM fnd_business_units_vl buv,
+				               fnd_companies         fcv
+				         WHERE buv.company_id = fcv.company_id
+				               AND buv.enabled_flag = 'Y'
+				               AND fcv.enabled_flag = 'Y'
+				               AND (fcv.end_date_active IS NULL OR
+				               trunc(SYSDATE) BETWEEN trunc(fcv.start_date_active) AND trunc(fcv.end_date_active))
+				               AND fcv.business_group = ${/session/@business_group}
+				        UNION ALL
+				        SELECT 'INV_ORG_' || iov.inv_organization_id AS data_id,
+				               iov.inv_organization_code AS data_code,
+				               '[库存组织]' || iov.description AS data_name,
+				               'BU_' || iov.business_unit_id AS parent_data_id,
+				               NULL AS expand,
+				               NULL AS sequence,
+				               'INV_ORGANIZATION' AS authority_type,
+				               iov.inv_organization_id AS authority_id,
+				               decode((SELECT fua.authority_id
+				                        FROM fnd_user_authority fua
+				                       WHERE fua.user_id = ${@user_id}
+				                             AND fua.authority_type = 'INV_ORGANIZATION'
+				                             AND fua.assign_id = iov.inv_organization_id),
+				                      NULL,
+				                      'N',
+				                      'Y') AS checked
+				          FROM inv_organizations_vl iov,
+				               fnd_business_units   buv,
+				               fnd_companies        fcv
+				         WHERE iov.business_unit_id = buv.business_unit_id
+				               AND buv.company_id = fcv.company_id
+				               AND buv.enabled_flag = 'Y'
+				               AND fcv.enabled_flag = 'Y'
+				               AND (fcv.end_date_active IS NULL OR
+				               trunc(SYSDATE) BETWEEN trunc(fcv.start_date_active) AND trunc(fcv.end_date_active))
+				               AND fcv.business_group = ${/session/@business_group}) v
+			]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

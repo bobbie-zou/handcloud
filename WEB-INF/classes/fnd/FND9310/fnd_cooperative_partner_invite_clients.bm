@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-4 下午4:22:48  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT f.company_id coop_company_id,
+       f.business_group coop_business_group,
+       f.company_code coop_company_code,
+       f.company_short_name,
+       f.company_full_name coop_company_name,
+       f.business_license_number,
+       f.national_organization_code,
+       f.registered_country_code,
+       (SELECT fc.description FROM fnd_country_code_vl fc WHERE fc.country_code = f.registered_country_code) registered_country_name,
+       f.registered_province_id,
+       (SELECT r.description FROM fnd_region_code_vl r WHERE r.region_id = f.registered_province_id) registered_province_desc,
+       f.registered_city_id,
+       (SELECT r.description FROM fnd_region_code_vl r WHERE r.region_id = f.registered_city_id) registered_city_desc,
+       fnd_cooperative_partner_pkg.check_already_coop_pratner(p_owner_company_id       => ${@owner_company_id},
+                                                              p_coop_company_id => f.company_id,
+                                                              p_vendor_flag            => 'N',
+                                                              p_client_flag            => 'Y',
+                                                              p_service_flag           => 'N',
+                                                              p_accept_service_flag    => 'Y') already_flag
+  FROM fnd_companies_vl f
+ WHERE fnd_cooperative_partner_pkg.check_invite_client(p_owner_company_id => ${@owner_company_id},
+                                                       p_coop_company_id  => f.company_id) = 'Y'
+       AND f.company_id <> ${@owner_company_id}
+) #WHERE_CLAUSE# #ORDER_BY_CLAUSE#]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+               BEGIN
+  fnd_cooperative_partner_pkg.create_coop_pratner_req(x_requisition_id         => ${@requisition_id},
+                                                      p_owner_business_group   => ${/session/@business_group},
+                                                      p_owner_company_id       => ${@owner_company_id},
+                                                      p_coop_company_id        => ${@coop_company_id},
+                                                      p_vendor_flag            => ${@vendor_flag},
+                                                      p_client_flag            => ${@client_flag},
+                                                      p_service_flag           => ${@service_flag},
+                                                      p_accept_service_flag    => ${@accept_service_flag},
+                                                      p_directory_id           => ${@directory_id},
+                                                      p_comments               => ${@comments},
+                                                      p_user_id                => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="coop_company_code" queryExpression="coop_company_code like &apos;%&apos;||trim(${@coop_company_code})||&apos;%&apos;"/>
+        <bm:query-field name="coop_company_name" queryExpression="coop_company_name like &apos;%&apos;||trim(${@coop_company_name})||&apos;%&apos;"/>
+        <bm:query-field name="company_short_name" queryExpression="company_short_name like &apos;%&apos;||trim(${@company_short_name})||&apos;%&apos;"/>
+        <bm:query-field name="business_license_number" queryExpression="business_license_number like &apos;%&apos;||trim(${@business_license_number})||&apos;%&apos;"/>
+        <bm:query-field name="national_organization_code" queryExpression="national_organization_code like &apos;%&apos;||trim(${@national_organization_code})||&apos;%&apos;"/>
+        <bm:query-field name="registered_country_code" queryExpression="registered_country_code = ${@registered_country_code}"/>
+        <bm:query-field name="registered_province_id" queryOperator="registered_province_id = ${@registered_province_id}"/>
+        <bm:query-field name="registered_city_id" queryOperator="registered_city_id = ${@registered_city_id}"/>
+    </bm:query-fields>
+</bm:model>

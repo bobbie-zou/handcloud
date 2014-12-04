@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-27 上午9:38:00  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select rownum*10 line_number,
+	   rfx_line_item_id,
+       rfx_header_id,
+       company_id,
+       (select fc.company_short_name
+          from fnd_companies_vl fc
+         where fc.COMPANY_ID = li.company_id) company_desc,
+       inv_organization_id,
+       (select io.description
+          from inv_organizations_vl io
+         where io.inv_organization_id = li.inv_organization_id) inv_organization_desc,
+       li.pur_ln_type,
+	   (SELECT line_type
+          FROM Po_Line_Types_v_mv m
+         where m.line_type_id = li.pur_ln_type) pur_ln_type_desc,
+       item_category_id,
+       (select ic.item_category_desc
+          from inv_item_categories_v ic
+         where ic.item_category_id = li.item_category_id) item_category_desc,
+       item_id,
+       item_code,
+       item_desc,
+       item_note,
+       item_parameter_config,
+       uom_code,
+       (SELECT
+                        fv.uom_desc
+                    FROM
+                        fnd_uom_codes_vl fv
+                    WHERE
+                        fv.uom_code = li.uom_code
+                    ) uom_desc,
+       quantity,
+       to_char(need_by_date, 'yyyy-mm-dd') need_by_date,
+       suggested_operation,
+       cancel_flag,
+       data_source,
+       data_source_id,
+       data_source_code,
+       data_source_name,
+       comments,
+       pur_req_num,
+       feedback_range,
+       flex_appl_relevance_id,
+       #flex_query_sql#
+  from pur_rfx_ln_items li
+ where li.rfx_header_id = ${@rfx_header_id}
+   and li.rfx_finished_flag = 'N'
+   and li.cancel_flag = 'N'
+]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter name="rfx_header_id" inputPath="@rfx_header_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="rfx_line_item_id" dataType="java.lang.Long" input="false" output="true" outputPath="@rfx_line_item_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              declare 
+            	v_rfx_line_item_id number;
+              BEGIN
+                pur_rfx_pkg.create_pur_rfx_ln_items
+                (
+                  x_rfx_line_item_id=>v_rfx_line_item_id,
+                  p_rfx_header_id=>${/parameter/@rfx_header_id},
+                  p_company_id=>${@company_id},
+                  p_inv_organization_id=>${@inv_organization_id},
+                  p_pur_ln_type=>${@pur_ln_type},
+                  p_item_category_id=>${@item_category_id},
+                  p_item_id=>${@item_id},
+                  p_item_code=>${@item_code},
+                  p_item_desc=>${@item_desc},
+                  p_item_note=>${@item_note},
+                  p_item_parameter_config=>${@item_parameter_config},
+                  p_uom_code=>${@uom_code},
+                  p_quantity=>${@quantity},
+                  p_need_by_date=>to_date(${@need_by_date},'yyyy-mm-dd hh24:mi:ss'),
+                  p_feedback_range=>${@feedback_range},
+                  p_pur_req_num=>${@pur_req_num},
+                  p_data_source=>${@data_source},
+                  p_data_source_id=>${@data_source_id},
+                  p_data_source_code=>${@data_source_code},
+                  p_data_source_name=>${@data_source_name},
+                  p_comments=>${@comments},
+                  p_proposed_vendor_id=>${@proposed_vendor_id},
+                  p_proposed_vendor_code=>${@proposed_vendor_code},
+                  p_proposed_vendor_desc=>${@proposed_vendor_desc},
+                  p_proposed_price=>${@proposed_price},
+                  p_proposed_net_price=>${@proposed_net_price},
+                  p_proposed_net_amount=>${@proposed_net_amount},
+                  p_proposed_tax_amount=>${@proposed_tax_amount},
+                  p_proposed_total_amount=>${@proposed_total_amount},
+                  p_proposed_functional_amount=>${@proposed_functional_amount},
+                  p_proposed_entered_amount=>${@proposed_entered_amount},
+                  p_auto_create_distribute =>${@auto_create_distribute},
+                  p_user_id=>${/session/@user_id}
+                );
+                ${@rfx_line_item_id} := v_rfx_line_item_id;
+                #flex_save_sql#
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              declare
+            	v_rfx_line_item_id number;
+              BEGIN
+                pur_rfx_pkg.modify_pur_rfx_ln_items
+                (
+                  p_rfx_line_item_id=>${@rfx_line_item_id},
+                  p_rfx_header_id=>${/parameter/@rfx_header_id},
+                  p_company_id=>${@company_id},
+                  p_inv_organization_id=>${@inv_organization_id},
+                  p_pur_ln_type=>${@pur_ln_type},
+                  p_item_category_id=>${@item_category_id},
+                  p_item_id=>${@item_id},
+                  p_item_code=>${@item_code},
+                  p_item_desc=>${@item_desc},
+                  p_item_note=>${@item_note},
+                  p_item_parameter_config=>${@item_parameter_config},
+                  p_uom_code=>${@uom_code},
+                  p_quantity=>${@quantity},
+                  p_need_by_date=>to_date(${@need_by_date},'yyyy-mm-dd hh24:mi:ss'),
+                  p_feedback_range=>${@feedback_range},
+                  p_pur_req_num=>${@pur_req_num},
+                  p_comments=>${@comments},
+                  p_auto_create_distribute =>${@auto_create_distribute},
+                  p_user_id=>${/session/@user_id}
+                );
+                
+                v_rfx_line_item_id := ${@rfx_line_item_id};
+                #flex_save_sql#
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                pur_rfx_pkg.delete_pur_rfx_ln_items
+                (
+                  p_rfx_line_item_id=>${@rfx_line_item_id},
+                  p_user_id=>${/session/@user_id}
+                ); 
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <flex-segmentBm headerIdPath="/parameter/@rfx_header_id" headerTableName="PUR_RFX_HEADERS" lineTableName="PUR_RFX_LN_ITEMS" templateFieldName="template_id" type="grid_expanded_bm_query"/>
+    <flex-segmentBm applPkVarName="v_rfx_line_item_id" headerIdPath="/parameter/@rfx_header_id" headerTableName="PUR_RFX_HEADERS" lineTableName="PUR_RFX_LN_ITEMS" templateFieldName="template_id" type="grid_expanded_bm_insert"/>
+    <flex-segmentBm applPkVarName="v_rfx_line_item_id" headerIdPath="/parameter/@rfx_header_id" headerTableName="PUR_RFX_HEADERS" lineTableName="PUR_RFX_LN_ITEMS" templateFieldName="template_id" type="grid_expanded_bm_update"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_grid_expanded_bm.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

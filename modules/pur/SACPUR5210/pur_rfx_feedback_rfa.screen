@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-6-29 下午3:55:28  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <s:server-script import="fnd_flex_dynamic_tools.js"/>
+        <s:server-script import="fnd_flex_dynamic_page_main.js"/>
+        <s:server-script import="fnd_flex_dynamic_grid_expanded.js"/>
+    </a:init-procedure>
+    <a:view>
+        <div/>
+        <a:link id="sacpur52105_rfx_feedback_rfa_reload_link" url="${/request/@context_path}/modules/pur/SACPUR5210/pur_rfx_feedback_rfa.screen"/>
+        <a:link id="sacpur52105_rfx_feedback_save_link" url="${/request/@context_path}/modules/pur/SACPUR5210/pur_rfx_feedback_save.svc"/>
+        <a:link id="sacpur52105_rfx_feedback_submit_link" url="${/request/@context_path}/modules/pur/SACPUR5210/pur_rfx_feedback_submit.svc"/>
+        <script><![CDATA[
+            var sacpur52105_hidden_display = '******';
+            
+            function sacpur52105RfxFeedbackRfqSave() {
+                var item_ds = $('sacpur52105_rfx_feedback_rfa_line_ds');
+                if (!item_ds.validate()) {
+                    return;
+                }
+            
+                var data = {};
+                data['items'] = item_ds.getJsonData();
+                Aurora.Masker.mask($('sacpur52105_rfx_feedback_rfa_window').wrap, '${l:LOADING}');
+                Aurora.request({
+                    url: $('sacpur52105_rfx_feedback_save_link').getUrl(),
+                    para: data,
+                    success: function(result) {
+                        Aurora.Masker.unmask($('sacpur52105_rfx_feedback_rfa_window').wrap);
+                    },
+                    failure: function() {
+                        Aurora.Masker.unmask($('sacpur52105_rfx_feedback_rfa_window').wrap);
+                        return;
+                    },
+                    error: function() {
+                        Aurora.Masker.unmask($('sacpur52105_rfx_feedback_rfa_window').wrap);
+                        return;
+                    }
+                });
+            }
+            
+            function sacpur52105RfxFeedbackRfqSubmit() {
+                var header_ds = $('sacpur52105_rfx_feedback_rfa_header_ds');
+                var item_ds = $('sacpur52105_rfx_feedback_rfa_line_ds');
+                if (!item_ds.validate()) {
+                    return;
+                }
+                var header_record = header_ds.getCurrentRecord();
+                var feedback_header_id = header_record.get('feedback_header_id');
+                var status = header_record.get('status');
+                var data = {};
+                data.feedback_header_id = feedback_header_id;
+                data.status = status;
+                data['items'] = item_ds.getJsonData();
+                Aurora.Masker.mask($('sacpur52105_rfx_feedback_rfa_window').wrap, '${l:LOADING}');
+                Aurora.request({
+                    url: $('sacpur52105_rfx_feedback_submit_link').getUrl(),
+                    para: data,
+                    success: function(result) {
+                        Aurora.Masker.unmask($('sacpur52105_rfx_feedback_rfa_window').wrap);
+                        sacpur52105_window_reload();
+                    },
+                    failure: function() {
+                        Aurora.Masker.unmask($('sacpur52105_rfx_feedback_rfa_window').wrap);
+                        return;
+                    },
+                    error: function() {
+                        Aurora.Masker.unmask($('sacpur52105_rfx_feedback_rfa_window').wrap);
+                        return;
+                    }
+                });
+            }
+            
+            function sacpur52105_window_reload() {
+                var url = $('sacpur52105_rfx_feedback_rfa_reload_link').getUrl();
+            
+                var feedback_header_id = ${/parameter/@feedback_header_id};
+                url += '?feedback_header_id=' + feedback_header_id;
+                $('sacpur52105_rfx_feedback_rfa_window').load(url);
+            }
+            
+            function sacpur52105RfxFeedbackRfqReturn() {
+                $('sacpur52105_rfx_feedback_rfa_window').close();
+            }
+            
+            function sacpur52105_rfx_feedback_rfa_line_ds_update(ds, record, name, value, oldvalue) {
+                if (name == 'current_fb_wholesale_price') {
+                    var records = ds.getAll();
+                    var head_ds = $('sacpur52105_rfx_feedback_rfa_header_ds');
+                    var head_rec = head_ds.getCurrentRecord();
+                    var total_amount = 0;
+                    for (var i = 0;i < records.length;i++) {
+                        var record1 = records[i];
+                        var quantity = record1.get('quantity');
+                        if (quantity == null) {
+                            quantity = 0;
+                        }
+                        var current_fb_wholesale_price = record1.get('current_fb_wholesale_price');
+                        if (current_fb_wholesale_price == null) {
+                            current_fb_wholesale_price = 0;
+                        }
+                        total_amount = total_amount + quantity * current_fb_wholesale_price;
+                    }
+                    head_rec.set('total_amount', total_amount);
+                }
+                if (name == "abandoned_flag") {
+                    if (value == 'Y') {
+                        Aurora.showConfirm('${l:PROMPT}', '${l:SACPUR5210.ABANDON_QUOTATION_CONFIRM}', function() {
+                            record.set('current_fb_wholesale_price', '');
+                            record.set('promised_date', '');
+                            record.set('feedback_expiry_date_from', '');
+                            record.set('feedback_expiry_date_to', '');
+            
+                            record.getMeta().getField('current_fb_wholesale_price').setReadOnly(true);
+            
+                            record.getMeta().getField('promised_date').setRequired(false);
+                            record.getMeta().getField('promised_date').setReadOnly(true);
+            
+                            record.getMeta().getField('feedback_expiry_date_from').setRequired(false);
+                            record.getMeta().getField('feedback_expiry_date_from').setReadOnly(true);
+            
+                            record.getMeta().getField('feedback_expiry_date_to').setRequired(false);
+                            record.getMeta().getField('feedback_expiry_date_to').setReadOnly(true);
+                        }, function() {
+                            record.set('abandoned_flag', 'N');
+                        });
+                    } else {
+                        record.getMeta().getField('current_fb_wholesale_price').setReadOnly(false);
+            
+                        record.getMeta().getField('promised_date').setRequired(false);
+                        record.getMeta().getField('promised_date').setReadOnly(false);
+            
+                        record.getMeta().getField('feedback_expiry_date_from').setRequired(true);
+                        record.getMeta().getField('feedback_expiry_date_from').setReadOnly(false);
+            
+                        record.getMeta().getField('feedback_expiry_date_to').setRequired(true);
+                        record.getMeta().getField('feedback_expiry_date_to').setReadOnly(false);
+                    }
+                }
+            }
+            
+            function sacpur52105_rfx_feedback_rfa_line_ds_load(ds) {
+                var records = ds.getAll();
+                var head_ds = $('sacpur52105_rfx_feedback_rfa_header_ds');
+                var head_rec = head_ds.getCurrentRecord();
+                var total_amount = 0;
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    var quantity = record.get('quantity');
+                    if (quantity == null) {
+                        quantity = 0;
+                    }
+                    var current_fb_wholesale_price = record.get('current_fb_wholesale_price');
+                    if (current_fb_wholesale_price == null) {
+                        current_fb_wholesale_price = 0;
+                    }
+                    total_amount = total_amount + quantity * current_fb_wholesale_price;
+                    var abandoned_flag = record.get('abandoned_flag');
+                    if (abandoned_flag == 'Y') {
+                        record.getMeta().getField('current_fb_wholesale_price').setRequired(false);
+                        record.getMeta().getField('current_fb_wholesale_price').setReadOnly(true);
+            
+                        record.getMeta().getField('promised_date').setRequired(false);
+                        record.getMeta().getField('promised_date').setReadOnly(true);
+            
+                        record.getMeta().getField('feedback_expiry_date_from').setRequired(false);
+                        record.getMeta().getField('feedback_expiry_date_from').setReadOnly(true);
+            
+                        record.getMeta().getField('feedback_expiry_date_to').setRequired(false);
+                        record.getMeta().getField('feedback_expiry_date_to').setReadOnly(true);
+            
+                        record.getMeta().getField('abandoned_flag').setReadOnly(true);
+                    }
+                }
+                head_rec.set('total_amount', total_amount);
+            }
+            
+            function sacpur52105_header_status_check() {
+                var record = $('sacpur52105_rfx_feedback_rfa_header_ds').getAt(0);
+                if (Aurora.isEmpty(record)) {
+                    return false;
+                }
+                var status = record.get('status');
+                if (status == 'SUBMITTED') {
+                    return false;
+                }
+                return true;
+            }
+            
+            // function sacpur52105_abandoned_flag_ef(record, name){
+            // var abandoned_flag = record.get("abandoned_flag");
+            // if(abandoned_flag=="Y"||!sacpur52105_header_status_check()){
+            // return;
+            // }
+            // return "sacpur52105_abandoned_flag_chb";
+            // }
+            
+            function bargain_price_check(record) {
+                var bargain_price = record.get("valid_bargain_price");
+                if (Aurora.isEmpty(bargain_price)) {
+                    return false;
+                }
+                return true;
+            
+            }
+            
+            
+            function sacpur52105_date_dp_ef(record, name) {
+                var abandoned_flag = record.get("abandoned_flag");
+                if (abandoned_flag == "Y" || !sacpur52105_header_status_check() || !bargain_price_check(record)) {
+                    return;
+                }
+                return "sacpur52105_date_dp";
+            }
+            
+            function sacpur52105_current_fb_wholesale_price_ef(record, name) {
+                var abandoned_flag = record.get("abandoned_flag");
+                if (abandoned_flag == "Y" || !sacpur52105_header_status_check() || !bargain_price_check(record)) {
+                    return;
+                }
+                return "sacpur52105_current_fb_wholesale_price_nf";
+            }
+            
+            function sacpur52105_current_fb_reason_ef(record, name) {
+                var abandoned_flag = record.get("abandoned_flag");
+                if (abandoned_flag == "Y" || !sacpur52105_header_status_check() || !bargain_price_check(record)) {
+                    return;
+                }
+                return "sacpur52105_current_fb_reason_tf";
+            }
+            
+            function sacpur52105_rfx_feedback_rfa_rank_grid_refresh() {
+                var record = $('sacpur52105_rfx_feedback_rfa_line_ds').getCurrentRecord();
+                var ds = $('sacpur52105_rfx_feedback_rfa_rank_ds');
+                ds.setQueryParameter('rfx_header_id', record.get('rfx_header_id'));
+                ds.setQueryParameter('rfx_round', record.get('rfx_round'));
+                ds.setQueryParameter('rfx_version', record.get('rfx_version'));
+                ds.setQueryParameter('item_id', record.get('item_id'));
+                ds.query();
+            }
+            
+            function sacpur52105_rfx_feedback_rfa_record_grid_refresh() {
+                var record = $('sacpur52105_rfx_feedback_rfa_line_ds').getCurrentRecord();
+                var ds = $('sacpur52105_rfx_feedback_rfa_record_ds');
+                ds.setQueryParameter('rfx_header_id', record.get('rfx_header_id'));
+                ds.setQueryParameter('rfx_round', record.get('rfx_round'));
+                ds.setQueryParameter('rfx_version', record.get('rfx_version'));
+                ds.setQueryParameter('item_id', record.get('item_id'));
+                ds.query();
+            }
+            
+            function sacpur52105_rfx_feedback_rfa_line_render(value, record, name) {
+                var open_rule = record.get('open_rule'); //公开规则
+                var auction_rule = record.get('auction_rule'); //竞价规则
+                var ranking_rule = record.get('ranking_rule'); //排名规则
+                var auction_ranking = record.get('auction_ranking'); //竞价排名
+            
+                if (name == 'current_rank') {
+                    if (auction_ranking == 'HIDDEN_RANKING') { //隐藏等级
+                        return sacpur52105_hidden_display;
+                    } else if (auction_ranking == 'DISPLAY_RANKING') { //显示等级
+                        return value;
+                    } else if (auction_ranking == 'DISPLAY_NUM_AND_RANKING') { //显示参与者数目和等级
+                        return value;
+                    }
+                }
+            
+                if (name == 'feedback_by_count') {
+                    if (auction_ranking == 'HIDDEN_RANKING') { //隐藏等级
+                        return sacpur52105_hidden_display;
+                    } else if (auction_ranking == 'DISPLAY_RANKING') { //显示等级
+                        return sacpur52105_hidden_display;
+                    } else if (auction_ranking == 'DISPLAY_NUM_AND_RANKING') { //显示参与者数目和等级
+                        return value;
+                    }
+                }
+            }
+            
+            function sacpur52105_rfx_feedback_rfa_record_render(value, record, name) {
+                var open_rule = record.get('open_rule'); //公开规则
+                var auction_rule = record.get('auction_rule'); //竞价规则
+                var ranking_rule = record.get('ranking_rule'); //排名规则
+                var auction_ranking = record.get('auction_ranking'); //竞价排名
+            
+                if (open_rule == 'HIDDEN_IDENTITY_HIDDEN_QUOTN') { //隐藏身份隐藏报价
+                    if (name == 'vendor_desc' || name == 'feedback_wholesale_price') {
+                        return sacpur52105_hidden_display;
+                    }
+                } else if (open_rule == 'HIDDEN_IDENTITY_OPEN_QUOTN') { //隐藏身份公开报价
+                    if (name == 'vendor_desc') {
+                        return sacpur52105_hidden_display;
+                    } else if (name == 'feedback_wholesale_price') {
+                        return formatNumber2(value, 8);
+                    }
+                } else if (open_rule == 'OPEN_IDENTITY_HIDDEN_QUOTN') { //公开身份隐藏报价
+                    if (name == 'vendor_desc') {
+                        return value;
+                    } else if (name == 'feedback_wholesale_price') {
+                        return sacpur52105_hidden_display;
+                    }
+                } else if (open_rule == 'OPEN_IDENTITY_OPEN_QUOTN') { //公开身份公开报价
+                    if (name == 'vendor_desc') {
+                        return value;
+                    } else if (name == 'feedback_wholesale_price') {
+                        return formatNumber2(value, 8);
+                    }
+                }
+            }
+            
+            function sacpur52105_rfx_feedback_rfa_rank_render(value, record, name) {
+                var open_rule = record.get('open_rule'); //公开规则
+                var auction_rule = record.get('auction_rule'); //竞价规则
+                var ranking_rule = record.get('ranking_rule'); //排名规则
+                var auction_ranking = record.get('auction_ranking'); //竞价排名
+            
+                if (name == 'vendor_desc') {
+                    if (ranking_rule == 'ANONYMOUS_AUCTION') {
+                        return sacpur52105_hidden_display;
+                    } else if (ranking_rule == 'PREPARE_AUCTION') {
+                        return value;
+                    }
+                }
+            }
+            
+            function formatNumber2(value, decimalprecision) {
+                if (Ext.isEmpty(value)) return '';
+            
+                value = String(value).replace(/,/g, '');
+                if (isNaN(value)) return '';
+                if (decimalprecision || decimalprecision === 0)
+            
+            
+                var point_value = value.split('.');
+                var in_length = (point_value.length == 2) ? '.' + point_value[1] : '';
+            
+            
+                if (in_length.length - 1 < decimalprecision) {
+            
+                    decimalprecision = in_length.length - 1
+                };
+                if (in_length.length == 0) {
+                    decimalprecision = 0;
+                }
+            
+                value = Number(value).toFixed(decimalprecision);
+            
+                var ps = value.split('.');
+                var sub = (ps.length == 2) ? '.' + ps[1] : '';
+            
+            
+                var whole = ps[0];
+                var r = /(\d+)(\d{3})/;
+                while (r.test(whole)) {
+                    whole = whole.replace(r, '$1' + ',' + '$2');
+                }
+            
+                Math.round()
+                v = whole + sub;
+                return v;
+            }
+            
+            function pur52105_formatNumber_render(value, record, name) {
+                return formatNumber2(value, 8);
+            }
+            
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sacpur52105_rfx_feedback_rfa_header_ds" autoQuery="true" model="pur.SACPUR5210.pur_rfx_feedback_rfq_header" queryUrl="${/request/@context_path}/autocrud/pur.SACPUR5210.pur_rfx_feedback_rfq_header/query?feedback_header_id=${/parameter/@feedback_header_id}"/>
+            <a:dataSet id="sacpur52105_rfx_feedback_rfa_line_ds" autoQuery="true" fetchAll="true" model="pur.SACPUR5210.pur_rfx_feedback_rfa_line" queryUrl="${/request/@context_path}/autocrud/pur.SACPUR5210.pur_rfx_feedback_rfa_line/query?feedback_header_id=${/parameter/@feedback_header_id}">
+                <a:fields>
+                    <!-- <a:field name="abandoned_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/> -->
+                    <a:field name="promised_date"/>
+                    <a:field name="feedback_expiry_date_from"/>
+                    <a:field name="feedback_expiry_date_to"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="sacpur52105_rfx_feedback_rfa_line_ds_update"/>
+                    <a:event name="load" handler="sacpur52105_rfx_feedback_rfa_line_ds_load"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sacpur52105_rfx_feedback_rfa_record_ds" bindName="feedback_rfa_records" bindTarget="sacpur52105_rfx_feedback_rfa_line_ds" fetchAll="true" model="pur.SACPUR5210.pur_rfx_feedback_rfa_record"/>
+            <a:dataSet id="sacpur52105_rfx_feedback_rfa_rank_ds" bindName="feedback_rfa_ranks" bindTarget="sacpur52105_rfx_feedback_rfa_line_ds" fetchAll="true" model="pur.SACPUR5210.pur_rfx_feedback_rfa_rank_query"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="sacpur52105RfxFeedbackRfqSave" text="HAP_SAVE" width="100"/>
+                <a:toolbarButton click="sacpur52105RfxFeedbackRfqSubmit" text="HAP_SUBMIT" width="100"/>
+                <a:toolbarButton click="sacpur52105RfxFeedbackRfqReturn" text="HAP_BACK" width="100"/>
+            </a:screenTopToolbar>
+            <a:fieldSet title="MODULES/PUR/SACPUR5210/PUR_RFX_FEEDBACK_RFQ.SCREEN.TITLE">
+                <a:hBox>
+                    <a:vBox labelWidth="100">
+                        <a:label name="rfx_number" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_HEADERS.RFX_NUMBER"/>
+                        <a:label name="feedback_start_time" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_HEADERS.FEEDBACK_START_TIME" renderer="Aurora.formatDateTime"/>
+                        <a:label name="currency_desc" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_HEADERS.CURRENCY_CODE"/>
+                    </a:vBox>
+                    <a:vBox labelWidth="100">
+                        <a:label name="status_desc" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_FEEDBACK_HEADERS.STATUS"/>
+                        <a:label name="feedback_end_time" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_HEADERS.FEEDBACK_END_TIME" renderer="Aurora.formatDateTime"/>
+                        <a:label name="exchange_rate" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_FEEDBACK_HEADERS.EXCHANGE_RATE"/>
+                    </a:vBox>
+                    <a:vBox labelWidth="100">
+                        <a:label name="rfx_round" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_FEEDBACK_HEADERS.RFX_ROUND"/>
+                        <a:label name="contact_person" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_FEEDBACK_HEADERS.CONTACT_PERSON"/>
+                        <a:label name="tax_included_flag" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_FEEDBACK_HEADERS.TAX_INCLUDED_FLAG"/>
+                    </a:vBox>
+                    <a:vBox labelWidth="100">
+                        <a:label name="company_desc" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_FEEDBACK_HEADERS.COMPANY_ID"/>
+                        <a:label name="contact_mobile" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_FEEDBACK_HEADERS.CONTACT_MOBILE"/>
+                        <a:label name="tax_type_desc" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_FEEDBACK_HEADERS.TAX_TYPE_RATE"/>
+                    </a:vBox>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:label name="total_amount" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" prompt="PUR_RFX_FEEDBACK_HEADERS.TOTAL_AMOUNT"/>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:textArea name="comments" bindTarget="sacpur52105_rfx_feedback_rfa_header_ds" height="50" prompt="PUR_RFX_FEEDBACK_HEADERS.COMMENTS" readOnly="true" width="800"/>
+                </a:hBox>
+            </a:fieldSet>
+            <a:grid id="sacpur52105_rfx_feedback_rfa_line_grid" bindTarget="sacpur52105_rfx_feedback_rfa_line_ds" height="300" marginWidth="60" showRowNumber="true">
+                <a:columns>
+                    <a:column name="item_code" align="left" lock="true" prompt="PUR_RFX_FEEDBACK_LINES.ITEM_CODE" width="70"/>
+                    <a:column name="item_desc" align="left" lock="true" prompt="PUR_RFX_FEEDBACK_LINES.ITEM_DESC" width="100"/>
+                    <a:column name="feedback_range" align="left" prompt="PUR_RFX_FEEDBACK_LINES.FEEDBACK_RANGE" width="40"/>
+                    <a:column name="need_by_date" align="center" prompt="PUR_RFX_FEEDBACK_LINES.NEED_BY_DATE" renderer="Aurora.formatDate" width="60"/>
+                    <a:column name="uom_desc" align="left" prompt="PUR_RFX_FEEDBACK_LINES.UOM_CODE" width="30"/>
+                    <a:column name="quantity" align="right" prompt="PUR_RFX_FEEDBACK_LINES.QUANTITY" width="80"/>
+                    <a:column name="current_fb_retail_price" align="right" editor="sacpur52105_current_fb_wholesale_price_nf" prompt="PUR_RFX_FEEDBACK_LINES.CURRENT_BARGAIN_RETAIL_PRICE" renderer="pur52105_formatNumber_render" width="50"/>
+                    <a:column name="current_fb_wholesale_price" align="right" editor="sacpur52105_current_fb_wholesale_price_nf" prompt="PUR_RFX_FEEDBACK_LINES.CURRENT_BARGAIN_WHLSALE_PRICE" renderer="pur52105_formatNumber_render" width="50"/>
+                    <a:column name="current_fb_reason" align="left" editor="sacpur52105_current_fb_reason_tf" prompt="PUR_RFX_FEEDBACK_LINES.CURRENT_FB_REASON" width="80"/>
+                    <a:column name="promised_date" align="center" editor="sacpur52105_date_dp" prompt="PUR_RFX_FEEDBACK_LINES.PROMISED_DATE" renderer="Aurora.formatDate" width="60"/>
+                    <a:column name="feedback_expiry_date_from" align="center" editor="sacpur52105_date_dp" prompt="PUR_RFX_FEEDBACK_LINES.FEEDBACK_EXPIRY_DATE_FROM" renderer="Aurora.formatDate" width="60"/>
+                    <a:column name="feedback_expiry_date_to" align="center" editor="sacpur52105_date_dp" prompt="PUR_RFX_FEEDBACK_LINES.FEEDBACK_EXPIRY_DATE_TO" renderer="Aurora.formatDate" width="60"/>
+                    <a:column name="valid_fb_wholesale_price" align="right" prompt="PUR_RFX_FEEDBACK_LINES.VALID_FB_WHOLESALE_PRICE" renderer="pur52105_formatNumber_render" width="60"/>
+                    <a:column name="feedback_by_count" align="left" prompt="PUR_RFX_FEEDBACK_HEADERS.FEEDBACK_BY_COUNT" renderer="sacpur52105_rfx_feedback_rfa_line_render" width="60"/>
+                    <a:column name="current_rank" align="left" prompt="PUR_RFX_FEEDBACK_HEADERS.CURRENT_RANK" renderer="sacpur52105_rfx_feedback_rfa_line_render" width="60"/>
+                </a:columns>
+                <a:editors>
+                    <a:numberField id="sacpur52105_current_fb_wholesale_price_nf" allowNegative="false" decimalPrecision="8"/>
+                    <a:datePicker id="sacpur52105_date_dp"/>
+                    <a:textField id="sacpur52105_current_fb_reason_tf"/>
+                </a:editors>
+            </a:grid>
+            <a:hBox width="1000">
+                <a:vBox width="500">
+                    <a:grid id="sacpur52105_rfx_feedback_rfa_record_grid" bindTarget="sacpur52105_rfx_feedback_rfa_record_ds" height="300" width="500">
+                        <a:toolBar>
+                            <a:button click="sacpur52105_rfx_feedback_rfa_record_grid_refresh" icon="${/request/@context_path}/images/undo.gif" text="SACPUR5210.REFRESH_QUOTATION"/>
+                        </a:toolBar>
+                        <a:columns>
+                            <a:column name="feedback_count" align="left" prompt="PUR_RFX_FEEDBACK_RECORDS.FEEDBACK_COUNT" width="60"/>
+                            <a:column name="vendor_desc" align="left" prompt="PUR_RFX_FEEDBACK_RECORDS.FEEDBACK_BY" renderer="sacpur52105_rfx_feedback_rfa_record_render" width="200"/>
+                            <a:column name="feedback_wholesale_price" align="right" prompt="MODULES/PUR/SACPUR5210/PUR_RFX_FEEDBACK_RFQ.SCREEN.TITLE" renderer="sacpur52105_rfx_feedback_rfa_record_render" width="100"/>
+                            <a:column name="feedback_time" align="left" prompt="PUR_RFX_FEEDBACK_LINES.FEEDBACK_TIME" width="130"/>
+                        </a:columns>
+                    </a:grid>
+                </a:vBox>
+                <a:vBox width="500">
+                    <a:grid id="sacpur52105_rfx_feedback_rfa_rank_grid" bindTarget="sacpur52105_rfx_feedback_rfa_rank_ds" height="300" width="500">
+                        <a:toolBar>
+                            <a:button click="sacpur52105_rfx_feedback_rfa_rank_grid_refresh" icon="${/request/@context_path}/images/undo.gif" text="SACPUR5210.REFRESH_RANK"/>
+                        </a:toolBar>
+                        <a:columns>
+                            <a:column name="rk" align="left" prompt="SACPUR5210.RANK" width="100"/>
+                            <a:column name="valid_fb_wholesale_price" align="right" prompt="MODULES/PUR/SACPUR5210/PUR_RFX_FEEDBACK_RFQ.SCREEN.TITLE" width="100"/>
+                            <a:column name="vendor_desc" align="left" prompt="PUR_RFX_FEEDBACK_RECORDS.FEEDBACK_BY" renderer="sacpur52105_rfx_feedback_rfa_rank_render" width="200"/>
+                        </a:columns>
+                    </a:grid>
+                </a:vBox>
+            </a:hBox>
+        </a:defaultScreen>
+        <flex-segment dataset="sacpur52105_rfx_feedback_rfa_line_ds" grid="sacpur52105_rfx_feedback_rfa_line_grid" headerIdPath="/parameter/@feedback_header_id" headerTableName="PUR_RFX_FEEDBACK_HEADERS" pageType="edit" templateFieldName="template_id" type="grid_expanded"/>
+    </a:view>
+</a:screen>

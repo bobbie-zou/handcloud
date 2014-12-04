@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tangrunyu3837 $
+    $Date: 2013/06/27 07:23:32 $
+    $Revision: 1.4 $
+    $Purpose: "会计期间控制"页面文件
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" model="gld.FND5800.gld_period_status_fieldset" rootPath="FND5800_fieldset"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="FND5800_gld_period_pkg_init_period_link" model="db.gld_period_pkg.init_period" modelaction="update"/>
+        <a:link id="FND5800_gld_period_pkg_close_period_link" model="db.gld_period_pkg.close_period" modelaction="execute"/>
+        <a:link id="FND5800_gld_period_pkg_open_period_link" model="db.gld_period_pkg.open_period" modelaction="execute"/>
+        <script><![CDATA[
+            function FND5800_openOrClosePeriod_closedDs(value, record, name) {
+                var period_status_code = record.get('period_status_code');
+                var ds = "FND5800_closed_ds";
+                if (period_status_code == 'C' || period_status_code == null || period_status_code == undefined) {
+                    var url = $('FND5800_gld_period_pkg_open_period_link').getUrl();
+                    return '<a href="javascript:FND5800_execute(\'' + ds + '\',\'' + url + '\',' + record.id + ')">${l:OPEN_PERIOD}</a>';
+                } else if (period_status_code == 'O') {
+                    var url = $('FND5800_gld_period_pkg_close_period_link').getUrl();
+                    return '<a href="javascript:FND5800_execute(\'' + ds + '\',\'' + url + '\',' + record.id + ')">${l:CLOSE_PERIOD}</a>';
+                }
+            }
+            
+            function FND5800_openOrClosePeriod_openDs(value, record, name) {
+                var period_status_code = record.get('period_status_code');
+                var ds = "FND5800_open_ds";
+                if (period_status_code == 'C' || period_status_code == null || period_status_code == undefined) {
+                    var url = $('FND5800_gld_period_pkg_open_period_link').getUrl();
+                    return '<a href="javascript:FND5800_execute(\'' + ds + '\',\'' + url + '\',' + record.id + ')">${l:OPEN_PERIOD}</a>';
+                } else if (period_status_code == 'O') {
+            
+                    var url = $('FND5800_gld_period_pkg_close_period_link').getUrl();
+                    return '<a href="javascript:FND5800_execute(\'' + ds + '\',\'' + url + '\',' + record.id + ')">${l:CLOSE_PERIOD}</a>';
+                }
+            }
+            
+            function FND5800_statusRenderer(value, record, name) {
+                if (value == null || value == undefined) {
+                    return '${l:PROMPT.NOT_OPEN}';
+                } else if (value == 'O') {
+                    return '${l:PROMPT.OPENED}';
+                } else if (value == 'C') {
+                    return '${l:PROMPT.CLOSED}';
+                }
+            }
+            
+            function FND5800_execute(ds, url, id) {
+                var record = $(ds).findById(id);
+            
+                if ($('FND5800_open_ds').getAll().length == 0) {
+                    Aurora.request({
+                        url: $('FND5800_gld_period_pkg_init_period_link').getUrl(),
+                        para: record.data,
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:FND_DIMENSION_VALUES.OPR_SUC}', function(cmp) {
+                                document.location.reload();
+                                cmp.close();
+                            });
+                        },
+                        scope: this
+                    });
+                } else {
+                    Aurora.request({
+                        url: url,
+                        para: record.data,
+                        success: function() {
+                            var window = Aurora.showMessage('${l:PROMPT}', '${l:FND_DIMENSION_VALUES.OPR_SUC}', function() {
+                                FND5800_doQuery();
+                                window.close();
+                            });
+            
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function FND5800_doQuery() {
+                // $('FND5800_closed_ds').setQueryParameter('period_set_code', '${/model/FND5800_fieldset/record/@period_set_code}');
+                $('FND5800_closed_ds').query();
+                // $('FND5800_open_ds').setQueryParameter('period_set_code', '${/model/FND5800_fieldset/record/@period_set_code}');
+                $('FND5800_open_ds').query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="FND5800_company_list_ds">
+                <a:datas dataSource="/model/FND5800_fieldset"/>
+            </a:dataSet>
+            <a:dataSet id="FND5800_status_fieldset_ds">
+                <a:fields>
+                    <a:field name="period_set_code" prompt="GLD_PERIOD_SET.PERIOD_SET_CODE" readOnly="true"/>
+                    <a:field name="total_period_num" prompt="GLD_PERIOD_SET.TOTAL_PERIOD_NUM" readOnly="true"/>
+                    <a:field name="period_set_name" prompt="GLD_PERIOD_SET.PERIOD_SET_NAME" readOnly="true"/>
+                    <a:field name="company_id"/>
+                    <a:field name="company_short_name" autoComplete="true" autoCompleteField="company_short_name" lovHeight="550" lovService="gld.FND5800.gld_period_status_fieldset" lovWidth="600" prompt="FND_COMPANIES.COMPANY_SHORT_NAME" required="true">
+                        <a:mapping>
+                            <a:map from="company_short_name" to="company_short_name"/>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="period_set_code" to="period_set_code"/>
+                            <a:map from="period_set_name" to="period_set_name"/>
+                            <a:map from="total_period_num" to="total_period_num"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="FND5800_closed_ds" autoCount="true" autoPageSize="true" fetchAll="false" model="gld.FND5800.gld_period_status_u_query" queryDataSet="FND5800_status_fieldset_ds">
+                <a:fields>
+                    <a:field name="adjustment_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="FND5800_open_ds" autoCount="true" autoPageSize="true" fetchAll="false" model="gld.FND5800.gld_period_status_o_query" queryDataSet="FND5800_status_fieldset_ds">
+                <a:fields>
+                    <a:field name="adjustment_flag" checkedValue="Y" defaultValue="N" readOnly="true" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <!-- <a:screenTopToolbar>
+            <a:screenTitle/>
+        </a:screenTopToolbar> -->
+        <a:form bindTarget="FND5800_status_fieldset_ds" style="width:100%;border:none">
+            <a:hBox>
+                <a:lov name="company_short_name" bindTarget="FND5800_status_fieldset_ds"/>
+                <a:textField name="period_set_code" bindTarget="FND5800_status_fieldset_ds"/>
+                <a:textField name="period_set_name" bindTarget="FND5800_status_fieldset_ds"/>
+                <a:textField name="total_period_num" bindTarget="FND5800_status_fieldset_ds"/>
+                <a:button click="FND5800_doQuery" style="margin-left:100px;" text="查询"/>
+            </a:hBox>
+        </a:form>
+        <a:grid id="FND5800_closed_grid" bindTarget="FND5800_closed_ds" height="280" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="period_year" align="center" prompt="GLD_PERIODS.PERIOD_YEAR" sortable="true" width="70"/>
+                <a:column name="period_num" align="center" prompt="FND_DIMENSIONS.DIMENSION_SEQUENCE" sortable="true" width="55"/>
+                <a:column name="start_date_c" align="center" prompt="GLD_EXCHANGE_RATE.START_DATE" sortable="true" width="100"/>
+                <a:column name="end_date_c" align="center" prompt="GLD_EXCHANGE_RATE.END_DATE" sortable="true" width="100"/>
+                <a:column name="quarter_num" align="center" prompt="GLD_PERIOD_STATUS.QUARTER" sortable="true" width="55"/>
+                <a:column name="period_name" align="center" prompt="GLD_PERIODS.PERIOD_NAME" sortable="true" width="100"/>
+                <a:column name="period_status_code" align="center" prompt="GLD_PERIOD_STATUS.PERIOD_STATUS" renderer="FND5800_statusRenderer" width="100"/>
+                <a:column name="action" align="center" prompt="GLD_PERIOD_STATUS.ADJUST_PERIOD" renderer="FND5800_openOrClosePeriod_closedDs" sortable="true" width="100"/>
+                <a:column name="adjustment_flag" align="center" prompt="GLD_PERIOD_STATUS.ADJUST" width="100"/>
+            </a:columns>
+            <a:editors>
+                <a:checkBox id="FND5800_closed_grid_cb"/>
+            </a:editors>
+        </a:grid>
+        <a:grid id="FND5800_open_grid" bindTarget="FND5800_open_ds" height="270" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="period_year" align="center" prompt="GLD_PERIODS.PERIOD_YEAR" sortable="true" width="70"/>
+                <a:column name="period_num" align="center" prompt="FND_DIMENSIONS.DIMENSION_SEQUENCE" sortable="true" width="55"/>
+                <a:column name="start_date_c" align="center" prompt="GLD_EXCHANGE_RATE.START_DATE" sortable="true" width="100"/>
+                <a:column name="end_date_c" align="center" prompt="GLD_EXCHANGE_RATE.END_DATE" sortable="true" width="100"/>
+                <a:column name="quarter_num" align="center" prompt="GLD_PERIOD_STATUS.QUARTER" sortable="true" width="55"/>
+                <a:column name="period_name" align="center" prompt="GLD_PERIODS.PERIOD_NAME" sortable="true" width="100"/>
+                <a:column name="period_status_code" align="center" prompt="GLD_PERIOD_STATUS.PERIOD_STATUS" renderer="FND5800_statusRenderer" width="100"/>
+                <a:column name="action" align="center" prompt="GLD_PERIOD_STATUS.ADJUST_PERIOD" renderer="FND5800_openOrClosePeriod_openDs" sortable="true" width="100"/>
+                <a:column name="adjustment_flag" align="center" prompt="GLD_PERIOD_STATUS.ADJUST" width="100"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+</a:screen>

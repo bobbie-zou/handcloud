@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:ns2="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="op" extend="exp.exp_org_position" extendMode="reference">
+    <bm:fields>
+        <bm:field name="position_id"/>
+        <bm:field name="position_code" forDisplay="true" forQuery="true" prompt="EXP_ORG_POSITION.POSITION_CODE"/>
+        <bm:field name="position_name" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forInsert="false" forQuery="true" forUpdate="false"/>
+        <bm:field name="position_name_display" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false"/>
+        <bm:field name="company_id"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            SELECT *
+  FROM (SELECT op.position_id,
+               op.position_code,
+               op.description position_name,
+               op.position_code || '-' || op.description position_name_display,
+               op.company_id,
+               c.chief_position_id
+          FROM exp_org_position_vl op,
+               fnd_companies       c
+         WHERE op.company_id = c.company_id
+               AND op.enabled_flag = 'Y' 
+               AND op.client = ${/session/@client})
+   #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="code_name" queryExpression="(position_code like &apos;%&apos;||trim(${@code_name})||&apos;%&apos; or position_name like &apos;%&apos;||trim(${@code_name})||&apos;%&apos;)"/>
+        <bm:query-field name="position_name" queryExpression="position_name like &apos;%&apos;||trim(${@position_name})||&apos;%&apos;"/>
+        <bm:query-field field="position_code" queryOperator="like"/>
+        <bm:query-field field="company_id" queryExpression="op.company_id = ${@company_id}"/>
+    </bm:query-fields>
+</bm:model>

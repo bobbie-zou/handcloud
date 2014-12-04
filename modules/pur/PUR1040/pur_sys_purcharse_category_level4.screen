@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Administrator  
+    $Date: 2013-6-14 上午9:30:34  
+    $Revision: 1.0  
+    $Purpose: 4级子品类
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="pur1040_purchase_category_child5_link" url="${/request/@context_path}/modules/pur/PUR1040/pur_sys_purcharse_category_level5.screen"/>
+        <script><![CDATA[    		
+    		//采购子品类渲染函数，定义超链接
+			function pur1040_childCategoryRenderer4(value, record, name){
+			    if(record.isNew){
+			        return '';
+			    }else{
+			        return '<a href="javascript:childCategory4('+record.get('purchase_category_id')+', ' + (parseInt('${/parameter/@level}')+1) + ');">下一级</a>';
+			    }
+			}
+			
+			//子品类定义窗口
+			function childCategory4(parent_category_id, level){
+			    new Aurora.Window({
+			        id:'pur1040_category_child5',
+			        title:'${l:PUR_PURCHASE_CATEGORIES.PURCHASE_CHILD_CATEGORY}',
+			        url:$('pur1040_purchase_category_child5_link').getUrl()+'?purchase_category_id='+parent_category_id+'&level='+level,
+			        fullScreen:true
+			    });
+			}
+			
+			//
+			function pur1040_purchaseCategorySave4(){
+			    if($('pur1040_purchase_category_child4_ds').validate()){
+			        $('pur1040_purchase_category_child4_ds').submit();
+			    }
+			}
+			
+			//
+			function pur1040_purchaseCategorySubmitSuccessHandler4(){
+			    $('pur1040_purchase_category_child4_ds').setQueryParameter('parent_category_id', '${/parameter/@purchase_category_id}');
+			    $('pur1040_purchase_category_child4_ds').query();
+			}
+			
+			//
+			function pur1040_purchaseGoBack4(){
+			    $('pur1040_category_child4').close();
+			}
+			
+			//供应商品类代码EditFunction
+			function pur1040_categoryCodeEditFunction4(record, name){
+			    if(record.isNew){
+			        return 'pur1040_purchase_category_tf4';
+			    }else {
+			        return '';
+			    }
+			}
+			
+			//新增事件，默认带出父级配置清单及单位
+			function pur1040_purchaseCategoryAddhandler4(ds, record, index){
+			    var flexfield_instance_id = $('pur1040_parent_category4_ds').getCurrentRecord().get('flexfield_instance_id');
+			    var flexfield_instance_code = $('pur1040_parent_category4_ds').getCurrentRecord().get('flexfield_instance_code');
+			    var uom_code = $('pur1040_parent_category4_ds').getCurrentRecord().get('uom_code');
+			    var uom_name = $('pur1040_parent_category4_ds').getCurrentRecord().get('uom_name');
+			    
+			    record.set('flexfield_instance_id', flexfield_instance_id);
+			    record.set('flexfield_instance_code', flexfield_instance_code);
+			    record.set('uom_code', uom_code);
+			    record.set('uom_name', uom_name);
+			}
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur1040_parent_category4_ds" autoQuery="true" queryUrl="${/request/@context_path}/autocrud/pur.pur_purchase_categories/query?purchase_category_id=${/parameter/@purchase_category_id}"/>
+            <a:dataSet id="pur1040_purchase_category_child4_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="current_level" defaultValue="${/parameter/@level}" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur1040_purchase_category_child4_ds" autoQuery="true" model="pur.pur_purchase_categories" queryDataSet="pur1040_purchase_category_child4_query_ds" queryUrl="${/request/@context_path}/autocrud/pur.pur_purchase_categories/query?parent_category_id=${/parameter/@purchase_category_id}" selectable="true">
+                <a:fields>
+                    <a:field name="purchase_category_code" required="true"/>
+                    <a:field name="purchase_category_name" required="true"/>
+                    <a:field name="uom_code"/>
+                    <a:field name="uom_name" lovHeight="500" lovLabelWidth="120" lovService="pur.PUR1040.pur_purchase_category_uom_lov" lovWidth="550" title="FND_UOM_CODES.UOM_CODE_QUERY">
+                        <a:mapping>
+                            <a:map from="uom_code" to="uom_code"/>
+                            <a:map from="uom_name" to="uom_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="parent_category_id" defaultValue="${/parameter/@purchase_category_id}"/>
+                    <a:field name="category_level" defaultValue="${/parameter/@level}"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="flexfield_instance_code" lovHeight="500" lovService="pur.PUR5010.pur_req_flex_templete_lov" lovWidth="500" title="FND_FLEX_TEMPLATES.TITLE">
+                        <a:mapping>
+                            <a:map from="instance_id" to="flexfield_instance_id"/>
+                            <a:map from="template_code" to="flexfield_instance_code"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="pur1040_purchaseCategoryAddhandler4"/>
+                    <a:event name="submitSuccess" handler="pur1040_purchaseCategorySubmitSuccessHandler4"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton click="pur1040_purchaseCategorySave4" style="margin-left:20px;" text="HAP_SAVE" type="add" width="100"/>
+                <a:gridButton click="pur1040_purchaseGoBack4" style="margin-left:20px;" text="HAP_BACK" type="add" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="pur1040_purcharse_category_child4_form" bindTarget="pur1040_purchase_category_child4_query_ds" defaultQueryField="purchase_category_code" defaultQueryHint="请输入采购品类代码或名称" resultTarget="pur1040_purchase_category_child4_ds" style="width:100%;border:none"/>
+            <a:form labelWidth="100" row="1">
+                <a:textField name="current_level" bindTarget="pur1040_purchase_category_child4_query_ds" prompt="PUR_PURCHASE_CATEGORIES.CURRENT_LEVEL"/>
+                <a:textField name="purchase_category_code" bindTarget="pur1040_parent_category4_ds" prompt="PUR_PURCHASE_CATEGORIES.PARENT_CATEGORY_CODE" readOnly="true"/>
+                <a:textField name="purchase_category_name" bindTarget="pur1040_parent_category4_ds" prompt="PUR_PURCHASE_CATEGORIES.PARENT_CATEGORY_NAME" readOnly="true"/>
+            </a:form>
+            <a:grid id="pur1040_purcharse_category_child_grid4" bindTarget="pur1040_purchase_category_child4_ds" marginHeight="220" marginWidth="60" navBar="true" showRowNumber="true">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="purchase_category_code" align="center" editorFunction="pur1040_categoryCodeEditFunction4" width="120"/>
+                    <a:column name="purchase_category_name" editor="pur1040_purchase_category_tf4" width="120"/>
+                    <a:column align="center" prompt="PUR_PURCHASE_CATEGORIES.PURCHASE_CHILD_CATEGORY" renderer="pur1040_childCategoryRenderer4" width="100"/>
+                    <a:column name="flexfield_instance_code" editor="pur1040_purchase_category_lov4" prompt="PUR_PURCHASE_CATEGORIES.ASSIGN_CONFIG_LIST" width="120"/>
+                    <a:column name="uom_name" align="center" editor="pur1040_purchase_category_lov4" width="120"/>
+                    <a:column name="enabled_flag" editor="pur1040_purchase_category_cb4" width="60"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="pur1040_purchase_category_cb4"/>
+                    <a:lov id="pur1040_purchase_category_lov4"/>
+                    <a:textField id="pur1040_purchase_category_tf4"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,772 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-9-4 下午2:21:14  
+    $Revision: 1.0  
+    $Purpose: 子账户管理，权限管理页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="sys.SYS8220.sys_business_group_user_manage" rootPath="user_info"/>
+        <a:model-query fetchAll="true" model="sys.SYS8220.fnd_user_authority_maintain" rootPath="user_authority"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="sys8220_sys_user_authority_save_link" url="${/request/@context_path}/modules/sys/SYS8220/sys_user_authority_save.svc"/>
+        <div/>
+        <style><![CDATA[
+    		.item-ckb {
+				float: left;
+				margin-top: 3px;
+				margin-right: 8px;
+				outline: none;
+			}
+    	]]></style>
+        <script><![CDATA[
+        
+        	var query_flag = false;
+        	
+        	function sys8220_returnToUserMain(){
+        	    $('sys8220_sys_user_authority_maintain_link_window').close();
+        	}
+        
+            function sys8220_saveUserAuthority() {
+                
+                var datas = {
+                    user_id: '${/parameter/@user_id}'
+                };
+                var authority = [];
+                
+                //公司、BU、库存组织
+                var record_company = $('sys8220_fnd_user_authority_company_result_ds').getAll();
+                for(var i = 0;i < record_company.length; i++){
+                    if(record_company[i].get('checked') == 'Y'){
+                        record_company[i].set('user_id', '${/parameter/@user_id}');
+                        record_company[i].set('authority_type', record_company[i].get('authority_type'));
+                        record_company[i].set('assign_id', record_company[i].get('authority_id'));
+                        authority.push(record_company[i].data);
+                    }
+                }
+                
+                //供应商、供应商地点
+                var record_vendor = $('sys8220_fnd_user_authority_vendor_result_ds').getAll();
+                for(var j = 0;j < record_vendor.length; j++){
+                    if(record_vendor[j].get('checked') == 'Y'){
+                        record_vendor[j].set('user_id', '${/parameter/@user_id}');
+                        record_vendor[j].set('authority_type', record_vendor[j].get('authority_type'));
+                        record_vendor[j].set('assign_id', record_vendor[j].get('authority_id'));
+                        authority.push(record_vendor[j].data);
+                    }
+                }
+                
+                //采购物料
+                var record_purhase_material = $('sys8220_fnd_user_authority_purchase_material_result_ds').getSelected();
+                for (var s = 0;s < record_purhase_material.length; s++) {
+                    record_purhase_material[s].set('user_id', '${/parameter/@user_id}');
+                    record_purhase_material[s].set('authority_type', 'PURHASE_MATERIAL');
+                    record_purhase_material[s].set('assign_id', record_purhase_material[s].get('item_id'));
+                    authority.push(record_purhase_material[s].data);
+                }
+            
+                //销售产品
+                var sales_production_recs = $('sys8220_fnd_user_authority_sales_production_result_ds').getSelected();
+                for (var c = 0;c < sales_production_recs.length; c++) {
+                    sales_production_recs[c].set('user_id', '${/parameter/@user_id}');
+                    sales_production_recs[c].set('authority_type', 'SALES_PRODUCTION');
+                    sales_production_recs[c].set('assign_id', sales_production_recs[c].get('item_id'));
+                    authority.push(sales_production_recs[c].data);
+                }
+            
+            	//debugger;
+            
+                datas['authority'] = authority;
+            	
+            	$('sys8220_saveUserAuthority_btn').disable();
+                //提交AjAX请求
+                Aurora.request({
+                    url: $('sys8220_sys_user_authority_save_link').getUrl(),
+                    para: datas,
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '保存成功!', function(){
+                            $('sys8220_saveUserAuthority_btn').enable();
+                            query_flag = true;
+                            //用户权限列表
+			                $('sys8220_user_authority_list_ds').setQueryParameter('user_id', '${/parameter/@user_id}');
+			                $('sys8220_user_authority_list_ds').query();
+                        });
+                    },
+                    failure: function() {
+                         $('sys8220_saveUserAuthority_btn').enable();
+                    },
+                    error: function() {
+                         $('sys8220_saveUserAuthority_btn').enable();
+                    },
+                    scope: this
+                });
+            }
+            
+            function sys8220_userAuthorityListDsLoad(dataset){
+                if(query_flag){
+	                //公司
+	                $('sys8220_fnd_user_authority_company_result_ds').query();
+	                
+	                //供应商
+	                $('sys8220_fnd_user_authority_vendor_result_ds').query();
+
+	                //采购物料
+	                $('sys8220_fnd_user_authority_purchase_material_result_ds').query();
+	            
+	                //销售产品
+	                $('sys8220_fnd_user_authority_sales_production_result_ds').query();
+                }
+            }
+            
+            //采购物料
+            function sys8220_fndUserAuthorityPurchaseMaterialResultDsLoad(dataset) {
+                var records = dataset.getAll();
+                var user_authority = $('sys8220_user_authority_list_ds').getAll();
+                for (var i = 0;i < records.length;i++) {
+                    for (var j = 0;j < user_authority.length;j++) {
+                        if (user_authority[j].get('authority_type') == 'PURHASE_MATERIAL' && user_authority[j].get('assign_id') == records[i].get('item_id')) {
+                            records[i].set('status','Y');
+                            dataset.select(records[i]);
+                        }
+                    }
+                }
+            }
+            
+            //销售产品
+            function sys8220_fndUserAuthoritySalesProductionResultDsLoad(dataset) {
+                var records = dataset.getAll();
+                var user_authority = $('sys8220_user_authority_list_ds').getAll();
+                for (var i = 0;i < records.length;i++) {
+                    for (var j = 0;j < user_authority.length;j++) {
+                        if (user_authority[j].get('authority_type') == 'SALES_PRODUCTION' && user_authority[j].get('assign_id') == records[i].get('item_id')) {
+                            records[i].set('status','Y');
+                            dataset.select(records[i]);
+                        }
+                    }
+                }
+            }
+            
+            function sys8220_userAuthorityTypeListResultDsSelect(dataset, record){
+                record.set('status','Y');
+            }
+            
+            function sys8220_userAuthorityTypeListResultDsUnSelect(dataset, record){
+                record.set('status','');
+            }
+            
+            function sys8220_userAuthorityTypeListResultDsGridRenderer(value, record, name){
+            	var checked = record.get('checked');
+            	if(name == 'status'){
+            	    if(value == 'Y' || checked == 'Y'){
+            	        return '<div style="background:#00DD00;">&nbsp;</div>';
+            	    }else{
+            	        return '<div/>';
+            	    }
+            	}   
+            }
+            
+            function sys8220_fndUserAuthorityCompanyResultDsUpdate(ds, record, name, value, oldvalue){
+                if(name == 'checked'){
+                    if(value == 'Y'){
+                        record.set('status','Y');
+                    }else if(value == 'N'){
+                        record.set('status','');
+                    }else{
+                        record.set('status','');
+                    }
+                }
+            }
+
+            function sys8220_fndUserAuthorityVendorResultDsUpdate(ds, record, name, value, oldvalue){
+                if(name == 'checked'){
+                    if(value == 'Y'){
+                        record.set('status','Y');
+                    }else if(value == 'N'){
+                        record.set('status','');
+                    }else{
+                        record.set('status','');
+                    }
+                }
+            }
+            
+            /**************************************************************
+             * 定位查询开始，公司、业务实体、库存组织
+             **************************************************************/
+            
+            /**************************************************************
+             * 静态全局参数说明：
+             * 	每组数据查询所需多个全局变量(多个数据多组变量，分别以_01,_02...表示)
+             *	参数1：显示位置（初始为0）
+             *	参数2：匹配结果数组
+             *	参数3：是否初始化匹配结果数组标识
+             **************************************************************/
+            var show_index_01 = 0; //显示位置
+            var row_list_01 = []; //匹配结果数组
+            var init_flag_01 = false; //初始化标识
+            /**************************************************************
+             * 动态全局参数说明：
+             * 	每组数据查询所需多个全局变量(多个数据多组变量，分别以_01,_02...表示)
+             *	参数1：grid绑定的DS对象
+             *	参数2：查询条件绑定的DS对象
+             *	参数3：grid对象
+             *	参数4：查询条件的参数名称
+             *	参数5：查询匹配的参数名称（可以有多个，用_1,_2表示）
+             **************************************************************/
+            var grid_ds_01 = 'sys8220_fnd_user_authority_company_result_ds'; //grid绑定的DS
+            var query_ds_01 = 'sys8220_fnd_user_authority_company_query_ds'; //查询条件绑定的DS
+            var grid_01 = 'sys8220_fnd_user_authority_company_result_ds_grid'; //grid对象
+            var query_name_01 = 'data_code_name'; //查询条件的参数名称
+            var indexof_01_1 = 'data_name'; //匹配参数1
+            var indexof_01_2 = 'data_code'; //匹配参数2
+            //初始全局变量
+            function initGlobalPara_01() {
+                show_index_01 = 0;
+                row_list_01 = [];
+                init_flag_01 = false;
+            }
+            
+            //初始化定位数组
+            function initRowList_01(para) {
+            
+                //获取树形结果数据
+                var records = $(grid_ds_01).getAll();
+            
+                //对数据进行遍历
+                for (var i = 0;i < records.length;i++) {
+            
+                    //判断是否包含当前查询字符，包含则将其位置放入匹配结果数组
+                    if (!Aurora.isEmpty(records[i].get(indexof_01_1))) {
+                        if (records[i].get(indexof_01_1).indexOf(para) != -1 || records[i].get(indexof_01_1).indexOf(para.toUpperCase()) != -1) {
+                            row_list_01.push($(grid_ds_01).indexOf(records[i]));
+                        }
+                    }
+                    
+                    if (!Aurora.isEmpty(records[i].get(indexof_01_2))) {
+                        if (records[i].get(indexof_01_2).indexOf(para) != -1 || records[i].get(indexof_01_2).indexOf(para.toUpperCase()) != -1) {
+                            row_list_01.push($(grid_ds_01).indexOf(records[i]));
+                        }
+                    }
+                }
+            
+                //改变初始化标识
+                init_flag_01 = true;
+            }
+            
+            //查询按钮执行方法
+            function sys8220_fndUserAuthorityCompanyQuery() {
+            
+                //获取查询条件字符串
+                var record = $(query_ds_01).getCurrentRecord();
+            
+                //判断查询条件的值是否为空，为空不做查询操作
+                if (!Ext.isEmpty(record.get(query_name_01))) {
+            
+                    //判断是否初始化定位数组
+                    if (!init_flag_01) {
+                        initRowList_01(record.get(query_name_01));
+                    }
+            
+                    //结果匹配数组有值时
+                    if (row_list_01.length > 0) {
+            
+                        //显示匹配数组里的位置
+                        $(grid_01).selectRow(row_list_01[show_index_01]);
+            
+                        //判断显示位置是否越界,没有则++，有责回到初始0
+                        if (show_index_01 < row_list_01.length - 1) {
+                            show_index_01++;
+                        } else {
+                            show_index_01 = 0;
+                        }
+                    }
+                }
+            }
+            
+            //查询dataset更新事件
+            function sys8220_fndUserAuthorityCompanyQueryDsUpdate(ds, record, name, value, oldvalue) {
+                $(query_ds_01).getCurrentRecord().dirty = false;
+                if (name == query_name_01) {
+                    //查询条件改变，重置全局定位变量
+                    initGlobalPara_01();
+                }
+            }
+            /**************************************************************
+             * 定位查询开始结束，公司、业务实体、库存组织
+             **************************************************************/
+            
+            
+            
+            /**************************************************************
+             * 定位查询开始，供应商、供应商地点
+             **************************************************************/
+            
+            /**************************************************************
+             * 静态全局参数说明：
+             * 	每组数据查询所需多个全局变量(多个数据多组变量，分别以_01,_02...表示)
+             *	参数1：显示位置（初始为0）
+             *	参数2：匹配结果数组
+             *	参数3：是否初始化匹配结果数组标识
+             **************************************************************/
+            var show_index_02 = 0; //显示位置
+            var row_list_02 = []; //匹配结果数组
+            var init_flag_02 = false; //初始化标识
+            /**************************************************************
+             * 动态全局参数说明：
+             * 	每组数据查询所需多个全局变量(多个数据多组变量，分别以_01,_02...表示)
+             *	参数1：grid绑定的DS对象
+             *	参数2：查询条件绑定的DS对象
+             *	参数3：grid对象
+             *	参数4：查询条件的参数名称
+             *	参数5：查询匹配的参数名称（可以有多个，用_1,_2表示）
+             **************************************************************/
+            var grid_ds_02 = 'sys8220_fnd_user_authority_vendor_result_ds'; //grid绑定的DS
+            var query_ds_02 = 'sys8220_fnd_user_authority_vendor_query_ds'; //查询条件绑定的DS
+            var grid_02 = 'sys8220_fnd_user_authority_vendor_result_ds_grid'; //grid对象
+            var query_name_02 = 'data_code_name'; //查询条件的参数名称
+            var indexof_02_1 = 'data_code'; //匹配参数1
+            var indexof_02_2 = 'data_name'; //匹配参数2
+            //初始全局变量
+            function initGlobalPara_02() {
+                show_index_02 = 0;
+                row_list_02 = [];
+                init_flag_02 = false;
+            }
+            
+            //初始化定位数组
+            function initRowList_02(para) {
+            
+                //获取树形结果数据
+                var records = $(grid_ds_02).getAll();
+            
+                //对数据进行遍历
+                for (var i = 0;i < records.length;i++) {
+            
+                    //判断是否包含当前查询字符，包含则将其位置放入匹配结果数组
+                    if (!Aurora.isEmpty(records[i].get(indexof_02_1))) {
+                        if (records[i].get(indexof_02_1).indexOf(para) != -1 || records[i].get(indexof_02_1).indexOf(para.toUpperCase()) != -1) {
+                            row_list_02.push($(grid_ds_02).indexOf(records[i]));
+                        }
+                    }
+                    
+                    if (!Aurora.isEmpty(records[i].get(indexof_02_2))) {
+                        if (records[i].get(indexof_02_2).indexOf(para) != -1 || records[i].get(indexof_02_2).indexOf(para.toUpperCase()) != -1) {
+                            row_list_02.push($(grid_ds_02).indexOf(records[i]));
+                        }
+                    }
+                }
+            
+                //改变初始化标识
+                init_flag_02 = true;
+            }
+            
+            //查询按钮执行方法
+            function sys8220_fndUserAuthorityVendorQuery() {
+            
+                //获取查询条件字符串
+                var record = $(query_ds_02).getCurrentRecord();
+            
+                //判断查询条件的值是否为空，为空不做查询操作
+                if (!Ext.isEmpty(record.get(query_name_02))) {
+            
+                    //判断是否初始化定位数组
+                    if (!init_flag_02) {
+                        initRowList_02(record.get(query_name_02));
+                    }
+            
+                    //结果匹配数组有值时
+                    if (row_list_02.length > 0) {
+            
+                        //显示匹配数组里的位置
+                        $(grid_02).selectRow(row_list_02[show_index_02]);
+            
+                        //判断显示位置是否越界,没有则++，有责回到初始0
+                        if (show_index_02 < row_list_02.length - 1) {
+                            show_index_02++;
+                        } else {
+                            show_index_02 = 0;
+                        }
+                    }
+                }
+            }
+            
+            //查询dataset更新事件
+            function sys8220_fndUserAuthorityVendorQueryDsUpdate(ds, record, name, value, oldvalue) {
+                $(query_ds_02).getCurrentRecord().dirty = false;
+                if (name == query_name_02) {
+                    //查询条件改变，重置全局定位变量
+                    initGlobalPara_02();
+                }
+            }
+            /**************************************************************
+             * 定位查询开始结束，供应商、供应商地点
+             **************************************************************/
+            
+            
+            
+            /**************************************************************
+             * 定位查询开始，采购物料
+             **************************************************************/
+            
+            /**************************************************************
+             * 静态全局参数说明：
+             * 	每组数据查询所需多个全局变量(多个数据多组变量，分别以_01,_02...表示)
+             *	参数1：显示位置（初始为0）
+             *	参数2：匹配结果数组
+             *	参数3：是否初始化匹配结果数组标识
+             **************************************************************/
+            var show_index_06 = 0; //显示位置
+            var row_list_06 = []; //匹配结果数组
+            var init_flag_06 = false; //初始化标识
+            /**************************************************************
+             * 动态全局参数说明：
+             * 	每组数据查询所需多个全局变量(多个数据多组变量，分别以_01,_02...表示)
+             *	参数1：grid绑定的DS对象
+             *	参数2：查询条件绑定的DS对象
+             *	参数3：grid对象
+             *	参数4：查询条件的参数名称
+             *	参数5：查询匹配的参数名称（可以有多个，用_1,_2表示）
+             **************************************************************/
+            var grid_ds_06 = 'sys8220_fnd_user_authority_purchase_material_result_ds'; //grid绑定的DS
+            var query_ds_06 = 'sys8220_fnd_user_authority_purchase_material_query_ds'; //查询条件绑定的DS
+            var grid_06 = 'sys8220_fnd_user_authority_purchase_material_result_ds_grid'; //grid对象
+            var query_name_06 = 'item_code_name'; //查询条件的参数名称
+            var indexof_06_1 = 'display_item_code'; //匹配参数1
+            var indexof_06_2 = 'item_name'; //匹配参数2
+            //初始全局变量
+            function initGlobalPara_06() {
+                show_index_06 = 0;
+                row_list_06 = [];
+                init_flag_06 = false;
+            }
+            
+            //初始化定位数组
+            function initRowList_06(para) {
+            
+                //获取树形结果数据
+                var records = $(grid_ds_06).getAll();
+            
+                //对数据进行遍历
+                for (var i = 0;i < records.length;i++) {
+            
+                    //判断是否包含当前查询字符，包含则将其位置放入匹配结果数组
+                    if (!Aurora.isEmpty(records[i].get(indexof_06_1))) {
+                        if (records[i].get(indexof_06_1).indexOf(para) != -1 || records[i].get(indexof_06_1).indexOf(para.toUpperCase()) != -1) {
+                            row_list_06.push($(grid_ds_06).indexOf(records[i]));
+                        }
+                    }
+                    
+                    if (!Aurora.isEmpty(records[i].get(indexof_06_2))) {
+                        if (records[i].get(indexof_06_2).indexOf(para) != -1 || records[i].get(indexof_06_2).indexOf(para.toUpperCase()) != -1) {
+                            row_list_06.push($(grid_ds_06).indexOf(records[i]));
+                        }
+                    }
+                }
+            
+                //改变初始化标识
+                init_flag_06 = true;
+            }
+            
+            //查询按钮执行方法
+            function sys8220_fndUserAuthorityPurchaseMaterialQuery() {
+            
+                //获取查询条件字符串
+                var record = $(query_ds_06).getCurrentRecord();
+            
+                //判断查询条件的值是否为空，为空不做查询操作
+                if (!Ext.isEmpty(record.get(query_name_06))) {
+            
+                    //判断是否初始化定位数组
+                    if (!init_flag_06) {
+                        initRowList_06(record.get(query_name_06));
+                    }
+            
+                    //结果匹配数组有值时
+                    if (row_list_06.length > 0) {
+            
+                        //显示匹配数组里的位置
+                        $(grid_06).selectRow(row_list_06[show_index_06]);
+            
+                        //判断显示位置是否越界,没有则++，有责回到初始0
+                        if (show_index_06 < row_list_06.length - 1) {
+                            show_index_06++;
+                        } else {
+                            show_index_06 = 0;
+                        }
+                    }
+                }
+            }
+            
+            //查询dataset更新事件
+            function sys8220_fndUserAuthorityPurchaseMaterialQueryDsUpdate(ds, record, name, value, oldvalue) {
+                $(query_ds_06).getCurrentRecord().dirty = false;
+                if (name == query_name_06) {
+                    //查询条件改变，重置全局定位变量
+                    initGlobalPara_06();
+                }
+            }
+            /**************************************************************
+             * 定位查询开始结束，采购物料
+             **************************************************************/
+            
+            
+            
+            /**************************************************************
+             * 定位查询开始，销售产品
+             **************************************************************/
+            
+            /**************************************************************
+             * 静态全局参数说明：
+             * 	每组数据查询所需多个全局变量(多个数据多组变量，分别以_01,_02...表示)
+             *	参数1：显示位置（初始为0）
+             *	参数2：匹配结果数组
+             *	参数3：是否初始化匹配结果数组标识
+             **************************************************************/
+            var show_index_07 = 0; //显示位置
+            var row_list_07 = []; //匹配结果数组
+            var init_flag_07 = false; //初始化标识
+            /**************************************************************
+             * 动态全局参数说明：
+             * 	每组数据查询所需多个全局变量(多个数据多组变量，分别以_01,_02...表示)
+             *	参数1：grid绑定的DS对象
+             *	参数2：查询条件绑定的DS对象
+             *	参数3：grid对象
+             *	参数4：查询条件的参数名称
+             *	参数5：查询匹配的参数名称（可以有多个，用_1,_2表示）
+             **************************************************************/
+            var grid_ds_07 = 'sys8220_fnd_user_authority_sales_production_result_ds'; //grid绑定的DS
+            var query_ds_07 = 'sys8220_fnd_user_authority_sales_production_query_ds'; //查询条件绑定的DS
+            var grid_07 = 'sys8220_fnd_user_authority_sales_production_result_ds_grid'; //grid对象
+            var query_name_07 = 'item_code_name'; //查询条件的参数名称
+            var indexof_07_1 = 'display_item_code'; //匹配参数1
+            var indexof_07_2 = 'item_name'; //匹配参数2
+            //初始全局变量
+            function initGlobalPara_07() {
+                show_index_07 = 0;
+                row_list_07 = [];
+                init_flag_07 = false;
+            }
+            
+            //初始化定位数组
+            function initRowList_07(para) {
+            
+                //获取树形结果数据
+                var records = $(grid_ds_07).getAll();
+            
+                //对数据进行遍历
+                for (var i = 0;i < records.length;i++) {
+            
+                    //判断是否包含当前查询字符，包含则将其位置放入匹配结果数组
+                    if (!Aurora.isEmpty(records[i].get(indexof_07_1))) {
+                        if (records[i].get(indexof_07_1).indexOf(para) != -1 || records[i].get(indexof_07_1).indexOf(para.toUpperCase()) != -1) {
+                            row_list_07.push($(grid_ds_07).indexOf(records[i]));
+                        }
+                    }
+                    
+                    if (!Aurora.isEmpty(records[i].get(indexof_07_2))) {
+                        if (records[i].get(indexof_07_2).indexOf(para) != -1 || records[i].get(indexof_07_2).indexOf(para.toUpperCase()) != -1) {
+                            row_list_07.push($(grid_ds_07).indexOf(records[i]));
+                        }
+                    }
+                }
+            
+                //改变初始化标识
+                init_flag_07 = true;
+            }
+            
+            //查询按钮执行方法
+            function sys8220_fndUserAuthoritySalesProductionQuery() {
+            
+                //获取查询条件字符串
+                var record = $(query_ds_07).getCurrentRecord();
+            
+                //判断查询条件的值是否为空，为空不做查询操作
+                if (!Ext.isEmpty(record.get(query_name_07))) {
+            
+                    //判断是否初始化定位数组
+                    if (!init_flag_07) {
+                        initRowList_07(record.get(query_name_07));
+                    }
+            
+                    //结果匹配数组有值时
+                    if (row_list_07.length > 0) {
+            
+                        //显示匹配数组里的位置
+                        $(grid_07).selectRow(row_list_07[show_index_07]);
+            
+                        //判断显示位置是否越界,没有则++，有责回到初始0
+                        if (show_index_07 < row_list_07.length - 1) {
+                            show_index_07++;
+                        } else {
+                            show_index_07 = 0;
+                        }
+                    }
+                }
+            }
+            
+            //查询dataset更新事件
+            function sys8220_fndUserAuthoritySalesProductionQueryDsUpdate(ds, record, name, value, oldvalue) {
+                $(query_ds_07).getCurrentRecord().dirty = false;
+                if (name == query_name_07) {
+                    //查询条件改变，重置全局定位变量
+                    initGlobalPara_07();
+                }
+            }
+            /**************************************************************
+             * 定位查询开始结束，销售产品
+             **************************************************************/
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys8220_user_info_ds">
+                <a:datas dataSource="/model/user_info"/>
+                <a:fields>
+                    <a:field name="bg_admin_flag" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <!-- 用户权限 -->
+            <a:dataSet id="sys8220_user_authority_list_ds" autoQuery="true" fetchAll="true" model="sys.SYS8220.fnd_user_authority_maintain" queryUrl="${/request/@context_path}/autocrud/sys.SYS8220.fnd_user_authority_maintain/query?user_id=${/parameter/@user_id}">
+                <a:events>
+                    <a:event name="load" handler="sys8220_userAuthorityListDsLoad"/>
+                </a:events>
+            </a:dataSet>
+            <!-- 公司、BU、库存组织 -->
+            <a:dataSet id="sys8220_fnd_user_authority_company_query_ds">
+                <a:events>
+                    <a:event name="update" handler="sys8220_fndUserAuthorityCompanyQueryDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys8220_fnd_user_authority_company_result_ds" autoQuery="true" fetchAll="true" model="sys.SYS8220.fnd_user_authority_company" queryDataSet="sys8220_fnd_user_authority_company_query_ds" queryUrl="${/request/@context_path}/autocrud/sys.SYS8220.fnd_user_authority_company/query?user_id=${/parameter/@user_id}">
+                <a:events>
+                    <a:event name="update" handler="sys8220_fndUserAuthorityCompanyResultDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <!-- 供应商 -->
+            <a:dataSet id="sys8220_fnd_user_authority_vendor_query_ds">
+                <a:events>
+                    <a:event name="update" handler="sys8220_fndUserAuthorityVendorQueryDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys8220_fnd_user_authority_vendor_result_ds" autoQuery="true" fetchAll="true" model="sys.SYS8220.fnd_user_authority_vendor" queryDataSet="sys8220_fnd_user_authority_vendor_query_ds" queryUrl="${/request/@context_path}/autocrud/sys.SYS8220.fnd_user_authority_vendor/query?user_id=${/parameter/@user_id}">
+                <a:events>
+                    <a:event name="update" handler="sys8220_fndUserAuthorityVendorResultDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <!-- 采购物料 -->
+            <a:dataSet id="sys8220_fnd_user_authority_purchase_material_query_ds">
+                <a:events>
+                    <a:event name="update" handler="sys8220_fndUserAuthorityPurchaseMaterialQueryDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys8220_fnd_user_authority_purchase_material_result_ds" autoQuery="true" fetchAll="true" model="public.mtl_system_items_list" queryDataSet="sys8220_fnd_user_authority_purchase_material_query_ds" queryUrl="${/request/@context_path}/autocrud/public.mtl_system_items_list/query?for_purchase_flag=Y" selectable="true">
+                <a:events>
+                    <a:event name="select" handler="sys8220_userAuthorityTypeListResultDsSelect"/>
+                    <a:event name="unselect" handler="sys8220_userAuthorityTypeListResultDsUnSelect"/>
+                    <a:event name="load" handler="sys8220_fndUserAuthorityPurchaseMaterialResultDsLoad"/>
+                </a:events>
+            </a:dataSet>
+            <!-- 销售产品 -->
+            <a:dataSet id="sys8220_fnd_user_authority_sales_production_query_ds">
+                <a:events>
+                    <a:event name="update" handler="sys8220_fndUserAuthoritySalesProductionQueryDsUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys8220_fnd_user_authority_sales_production_result_ds" autoQuery="true" fetchAll="true" model="public.mtl_system_items_list" queryDataSet="sys8220_fnd_user_authority_sales_production_query_ds" queryUrl="${/request/@context_path}/autocrud/public.mtl_system_items_list/query?for_sales_flag=Y" selectable="true">
+                <a:events>
+                    <a:event name="select" handler="sys8220_userAuthorityTypeListResultDsSelect"/>
+                    <a:event name="unselect" handler="sys8220_userAuthorityTypeListResultDsUnSelect"/>
+                    <a:event name="load" handler="sys8220_fndUserAuthoritySalesProductionResultDsLoad"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton id="sys8220_saveUserAuthority_btn" click="sys8220_saveUserAuthority" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="sys8220_returnToUserMain" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox padding="0">
+                <a:form title="SYS8120.USER_INFORMATION" width="650">
+                    <a:hBox>
+                        <a:label name="user_name" bindTarget="sys8220_user_info_ds" prompt="SYS_USER.ACCOUNT" width="200"/>
+                        <a:label name="description" bindTarget="sys8220_user_info_ds" prompt="SYS_USER.DESCRIPTION" width="200"/>
+                    </a:hBox>
+                    <a:hBox>
+                        <a:label name="business_group_name" bindTarget="sys8220_user_info_ds" prompt="SYS_USER.BUSINESS_GROUP_NAME" width="250"/>
+                        <a:checkBox name="bg_admin_flag" bindTarget="sys8220_user_info_ds" label="SYS_USER.BG_ADMIN_FLAG" width="120"/>
+                    </a:hBox>
+                </a:form>
+            </a:hBox>
+            <a:hBox padding="0">
+                <a:tabPanel id="sys820_user_authority_maintain_tabPanel" height="450" width="650">
+                    <a:tabs>
+                        <a:tab prompt="PROMPT.COMPANY" width="100">
+                            <a:queryForm createSearchButton="false" style="width:96%;border:none;margin:10px;">
+                                <a:formToolBar>
+                                    <a:textField name="data_code_name" bindTarget="sys8220_fnd_user_authority_company_query_ds" emptyText="公司/业务单元/库存组织/代码" style="width:100%;"/>
+                                    <a:toolbarButton className="item-rbtn-gray" click="sys8220_fndUserAuthorityCompanyQuery" style="margin-left:20px;" text="HAP_QUERY" width="80"/>
+                                </a:formToolBar>
+                            </a:queryForm>
+                            <a:treeGrid id="sys8220_fnd_user_authority_company_result_ds_grid" bindTarget="sys8220_fnd_user_authority_company_result_ds" expandField="expand" height="365" idField="data_id" parentField="parent_data_id" sequenceField="sequence" showCheckBox="true" width="645">
+                                <a:columns>
+                                    <a:column name="blank" width="1"/>
+                                    <a:column name="status" align="left" renderer="sys8220_userAuthorityTypeListResultDsGridRenderer" width="30"/>
+                                    <a:column name="data_name" align="left" prompt="公司/业务单元/库存组织" width="390"/>
+                                    <a:column name="data_code" align="left" prompt="代码" width="100"/>
+                                </a:columns>
+                            </a:treeGrid>
+                        </a:tab>
+                        <a:tab prompt="PROMPT.VENDOR" width="100">
+                            <a:queryForm createSearchButton="false" style="width:96%;border:none;margin:10px;">
+                                <a:formToolBar>
+                                    <a:textField name="data_code_name" bindTarget="sys8220_fnd_user_authority_vendor_query_ds" emptyText="供应商/业务组" style="width:100%;"/>
+                                    <a:toolbarButton className="item-rbtn-gray" click="sys8220_fndUserAuthorityVendorQuery" style="margin-left:20px;" text="HAP_QUERY" width="80"/>
+                                </a:formToolBar>
+                            </a:queryForm>
+                            <a:treeGrid id="sys8220_fnd_user_authority_vendor_result_ds_grid" bindTarget="sys8220_fnd_user_authority_vendor_result_ds" expandField="expand" height="365" idField="data_id" parentField="parent_data_id" sequenceField="sequence" showCheckBox="true" width="645">
+                                <a:columns>
+                                    <a:column name="blank" width="1"/>
+                                    <a:column name="status" align="left" renderer="sys8220_userAuthorityTypeListResultDsGridRenderer" width="30"/>
+                                    <a:column name="data_name" align="left" prompt="供应商/业务组" width="400"/>
+                                    <a:column name="data_code" align="left" prompt="代码" width="110"/>
+                                </a:columns>
+                            </a:treeGrid>
+                        </a:tab>
+                        <!-- <a:tab prompt="PROMPT.CLIENT" width="100"/>
+                        <a:tab prompt="PROMPT.PUR_ORGANIZATION" width="100"/>
+                        <a:tab prompt="PROMPT.SD_ORGANIZATION" width="100"/> -->
+                        <a:tab prompt="PROMPT.PURCHASE_MATERIAL" width="80">
+                            <a:queryForm createSearchButton="false" style="width:96%;border:none;margin:10px;">
+                                <a:formToolBar>
+                                    <a:textField name="item_code_name" bindTarget="sys8220_fnd_user_authority_purchase_material_query_ds" emptyText="物料代码/物料名称" style="width:100%;"/>
+                                    <a:toolbarButton className="item-rbtn-gray" click="sys8220_fndUserAuthorityPurchaseMaterialQuery" style="margin-left:20px;" text="HAP_QUERY" width="80"/>
+                                </a:formToolBar>
+                            </a:queryForm>
+                            <a:grid id="sys8220_fnd_user_authority_purchase_material_result_ds_grid" autoAppend="false" bindTarget="sys8220_fnd_user_authority_purchase_material_result_ds" canWheel="false" height="365" width="645">
+                                <a:columns>
+                                    <a:column name="status" align="left" renderer="sys8220_userAuthorityTypeListResultDsGridRenderer" width="30"/>
+                                    <a:column name="display_item_code" align="left" prompt="物料代码" width="260"/>
+                                    <a:column name="item_name" align="left" prompt="物料名称" width="300"/>
+                                </a:columns>
+                            </a:grid>
+                        </a:tab>
+                        <a:tab prompt="PROMPT.SALES_PRODUCTION" width="80">
+                            <a:queryForm createSearchButton="false" style="width:96%;border:none;margin:10px;">
+                                <a:formToolBar>
+                                    <a:textField name="item_code_name" bindTarget="sys8220_fnd_user_authority_sales_production_query_ds" emptyText="产品代码/产品名称" style="width:100%;"/>
+                                    <a:toolbarButton className="item-rbtn-gray" click="sys8220_fndUserAuthoritySalesProductionQuery" style="margin-left:20px;" text="HAP_QUERY" width="80"/>
+                                </a:formToolBar>
+                            </a:queryForm>
+                            <a:grid id="sys8220_fnd_user_authority_sales_production_result_ds_grid" autoAppend="false" bindTarget="sys8220_fnd_user_authority_sales_production_result_ds" canWheel="false" height="365" width="645">
+                                <a:columns>
+                                    <a:column name="status" align="left" renderer="sys8220_userAuthorityTypeListResultDsGridRenderer" width="30"/>
+                                    <a:column name="display_item_code" align="left" prompt="产品代码" width="260"/>
+                                    <a:column name="item_name" align="left" prompt="产品名称" width="300"/>
+                                </a:columns>
+                            </a:grid>
+                        </a:tab>
+                    </a:tabs>
+                </a:tabPanel>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

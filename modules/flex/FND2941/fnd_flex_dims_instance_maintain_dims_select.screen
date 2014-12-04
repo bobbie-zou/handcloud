@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-3-25 下午4:47:51  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="fnd29410_dimension_instance_maintain_link" url="${/request/@context_path}/modules/flex/FND2941/fnd_flex_dims_template_query.screen"/>
+        <script><![CDATA[
+        
+			function fnd29410_form_ds_update(ds, record, name, value, oldvalue){
+	             if(name == 'dimension_id'){
+
+	                 record.set('dimension_line_id','');
+	                 record.set('dimension_line_desc','');
+	                 record.set('dimension_flex_value_id','');
+	                 record.set('dimension_flex_value_desc','');
+
+	                 record.getMeta().getField('dimension_line_desc').setReadOnly(false);
+	                 record.getMeta().getField('dimension_flex_value_desc').setReadOnly(true);
+
+	                 record.getField('dimension_line_desc').setLovPara('dimension_id', value);
+
+	             }else if(name == 'flex_value_set_id'){
+	                 record.getMeta().getField('dimension_flex_value_desc').setReadOnly(false);
+	                 record.getField('dimension_flex_value_desc').setLovPara('flex_value_set_id', value);
+	             }
+	         }
+	         
+	         function open_instance_window(){
+	             var ds = $('fnd29410_dimension_select_ds');
+	             var record = ds.getCurrentRecord();
+	             if(!ds.validate()||Aurora.isEmpty(record.get('dimension_flex_value_id'))){
+	              	return;
+	             }
+	             
+	             var dimension_line_id = record.get('dimension_line_id');
+	             var dimension_flex_value_id = record.get('dimension_flex_value_id');
+	          	 new Aurora.Window({
+	                    id:'fnd2941_flex_dims_instance_maintain_window',
+	                    url:$('fnd29410_dimension_instance_maintain_link').getUrl()+'?dimension_line_id='+dimension_line_id+'&dimension_flex_value_id='+dimension_flex_value_id,
+	                    title:'维度级模版实例定义',
+	                    fullScreen:true});   
+	         }
+		
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd29410_dimensions_ds" autoCreate="true" autoQuery="true" fetchAll="true" model="flex.FND2941.fnd_flex_dimension_list"/>
+            <a:dataSet id="fnd29410_dimension_select_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="dimension_id"/>
+                    <a:field name="dimension_desc" displayField="dimension_desc" options="fnd29410_dimensions_ds" required="true" returnField="dimension_id" valueField="dimension_id"/>
+                    <a:field name="dimension_line_id"/>
+                    <a:field name="flex_value_set_id"/>
+                    <a:field name="dimension_line_desc" autoComplete="true" autoCompleteField="quick_value" lovGridHeight="320" lovHeight="450" lovService="flex.FND2941.fnd_flex_dimension_line_lov" lovWidth="500" required="true" title="层次">
+                        <a:mapping>
+                            <a:map from="dimension_line_id" to="dimension_line_id"/>
+                            <a:map from="dimension_line_desc" to="dimension_line_desc"/>
+                            <a:map from="flex_value_set_id" to="flex_value_set_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="dimension_flex_value_id"/>
+                    <a:field name="dimension_flex_value_desc" lovGridHeight="300" lovHeight="430" lovService="flex.PUBLIC.fnd_flex_values_lov" lovWidth="600" required="true" title="">
+                        <a:mapping>
+                            <a:map from="flex_value_id" to="dimension_flex_value_id"/>
+                            <a:map from="flex_desc" to="dimension_flex_value_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd29410_form_ds_update"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet column="1" title="维度选择" width="800">
+                <a:comboBox name="dimension_desc" bindTarget="fnd29410_dimension_select_ds" prompt="维度头"/>
+                <a:lov name="dimension_line_desc" bindTarget="fnd29410_dimension_select_ds" prompt="维度行"/>
+                <a:lov name="dimension_flex_value_desc" bindTarget="fnd29410_dimension_select_ds" prompt="维度行值"/>
+            </a:fieldSet>
+            <a:hBox>
+                <a:button click="open_instance_window" text="HAP_OK"/>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

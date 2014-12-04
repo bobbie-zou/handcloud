@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-18 上午11:09:41  
+    $Revision: 1.0  
+    $Purpose: 送货单整单只读查看
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <a:link id="inv_asnDocumentViewOperationRecord_link" url="${/request/@context_path}/modules/inv/INV7010/inv_asn_operation_record.screen"/>
+        <a:link id="inv_asnDocumentViewReceiveTransactionRecord_link" url="${/request/@context_path}/modules/inv/PUBLIC/inv_asn_receive_transactions.screen"/>
+        <script><![CDATA[ 
+	        //关闭窗口
+	        function inv_asnDocumentViewClose_fun(){
+	            $('inv_asn_document_view_window').close();
+	        }
+        
+         	// 接收明细
+            function inv_asnDocumentView_receiveDetail_render(value,record,name){
+                return '<a href="javascript:inv_asnDocumentView_receiveDetail_open(' + record.get('asn_line_id') + ');">${l:INV.ASN_RECEIVE_DETAIL}</a>';
+            } 
+               
+            function inv_asnDocumentView_receiveDetail_open(asn_line_id) {
+                new Aurora.Window({
+                    id: 'inv_asn_transaction_win',
+                    title: '${l:INV.ASN_RECEIVE_DETAIL}',
+                    url: $('inv_asnDocumentViewReceiveTransactionRecord_link').getUrl() + '?asn_line_id=' + asn_line_id ,
+                    height: 450,
+                    width: 600
+                });
+            
+            }
+            
+            
+            // 操作记录
+            function inv_asnDocumentView_operationRecords_render(value, record, name) {
+                return '<a href="javascript:inv_asnDocumentView_operationRecords_open(' + record.get('asn_line_id') + ');">${l:MODULES/INV/INV5020/INV_ASN_OPERATION_RECORD.SCREEN.TITLE}</a>';
+            }
+            
+            function inv_asnDocumentView_operationRecords_open(asn_line_id) {
+                new Aurora.Window({
+                    id: 'inv7010_asn_operation_record_win',
+                    title: '${l:MODULES/INV/INV5020/INV_ASN_OPERATION_RECORD.SCREEN.TITLE}',
+                    url: $('inv_asnDocumentViewOperationRecord_link').getUrl() + '?asn_line_id=' + asn_line_id ,
+                    height: 450,
+                    width: 600
+                });
+            
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="inv_asnDocumentViewHeader_ds" autoQuery="true" model="inv.PUBLIC.inv_asn_document_view_header_query" queryUrl="${/request/@context_path}/autocrud/inv.PUBLIC.inv_asn_document_view_header_query/query?asn_header_id=${/parameter/@asn_header_id}">
+                <a:fields>
+                    <a:field name="company_name" prompt="收货方公司" readOnly="true"/>
+                    <a:field name="vendor_name" prompt="供应商" readOnly="true"/>
+                    <a:field name="vendor_site_name" prompt="供应商地点" readOnly="true"/>
+                    <a:field name="asn_number" prompt="INV_ASN_HEADERS.ASN_NUMBER" readOnly="true"/>
+                    <a:field name="ship_date" prompt="INV_ASN_HEADERS.SHIP_DATE" readOnly="true"/>
+                    <a:field name="expected_date" prompt="INV_ASN_HEADERS.EXPECTED_DATE" readOnly="true"/>
+                    <a:field name="comments" prompt="INV_ASN_HEADERS.HEADER_DESC" readOnly="true"/>
+                    <a:field name="ship_to_organization_name" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID" readOnly="true"/>
+                    <a:field name="location_name" prompt="INV_ASN_HEADERS.LOCATION_ID" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="inv_asnDocumentViewLine_ds" autoQuery="true" model="inv.PUBLIC.inv_asn_document_view_line_query" queryUrl="${/request/@context_path}/autocrud/inv.PUBLIC.inv_asn_document_view_line_query/query?asn_header_id=${/parameter/@asn_header_id}">
+                <a:fields>
+                    <a:field name="cancel_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="close_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton click="inv_asnDocumentViewClose_fun" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:form style="margin-top:5px;width:100%" title="INV_ASN_HEADER.TITLE">
+                <a:hBox labelWidth="120">
+                    <a:textField name="asn_number" bindTarget="inv_asnDocumentViewHeader_ds"/>
+                    <a:textField name="vendor_name" bindTarget="inv_asnDocumentViewHeader_ds"/>
+                    <a:textField name="vendor_site_name" bindTarget="inv_asnDocumentViewHeader_ds"/>
+                    <a:textField name="ship_date" bindTarget="inv_asnDocumentViewHeader_ds"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:textField name="company_name" bindTarget="inv_asnDocumentViewHeader_ds"/>
+                    <a:textField name="ship_to_organization_name" bindTarget="inv_asnDocumentViewHeader_ds"/>
+                    <a:textField name="location_name" bindTarget="inv_asnDocumentViewHeader_ds"/>
+                    <a:textField name="expected_date" bindTarget="inv_asnDocumentViewHeader_ds"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:textField name="comments" bindTarget="inv_asnDocumentViewHeader_ds" width="705"/>
+                </a:hBox>
+            </a:form>
+            <a:tabPanel marginHeight="240" marginWidth="30">
+                <a:tabs>
+                    <a:tab prompt="基本信息" width="130">
+                        <a:grid autoAppend="false" bindTarget="inv_asnDocumentViewLine_ds" marginHeight="300" marginWidth="55" navBar="true">
+                            <a:columns>
+                                <a:column name="asn_line_num" align="left" prompt="行号" sortable="true" width="25"/>
+                                <a:column name="cancel_flag" align="center" prompt="已取消" width="30"/>
+                                <a:column name="close_flag" align="center" prompt="已关闭" width="30"/>
+                                <a:column name="require_item_code" align="left" prompt="物品编码" sortable="true" width="80"/>
+                                <a:column name="require_item_name" align="left" prompt="物品名称" sortable="true" width="100"/>
+                                <!-- <a:column name="supply_item_code" align="left" prompt="供应商的产品编码" sortable="true" width="100"/>
+                                <a:column name="supply_item_name" align="left" prompt="供应商的产品名称" sortable="true" width="150"/> -->
+                                <!-- <a:column name="company_name" align="left" prompt="INV_ASN_HEADERS.COMPANY_ID" sortable="true" width="150"/> -->
+                                <!-- <a:column name="line_status" align="left" prompt="状态" sortable="true" width="60"/> -->
+                                <a:column name="ship_quantity" align="right" prompt="INV_ASN_LINES.SHIP_QUANTITY" renderer="Aurora.formatNumber" width="50"/>
+                                <a:column name="uom_code" align="left" prompt="INV_ASN_LINES.UNIT_MEAS_LOOKUP_CODE" width="20"/>
+                                <!-- <a:column name="unit_price" align="right" prompt="单价" renderer="Aurora.formatNumber" width="50"/> -->
+                                <a:column name="line_receive_status" align="left" prompt="接收状态" width="60"/>
+                                <a:column name="receive_quantity" align="right" prompt="已接收" renderer="Aurora.formatNumber" width="40"/>
+                                <a:column name="on_the_way_quantity" align="right" prompt="在途" renderer="Aurora.formatNumber" width="40"/>
+                                <!-- <a:column name="return_vendor_quantity" align="right" prompt="已退回" renderer="Aurora.formatNumber" width="60"/> -->
+                                <!-- <a:column name="line_deliver_status" align="left" prompt="入库状态" width="60"/> -->
+                                <!-- <a:column name="deliver_quantity" align="right" prompt="已入库" renderer="Aurora.formatNumber" width="60"/> -->
+                                <!-- <a:column name="inspection_pending_quantity" align="right" prompt="待检" renderer="Aurora.formatNumber" width="60"/> -->
+                                <!-- <a:column name="return_receive_quantity" align="right" prompt="退至接收" renderer="Aurora.formatNumber" width="60"/> -->
+                                <a:column name="lots_num" align="left" prompt="INV_ASN_LINES_TEMP.LOTS_NUM" width="50"/>
+                                <a:column name="lots_validity_date" align="left" prompt="INV_ASN_LINES_TEMP.LOTS_VALIDITY_DATE" renderer="Aurora.formatDate" width="50"/>
+                                <a:column name="serial_num" align="left" prompt="INV_ASN_LINES_TEMP.SERIAL_NUM" width="50"/>
+                                <a:column name="invoice_num" align="left" prompt="INV_ASN_LINES_TEMP.INVOICE_NUM" width="70"/>
+                                <a:column name="inv_warehouse" align="left" prompt="库房" width="50"/>
+                                <a:column name="inv_location" align="left" prompt="库位" width="50"/>
+                                <!-- <a:column name="serial_num" align="left" prompt="INV_ASN_LINES_TEMP.SERIAL_NUM" width="80"/>
+                                <a:column name="po_num" align="left" prompt="INV_ASN_LINES.SEGMENT1" sortable="true" width="100"/>
+                                <a:column name="line_num" align="left" prompt="INV_ASN_LINES.LINE_NUM" sortable="true" width="40"/>
+                                <a:column name="shipment_num" align="left" prompt="INV_ASN_LINES.SHIPMENT_NUM" width="50"/> -->
+                                <!-- <a:column name="ship_date" align="left" prompt="INV_ASN_HEADERS.SHIP_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                    <a:column name="expected_date" align="left" prompt="INV_ASN_HEADERS.EXPECTED_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/> -->
+                                <!--                                 <a:column name="need_by_date" align="left" prompt="INV_ASN_LINES.NEED_BY_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                                <a:column name="promised_date" align="left" prompt="PUR_LINE_LOCATIONS_ALL.PROMISED_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                                <a:column name="reversion_num" align="left" prompt="INV_ASN_LINES.REVERSION_NUM" width="50"/>
+                                <a:column name="release_num" align="left" prompt="INV_ASN_LINES.RELEASE_NUM" width="60"/>
+                                <a:column name="vendor_site_name" align="left" prompt="供应商地点" width="100"/>
+                                <a:column name="agent_name" align="left" prompt="INV_ASN_LINES.AGENT_ID" width="70"/> -->
+                                <!-- <a:column name="location_name" align="left" prompt="INV_ASN_HEADERS.LOCATION_ID" width="120"/>
+                    <a:column name="ship_to_organization_name" align="left" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID" width="120"/> -->
+                                <!-- <a:column name="comments" align="left" prompt="INV_ASN_LINES.LINE_DESC" width="120"/> -->
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="其它信息" width="130">
+                        <a:grid autoAppend="false" bindTarget="inv_asnDocumentViewLine_ds" marginHeight="300" marginWidth="55" navBar="true">
+                            <a:columns>
+                                <a:column name="asn_line_num" align="left" prompt="行号" sortable="true" width="25"/>
+                                <!-- <a:column name="cancel_flag" align="center" prompt="已取消" width="30"/>
+                                <a:column name="close_flag" align="center" prompt="已关闭" width="30"/> -->
+                                <a:column name="require_item_code" align="left" prompt="物品编码" sortable="true" width="60"/>
+                                <a:column name="require_item_name" align="left" prompt="物品名称" sortable="true" width="90"/>
+                                <!-- <a:column name="company_name" align="left" prompt="INV_ASN_HEADERS.COMPANY_ID" sortable="true" width="150"/> -->
+                                <!-- <a:column name="line_status" align="left" prompt="状态" sortable="true" width="60"/> -->
+                                <!--                                 <a:column name="ship_quantity" align="right" prompt="INV_ASN_LINES.SHIP_QUANTITY" renderer="Aurora.formatNumber" width="60"/>
+                                <a:column name="uom_code" align="left" prompt="INV_ASN_LINES.UNIT_MEAS_LOOKUP_CODE" width="50"/> -->
+                                <!-- <a:column name="unit_price" align="right" prompt="单价" renderer="Aurora.formatNumber" width="50"/> -->
+                                <!-- <a:column name="line_receive_status" align="left" prompt="接收状态" width="60"/>
+                                <a:column name="receive_quantity" align="right" prompt="已接收" renderer="Aurora.formatNumber" width="60"/>
+                                <a:column name="on_the_way_quantity" align="right" prompt="在途" renderer="Aurora.formatNumber" width="60"/> -->
+                                <!-- <a:column name="return_vendor_quantity" align="right" prompt="已退回" renderer="Aurora.formatNumber" width="60"/> -->
+                                <!-- <a:column name="line_deliver_status" align="left" prompt="入库状态" width="60"/> -->
+                                <!-- <a:column name="deliver_quantity" align="right" prompt="已入库" renderer="Aurora.formatNumber" width="60"/> -->
+                                <!-- <a:column name="inspection_pending_quantity" align="right" prompt="待检" renderer="Aurora.formatNumber" width="60"/> -->
+                                <!-- <a:column name="return_receive_quantity" align="right" prompt="退至接收" renderer="Aurora.formatNumber" width="60"/> -->
+                                <!--                                 <a:column name="lots_num" align="left" prompt="INV_ASN_LINES_TEMP.LOTS_NUM" width="80"/>
+                                <a:column name="lots_validity_date" align="left" prompt="INV_ASN_LINES_TEMP.LOTS_VALIDITY_DATE" renderer="Aurora.formatDate" width="80"/>
+                                <a:column name="invoice_num" align="left" prompt="INV_ASN_LINES_TEMP.INVOICE_NUM" width="80"/> -->
+                                <a:column name="po_num" align="left" prompt="INV_ASN_LINES.SEGMENT1" sortable="true" width="50"/>
+                                <a:column name="release_num" align="left" prompt="INV_ASN_LINES.RELEASE_NUM" width="40"/>
+                                <a:column name="line_num" align="left" prompt="INV_ASN_LINES.LINE_NUM" sortable="true" width="30"/>
+                                <a:column name="shipment_num" align="left" prompt="INV_ASN_LINES.SHIPMENT_NUM" width="40"/>
+                                <a:column name="reversion_num" align="left" prompt="INV_ASN_LINES.REVERSION_NUM" width="40"/>
+                                <!-- <a:column name="ship_date" align="left" prompt="INV_ASN_HEADERS.SHIP_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                    <a:column name="expected_date" align="left" prompt="INV_ASN_HEADERS.EXPECTED_DATE" renderer="Aurora.formatDate" sortable="true" width="80"/> -->
+                                <a:column name="need_by_date" align="left" prompt="INV_ASN_LINES.NEED_BY_DATE" renderer="Aurora.formatDate" sortable="true" width="50"/>
+                                <a:column name="promised_date" align="left" prompt="PUR_LINE_LOCATIONS_ALL.PROMISED_DATE" renderer="Aurora.formatDate" sortable="true" width="50"/>
+                                <!-- <a:column name="vendor_site_name" align="left" prompt="供应商地点" width="80"/> -->
+                                <a:column name="agent_name" align="left" prompt="INV_ASN_LINES.AGENT_ID" width="50"/>
+                                <!-- <a:column name="location_name" align="left" prompt="INV_ASN_HEADERS.LOCATION_ID" width="120"/>
+                    <a:column name="ship_to_organization_name" align="left" prompt="INV_ASN_HEADERS.SHIP_TO_ORGANIZATION_ID" width="120"/> -->
+                                <a:column name="supply_item_code" align="left" prompt="供应商物品编码" sortable="true" width="70"/>
+                                <a:column name="supply_item_name" align="left" prompt="供应商物品名称" sortable="true" width="110"/>
+                                <a:column name="comments" align="left" prompt="INV_ASN_LINES.LINE_DESC" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

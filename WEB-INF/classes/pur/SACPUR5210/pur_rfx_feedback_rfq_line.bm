@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-6-29 下午5:08:44  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select * from (
+select l.feedback_line_id,
+	   h.status header_status,
+       l.feedback_header_id,
+       l.status,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = l.status
+           and sc.code = 'PUR_RFX_FEEDBACK_LINE_STATUS') status_desc,
+       l.company_id,
+       l.inv_organization_id,
+       l.item_category_id,
+       l.item_id,
+       l.item_code,
+       l.item_desc,
+       l.uom_code,
+       (SELECT
+                        fv.uom_desc
+                    FROM
+                        fnd_uom_codes_vl fv
+                    WHERE
+                        fv.uom_code = l.uom_code
+                    ) uom_desc,
+       l.quantity,
+       to_char(l.need_by_date,'yyyy-mm-dd') need_by_date,
+       l.feedback_range,
+       to_char(promised_date,'yyyy-mm-dd') promised_date,
+       to_char(feedback_expiry_date_from,'yyyy-mm-dd') feedback_expiry_date_from,
+       to_char(feedback_expiry_date_to,'yyyy-mm-dd') feedback_expiry_date_to,
+       l.current_fb_by,
+       (select u.user_desc from sys_user_v u where u.user_id = l.current_fb_by) current_fb_by_desc,
+       l.current_fb_quantity,
+       l.current_fb_retail_price,
+       l.current_fb_wholesale_price,
+       l.current_fb_reason,
+       l.current_bargain_by,
+       (select u.user_desc from sys_user_v u where u.user_id = l.current_bargain_by) current_bargain_by_desc,
+       l.current_bargain_quantity,
+       l.current_bargain_retail_price,
+       l.current_bargain_whlsale_price,
+       l.current_bargain_reason,
+       l.valid_fb_by,
+       (select u.user_desc from sys_user_v u where u.user_id = l.valid_fb_by) valid_fb_by_desc,
+       l.valid_fb_quantity,
+       l.valid_fb_retail_price,
+       l.valid_fb_wholesale_price,
+       l.valid_fb_reason,
+       l.valid_bargain_by,
+       (select u.user_desc from sys_user_v u where u.user_id = l.valid_bargain_by) valid_bargain_by_desc,
+       l.valid_bargain_quantity,
+       l.valid_bargain_retail_price,
+       l.valid_bargain_wholesale_price,
+       l.valid_bargain_reason,
+       l.abandoned_flag,
+       l.suggested_flag,
+       l.suggested_note,
+       l.comments,
+       l.creation_date,
+       l.created_by,
+       l.last_update_date,
+       l.last_updated_by,
+       #flex_query_sql#
+  from pur_rfx_feedback_lines l,pur_rfx_feedback_headers h
+  where h.feedback_header_id = l.feedback_header_id ) 
+ #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            declare 
+            	v_feedback_line_id number;
+        	begin
+        		pur_rfx_feedback_pkg.save_rfx_feedback_ln_quotation(p_feedback_line_id          =>${@feedback_line_id},
+                                           p_header_status                    =>${@header_status},
+                                           p_promised_date             =>to_date(${@promised_date},'yyyy-mm-dd'),
+                                           p_feedback_expiry_date_from =>to_date(${@feedback_expiry_date_from},'yyyy-mm-dd'),
+                                           p_feedback_expiry_date_to   =>to_date(${@feedback_expiry_date_to},'yyyy-mm-dd'),
+                                           p_current_fb_retail_price    =>${@current_fb_retail_price},
+                                           p_current_fb_wholesale_price    =>${@current_fb_wholesale_price},
+                                           p_current_fb_reason   =>${@current_fb_reason},
+                                           p_abandoned_flag            =>${@abandoned_flag},
+                                           p_user_id                   =>${/session/@user_id});
+        	
+        	v_feedback_line_id := ${@feedback_line_id};
+        	#flex_save_sql#
+        	
+        	end;
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="feedback_header_id" queryExpression="feedback_header_id = ${@feedback_header_id}"/>
+    </bm:query-fields>
+    <flex-segmentBm applTableAliasName="l" headerIdPath="/parameter/@feedback_header_id" headerTableName="PUR_RFX_FEEDBACK_HEADERS" lineTableName="PUR_RFX_FEEDBACK_LINES" templateFieldName="template_id" type="grid_expanded_bm_query"/>
+    <flex-segmentBm applPkVarName="v_feedback_line_id" headerIdPath="@feedback_header_id" headerTableName="PUR_RFX_FEEDBACK_HEADERS" lineTableName="PUR_RFX_FEEDBACK_LINES" templateFieldName="template_id" type="grid_expanded_bm_update"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_grid_expanded_bm.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

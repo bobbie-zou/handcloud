@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: ouyangzhaochang2663 $
+    $Date: 2010/11/16 03:01:49 $
+    $Revision: 1.1 $
+    $Purpose: 工作流转交设置(设置转交条件)
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+            function wfl2110WorkflowDeliverBatchCreateValidator(record, name, value) {
+                if (name == 'date_from' || name == 'date_to') {
+                    var date_from = record.get('date_from');
+                    var date_to = record.get('date_to');
+                    if (typeof(date_to) != 'undefined' && !Ext.isEmpty(date_to)) {
+                        if (!wfl2110WorkflowDeliverCompareDate(date_from, date_to)) {
+                            return '${l:START_GREATER_THAN_END}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function wfl2110WorkflowDeliverBatchCreateOnUpdate(ds, record, name, value) {
+                if (name == 'date_from' || name == 'date_to') {
+                    record.validate((name == 'date_from') ? 'date_to' : 'date_from');
+                }
+            }
+            
+            function wfl2110WorkflowDeliverSubmit() {
+                if ($('wfl2110_workflow_deliver_batch_create_ds').validate()) {
+                    var batchWorkflowDataSet = $('wfl2110_workflow_deliver_batch_result_ds');
+                    var batchWorkflowRecords = batchWorkflowDataSet.getSelected();
+            
+                    var batchConditionsRecord = $('wfl2110_workflow_deliver_batch_create_ds').getCurrentRecord();
+                    var dateFrom = batchConditionsRecord.get('date_from');
+                    var dateTo = batchConditionsRecord.get('date_to');
+                    var deliverToId = batchConditionsRecord.get('deliver_to_id');
+                    var deliverReason = batchConditionsRecord.get('deliver_reason');
+                    for (var i = 0;i < batchWorkflowRecords.length;i++) {
+                        var record = batchWorkflowRecords[i];
+                        record.set('date_from', dateFrom);
+                        record.set('date_to', dateTo);
+                        record.set('deliver_to_id', deliverToId);
+                        record.set('deliver_reason', deliverReason);
+                        //record.set('_status','insert');
+                    }
+                    batchWorkflowDataSet.submitSelected();
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl2110_workflow_deliver_batch_create_ds" autoCreate="true" fetchAll="false" model="wfl.WFL2110.wfl_workflow_deliver_query" selectable="true">
+                <a:fields>
+                    <a:field name="workflow_id"/>
+                    <a:field name="date_from" required="true" validator="wfl2110WorkflowDeliverBatchCreateValidator"/>
+                    <a:field name="date_to" required="true" validator="wfl2110WorkflowDeliverBatchCreateValidator"/>
+                    <a:field name="user_name" lovHeight="500" lovUrl="${/request/@context_path}/modules/wfl/public/wfl_users_lov.screen" lovWidth="1000" prompt="WFL_WORKFLOW_DELIVER.DELIVER_TO" required="true" title="WFL_WORKFLOW_DELIVER.USER_QUERY">
+                        <a:mapping>
+                            <a:map from="user_id" to="deliver_to_id"/>
+                            <a:map from="employee_name" to="user_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="deliver_to_id" required="true"/>
+                    <a:field name="deliver_reason"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="wfl2110WorkflowDeliverBatchCreateOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:vBox>
+                <a:form column="1" title="WFL_WORKFLOW_DELIVER.DELIVER_SET" width="320">
+                    <a:datePicker name="date_from" bindTarget="wfl2110_workflow_deliver_batch_create_ds" width="200"/>
+                    <a:datePicker name="date_to" bindTarget="wfl2110_workflow_deliver_batch_create_ds" width="200"/>
+                    <a:lov name="user_name" bindTarget="wfl2110_workflow_deliver_batch_create_ds" width="200"/>
+                    <a:textArea name="deliver_reason" bindTarget="wfl2110_workflow_deliver_batch_create_ds" height="140" width="200"/>
+                </a:form>
+            </a:vBox>
+            <div class="win-toolbar" style="width:340px;height:40px;">
+                <a:hBox style="float:right;margin-right:10px;margin-top:5px;">
+                    <a:button click="wfl2110WorkflowDeliverSubmit" text="WFL_WORKFLOW_DELIVER.DELIVER_BATCH"/>
+                    <a:button click="wfl2110WorkflowDeliverClose" text="HAP_CLOSE"/>
+                </a:hBox>
+            </div>
+        </a:screenBody>
+    </a:view>
+</a:screen>

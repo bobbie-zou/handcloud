@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: huyijun 
+    $Date: 2013-5-21 下午03:04:11  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+	         select t.*,
+	         	'<div style="width:330px;height:40px;margin-left:0px;margin-top:0px;position:relative;">'||
+		       		decode(unread_num,
+			              0,
+			              '<div class="dialogue_user_name_read">' || user_name || '</div>',
+			              '<div class="dialogue_user_name_unread">' || user_name || '</div>') || '<div class="dialogue_shot_msg">'
+		       		||
+			        '<div class="dialogue_shot_msg">'||
+			              fnd_message_pkg.get_review_msg(dialogue_id, ${/session/@user_id}) || 
+			              '&nbsp;&nbsp;<span style="color:red;font-size: 12px;">'||decode(unread_num, 0, '', unread_num||'条新消息')||'</span>'||
+				     '</div>'||
+					 '<p class="dialogue_time">'||
+						 	to_char(send_date,'yyyy-mm-dd hh24:mi:ss') ||
+					 '</p>' ||
+			   '</div>' dialogue_name,
+			   unread_num
+	         from (SELECT m.message_id,
+							       t1.dialogue_id,
+							       m.message_from,
+							       m.message_to,
+							       fnd_message_pkg.unread_exist(t1.dialogue_id, ${/session/@user_id}) unread_num,
+							       decode(m.message_to, ${/session/@user_id}, m.message_from, m.message_to) opposite_id,
+							       decode(m.message_to,
+					            		  ${/session/@user_id},
+					              		  (SELECT u.description FROM sys_user u WHERE u.user_id = m.message_from),
+					              		  (SELECT u.description FROM sys_user u WHERE u.user_id = m.message_to)) user_name,
+							       m.content,
+							       m.send_date
+							  FROM fnd_user_messages m,
+							       (SELECT mr.dialogue_id,
+							               MAX(mr.message_id) message_id
+							          FROM fnd_user_message_recipients mr
+							         WHERE ((mr.message_from = ${/session/@user_id} AND mr.source_user_id = ${/session/@user_id}) OR
+							               (mr.message_to = ${/session/@user_id} AND mr.source_user_id = ${/session/@user_id}))
+							               AND mr.delete_flag = 'N'
+							         GROUP BY mr.dialogue_id) t1
+							 WHERE m.message_id = t1.message_id
+							  ) t
+				order by send_date desc
+       			]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="message_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="MESSAGE_ID"/>
+        <bm:field name="message_from" databaseType="NUMBER" datatype="java.lang.Long" physicalName="MESSAGE_FROM"/>
+        <bm:field name="unread_num" databaseType="NUMBER" datatype="java.lang.Long" physicalName="UNREAD_NUM"/>
+        <bm:field name="message_to" databaseType="NUMBER" datatype="java.lang.Long" physicalName="MESSAGE_TO"/>
+        <bm:field name="dialogue_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DIALOGUE_NAME"/>
+        <bm:field name="content" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CONTENT"/>
+        <bm:field name="send_date" databaseType="DATE" datatype="java.util.Date" physicalName="SEND_DATE"/>
+        <bm:field name="dialogue_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="DIALOGUE_ID"/>
+        <bm:field name="opposite_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="OPPOSITE_ID"/>
+    </bm:fields>
+</bm:model>

@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lily  
+    $Date: 2013-7-28 上午10:30:46  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t.vendor_id,
+                    t.vendor_code AS vendor_code,
+                    t.version,
+                    t.vendor_category,
+                    t.vendor_type_id,
+                    t.short_name,
+                    t.full_name,
+                    t.enterprise_nature,
+                    t.registered_country_code,
+                    (SELECT
+                        fc.description
+                    FROM
+                        fnd_country_code_vl fc
+                    WHERE
+                        fc.country_code=t.registered_country_code 
+                    ) registered_country_name,
+                    t.legal_representative,
+                    t.national_organization_code,
+                    t.tax_id_number,
+                    t.taxpayer_type,
+                    t.d_b_code,
+                    t.business_license_number,
+                    TO_CHAR(t.business_license_end_date, 'YYYY-MM-DD') business_license_end_date,
+                    t.business_license_authority,
+                    t.operating_license_number,
+                    TO_CHAR(t.operating_license_end_date, 'YYYY-MM-DD') operating_license_end_date,
+                    t.registered_capital,
+                    t.registered_currency_code,
+                    (SELECT
+                        d.description_text
+                    FROM
+                        gld_currency c,
+                        fnd_descriptions d
+                    WHERE
+                        c.currency_code  = t.registered_currency_code AND
+                        d.description_id = c.currency_name_id AND
+                        d.language       = ${/session/@lang} 
+                    ) AS registered_currency_name,
+                    t.official_email,
+                    t.website,
+                    t.post_code,
+                    t.zone_code,
+                    t.fax_no,
+                    t.official_telephone,
+                    t.customer_service_phone,
+                    t.contact_email,
+                    t.PAYMENT_TERM_ID,
+                    (SELECT
+                        m.payment_term_code
+                    FROM
+                        csh_payment_terms m
+                    WHERE
+                        m.payment_term_id = t.payment_term_id 
+                    ) AS payment_term_code,
+                    (SELECT
+                        d.description_text
+                    FROM
+                        csh_payment_terms m,
+                        fnd_descriptions d
+                    WHERE
+                        m.payment_term_id = t.payment_term_id AND
+                        m.description_id  = d.description_id AND
+                        d.language        = ${/session/@lang} 
+                    ) AS payment_term_name,
+                    (SELECT
+                        d.description_text
+                    FROM
+                        csh_payment_methods m,
+                        fnd_descriptions d
+                    WHERE
+                        m.payment_method_id = t.payment_method_id AND
+                        m.description_id    = d.description_id AND
+                        d.language          = ${/session/@lang} 
+                    ) AS payment_method_name,
+                    t.PAYMENT_METHOD_ID,
+                    t.TAX_TYPE_ID,
+                    (SELECT
+                        c.tax_type_code
+                    FROM
+                        fnd_tax_type_codes c
+                    WHERE
+                        c.tax_type_id = t.tax_type_id 
+                    ) AS tax_type_code,
+                    (SELECT
+                        d.description_text
+                    FROM
+                        fnd_tax_type_codes c,
+                        fnd_descriptions d
+                    WHERE
+                        c.tax_type_id    = t.tax_type_id AND
+                        c.description_id = d.description_id AND
+                        d.language       = ${/session/@lang}
+                    ) AS tax_type_name,
+                    t.TRADE_CURRENCY_CODE,
+                    (SELECT
+                        d.description_text
+                    FROM
+                        gld_currency c,
+                        fnd_descriptions d
+                    WHERE
+                        c.currency_code  = t.trade_currency_code AND
+                        d.description_id = c.currency_name_id AND
+                        d.language       = ${/session/@lang} 
+                    ) AS trade_currency_name,
+                    t.time_zone_code,
+                    t.language,
+                    t.factory_nature,
+                    t.factory_area,
+                    t.iso9001_flag,
+                    t.iso14000_flag,
+                    t.other_certificate,
+                    t.vendor_abstract,
+                    t.business_scope,
+                    t.agent_brand,
+                    t.main_business,
+                    t.partner_info,
+                    t.service_item,
+                    t.comments,
+                    t.status,
+                    t.approved_flag,
+                    t.rejected_flag,
+                    t.approving_date,
+                    t.approving_by,
+                    t.approving_comments,
+                    NVL(t.maintained_flag,'N') maintain_flag,
+                    t.sys_vendor_flag,
+                    t.enabled_flag,
+                    t.invalid_date,
+                    t.invalid_by,
+                    t.data_source,
+                    t.data_source_id,
+                    t.data_source_code,
+                    t.data_source_name,
+                    t.source_type,
+                    t.source_code,
+                    TO_CHAR(t.creation_date,'YYYY-MM-DD HH:MM:SS') creation_date,
+                    t.created_by,
+                    t.last_update_date,
+                    t.last_updated_by,
+                    nvl(t.business_license_type,'N') business_license_type,
+                    t.registered_province_id,
+                    (select f.description from fnd_region_code_vl f where f.region_id = t.registered_province_id ) registered_province_desc,
+                    t.registered_city_id,
+                    (select f.description from fnd_region_code_vl f where f.region_id = t.registered_city_id ) registered_city_desc
+                FROM
+                    pur_vendors_vl t #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter inputPath="/session/@lang"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:parameters>
+                <bm:parameter name="vendor_id" dataType="java.lang.Long" input="true" inputPath="/parameter/@vendor_id" output="true" outputPath="/parameter/@vendor_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[        
+            begin
+                  pur_vendor_pkg.save_pur_vendors(
+                              p_vendor_id                  => ${@vendor_id},
+                              p_vendor_category            => ${@vendor_category},
+                              p_vendor_type_id             => ${@vendor_type_id},
+                              p_short_name                 => ${@short_name},
+                              p_full_name                  => ${@full_name},
+                              p_enterprise_nature          => ${@enterprise_nature},
+                              p_registered_country_code    => ${@registered_country_code},
+                              p_legal_representative       => ${@legal_representative},
+                              p_national_organization_code => ${@national_organization_code},
+                              p_tax_id_number              => ${@tax_id_number},
+                              p_taxpayer_type              => ${@taxpayer_type},
+                              p_d_b_code                   => ${@d_b_code},
+                              p_business_license_number    => ${@business_license_number},
+                              p_business_license_end_date  => to_date(${@business_license_end_date},'YYYY-MM-DD'),
+                              p_business_license_authority => ${@business_license_authority},
+                              p_operating_license_number   => ${@operating_license_number},
+                              p_operating_license_end_date => to_date(${@operating_license_end_date},'YYYY-MM-DD'),
+                              p_registered_capital         => ${@registered_capital},
+                              p_registered_currency_code   => ${@registered_currency_code},
+                              p_official_email             => ${@official_email},
+                              p_website                    => ${@website},
+                              p_post_code                  => ${@post_code},
+                              p_zone_code                  => ${@zone_code},
+                              p_fax_no                     => ${@fax_no},
+                              p_official_telephone         => ${@official_telephone},
+                              p_customer_service_phone     => ${@customer_service_phone},
+                              p_contact_email              => ${@contact_email},
+                              p_trade_currency_code        => ${@trade_currency_code},
+                              p_payment_term_id            => ${@payment_term_id},
+                              p_payment_method_id          => ${@payment_method_id},
+                              p_tax_type_id                => ${@tax_type_id},
+                              p_factory_nature             => ${@factory_nature},
+                              p_factory_area               => ${@factory_area},
+                              p_iso9001_flag               => ${@iso9001_flag},
+                              p_iso14000_flag              => ${@iso14000_flag},
+                              p_other_certificate          => ${@other_certificate},
+                              p_vendor_abstract            => ${@vendor_abstract},
+                              p_business_scope             => ${@business_scope},
+                              p_agent_brand                => ${@agent_brand},
+                              p_comments                   => ${@comments},
+                              p_business_license_type      => ${@business_license_type},
+                              p_registered_province_id     => ${@registered_province_id},
+                              p_registered_city_id         => ${@registered_city_id},
+                              p_user_id                    => ${/session/@user_id});
+                end;
+        
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+                BEGIN
+                    pur_vendor_pkg.submit_pur_vendors(p_vendor_id => ${@vendor_id}, p_user_id => ${/session/@user_id});
+                END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="t.vendor_id=${/parameter/@vendor_id}"/>
+    </bm:data-filters>
+</bm:model>

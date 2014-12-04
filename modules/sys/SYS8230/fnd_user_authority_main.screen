@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-4-18 下午3:36:38  
+    $Revision: 1.0  
+    $Purpose: CLIENT用户级权限配置，入口页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="fnd2830_fnd_user_authority_batch_update_link" model="sys.SYS8230.fnd_user_authority_maintain" modelaction="batch_update"/>
+        <a:link id="fnd2830_fnd_user_authority_execute_link" model="sys.SYS8230.fnd_user_authority_maintain" modelaction="execute"/>
+        <a:link id="fnd2830_fnd_user_authority_flex_code_list_link" url="${/request/@context_path}/modules/sys/SYS8230/fnd_user_authority_flex_code_list.screen"/>
+        <script><![CDATA[
+            function fnd2830_fndUserAuthorityMaintainGridRenderer(value, record, name) {
+                if (name == 'authority_assign') {
+                    var user_id = record.get('user_id');
+                    var enabled_flag = record.get('enabled_flag');
+                    var authority_hds_id = record.get('authority_hds_id');
+                    if (enabled_flag == 'Y' && !Aurora.isEmpty(authority_hds_id) && !record.dirty) {
+                        return '<a href="javascript:fnd2830_fndUserAuthorityMaintainGridRendererInstancesAssign(' + user_id + ',' + authority_hds_id + ');">${l:FND_USER_AUTHORITY_HDS.AUTHORITY_ASSIGN}</a>';
+                    }
+                }
+            }
+            
+            function fnd2830_fndUserAuthorityMaintainGridRendererInstancesAssign(user_id, authority_hds_id) {
+                new Aurora.Window({
+                    id: 'fnd2830_fnd_user_authority_flex_code_list_link_window',
+                    url: $('fnd2830_fnd_user_authority_flex_code_list_link').getUrl() + '?authority_hds_id=' + authority_hds_id + '&assign_user_id=' + user_id,
+                    title: '${l:FND_USER_AUTHORITY_HDS.AUTHORITY_ASSIGN}',
+                    height: 300,
+                    width: 400
+                });
+            }
+            
+            function fnd2830_saveUserAuthority() {
+                var records = $('fnd2830_fnd_user_authority_maintain_ds').getAll();
+                var data = [];
+                var save_flag = false;
+                for (var i = 0;i < records.length;i++) {
+                    if (records[i].dirty) {
+                        records[i].set('_status', 'update');
+                        data.push(records[i].data);
+                        save_flag = true;
+                    }
+                }
+                if (save_flag) {
+                    //锁屏
+                    Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+                    $('fnd2830_saveUserAuthority_btn').disable();
+                    Aurora.request({
+                        url: $('fnd2830_fnd_user_authority_batch_update_link').getUrl(),
+                        para: data,
+                        success: function() {
+                            //解锁
+                            Aurora.Masker.unmask(Ext.getBody());
+                            Aurora.showMessage('${l:PROMPT}', '${l:SUCCESSFUL_OPERATION}', function() {
+                                $('fnd2830_fnd_user_authority_maintain_ds').query();
+                                $('fnd2830_saveUserAuthority_btn').enable();
+                            });
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            $('fnd2830_saveUserAuthority_btn').enable();
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            $('fnd2830_saveUserAuthority_btn').enable();
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function fnd2830_saveAllPageUserAuthority() {
+                var user_name_description = $('fnd2830_fnd_user_authority_query_form_query').getValue();
+                Aurora.showConfirm('${l:PROMPT}', '${l:FND_USER_AUTHORITY_HDS.SURE_ENABLE_QUERY_USER}', function() {
+	                //锁屏
+	                Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+	                $('fnd2830_saveAllPageUserAuthority_btn').disable();
+	                Aurora.request({
+	                    url: $('fnd2830_fnd_user_authority_execute_link').getUrl(),
+	                    para: {
+	                        user_name_description: user_name_description
+	                    },
+	                    success: function() {
+	                        //解锁
+	                        Aurora.Masker.unmask(Ext.getBody());
+	                        Aurora.showMessage('${l:PROMPT}', '${l:SUCCESSFUL_OPERATION}', function() {
+	                            $('fnd2830_fnd_user_authority_maintain_ds').query();
+	                            $('fnd2830_saveAllPageUserAuthority_btn').enable();
+	                        });
+	                    },
+	                    failure: function() {
+	                        Aurora.Masker.unmask(Ext.getBody());
+	                        $('fnd2830_saveAllPageUserAuthority_btn').enable();
+	                    },
+	                    error: function() {
+	                        Aurora.Masker.unmask(Ext.getBody());
+	                        $('fnd2830_saveAllPageUserAuthority_btn').enable();
+	                    },
+	                    scope: this
+	                });
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2830_fnd_user_authority_query_ds" autoCreate="true" model="sys.SYS8230.fnd_user_authority_maintain">
+                <a:fields/>
+            </a:dataSet>
+            <a:dataSet id="fnd2830_fnd_user_authority_maintain_ds" autoPageSize="true" autoQuery="true" model="sys.SYS8230.fnd_user_authority_maintain" queryDataSet="fnd2830_fnd_user_authority_query_ds" selectable="false">
+                <a:fields>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton id="fnd2830_saveUserAuthority_btn" click="fnd2830_saveUserAuthority" style="margin-left:20px;" text="HAP_SAVE" width="100"/>
+                <a:toolbarButton id="fnd2830_saveAllPageUserAuthority_btn" click="fnd2830_saveAllPageUserAuthority" style="margin-left:20px;" text="FND_USER_AUTHORITY_HDS.ALL_QUERY_USER_ENABLE" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm id="fnd2830_fnd_user_authority_query_form" bindTarget="fnd2830_fnd_user_authority_query_ds" defaultQueryField="user_name_description" defaultQueryHint="FND_USER_AUTHORITY_HDS.USER_NAME_DESCRIPTION" resultTarget="fnd2830_fnd_user_authority_maintain_ds" style="width:100%;border:none"/>
+            <a:grid id="fnd2830_fnd_user_authority_maintain_ds_grid" bindTarget="fnd2830_fnd_user_authority_maintain_ds" marginHeight="180" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column name="user_name" align="left" prompt="FND2810.USER_NAME" width="150"/>
+                    <a:column name="user_description" align="left" prompt="FND2810.USER_DESC" width="300"/>
+                    <a:column name="enabled_flag" align="center" editor="fnd2830_fnd_user_authority_maintain_ds_grid_cb" prompt="FND_USER_AUTHORITY_HDS.ENABLED_FLAG" width="30"/>
+                    <a:column name="authority_assign" align="center" prompt="FND_USER_AUTHORITY_HDS.AUTHORITY_ASSIGN" renderer="fnd2830_fndUserAuthorityMaintainGridRenderer" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="fnd2830_fnd_user_authority_maintain_ds_grid_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

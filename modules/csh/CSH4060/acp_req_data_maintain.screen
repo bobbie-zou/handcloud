@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: jessen  
+    $Date: 2011-9-15 下午5:29:52  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query model="csh.payment_method_list" rootPath="payment_method_list"/>
+    </a:init-procedure>
+    <a:view package="aurora.ui.std" template="default">
+        <a:link id="acp_req_payment_link" model="db.acp_payment_req_data_pkg.repeat_sent_payment_data" modelaction="execute"/>
+        <a:link id="acp_req_refuse_confirm_link" model="db.acp_payment_req_data_pkg.confirm_refund_payment_data" modelaction="execute"/>
+        <script><![CDATA[
+
+            function CSH4060_onquery() {
+                $('CSH4060_payment_cms_list').query();
+            }
+            
+            function CSH4060_onreset() {
+                var ds = $('CSH4060_query_ds');
+                var rec = ds.getCurrentRecord();
+                ds.reset();
+                rec.set('sent_date_to', new Date());
+                rec.set('payment_date_to', new Date());
+            }
+            
+            function CSH4060_select(ds, record) {
+                if (record.get('payment_status') == 'PAYMENT FAILED') {
+                    $('CSH4060_pay').enable();
+                } else if (record.get('payment_status') == 'BACK') {
+                    $('CSH4060_refuse').enable();
+                }
+            }
+            
+            function CSH4060_unselect(ds, record) {
+                // var records = ds.getSelected();
+                // for (i = 0;i < records.length;i++) {
+                    // var payment_status = records[i].get('payment_status');
+                    // if(payment_status == 'PAYMENT FAILED'){
+                        // return;
+                    // }
+                // }
+            }
+            
+            function CSH4060_rePayment() {
+                //选中数据中有类型为支付失败数据时，点击重新支付按钮执行以下操作
+                var selectRecord=$('CSH4060_payment_cms_list').getSelected();
+                for (i = 0;i < selectRecord.length;i++) {
+                    var csh_transaction_line_id=selectRecord[i].get('csh_transaction_line_id');
+	                Aurora.request({
+	                    url: $('acp_req_payment_link').getUrl(),
+	                    para: selectRecord[i].data,
+	                    success: function CSH4060_payerror(res){
+	                        var document_number=res.result.document_number;
+	                        if(document_number){
+	            				Aurora.showInfoMessage('${l:PROMPT_MESSAGE}','${l:CSH_NOT_REPAY_TRANSACTION_NUM}'+document_number, function(){});
+	                        }
+	                    },
+	                    scope: this
+	                });
+                }
+            }
+            
+            function CSH4060_refuseConfirm() {
+                //选中数据中有类型为退票数据时，点击退票确认按钮执行以下操作
+                 var selectRecord=$('CSH4060_payment_cms_list').getSelected();
+                 for (i = 0;i < selectRecord.length;i++) {
+                     var csh_transaction_line_id=selectRecord[i].get('csh_transaction_line_id');
+	                Aurora.request({
+	                    url: $('acp_req_refuse_confirm_link').getUrl(),
+	                    para: selectRecord[i].data,
+	                    success: function CSH4060_confirmError(res){
+	                        var document_number=res.result.document_number;
+	                        if(document_number){
+	            				Aurora.showInfoMessage('${l:PROMPT_MESSAGE}','${l:CSH_NOT_CONFIRM_TRANSACTION_NUM}'+document_number, function(){});
+	                        }
+	                        // if(status=='BACK'){
+	                            // alert('无法退票确认的现金事务编号'+res.result.csh_transaction_line_id);
+	                        // }
+	                        // alert(res.result.csh_transaction_line_id);
+	                    },
+	                    scope: this
+	                });
+                 }
+            }
+            
+            function CSH4060_onUpdate(dataSet, record, name, value, oldvalue) {
+                var partner_name = record.getMeta().getField('partner_name');
+            
+                if (name == 'partner_category') {
+                    if (value) {
+                        partner_name.setLovPara('partner_category', value);
+                        partner_name.setLovService('csh.csh_company_employee_vender_customer_lov');
+                        partner_name.setReadOnly(false);
+                    } else {
+                        partner_name.setLovService('');
+                        partner_name.setReadOnly(true);
+                    }
+                    record.set('partner_id', '');
+                    record.set('partner_code', '');
+                    record.set('partner_name', '');
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="CSH4060_document_type_ds" lookupCode="ACP_DOCUMENT_TYPE"/>
+            <a:dataSet id="CSH4060_payment_status_ds" lookupCode="ACP_PAYMENT_STATUS"/>
+            <a:dataSet id="CSH4060_itemlist_ds" lookupCode="PAYMENT_OBJECT"/>
+            <a:dataSet id="payment_method_list_ds" loadData="true">
+                <a:datas dataSource="/model/payment_method_list"/>
+            </a:dataSet>
+            <a:dataSet id="CSH4060_currency_code_ds" loadData="true" model="csh.CSH1020.csh_payment_cms_currency_code"/>
+            <a:dataSet id="CSH4060_bank_account_ds" loadData="true" model="csh.CSH1020.csh_payment_cms_bank_account"/>
+            <a:dataSet id="CSH4060_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="payment_bank_account"/>
+                    <a:field name="payment_bank_account_com" displayField="bank_account_num_name" options="CSH4060_bank_account_ds" returnField="payment_bank_account" valueField="bank_account_num"/>
+                    <a:field name="payment_bank"/>
+                    <a:field name="currency_code"/>
+                    <a:field name="currency_code_com" displayField="currency_name" options="CSH4060_currency_code_ds" returnField="currency_code" valueField="currency_code"/>
+                    <a:field name="sent_date_from"/>
+                    <a:field name="sent_date_to"/>
+                    <a:field name="payment_date_from"/>
+                    <a:field name="payment_date_to"/>
+                    <!-- <a:field name="payment_transaction_num_from"/>
+                    <a:field name="payment_transaction_num_to"/> -->
+                    <a:field name="payment_transaction_num"/>
+                    <a:field name="payment_method_id_display" displayField="description" options="payment_method_list_ds" returnField="payment_method_id" valueField="payment_method_id"/>
+                    <a:field name="payment_cms_list_num_from"/>
+                    <a:field name="payment_cms_list_num_to"/>
+                    <a:field name="document_type"/>
+                    <a:field name="payment_document_type" displayField="code_value_name" options="CSH4060_document_type_ds" returnField="document_type" valueField="code_value"/>
+                    <a:field name="sent_batch_num"/>
+                    <a:field name="partner_name" autoComplete="true" autoCompleteField="partner_name" lovGridHeight="310" lovHeight="460" lovWidth="540" readOnly="true" title="CSH_TRANSACTION_LINES.PARTNER_ID_ONE">
+                        <a:mapping>
+                            <a:map from="partner_id" to="partner_id"/>
+                            <a:map from="partner_code" to="partner_code"/>
+                            <a:map from="partner_name" to="partner_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="partner_id"/>
+                    <a:field name="payment_status"/>
+                    <a:field name="payment_status_com" displayField="code_value_name" options="CSH4060_payment_status_ds" returnField="payment_status" valueField="code_value"/>
+                    <a:field name="partner_category"/>
+                    <a:field name="partner_category_com" displayField="code_value_name" options="CSH4060_itemlist_ds" returnField="partner_category" valueField="code_value"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="CSH4060_onUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="CSH4060_payment_cms_list" model="csh.CSH4060.csh_transaction_details" queryDataSet="CSH4060_query_ds" selectable="true">
+                <a:events>
+                    <a:event name="select" handler="CSH4060_select"/>
+                    <a:event name="unselect" handler="CSH4060_unselect"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="1" title="CSH_PAYMENT_CMS.CASH_TRANSACTION_NUMBER" width="960">
+                <a:box column="3" labelWidth="100">
+                    <a:comboBox name="payment_bank_account_com" bindTarget="CSH4060_query_ds" prompt="CSH_PAYMENT_CMS.PAYMENT_BANK_ACCOUNT" width="388"/>
+                    <a:textField name="payment_bank" bindTarget="CSH4060_query_ds" prompt="CSH_PAYMENT_CMS.PAYMENT_BANK_NAME"/>
+                    <a:comboBox name="currency_code_com" bindTarget="CSH4060_query_ds" prompt="ACP_REQUISITION.CURRENCY"/>
+                </a:box>
+                <a:box column="4" labelWidth="100">
+                    <a:datePicker name="sent_date_from" bindTarget="CSH4060_query_ds" prompt="CSH_PAYMENT_CMS.SENT_DATE_FROM"/>
+                    <a:datePicker name="sent_date_to" bindTarget="CSH4060_query_ds" prompt="CSH_PAYMENT_CMS.SENT_DATE_TO"/>
+                    <!-- -->
+                    <a:datePicker name="payment_date_from" bindTarget="CSH4060_query_ds" prompt="CSH_PAYMENT_CMS.PAYMENT_DATE_FROM"/>
+                    <a:datePicker name="payment_date_to" bindTarget="CSH4060_query_ds" prompt="CSH_PAYMENT.P_TRANSACTION_DATE_T"/>
+                </a:box>
+                <!-- -->
+                <a:box column="4" labelWidth="100">
+                    <a:textField name="payment_transaction_num" bindTarget="CSH4060_query_ds" prompt="CSH_PAYMENT_CMS.PAYMENT_TRANSACTION_NUM"/>
+                    <a:comboBox name="payment_method_id_display" bindTarget="CSH4060_query_ds" prompt="ACP.DESCRIPTION_METHOD"/>
+                    <!-- <a:textField name="payment_transaction_num_from" bindTarget="CSH4060_query_ds" prompt="CSH_PAYMENT_CMS.PAYMENT_TRANSACTION_NUM_FROM"/>
+                    <a:textField name="payment_transaction_num_to" bindTarget="CSH4060_query_ds" prompt="PROMPT.TO"/> -->
+                    <!-- -->
+                    <a:textField name="payment_cms_list_num_from" bindTarget="CSH4060_query_ds" prompt="CSH_PAYMENT_CMS.PAYMENT_CMS_LIST_NUM_FROM"/>
+                    <a:textField name="payment_cms_list_num_to" bindTarget="CSH4060_query_ds" prompt="CSH_PAYMENT_CMS.PAYMENT_CMS_LIST_NUM_TO"/>
+                </a:box>
+                <a:box column="4" labelWidth="100">
+                    <a:comboBox name="payment_document_type" bindTarget="CSH4060_query_ds" prompt="BGT_BUDGET_ITEM_MAPPING.BUSINESS_TYPE"/>
+                    <a:comboBox name="payment_status_com" bindTarget="CSH4060_query_ds" prompt="CSH_PAYMENT_CMS.PAYMENT_STATUS"/>
+                    <!-- -->
+                    <a:comboBox name="partner_category_com" bindTarget="CSH4060_query_ds" prompt="EXP_REPORT_HEADERS.PAYEE_CATEGORY"/>
+                    <a:lov name="partner_name" bindTarget="CSH4060_query_ds" prompt="ACP_INVOICE_HEADERS.PAYEE_ID"/>
+                </a:box>
+                <a:box column="4" labelWidth="80">
+                    <a:textField name="payment_amount_from" bindTarget="CSH4060_query_ds" prompt="CSH_PREPAYMENT_WRITE_OFF.NUMBER_FROM"/>
+                    <a:textField name="payment_amount_to" bindTarget="CSH4060_query_ds" prompt="CSH_PREPAYMENT_WRITE_OFF.NUMBER_TO"/>
+                    <!-- -->
+                </a:box>
+                <!-- -->
+            </a:form>
+            <a:hBox>
+                <a:button click="CSH4060_onquery" text="PROMPT.QUERY"/>
+                <a:button click="CSH4060_onreset" text="PROMPT.RESET"/>
+                <a:button id="CSH4060_pay" click="CSH4060_rePayment" disabled="true" text="CSH_TRANSACTION_DETAILS.REPAY"/>
+                <a:button id="CSH4060_refuse" click="CSH4060_refuseConfirm" disabled="true" text="CSH_TRANSACTION_DETAILS.REFUND_CONFIRM"/>
+            </a:hBox>
+            <a:grid bindTarget="CSH4060_payment_cms_list" height="300" navBar="true" navBarType="complex" width="960">
+                <a:toolBar>
+                    <!--<a:button type="add"/>-->
+                    <a:button type="excel"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="detail_id" align="left" prompt="CSH_PAYMENT_CMS.PAYMENT_CMS_LIST_NUM" sortable="true" width="80"/>
+                    <a:column name="document_number" align="left" prompt="CSH_PAYMENT_CMS.PAYMENT_TRANSACTION_NUM" sortable="true" width="130"/>
+                    <a:column name="document_line_id" align="left" prompt="CSH_TRANSACTION_DETAILS.PAYMENT_BUSINESS_NUMBER" sortable="true" width="100"/>
+                    <a:column name="drawee_bank_name" align="left" prompt="CSH_PAYMENT_CMS.PAYMENT_BANK_NAME" sortable="true" width="100"/>
+                    <a:column name="drawee_account_name" align="left" prompt="CSH_PAYMENT_CMS.PAYMENT_BANK_ACCOUNT" sortable="true" width="100"/>
+                    <a:column name="payment_method_display" align="left" prompt="CSH_PAYMENT_CMS.PAYMENT_METHOD_NAME" sortable="true" width="100"/>
+                    <a:column name="partner_category" align="left" prompt="EXP_REPORT_HEADERS.PAYEE_CATEGORY" sortable="true" width="100"/>
+                    <a:column name="partner_name" align="left" prompt="ACP_INVOICE_HEADERS.PAYEE_ID" sortable="true" width="100"/>
+                    <a:column name="document_type" align="left" prompt="BGT_BUDGET_ITEM_MAPPING.BUSINESS_TYPE" sortable="true" width="130"/>
+                    <a:column name="payee_bank_name" align="left" prompt="CSH_TRANSACTION_DETAILS.RECEIPTS_BANK_NAME" sortable="true" width="100"/>
+                    <a:column name="payee_province_name" align="left" prompt="EXP_POLICY_DISTRICTS.DISTRICT_DESC" sortable="true" width="100"/>
+                    <a:column name="payee_city_name" align="left" prompt="EXP_REQUISITION_LINES.CITY" sortable="true" width="100"/>
+                    <a:column name="payee_account_name" align="left" prompt="CSH_TRANSACTION_DETAILS.RECEIPTS_NUMBER" sortable="true" width="100"/>
+                    <a:column name="currency_name" align="left" prompt="ACP_REQUISITION.CURRENCY" sortable="true" width="80"/>
+                    <a:column name="amount" align="left" prompt="CSH_PAYMENT_REQUISITION_LNS.AMOUNT" renderer="Aurora.formatMoney" sortable="true" width="100"/>
+                    <a:column name="actual_pay_date" align="left" prompt="CSH_PAYMENT_REQUISITION_LNS.ONLINE_PAYMENT_DATE" renderer="Aurora.formatDateTime" sortable="true" width="100"/>
+                    <a:column name="drawee_name" align="left" prompt="CSH_TRANSACTION_DETAILS.PAYMENT_CASHIER" sortable="true" width="100"/>
+                    <a:column name="pay_date" align="left" prompt="CSH_TRANSACTION_DETAILS.PAYMENT_DRAW_TIME" renderer="Aurora.formatDateTime" sortable="true" width="100"/>
+                    <a:column name="payment_status_name" align="left" prompt="CSH_PAYMENT_CMS.PAYMENT_STATUS" sortable="true" width="100"/>
+                    <a:column name="request_time" align="left" prompt="CSH_TRANSACTION_DETAILS.IMPORT_DATE" renderer="Aurora.formatDateTime" sortable="true" width="100"/>
+                    <a:column name="refund_time" align="left" prompt="CSH_TRANSACTION_DETAILS.REFUND_DATE" renderer="Aurora.formatDateTime" sortable="true" width="100"/>
+                    <a:column name="status_desc" align="left" prompt="CSH_PAYMENT_CMS.ERROR_DESCRIPTION" sortable="true" width="150"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="tf1"/>
+                    <a:comboBox id="cb1"/>
+                    <a:dateTimePicker id="dt1"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+    <script><![CDATA[
+
+        function CSH4060_init() {
+            var ds = $('CSH4060_query_ds');
+            var rec = ds.getCurrentRecord();
+            rec.set('sent_date_to', new Date());
+            rec.set('payment_date_to', new Date());
+        }
+        CSH4060_init();
+    ]]></script>
+</a:screen>

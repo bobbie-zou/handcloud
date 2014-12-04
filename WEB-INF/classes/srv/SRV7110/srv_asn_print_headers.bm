@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2014-10-10 下午04:38:31  
+    $Revision: 1.0  
+    $Purpose: 送货单查询-采购方，送货单打印查询BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="asn_number">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    a.*,
+                    ceil(line_count / 5) pages
+                FROM
+                    (SELECT
+                        h.asn_header_id,
+                        h.asn_number,
+                        TO_CHAR(sysdate,'yyyy-mm-dd hh24:mi:ss') AS print_date,
+                        (SELECT
+                            pvv.full_name
+                        FROM
+                            pur_vendors_vl pvv
+                        WHERE
+                            pvv.vendor_id = h.vendor_id
+                        ) AS vendor_name,
+                        (SELECT
+                            ilv.description
+                        FROM
+                            inv_locations_vl ilv
+                        WHERE
+                            ilv.location_id = h.location_id
+                        ) AS location_name,
+                        (SELECT
+                            iov.description
+                        FROM
+                            inv_organizations_vl iov
+                        WHERE
+                            iov.inv_organization_id = h.ship_to_organization_id
+                        ) AS ship_to_organization_name,
+                        (SELECT
+                            fcv.company_full_name
+                        FROM
+                            fnd_companies_vl fcv
+                        WHERE
+                            fcv.company_id = h.coop_company_id
+                        ) AS company_name,
+                        (SELECT
+                            vsv.site_name
+                        FROM
+                            pur_vendor_sites_vl vsv
+                        WHERE
+                            vsv.vendor_site_id = h.vendor_site_id
+                        ) AS vendor_site_name,
+                        h.comments AS header_desc,
+                        TO_CHAR(h.ship_date,'yyyy-mm-dd') AS ship_date,
+                        TO_CHAR(h.expected_date,'yyyy-mm-dd') AS expected_date,
+                        (SELECT
+                            COUNT(1)
+                        FROM
+                            inv_asn_print p
+                        WHERE
+                            p.asn_header_id=h.asn_header_id AND
+                            p.session_id   =${/session/@session_id}
+                        ) AS line_count
+                    FROM
+                        inv_asn_headers h
+                    WHERE
+                        h.asn_header_id=${/parameter/@asn_header_id}
+                    ) a
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

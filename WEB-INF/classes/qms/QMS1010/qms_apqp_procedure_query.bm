@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2013-5-28 下午4:01:05  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<ns1:model xmlns:o="aurora.database.local.oracle" xmlns:ns1="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" defaultOrderBy="PROCEDURE_CODE" extend="qms.qms_procedures" extendMode="reference">
+    <ns1:fields>
+        <ns1:field name="procedure_id"/>
+        <ns1:field name="company_id"/>
+        <ns1:field name="inv_organization_id"/>
+        <ns1:field name="flex_value_id"/>
+        <ns1:field name="procedure_code"/>
+        <ns1:field name="procedure_name" databaseType="VARCHAR2" datatype="java.lang.String" expression="(select fvv.flex_desc from fnd_flex_values_vl fvv where fvv.flex_value_id = t1.flex_value_id)" forInsert="false" forUpdate="fasle"/>
+        <ns1:field name="responsible_person_id"/>
+        <ns1:field name="responsible_person_name" databaseType="VARCHAR2" datatype="java.lang.String" expression="(select su.description from sys_user su where su.user_id = t1.responsible_person_id)" forInsert="false" forUpdate="fasle"/>
+        <ns1:field name="enabled_flag"/>
+    </ns1:fields>
+    <ns1:features>
+        <o:sequence-pk/>
+        <f:standard-who/>
+    </ns1:features>
+    <ns1:query-fields>
+        <ns1:query-field name="procedure_code_name" queryExpression="exists (select 1 from fnd_flex_values_vl fvv where fvv.flex_value_id = t1.flex_value_id and fvv.flex_value like &apos;%&apos;||${@procedure_code_name}||&apos;%&apos;) or exists (select 1 from fnd_flex_values_vl fvv where fvv.flex_value_id = t1.flex_value_id and fvv.flex_desc like &apos;%&apos;||${@procedure_code_name}||&apos;%&apos;)"/>
+    </ns1:query-fields>
+    <ns1:operations>
+        <ns1:operation name="insert">
+            <ns1:update-sql><![CDATA[
+	            begin
+	              qms_apqp_pkg.create_procedure
+	              (
+	              		x_procedure_id			=> ${@procedure_id},
+	              		p_flex_value_id			=> ${@flex_value_id},
+	              		p_procedure_code		=> ${@procedure_code},
+	              		p_responsible_person_id	=> ${@responsible_person_id},
+	              		p_enabled_flag			=> ${@enabled_flag},
+	              		p_user_id				=> ${/session/@user_id}
+	              );
+	            end;
+            ]]></ns1:update-sql>
+            <ns1:parameters>
+                <ns1:parameter name="procedure_id" dataType="java.lang.Long" input="false" output="true" outputPath="@procedure_id"/>
+            </ns1:parameters>
+        </ns1:operation>
+        <ns1:operation name="delete">
+            <ns1:update-sql><![CDATA[
+	            begin
+	              qms_apqp_pkg.remove_procedure
+	              (
+	              		p_procedure_id			=> ${@procedure_id},
+	              		p_user_id				=> ${/session/@user_id}
+	              );
+	            end;
+            ]]></ns1:update-sql>
+        </ns1:operation>
+    </ns1:operations>
+</ns1:model>

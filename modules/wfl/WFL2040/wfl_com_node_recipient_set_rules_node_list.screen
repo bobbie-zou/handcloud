@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query autoCount="false" defaultWhereClause="workflow_id=${/parameter/@workflow_id}" fetchAll="true" model="wfl.WFL1040.wfl_workflow_node" queryOrderBy="sequence_num asc" rootPath="workflow_node"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+
+            window.recipient_set_id = '';
+            window.assign_rule_note_id = '';
+            
+            function rulegridcellclick(ds, row, name, record) {
+                $('wfl_node_recipient_set_rules_recipient_result_ds').setQueryParameter('node_id', record.get('node_id'));
+                $('wfl_node_recipient_set_rules_recipient_result_ds').query();
+                $('wfl_node_recipient_set_rules_parameter_result_ds').removeAll();
+                $('wfl_node_recipient_set_rules_parameter_result_note_ds').removeAll();
+            
+                // alert('${/session/@company_id}');
+                //通知人
+                var notice_result_ds = $('wfl_workflow_node_notice_result_ds');
+                notice_result_ds.setQueryParameter('node_id', record.get('node_id'));
+                notice_result_ds.setQueryParameter('company_id', '${/session/@company_id}');
+                notice_result_ds.query();
+            
+                var system_maintain_flag = record.get('system_maintain_flag');
+                if (system_maintain_flag == 'Y') {
+                    $('addButton').disable();
+                    $('saveButton').disable();
+                    $('deleteButton').disable();
+                    $('clearButton').disable();
+                    $('addButton2').disable();
+                    $('saveButton2').disable();
+                    $('deleteButton2').disable();
+                    $('clearButton2').disable();
+                 }else{
+                    $('addButton').enable();
+                    $('saveButton').enable();
+                    $('deleteButton').enable();
+                    $('clearButton').enable();
+                    $('addButton2').enable();
+                    $('saveButton2').enable();
+                    $('deleteButton2').enable();
+                    $('clearButton2').enable();                 
+                }
+            }
+            //审批人
+            
+            function recipientgridcellclick(ds, row, name, record) {
+                window.recipient_set_id = record.get('assign_rule_id');
+                $('wfl_node_recipient_set_rules_parameter_result_ds').setQueryParameter('assign_rule_id', record.get('assign_rule_id'));
+                $('wfl_node_recipient_set_rules_parameter_result_ds').setQueryParameter('assign_rule_type', 'APPROVER');
+            
+                $('wfl_node_recipient_set_rules_parameter_result_ds').query();
+            }
+            //通知人
+            
+            function recipientgridcellclickNote(ds, row, name, record) {
+                window.assign_rule_note_id = record.get('node_notice_id');
+                $('wfl_node_recipient_set_rules_parameter_result_note_ds').setQueryParameter('assign_rule_id', record.get('node_notice_id'));
+                $('wfl_node_recipient_set_rules_parameter_result_note_ds').setQueryParameter('assign_rule_type', 'NOTIFIER');
+                $('wfl_node_recipient_set_rules_parameter_result_note_ds').query();
+            }
+            
+            
+            
+            function setinitdate(ds, record, index) {
+            
+                record.set('assign_rule_id', window.recipient_set_id);
+                record.set('assign_rule_type', 'APPROVER');
+            }
+            
+            function setinitdateNote(ds, record, index) {
+                record.set('assign_rule_id', window.assign_rule_note_id);
+                record.set('assign_rule_type', 'NOTIFIER');
+            }
+            
+            
+            function dsbeforecreate(ds) {
+                if (window.recipient_set_id == '') {
+                    Aurora.showErrorMessage('${l:PROMPT.ERROR}', '${l:PROMPT.PLEASE_SELECT_ONE}');
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+            
+            function dsbeforecreateNote(ds) {
+                if (window.assign_rule_note_id == '') {
+                    Aurora.showErrorMessage('${l:PROMPT.ERROR}', '${l:PROMPT.PLEASE_SELECT_ONE}');
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+            
+            function ruleresultgridcellclick(ds, row, name, record) {
+                record.getMeta().getField('business_rule_code').setLovPara('workflow_id', '${/parameter/@workflow_id}');
+            }
+            
+            
+            function linkNodeSkip(value, record, name) {
+                var id = '${/parameter/@workflow_id}';
+                var wid = record.get('link_workflow_id');
+                var node_type = record.get('node_type');
+                if (node_type == "SUB_PROCESS") {
+                    return '<a href="javascript:reloadAssignNodePage(' + id + ',' + wid + ')">链接流程</a>';
+                } else {
+                    return '';
+                }
+            }
+            
+            function reloadAssignNodePage(id, wid) {
+                url = '${/request/@context_path}/modules/wfl/WFL2040/wfl_com_node_link_recipient_set_rules_node_list.screen?workflow_id=' + id + '&link_workflow_id=' + wid;
+                new Aurora.Window({
+                    id: 'wfl_com_node_link_recipient_set_link_node_window',
+                    url: url,            
+                    title: '链接节点',
+                    height: 580,
+                    width: 750
+                    //title: '链接流程',
+                    //fullScreen: true
+                });
+            }
+            
+            function editorfunction(record, name) {
+                var system_maintain_flag = $('wfl_workflow_node_result_ds').getCurrentRecord().get('system_maintain_flag');
+                if (system_maintain_flag == 'N') {
+                    if (name == 'business_rule_code') {
+                        return 'rule_grid_lov';
+                    }
+                } else {
+                    return '';
+                }
+            }
+            
+            function editorfunction2(record, name) {
+                var system_maintain_flag = $('wfl_workflow_node_result_ds').getCurrentRecord().get('system_maintain_flag');
+                if (system_maintain_flag == 'N') {
+                    if (name == 'business_rule_code') {
+                        return 'rule_grid_notice_lov';
+                    }
+                } else {
+                    return '';
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl_workflow_node_result_ds">
+                <a:datas dataSource="/model/workflow_node"/>
+                <a:fields>
+                    <a:field name="sequence_num"/>
+                    <a:field name="name"/>
+                    <a:field name="system_maintain_flag"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl_node_recipient_set_rules_recipient_result_ds" autoCount="true" autoQuery="false" fetchAll="false" model="wfl.WFL2040.wfl_node_recipient_set"/>
+            <a:dataSet id="wfl_node_recipient_set_rules_parameter_result_ds" autoCount="true" autoQuery="false" fetchAll="false" model="wfl.WFL2040.wfl_node_recipient_set_rules" selectable="true">
+                <a:fields>
+                    <a:field name="business_rule_code" autoComplete="true" lovGridHeight="280" lovHeight="450" lovLabelWidth="90" lovService="wfl.WFL1080.wfl_business_rules" lovWidth="570" required="true" title="WFL_BUSINESS_RULES.BUSINESS_RULE_CODE">
+                        <a:mapping>
+                            <a:map from="business_rule_code" to="business_rule_code"/>
+                            <a:map from="business_rule_id" to="business_rule_id"/>
+                            <a:map from="description" to="description"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="setinitdate"/>
+                    <a:event name="beforecreate" handler="dsbeforecreate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl_node_recipient_set_rules_parameter_result_note_ds" autoCount="true" autoQuery="false" fetchAll="false" model="wfl.WFL2040.wfl_node_recipient_set_rules" selectable="true">
+                <a:fields>
+                    <a:field name="business_rule_code" autoComplete="true" lovGridHeight="280" lovHeight="450" lovLabelWidth="90" lovService="wfl.WFL1080.wfl_business_rules" lovWidth="570" required="true" title="WFL_BUSINESS_RULES.BUSINESS_RULE_CODE">
+                        <a:mapping>
+                            <a:map from="business_rule_code" to="business_rule_code"/>
+                            <a:map from="business_rule_id" to="business_rule_id"/>
+                            <a:map from="description" to="description"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="setinitdateNote"/>
+                    <a:event name="beforecreate" handler="dsbeforecreateNote"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl_workflow_node_notice_result_ds" autoQuery="false" model="wfl.WFL1050.wfl_workflow_node_notice">
+                <a:fields>
+                    <a:field name="user_name" lovGridHeight="320" lovHeight="440" lovService="wfl.wfl_users_v_lov" lovWidth="480" required="true" title="通知人">
+                        <a:mapping>
+                            <a:map from="user_id" to="user_id"/>
+                            <a:map from="user_name" to="user_name"/>
+                            <a:map from="employee_name" to="user_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="notify_template_code" lovGridHeight="320" lovHeight="440" lovService="sys.sys_notify_template_lov" lovWidth="480" title="通知模板">
+                        <a:mapping>
+                            <a:map from="notify_template_id" to="notify_template_id"/>
+                            <a:map from="notify_template_code" to="notify_template_code"/>
+                            <a:map from="notify_template_desc" to="notify_template_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="user_name" required="true"/>
+                    <a:field name="notify_template_code" required="true"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:grid id="node_result_ds" bindTarget="wfl_workflow_node_result_ds" height="160" width="720">
+                <a:columns>
+                    <a:column name="sequence_num" prompt="WORKFLOW_NODE.SEQUENCE_NUM_D" width="100"/>
+                    <a:column name="node_type_desc" prompt="WORKFLOW_NODE.NODE_TYPE_DESC" width="200"/>
+                    <a:column name="node_desc" prompt="WORKFLOW_NODE.NAME_D" width="250"/>
+                    <a:column name="link_node_skip" align="center" prompt="链接流程" renderer="linkNodeSkip" width="150"/>
+                </a:columns>
+                <a:events>
+                    <a:event name="cellclick" handler="rulegridcellclick"/>
+                </a:events>
+            </a:grid>
+            <a:tabPanel id="assign_node_tab_id" height="370" marginHeight="180" marginWidth="100" width="730">
+                <a:tabs>
+                    <a:tab prompt="审批人" width="100">
+                        <a:grid id="recipient_result_ds" bindTarget="wfl_node_recipient_set_rules_recipient_result_ds" height="160" navBar="true" width="720">
+                            <a:columns>
+                                <a:column name="company_name" prompt="公司" width="130"/>
+                                <a:column name="sequence_num" prompt="审批人顺序" width="60"/>
+                                <a:column name="approval_rule" prompt="审批规则" width="150"/>
+                                <a:column name="approval_rule_desc" prompt="规则描述" width="150"/>
+                                <a:column name="parameter_value_code1" prompt="审批人" width="80"/>
+                                <a:column name="parameter_value_desc1" prompt="描述" width="120"/>
+                            </a:columns>
+                            <a:events>
+                                <a:event name="cellclick" handler="recipientgridcellclick"/>
+                            </a:events>
+                        </a:grid>
+                        <a:grid id="recipient_rule_result_ds" bindTarget="wfl_node_recipient_set_rules_parameter_result_ds" height="160" navBar="true" width="720">
+                            <a:toolBar>
+                                <a:button id="addButton" type="add"/>
+                                <a:button id="saveButton" type="save"/>
+                                <a:button id="deleteButton" type="delete"/>
+                                <a:button id="clearButton" type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="business_rule_code" editor="rule_grid_lov" editorFunction="editorfunction" prompt="WFL_BUSINESS_RULES.BUSINESS_RULE_CODE" width="200"/>
+                                <a:column name="description" prompt="WFL_BUSINESS_RULES.DESCRIPTION_ID" width="250"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="rule_grid_lov"/>
+                            </a:editors>
+                            <a:events>
+                                <a:event name="cellclick" handler="ruleresultgridcellclick"/>
+                            </a:events>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="通知人" width="100">
+                        <a:grid id="wfl_workflow_node_notice_result_grid" bindTarget="wfl_workflow_node_notice_result_ds" height="160" navBar="true" width="720">
+                            <a:columns>
+                                <a:column name="user_name" prompt="用户代码" width="100"/>
+                                <a:column name="user_desc" prompt="用户姓名" width="120"/>
+                                <a:column name="notify_template_code" prompt="邮件通知模板代码" width="200"/>
+                                <a:column name="notify_template_desc" prompt="邮件通知模板描述" width="150"/>
+                            </a:columns>
+                            <a:events>
+                                <a:event name="cellclick" handler="recipientgridcellclickNote"/>
+                            </a:events>
+                        </a:grid>
+                        <a:grid id="recipient_rule_result_notice_ds" bindTarget="wfl_node_recipient_set_rules_parameter_result_note_ds" height="160" navBar="true" width="720">
+                            <a:toolBar>
+                                <a:button id="addButton2" type="add"/>
+                                <a:button id="saveButton2" type="save"/>
+                                <a:button id="deleteButton2" type="delete"/>
+                                <a:button id="clearButton2" type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="business_rule_code" editor="rule_grid_notice_lov" editorFunction="editorfunction2" prompt="WFL_BUSINESS_RULES.BUSINESS_RULE_CODE" width="200"/>
+                                <a:column name="description" prompt="WFL_BUSINESS_RULES.DESCRIPTION_ID" width="250"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="rule_grid_notice_lov"/>
+                            </a:editors>
+                            <a:events>
+                                <a:event name="cellclick" handler="ruleresultgridcellclick"/>
+                            </a:events>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

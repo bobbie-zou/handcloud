@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui6743 $
+    $Date: 2014/10/9 15:02:55 $
+    $Revision: 1.0 $
+    $Purpose: 服务委托管理规则模板头
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.flex_value_set_code = &apos;SERVICE_TEMP_TYPE&apos;" model="public.fnd_flex_value_v_lov" rootPath="service_temp_type"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd6030_serviceTypeTemplateDetails_link" url="${/request/@context_path}/modules/fnd/FND6020/fnd_service_manage_rule_details.screen"/>
+        <script><![CDATA[
+            function fnd6030_serviceTypeTemplateDetails_query() {
+                $('fnd6030_service_type_template_result_ds').query();
+            }
+            
+            function fnd6030_serviceTypeTemplateDetails(value, record, name) {
+                if (!record.isNew) {
+                    var srv_type_temp_id = record.get('srv_type_temp_id');
+                    return '<a href="javascript:fnd6030_serviceTypeTemplateDetailsInfo(' + srv_type_temp_id + ')">'+value+'</a>';
+                }
+            }
+            
+            function fnd6030_serviceTypeTemplateDetailsInfo(srv_type_temp_id) {
+                //alert(srv_type_temp_id);
+                new Aurora.Window({
+                    id: 'fnd6030_serviceTypeTemplateDetails_window',
+                    url: $('fnd6030_serviceTypeTemplateDetails_link').getUrl() + '?srv_type_temp_id=' + srv_type_temp_id,
+                    title: '${l:FND_SERVICE_MANAGE_RULE.ROLE_DETAILS}',
+                    fullScreen: true
+                    //height: 480,
+                    //width: 620
+                });
+            }
+            
+            
+            //触发增加事件
+            
+            function fnd6030_serviceTypeTemplateDetails_onAdd(ds, record, index) {
+                var temp_type;
+                var records = $('fnd6030_service_type_template_temp_type_ds').getAll();
+                var temp_type_desc = '';
+                var temp_record;
+                if (Aurora.isEmpty('${/session/@business_group}')) {
+                    //云级管理员
+                    for (i = 0;i < records.length;i++) {
+                        temp_record = records[i];
+                        if (temp_record.get('code_value') == 'SYSTEM_TEMP') {
+                            temp_type_desc = temp_record.get('code_value_name');
+                        }
+                    }
+                    record.set('temp_type', 'SYSTEM_TEMP');
+                    record.set('temp_type_desc', temp_type_desc);
+                } else {
+                    //集团管理员
+                    for (i = 0;i < records.length;i++) {
+                        temp_record = records[i];
+                        if (temp_record.get('code_value') == 'CUSTOM_TEMP') {
+                            temp_type_desc = temp_record.get('code_value_name');
+                            break;
+                        }
+                    }
+                    record.set('temp_type', 'CUSTOM_TEMP');
+                    record.set('temp_type_desc', temp_type_desc);
+                }
+                record.set('srv_type_id', 1);
+            }
+            
+            //触发保存成功事件
+            
+            function fnd6030_serviceTypeTemplateDetails_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd6030_service_type_template_temp_type_ds">
+                <a:datas dataSource="/model/service_temp_type"/>
+            </a:dataSet>
+            <a:dataSet id="fnd6030_service_type_template_srv_type_ds" autoQuery="true"/>
+            <a:dataSet id="fnd6030_service_type_template_query_ds" autoQuery="true" model="fnd.FND6030.fnd_service_type_template"/>
+            <a:dataSet id="fnd6030_service_type_template_result_ds" autoCount="true" autoQuery="true" fetchAll="true" model="fnd.FND6030.fnd_service_type_template">
+                <a:fields>
+                    <a:field name="srv_type_temp_id"/>
+                    <a:field name="srv_type_temp_code"/>
+                    <a:field name="srv_type_temp_name"/>
+                    <a:field name="description"/>
+                    <a:field name="srv_type_id"/>
+                    <a:field name="srv_type"/>
+                    <!--<a:field name="srv_type" displayField="" returnField="" valueField=""/> -->
+                    <a:field name="temp_type"/>
+                    <a:field name="temp_type_desc"/>
+                    <a:field name="company_id"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="fnd6030_serviceTypeTemplateDetails_submitsuccess"/>
+                    <a:event name="add" handler="fnd6030_serviceTypeTemplateDetails_onAdd"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton id="fnd6030_service_type_template_grid_addButton" bind="fnd6030_service_type_template_grid" style="margin-left:20px;" type="add" width="100"/>
+            <a:gridButton id="fnd6030_service_type_template_grid_saveButton" bind="fnd6030_service_type_template_grid" style="margin-left:20px;" type="save" width="100"/>
+            <a:gridButton id="fnd6030_service_type_template_grid_clearButton" bind="fnd6030_service_type_template_grid" style="margin-left:20px;" type="clear" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="fnd6030_service_type_template_query_ds" defaultQueryField="srv_type_code_name" defaultQueryHint="请输入模板代码/模板名称" resultTarget="fnd6030_service_type_template_result_ds" style="width:100%;border:none"/>
+        <a:grid id="fnd6030_service_type_template_grid" bindTarget="fnd6030_service_type_template_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="srv_type_temp_code" editor="fnd6030_service_type_template_grid_tf" prompt="FND_SRV_TYPE_TEMP_HEADERS.SRV_TYPE_TEMP_CODE" renderer="fnd6030_serviceTypeTemplateDetails" width="100"/>
+                <a:column name="srv_type_temp_name" editor="fnd6030_service_type_template_grid_tf" prompt="FND_SRV_TYPE_TEMP_HEADERS.SRV_TYPE_TEMP_NAME_ID" width="100"/>
+                <a:column name="description" editor="fnd6030_service_type_template_grid_tf" prompt="FND_SRV_TYPE_TEMP_HEADERS.DESCRIPTION_ID" width="100"/>
+                <a:column name="srv_type" editor="fnd6030_service_type_template_grid_cb" prompt="FND_SRV_TYPE_TEMP_HEADERS.SRV_TYPE_ID" width="100"/>
+                <a:column name="temp_type_desc" prompt="FND_SRV_TYPE_TEMP_HEADERS.TEMP_TYPE" width="100"/>
+                <a:column name="enabled_flag" editor="fnd6030_service_type_template_grid_chb" prompt="FND_SRV_TYPE_TEMP_HEADERS.ENABLED_FLAG" width="100"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="fnd6030_service_type_template_grid_tf"/>
+                <a:textField id="fnd6030_service_type_template_grid_cb"/>
+                <a:checkBox id="fnd6030_service_type_template_grid_chb"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

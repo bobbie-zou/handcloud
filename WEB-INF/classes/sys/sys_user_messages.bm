@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-6-8 下午2:46:32  
+    $Revision: 1.0  
+    $Purpose: 用户消息
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        v.*,
+                        MOD(rownum, 2) rownum_index,
+                        sys_user_message_pkg.auto_display_user_message(v.message_id,${/session/@user_id}) decrease_unread_flag,
+                        ceil(rownum/DECODE(sys_parameter_pkg.value('SYS_USER_MESSAGE_NUMBER'),0,1,NULL,1,sys_parameter_pkg.value('SYS_USER_MESSAGE_NUMBER'))) pagenum
+                    FROM
+                        (SELECT
+                            fv.*,
+                            rownum
+                        FROM
+                            (SELECT
+                                s.message_id,
+                                s.message_type,
+                                s.message_title,
+                                NVL(s.message_content,'无') message_content,
+                                s.message_time,
+                                TO_CHAR(s.message_time, 'YYYY-MM-DD HH24:MI:SS') message_time_desc,
+                                NVL(s.urgent_flag, 'N') urgent_flag,
+                                NVL(s.top_flag, 'N') top_flag,
+                                s.source_table,
+                                s.source_id,
+                                NVL(s.url,'URL_NULL') url,
+                                (SELECT
+                                    DECODE(COUNT(m.operation_message_id), 0, 'N', 'Y')
+                                FROM
+                                    sys_user_operation_messages m
+                                WHERE
+                                    m.operation_number = 0 AND
+                                    m.push_user_id     = ${/session/@user_id} AND
+                                    m.message_id       = s.message_id
+                                ) read_flag
+                            FROM
+                                sys_user_messages s
+                            WHERE
+                                sys_user_message_pkg.check_message_show(s.message_id, ${/session/@user_id}) = 'Y' AND
+                                NOT EXISTS
+                                (SELECT
+                                    1
+                                FROM
+                                    sys_user_operation_messages om
+                                WHERE
+                                    om.message_id       = s.message_id AND
+                                    om.push_user_id     = ${/session/@user_id} AND
+                                    om.operation_number = 2
+                                ) AND
+                                NVL(s.abolish_flag, 'N') = 'N' AND
+                                s.push_object_type       = 'ALL' AND
+                                s.message_time          <= SYSDATE
+                            UNION ALL
+                            SELECT
+                                s.message_id,
+                                s.message_type,
+                                s.message_title,
+                                s.message_content,
+                                s.message_time,
+                                TO_CHAR(s.message_time, 'YYYY-MM-DD HH24:MI:SS') message_time_desc,
+                                NVL(l.urgent_flag, s.urgent_flag) urgent_flag,
+                                NVL(l.top_flag, s.top_flag) top_flag,
+                                s.source_table,
+                                s.source_id,
+                                NVL(s.url,'URL_NULL') url,
+                                (SELECT
+                                    DECODE(COUNT(m.operation_message_id), 0, 'N', 'Y')
+                                FROM
+                                    sys_user_operation_messages m
+                                WHERE
+                                    m.operation_number = 0 AND
+                                    m.push_user_id     = ${/session/@user_id} AND
+                                    m.message_id       = s.message_id
+                                ) read_flag
+                            FROM
+                                sys_user_messages s,
+                                sys_user_message_list l
+                            WHERE
+                                NVL(s.abolish_flag, 'N') = 'N' AND
+                                NOT EXISTS
+                                (SELECT
+                                    1
+                                FROM
+                                    sys_user_operation_messages om
+                                WHERE
+                                    om.message_id       = s.message_id AND
+                                    om.push_user_id     = ${/session/@user_id} AND
+                                    om.operation_number = 2
+                                ) AND
+                                s.push_object_type = 'SINGLE' AND
+                                s.message_time    <= SYSDATE AND
+                                l.message_id       = s.message_id AND
+                                l.push_user_id     = ${/session/@user_id}
+                            ) fv
+                        ORDER BY
+                            top_flag DESC,
+                            urgent_flag DESC,
+                            message_time DESC
+                        ) v
+                    ) #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            BEGIN
+  sys_user_message_pkg.read_user_message( p_message_id => ${@message_id},
+                                         p_push_user_id    => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+            BEGIN
+  sys_user_message_pkg.delete_user_message( p_message_id => ${@message_id},
+                                         p_push_user_id    => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="message_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="MESSAGE_ID"/>
+        <bm:field name="message_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="MESSAGE_TYPE"/>
+        <bm:field name="message_title" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="MESSAGE_TITLE"/>
+        <bm:field name="message_content" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="MESSAGE_CONTENT"/>
+        <bm:field name="message_time_desc"/>
+        <bm:field name="rownum_index"/>
+        <bm:field name="source_table"/>
+        <bm:field name="source_id"/>
+        <bm:field name="url"/>
+        <bm:field name="read_flag"/>
+        <bm:field name="pagenum"/>
+        <!-- <bm:field name="pagenumber"/> -->
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="message_type" queryExpression="((${@message_type} = &apos;PLATFORM&apos; and message_type in (&apos;PLATFORM&apos;,&apos;SYSTEM&apos;)) or (${@message_type} = &apos;BUSINESS&apos; and message_type= &apos;BUSINESS&apos;))"/>
+        <!-- <bm:query-field field="pagenum" queryOperator="="/> -->
+        <bm:query-field name="page_num" queryExpression="pagenum =  ${@page_num}"/>
+        <!-- <bm:query-field field="pagenumber" queryOperator="="/> -->
+    </bm:query-fields>
+</bm:model>

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-6-4 上午11:21:21  
+    $Revision: 1.0  
+    $Purpose: 员工定义，员工分配组织架构tree
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.data_type,
+                    v.employees_assign_id,
+                    v.data_id,
+                    v.data_code,
+                    v.data_desc,
+                    v.data_parent_id,
+                    v.client,
+                    v.sequence,
+                    v.checked_flag,
+                    v.expand_flag
+                FROM
+                    (SELECT
+                        'COMPANY' AS data_type,
+                        null as employees_assign_id,
+                        fcv.company_id AS data_id,
+                        fcv.company_code AS data_code,
+                        fcv.company_full_name AS data_desc,
+                        fcv.parent_company_id AS data_parent_id,
+                        fcv.client AS client,
+                        fcv.sequence AS sequence,
+                        null AS checked_flag,
+                        'Y' AS expand_flag
+                    FROM
+                        fnd_companies_vl fcv
+                    WHERE
+                        fcv.enabled_flag = 'Y' AND
+                        (
+                            fcv.end_date_active IS NULL OR
+                            SYSDATE BETWEEN TRUNC(fcv.start_date_active) AND TRUNC(fcv.end_date_active)
+                        )
+                    UNION ALL
+                    SELECT
+                        'UNIT' AS data_type,
+                        null as employees_assign_id,
+                        ouv.unit_id AS data_id,
+                        ouv.unit_code AS data_code,
+                        ouv.unit_desc AS data_desc,
+                        ouv.parent_unit_id AS data_parent_id,
+                        ouv.client AS client,
+                        ouv.sequence AS sequence,
+                        null AS checked_flag,
+                        'Y' AS expand_flag
+                    FROM
+                        exp_org_unit_vl ouv
+                    WHERE
+                        ouv.enabled_flag = 'Y' AND
+                        ouv.parent_unit_id IS NOT NULL
+                    UNION ALL
+                    SELECT
+                        'COMPANY_UNIT' AS data_type,
+                        null as employees_assign_id,
+                        ouv.unit_id AS data_id,
+                        ouv.unit_code AS data_code,
+                        ouv.unit_desc AS data_desc,
+                        ouv.company_id AS data_parent_id,
+                        ouv.client AS client,
+                        ouv.sequence AS sequence,
+                        null AS checked_flag,
+                        'Y' AS expand_flag
+                    FROM
+                        exp_org_unit_vl ouv
+                    WHERE
+                        ouv.enabled_flag    = 'Y' AND
+                        ouv.parent_unit_id IS NULL
+                    UNION ALL
+                    SELECT
+                        'POSITION' AS data_type,
+                        eea.employees_assign_id as employees_assign_id,
+                        opv.position_id AS data_id,
+                        opv.position_code AS data_code,
+                        opv.description AS data_desc,
+                        opv.parent_position_id AS data_parent_id,
+                        opv.client AS client,
+                        opv.sequence AS sequence,
+                        DECODE(eea.employees_assign_id, NULL, 'N', 'Y') AS checked_flag,
+                        'Y' AS expand_flag
+                    FROM
+                        exp_org_position_vl opv,
+                        exp_employee_assigns eea
+                    WHERE
+                        eea.employee_id(+) = ${/parameter/@employee_id} AND
+                        eea.company_id(+)  = opv.company_id AND
+                        eea.position_id(+) = opv.position_id AND
+                        opv.enabled_flag   = 'Y' AND
+                        opv.parent_position_id IS NOT NULL
+                    UNION ALL
+                    SELECT
+                        'UNIT_POSITION' AS data_type,
+                        eea.employees_assign_id as employees_assign_id,
+                        opv.position_id AS data_id,
+                        opv.position_code AS data_code,
+                        opv.description AS data_desc,
+                        opv.unit_id AS data_parent_id,
+                        opv.client AS client,
+                        opv.sequence AS sequence,
+                        DECODE(eea.employees_assign_id, NULL, 'N', 'Y') AS checked_flag,
+                        'Y' AS expand_flag
+                    FROM
+                        exp_org_position_vl opv,
+                        exp_employee_assigns eea
+                    WHERE
+                        eea.employee_id(+)      = ${/parameter/@employee_id} AND
+                        eea.company_id(+)       = opv.company_id AND
+                        eea.position_id(+)      = opv.position_id AND
+                        opv.enabled_flag        = 'Y' AND
+                        opv.parent_position_id IS NULL
+                    ) v #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+    		BEGIN
+			  exp_employees_pkg.save_exp_employee_assigns(p_employees_assign_id		=> ${@employees_assign_id},
+		  												  p_employee_id       		=> ${@employee_id},
+				                                          p_data_type       		=> ${@data_type},
+				                                          p_data_id					=> ${@data_id},
+				                                          p_checked_flag			=> ${@checked_flag},
+				                                          p_employee_job_id  		=> ${@employee_job_id},
+				                                          p_employee_levels_id   	=> ${@employee_levels_id},
+				                                          p_primary_position_flag	=> ${@primary_position_flag},
+				                                          p_enabled_flag  			=> nvl(${@enabled_flag},'Y'),
+				                                          p_user_id         	  	=> ${/session/@user_id});
+			END;
+    	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="data_desc" queryExpression="v.data_desc like &apos;%&apos;||trim(${@data_desc})||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority client_alias="v" client_name="client"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-5 下午4:56:34  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="xc_ve_year_profile_create_step2_link" url="${/request/@context_path}/modules/xcve/XCVE5050/xc_ve_year_profile_create_step2.screen"/>
+        <a:link id="xc_ve_year_profile_query_link" url="${/request/@context_path}/modules/xcve/XCVE5050/xc_ve_year_profile_query.screen"/>
+        <a:link id="xc_ve_year_profile_create_step1_link" model="db.xc_ve_profile_pkg.xc_ve_year_profile_create_sp1" modelaction="execute"/>
+        <a:link id="xc_ve_year_profile_create_cancel_link" model="db.xc_ve_profile_pkg.delete_year_tmp_data" modelaction="execute"/>
+        <script><![CDATA[
+            function changePeriodYear(combo, value, oldValue) {
+                $('period_from_ds').setQueryParameter('period_year', value);
+                $('period_from_ds').query();
+                
+                $('period_to_ds').setQueryParameter('period_year', value);
+                $('period_to_ds').query();
+                
+                $('ve_profile_tmp_ds').getCurrentRecord().set('period_name_from', '');
+            }
+            
+            function changePeriodNameFrom(combo, value, oldValue) {
+                $('period_to_ds').setQueryParameter('period_name_from', value);
+                $('period_to_ds').query();
+                
+                $('ve_profile_tmp_ds').getCurrentRecord().set('period_name_to', '');
+            }
+            
+            function backToQuery() {
+                Aurora.request({
+                    url: $('xc_ve_year_profile_create_cancel_link').getUrl(),
+                    para: {},
+                    success: function() {
+                        Aurora.go($('xc_ve_year_profile_query_link').getUrl());
+                    },
+                    failture: function() {},
+                    error: function() {},
+                    scope: this
+                });
+            }
+            
+            function next() {
+                if ($('ve_profile_tmp_ds').validate()) {
+                    var record = $('ve_profile_tmp_ds').getCurrentRecord();
+                    Aurora.request({
+                        url: $('xc_ve_year_profile_create_step1_link').getUrl(),
+                        para: record.data,
+                        success: function() {
+                            Aurora.go($('xc_ve_year_profile_create_step2_link').getUrl());
+                        },
+                        failture: function() {},
+                        error: function() {},
+                        scope: this
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="period_year_ds" loadData="true" model="xcve.XCVE5050.xc_ve_year_profile_year_combo"/>
+            <a:dataSet id="period_from_ds" fetchAll="true" model="xcve.XCVE5050.xc_ve_year_profile_period_combo"/>
+            <a:dataSet id="period_to_ds" fetchAll="true" model="xcve.XCVE5050.xc_ve_year_profile_period_combo"/>
+            <a:dataSet id="ve_template_ds" autoQuery="true" model="xcve.XCVE1030.xc_ve_template" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE1030.xc_ve_template/query?company_id=${/session/@company_id}&amp;enabled_flag=Y">
+                <a:fields>
+                    <a:field name="description"/>
+                    <a:field name="ve_template_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="ve_profile_tmp_ds" autoCreate="true" autoQuery="true" model="xcve.XCVE5050.xc_ve_year_profiles_tmp">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@company_id}"/>
+                    <a:field name="period_year" displayField="period_year" options="period_year_ds" required="true" returnField="period_year" valueField="period_year"/>
+                    <a:field name="ve_profile_desc" required="true"/>
+                    <a:field name="ve_template_id"/>
+                    <a:field name="ve_template_id_desc" displayField="description" options="ve_template_ds" required="true" returnField="ve_template_id" valueField="ve_template_id"/>
+                    <a:field name="internal_period_num_from"/>
+                    <a:field name="period_name_from" displayField="period_name" options="period_from_ds" required="true" returnField="internal_period_num_from" valueField="internal_period_num"/>
+                    <a:field name="internal_period_num_to"/>
+                    <a:field name="period_name_to" displayField="period_name" options="period_to_ds" required="true" returnField="internal_period_num_to" valueField="internal_period_num"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet column="1" labelWidth="100" title="年度供应商考评分计算-新建" width="600">
+                <a:hBox width="600">
+                    <a:comboBox name="period_year" bindTarget="ve_profile_tmp_ds" prompt="考评年度">
+                        <a:events>
+                            <a:event name="change" handler="changePeriodYear"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="ve_template_id_desc" bindTarget="ve_profile_tmp_ds" prompt="考评模板"/>
+                </a:hBox>
+                <a:hBox width="600">
+                    <a:comboBox name="period_name_from" bindTarget="ve_profile_tmp_ds" prompt="考评月度从">
+                        <a:events>
+                            <a:event name="change" handler="changePeriodNameFrom"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="period_name_to" bindTarget="ve_profile_tmp_ds" prompt="考评月度到"/>
+                </a:hBox>
+                <a:hBox width="600">
+                    <a:textField name="ve_profile_desc" bindTarget="ve_profile_tmp_ds" prompt="考评说明" width="450"/>
+                </a:hBox>
+            </a:fieldSet>
+            <a:hBox>
+                <a:button click="backToQuery" text="取消创建"/>
+                <a:button click="next" text="下一步"/>
+            </a:hBox>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-4 下午2:02:38  
+    $Revision: 1.0  
+    $Purpose: 合作伙伴查询
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT cp.coop_partner_id,
+       cp.owner_bg,
+       cp.owner_company_id,
+       cp.owner_ways,
+       cp.cooperative_bg,
+       bg.business_group_name cooperative_bg_name,
+       cp.cooperative_company_id,
+       fc.company_code cooperative_company_code,
+       fc.company_full_name cooperative_company_name,
+       cp.cooperative_ways,
+       cp.initiative_flag,
+       cp.rel_coop_partner_id,
+       cp.directory_id,
+       cp.comments,
+       nvl(cp.enabled_flag,
+           'N') enabled_flag
+  FROM fnd_companies_vl         fc,
+       fnd_business_groups_vl   bg,
+       fnd_cooperative_partners cp
+ WHERE fc.company_id = cp.cooperative_company_id
+       AND bg.business_group_code = cp.cooperative_bg
+       AND cp.owner_bg = ${/session/@business_group}
+       AND cp.owner_company_id = ${@owner_company_id}
+       AND cp.owner_ways = ${@owner_ways}
+)
+  #WHERE_CLAUSE# #ORDER_BY_CLAUSE#]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+               BEGIN
+  fnd_cooperative_partner_pkg.modify_coop_partner(p_coop_partner_id => ${@coop_partner_id},
+                                                  p_directory_id    => ${@directory_id},
+                                                  p_comments        => ${@comments},
+                                                  p_enabled_flag    => ${@enabled_flag},
+                                                  p_user_id         => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="cooperative_company_code" queryExpression="cooperative_company_code like &apos;%&apos;||trim(${@cooperative_company_code})||&apos;%&apos;"/>
+        <bm:query-field name="cooperative_company_name" queryExpression="cooperative_company_name like &apos;%&apos;||trim(${@cooperative_company_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

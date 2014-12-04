@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangcheng6595
+    $Date: 2014-9-28 15:05:12
+    $Revision: 1.0  
+    $Purpose: 采购接收事务类型定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <script><![CDATA[
+    		function pur1070_typeCodeEditor(record, name) {
+    		    if (record.isNew) {
+    		        return 'pur1070_grid_rcv_trx_type_tf_upper';
+    		    } else {
+    		        return '';
+    		    }
+    		}
+    		
+    		function pur1070_reverseTrxTypeEditor(record,name){
+    		    var reverse_flag=record.get('reverse_flag');
+    		    var rcv_trx_type_id=record.get('rcv_trx_type_id');
+    		    if(reverse_flag=='Y'){
+    		        record.getField('reverse_trx_type').setRequired(true);
+    		        record.getField('reverse_trx_type').setLovPara('rcv_trx_type_id', rcv_trx_type_id);
+    		        return 'pur1070_grid_reverse_trx_type_lov';
+    		    }else{
+    		        record.getField('reverse_trx_type').setRequired(false);
+    		        return '';
+    		    }
+    		}
+    		
+    		function pur1070_getLength(str) {
+                if (!Aurora.isEmpty(str)) {
+                    var realLength = 0,
+                        len = str.length,
+                        charCode = -1;
+                    for (var i = 0;i < len;i++) {
+                        charCode = str.charCodeAt(i);
+                        if (charCode >= 0 && charCode <= 128) {
+                            realLength += 1;
+                        } else {
+                            realLength += 3;
+                        }
+                    }
+                    return realLength;
+                }
+                return 0;
+            }
+    		
+    		function pur1070_typeCodeNameValidate(record, name, value) {
+                var type_code = record.get('rcv_trx_type');
+                var type_name = record.get('description1');
+                var comment=record.get('comments');
+                if (name == 'rcv_trx_type') {
+                    if (pur1070_getLength(type_code) > 30) {
+                        return '${l:PUR1070.TYPE_CODE_OVERLENGTH}';
+                    }
+                }
+                if (name == 'description1') {
+                    if (pur1070_getLength(type_name) > 1000) {
+                        return '${l:PUR1070.TYPE_NAME_OVERLENGTH}';
+                    }
+                }
+                if (name == 'comments') {
+                    if (pur1070_getLength(comment) > 4000) {
+                        return '${l:PUR1070.COMMENTS_OVERLENGTH}';
+                    }
+                }
+                return true;
+            }
+            
+            function pur1070_rcxTrxTypesOnUpdate(ds,record,name,value,oldvalue){
+                if(name=='reverse_flag'&&value=='N'){
+                    record.set('reverse_trx_type',null);
+                }
+            }
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur1070_pur_rcv_trx_types_query_ds"/>
+            <a:dataSet id="pur1070_pur_rcv_trx_types_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="pur.PUR1070.pur_rcv_trx_types" queryDataSet="pur1070_pur_rcv_trx_types_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="rcv_trx_type" required="true" validator="pur1070_typeCodeNameValidate"/>
+                    <a:field name="description1" required="true" validator="pur1070_typeCodeNameValidate"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="po_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="asn_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="receive_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="deliver_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="return_to_receiving_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="return_to_vendor_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="reverse_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="reverse_trx_type" lovGridHeight="350" lovHeight="500" lovLabelWidth="120" lovService="pur.PUR1070.pur_rcv_trx_types_reverse_lov" lovWidth="540" title="PUR_RCV_TRX_TYPES.REVERSE_TRX_TYPE">
+                        <a:mapping>
+                            <a:map from="rcv_trx_type" to="reverse_trx_type"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="comments"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur1070_rcxTrxTypesOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="pur1070_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton bind="pur1070_grid" style="margin-left:20px;" type="save" width="100"/>
+                <a:gridButton bind="pur1070_grid" style="margin-left:20px;" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="pur1070_pur_rcv_trx_types_query_ds" defaultQueryField="type_code_name" defaultQueryHint="PUR1070.PUR_RCX_TRX_TYPE_DEFAULT_QUERY_HINT" resultTarget="pur1070_pur_rcv_trx_types_result_ds" style="width:100%;border:none"/>
+            <a:grid id="pur1070_grid" bindTarget="pur1070_pur_rcv_trx_types_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="rcv_trx_type" editorFunction="pur1070_typeCodeEditor" width="80"/>
+                    <a:column name="description1" editor="pur1070_grid_description1_tf" width="80"/>
+                    <a:column name="enabled_flag" editor="pur1070_grid_flag_cb" width="60"/>
+                    <a:column name="po_flag" editor="pur1070_grid_flag_cb" prompt="PUR_RCV_TRX_TYPES.PO_FLAG" width="60"/>
+                    <a:column name="asn_flag" editor="pur1070_grid_flag_cb" prompt="PUR_RCV_TRX_TYPES.ASN_FLAG" width="60"/>
+                    <a:column name="receive_flag" editor="pur1070_grid_flag_cb" prompt="PUR_RCV_TRX_TYPES.RECEIEVE_FLAG" width="60"/>
+                    <a:column name="deliver_flag" editor="pur1070_grid_flag_cb" prompt="PUR_RCV_TRX_TYPES.DELIVER_FLAG" width="60"/>
+                    <a:column name="return_to_receiving_flag" editor="pur1070_grid_flag_cb" prompt="PUR_RCV_TRX_TYPES.RETURN_TO_RECEIEVE_FLAG" width="60"/>
+                    <a:column name="return_to_vendor_flag" editor="pur1070_grid_flag_cb" prompt="PUR_RCV_TRX_TYPES.RETURN_TO_VERDOR_FLAG" width="60"/>
+                    <a:column name="reverse_flag" editor="pur1070_grid_flag_cb" width="60"/>
+                    <a:column name="reverse_trx_type" editorFunction="pur1070_reverseTrxTypeEditor" width="80"/>
+                    <a:column name="comments" editor="pur1070_grid_comments_tf" width="80"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="pur1070_grid_rcv_trx_type_tf_upper" typeCase="upper"/>
+                    <a:textField id="pur1070_grid_description1_tf"/>
+                    <a:textField id="pur1070_grid_comments_tf"/>
+                    <a:checkBox id="pur1070_grid_flag_cb"/>
+                    <a:lov id="pur1070_grid_reverse_trx_type_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: tangrunyu3837 $
+    $Date: 2013/05/24 07:03:56 $
+    $Revision: 1.2 $
+    $Purpose: “部门定义” 模块使用的查询bm
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        e.unit_id,
+                        e.unit_code,
+                        e.description_id,
+                        e.unit_desc,
+                        e.company_id,
+                        e.responsibility_center_id,
+                        e.parent_unit_id,
+                        e.operate_unit_id,
+                        e.chief_position_id,
+                        e.org_unit_level_id,
+                        e.enabled_flag,
+                        e.assign_types_id,
+                        e.sequence,
+                        e.client,
+                        e.data_source,
+                        e.data_source_id,
+                        e.data_source_code,
+                        e.data_source_name,
+                        (SELECT
+                            eop.position_code
+                        FROM
+                            exp_org_position_vl eop
+                        WHERE
+                            e.chief_position_id = eop.position_id
+                        ) position_code,
+                        (SELECT
+                            eop.description
+                        FROM
+                            exp_org_position_vl eop
+                        WHERE
+                            e.chief_position_id = eop.position_id
+                        ) position_desc,
+                        (SELECT
+                            eoua.unit_type_code
+                        FROM
+                            exp_org_unit_assign_types_vl eoua
+                        WHERE
+                            e.assign_types_id = eoua.assign_types_id
+                        ) unit_type_code,
+                        (SELECT
+                            eoua.description
+                        FROM
+                            exp_org_unit_assign_types_vl eoua
+                        WHERE
+                            e.assign_types_id = eoua.assign_types_id
+                        ) unit_type_desc,
+                        (SELECT
+                            eoul.org_unit_level_code
+                        FROM
+                            exp_org_unit_levels_vl eoul
+                        WHERE
+                            e.org_unit_level_id = eoul.org_unit_level_id
+                        ) org_unit_level_code,
+                        (SELECT
+                            eoul.description
+                        FROM
+                            exp_org_unit_levels_vl eoul
+                        WHERE
+                            e.org_unit_level_id = eoul.org_unit_level_id
+                        ) org_unit_level_desc,
+                        (SELECT
+                            pe.unit_code
+                        FROM
+                            exp_org_unit_vl pe
+                        WHERE
+                            e.parent_unit_id = pe.unit_id
+                        ) parent_unit_code,
+                        (SELECT
+                            pe.unit_desc
+                        FROM
+                            exp_org_unit_vl pe
+                        WHERE
+                            e.parent_unit_id = pe.unit_id
+                        ) parent_unit_desc,
+                        (SELECT
+                            fc.COMPANY_CODE
+                        FROM
+                            fnd_companies_vl fc
+                        WHERE
+                            e.company_id = fc.company_id
+                        ) company_code,
+                        (SELECT
+                            fc.company_short_name
+                        FROM
+                            fnd_companies_vl fc
+                        WHERE
+                            e.company_id = fc.company_id
+                        ) company_desc
+                    FROM
+                        exp_org_unit_vl e
+                    ORDER BY
+                        unit_code
+                    ) v #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+        <bm:query-field name="unit_code" queryExpression="v.unit_code like &apos;%&apos;|| ${@unit_code} ||&apos;%&apos;"/>
+        <bm:query-field name="org_unit_description" queryExpression="v.org_unit_description like &apos;%&apos;|| ${@org_unit_description} ||&apos;%&apos;"/>
+        <bm:query-field name="self_parent" queryExpression="parent_unit_id != ${/parameter/@self_parent}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority client_alias="v" client_name="client">
+        <authority-segment source_alias="v" source_name="company_id" type="COMPANY"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

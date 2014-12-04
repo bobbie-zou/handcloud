@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013年12月24日 下午5:03:52  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="bid_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="bid_header_number" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="round" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="version" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="status" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="status_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="application_date" databaseType="DATE" datatype="java.util.Date"/>
+        <bm:field name="bidder_user_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    dh.bid_header_id,
+                    dh.bid_header_number,
+                    dh.round,
+                    dh.version,
+                    dh.status,
+                    (SELECT
+                        scv.code_value_name
+                    FROM
+                        sys_code_values_v scv
+                    WHERE
+                        scv.code                    = 'BID_BIDDING_DOCM_STATUS' AND
+                        scv.code_enabled_flag       = 'Y' AND
+                        scv.code_value_enabled_flag = 'Y' AND
+                        scv.code_value              = dh.status
+                    ) AS status_desc,
+                    dh.application_date,
+                    su.description as bidder_user_desc
+                FROM
+                    bid_bidding_docm_headers dh,
+                    sys_user su
+                WHERE
+                    dh.entrustment_header_id = ${/parameter/@entrustment_header_id} AND
+                    dh.bidder_id             = ${/parameter/@bidder_id} and
+                    dh.created_by = su.user_id(+)
+                ORDER BY
+                    dh.round DESC,
+                    dh.version DESC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

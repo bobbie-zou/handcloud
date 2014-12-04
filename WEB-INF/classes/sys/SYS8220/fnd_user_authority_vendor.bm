@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-9-4 下午2:21:14  
+    $Revision: 1.0  
+    $Purpose: 子账户管理，权限管理页面，供应商查询BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	SELECT *
+				  FROM (SELECT 'VENDOR_' || pvv.vendor_id AS data_id,
+				               nvl(pvv.display_vendor_code,
+				                   pvv.vendor_code) AS data_code,
+				               pvv.full_name AS data_name,
+				               NULL AS parent_data_id,
+				               NULL AS expand,
+				               NULL AS sequence,
+				               'VENDOR' AS authority_type,
+				               pvv.vendor_id AS authority_id,
+				               decode((SELECT fua.authority_id
+				                        FROM fnd_user_authority fua
+				                       WHERE fua.user_id = ${@user_id}
+				                             AND fua.authority_type = 'VENDOR'
+				                             AND fua.assign_id = pvv.vendor_id),
+				                      NULL,
+				                      'N',
+				                      'Y') AS checked
+				          FROM pur_vendors_vl pvv
+				         WHERE pvv.enabled_flag = 'Y'
+				               AND (pvv.end_date_active IS NULL OR
+				               trunc(SYSDATE) BETWEEN trunc(pvv.start_date_active) AND trunc(pvv.end_date_active))
+				               AND pvv.business_group = ${/session/@business_group}
+				        UNION ALL
+				        SELECT 'VENDOR_SITE_' || pvs.vendor_site_id AS data_id,
+				               pvs.vendor_site_code AS data_code,
+				               nvl(pvs.site_name,
+				                   pvs.display_site_code) AS data_name,
+				               'VENDOR_' || pvs.vendor_id AS parent_data_id,
+				               NULL AS expand,
+				               NULL AS sequence,
+				               'VENDOR_SITE' AS authority_type,
+				               pvs.vendor_site_id AS authority_id,
+				               decode((SELECT fua.authority_id
+				                        FROM fnd_user_authority fua
+				                       WHERE fua.user_id = ${@user_id}
+				                             AND fua.authority_type = 'VENDOR_SITE'
+				                             AND fua.assign_id = pvs.vendor_site_id),
+				                      NULL,
+				                      'N',
+				                      'Y') AS checked
+				          FROM pur_vendor_sites_vl pvs,
+				               pur_vendors         pvv
+				         WHERE pvs.vendor_id = pvv.vendor_id
+				               AND pvs.enabled_flag = 'Y'
+				               AND pvv.enabled_flag = 'Y'
+				               AND (pvv.end_date_active IS NULL OR
+				               trunc(SYSDATE) BETWEEN trunc(pvv.start_date_active) AND trunc(pvv.end_date_active))
+				               AND pvv.business_group = ${/session/@business_group})v
+       		]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

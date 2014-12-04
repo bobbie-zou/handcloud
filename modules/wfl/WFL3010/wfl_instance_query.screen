@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zhangyi2652 $
+    $Date: 2010/11/22 01:43:37 $
+    $Revision: 1.5 $
+    $Purpose:"工作流监控"页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" model="wfl.wfl_document_reference" queryOrderBy="workflow_category" rootPath="wfl3010_workflow_type_rootpath"/>
+        <a:model-query autoCount="false" fetchAll="true" model="wfl.wfl_instance_query_dual" rootPath="wfl3010_workflow_instance_query_rootpath"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="wfl3010_workflow_instance_return_link" url="${/request/@context_path}/modules/wfl/public/workflowreturn.screen"/>
+        <a:link id="wfl3010_workflow_instance_node_delete_link" url="${/request/@context_path}/modules/wfl/WFL3010/wfl_instance_node_del.screen"/>
+        <a:link id="wfl3010_workflow_instance_node_end_link" url="${/request/@context_path}/modules/wfl/WFL3010/wfl_instance_node_end.screen"/>
+        <a:link id="wfl3010_workflow_instance_node_jump_link" url="${/request/@context_path}/modules/wfl/WFL3010/wfl_instance_node_jump.screen"/>
+        <script><![CDATA[
+            function wfl3010Query() {
+                $('wfl3010_workflow_instance_result_ds').query();
+            }
+            
+            function wfl3010WorkflowInstanceResultOnIndexchange(ds, record) {
+                var instance_id = record.get('instance_id');
+                var toRecord = $('wfl3010_workflow_resume_ds').getCurrentRecord();
+                if (toRecord) {
+                    toRecord.set('instance_id', instance_id);
+                }
+                return;
+            }
+            
+            function wfl3010WorkflowInstanceResultRender(value, record, name) {
+                if (name == 'order_no') {
+                    return '<a href="javascript:wfl3010WorkflowInstanceReturn(' + record.get('instance_id') + ')">' + record.get("order_no") + '</a>';
+                } else if (name == 'wfl_jump') {
+                    var status = record.get('status');
+                    if (status == 1 || status == -100) {
+                        var instance_id = record.get('instance_id');
+                        var windowId = "wfl3010_workflow_instance_node_jump_window";
+                        var url = /*wfl_instance_node_jump.screen*/
+                        $('wfl3010_workflow_instance_node_jump_link').getUrl() + '?instance_id=' + instance_id;
+                        return "<a href=\"javascript:wfl3010WorkflowInstanceEditDetail('" + windowId + "','" + url + "','${l:WORKFLOW_JUMP}')\"><img valign=\"middle\" src=\"${/request/@context_path}/images/jump.png\"/></a>";
+                    } else {
+                        return '';
+                    }
+                } else if (name == 'wfl_ctn') {
+                    var status = record.get('status');
+                    if (status == -100) {
+                        return "<a href=\"javascript:wfl3010WorkflowInstanceContinue()\"><img valign=\"middle\" src=\"${/request/@context_path}/images/continue.png\"/></a>";
+                    } else {
+                        return '';
+                    }
+                } else if (name == 'wfl_end') {
+                    var status = record.get('status');
+                    if (status == 1) {
+                        var instance_id = record.get('instance_id');
+                        var windowId = "wfl3010_workflow_instance_node_end_window";
+                        var url = /*wfl_instance_node_end.screen*/
+                        $('wfl3010_workflow_instance_node_end_link').getUrl() + '?instance_id=' + instance_id;
+                        return "<a href=\"javascript:wfl3010WorkflowInstanceEditDetail('" + windowId + "','" + url + "','${l:WORKFLOW_COMPLETED}')\"><img valign=\"middle\" src=\"${/request/@context_path}/images/stop.png\"/></a>";
+                    } else {
+                        return '';
+                    }
+                } else if (name == 'wfl_del') {
+                    var windowId = "wfl3010_workflow_instance_node_delete_window";
+                    var instance_id = record.get('instance_id');
+                    var url = /*wfl_instance_node_del.screen*/
+                    $('wfl3010_workflow_instance_node_delete_link').getUrl() + '?instance_id=' + instance_id;
+                    return "<a href=\"javascript:wfl3010WorkflowInstanceEditDetail('" + windowId + "','" + url + "','${l:WFL_INSTANCE_VIEW.WORKFLOW_DEL}')\"><img valign=\"middle\" src=\"${/request/@context_path}/images/remove.gif\"/></a>";
+                }
+            }
+            
+            function wfl3010WorkflowInstanceReturn(id) {
+                url = /*${/request/@context_path}/modules/wfl/workflowreturn.screen*/
+                $('wfl3010_workflow_instance_return_link').getUrl() + '?instance_id=' + id;
+                window.open(url);
+                // new Aurora.Window({id:'apprecord', url:'${/request/@context_path}/modules/wfl/workflowreturn.screen?instance_id='+ id, title:'', height:800,width:600});
+            }
+            
+            function wfl3010WorkflowInstanceEditDetail(windowId, urlString, title) {
+                new Aurora.Window({
+                    id: windowId,
+                    url: urlString,
+                    title: title,
+                    height: 140,
+                    width: 500
+                });
+            }
+            
+            function wfl3010WorkflowInstanceContinue() {
+                $('wfl3010_workflow_resume_ds').submit();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl3010_workflow_instance_status_ds" lookupCode="WFL_WORKFLOW_INSTANCE_STATUS"/>
+            <a:dataSet id="wfl3010_workflow_type_ds">
+                <a:datas dataSource="/model/wfl3010_workflow_type_rootpath"/>
+            </a:dataSet>
+            <a:dataSet id="wfl3010_workflow_resume_ds" autoCreate="true" submitUrl="${/request/@context_path}/autocrud/db.wfl_core_pkg.workflow_resume/batch_update"/>
+            <a:dataSet id="wfl3010_workflow_instance_query_ds">
+                <a:fields>
+                    <a:field name="workflow_status_display" displayField="code_value_name" options="wfl3010_workflow_instance_status_ds" returnField="workflow_status" valueField="code_value"/>
+                    <a:field name="order_type_display" displayField="document_desc" options="wfl3010_workflow_type_ds" returnField="order_type" valueField="workflow_category"/>
+                    <a:field name="workflow_status"/>
+                    <!-- <a:field name="creation_date_from" defaultValue="${/model/wfl3010_workflow_instance_query_rootpath/record/@default_s_date}"/>
+                    <a:field name="creation_date_to" defaultValue="${/model/wfl3010_workflow_instance_query_rootpath/record/@default_e_date}"/> -->
+                    <a:field name="creation_date_from"/>
+                    <a:field name="creation_date_to"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl3010_workflow_instance_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="wfl.WFL3010.wfl_instance_monitor_query" queryDataSet="wfl3010_workflow_instance_query_ds">
+                <a:events>
+                    <a:event name="indexchange" handler="wfl3010WorkflowInstanceResultOnIndexchange"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="wfl3010_workflow_instance_approve_record_ds" bindName="head" bindTarget="wfl3010_workflow_instance_result_ds" fetchAll="true" queryUrl="${/request/@context_path}/autocrud/wfl.WFL3010.wfl_instance_query_approve_record/query"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="wfl3010_workflow_instance_query_ds" resultTarget="wfl3010_workflow_instance_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="order_no" bindTarget="wfl3010_workflow_instance_query_ds" prompt="WFL_INSTANCE_QUERY.ORDER_NO">
+                        <a:events>
+                            <a:event name="enterdown" handler="wfl3010Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="workflow_status_display" bindTarget="wfl3010_workflow_instance_query_ds" prompt="WFL_WORKFLOW.STATUS">
+                        <a:events>
+                            <a:event name="enterdown" handler="wfl3010Query"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="order_type_display" bindTarget="wfl3010_workflow_instance_query_ds" prompt="FND_CODING_RULE_OBJECTS.DOCUMENT_TYPE">
+                        <a:events>
+                            <a:event name="enterdown" handler="wfl3010Query"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:vBox labelWidth="100">
+                            <a:textField name="create_by_name" bindTarget="wfl3010_workflow_instance_query_ds" prompt="WFL_INSTANCE_QUERY.CREATE_BY_NAME">
+                                <a:events>
+                                    <a:event name="enterdown" handler="wfl3010Query"/>
+                                </a:events>
+                            </a:textField>
+                            <a:datePicker name="creation_date_to" bindTarget="wfl3010_workflow_instance_query_ds" prompt="WFL_INSTANCE_QUERY.CREATION_DATE_TO">
+                                <a:events>
+                                    <a:event name="enterdown" handler="wfl3010Query"/>
+                                </a:events>
+                            </a:datePicker>
+                        </a:vBox>
+                        <a:vBox labelWidth="100">
+                            <a:textField name="approver" bindTarget="wfl3010_workflow_instance_query_ds" prompt="WFL_INSTANCE_QUERY.APPROVER">
+                                <a:events>
+                                    <a:event name="enterdown" handler="wfl3010Query"/>
+                                </a:events>
+                            </a:textField>
+                        </a:vBox>
+                        <a:vBox labelWidth="100">
+                            <a:textField name="workflow_name" bindTarget="wfl3010_workflow_instance_query_ds" prompt="WORKFLOW_NAME">
+                                <a:events>
+                                    <a:event name="enterdown" handler="wfl3010Query"/>
+                                </a:events>
+                            </a:textField>
+                        </a:vBox>
+                        <a:vBox labelWidth="100">
+                            <a:datePicker name="creation_date_from" bindTarget="wfl3010_workflow_instance_query_ds" prompt="WFL_INSTANCE_QUERY.CREATION_DATE_FROM">
+                                <a:events>
+                                    <a:event name="enterdown" handler="wfl3010Query"/>
+                                </a:events>
+                            </a:datePicker>
+                        </a:vBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:form marginWidth="70" padding="0" showMargin="false" title="WFL_WORKFLOW_INFO">
+                <a:grid bindTarget="wfl3010_workflow_instance_result_ds" height="230" marginWidth="75" navBar="true">
+                    <a:columns>
+                        <a:column name="order_no" align="center" lock="true" prompt="WFL_INSTANCE_QUERY.ORDER_NO" renderer="wfl3010WorkflowInstanceResultRender" width="100"/>
+                        <a:column name="place_holder1" align="center" lock="true" prompt="WFL_INSTANCE_QUERY.ACTION_ALL">
+                            <a:column name="wfl_jump" align="center" lock="true" prompt="WFL_INSTANCE_QUERY.WFL_JUMP" renderer="wfl3010WorkflowInstanceResultRender" width="50"/>
+                            <a:column name="wfl_ctn" align="center" lock="true" prompt="WFL_INSTANCE_QUERY.WFL_CTN" renderer="wfl3010WorkflowInstanceResultRender" width="50"/>
+                            <a:column name="wfl_end" align="center" lock="true" prompt="WFL_INSTANCE_QUERY.WFL_END" renderer="wfl3010WorkflowInstanceResultRender" width="50"/>
+                            <a:column name="wfl_del" align="center" lock="true" prompt="WFL_INSTANCE_QUERY.WFL_DEL" renderer="wfl3010WorkflowInstanceResultRender" width="50"/>
+                        </a:column>
+                        <a:column name="order_type" align="center" prompt="FND_CODING_RULE_OBJECTS.DOCUMENT_TYPE" width="80"/>
+                        <a:column name="create_by_name" align="center" prompt="WFL_INSTANCE_QUERY.CREATE_BY_NAME" width="75"/>
+                        <a:column name="creation_date_desc" align="center" prompt="WFL_INSTANCE_QUERY.CREATION_DATE" width="120"/>
+                        <a:column name="status_name" align="center" prompt="WFL_WORKFLOW.STATUS" width="75"/>
+                        <a:column name="curr_approve_name" align="center" prompt="WFL_INSTANCE_QUERY.APPROVER" width="120"/>
+                        <a:column name="date_limit" align="center" prompt="WFL_INSTANCE_QUERY.DATE_LIMIT" width="120"/>
+                        <a:column name="workflow_name" align="center" prompt="WORKFLOW_NAME" width="120"/>
+                        <a:column name="last_update_date_desc" align="center" prompt="WFL_INSTANCE_QUERY.LAST_UPDATE_DATE" width="110"/>
+                        <a:column name="last_approve_name" align="center" prompt="WFL_INSTANCE_QUERY.LAST_APPROVE_NAME" width="100"/>
+                        <!--<a:column name="status_desc" prompt="WFL_INSTANCE_QUERY.STATUS_DESC" width="100"/>-->
+                    </a:columns>
+                </a:grid>
+            </a:form>
+            <a:form marginWidth="70" padding="0" showMargin="false" title="WFL_INSTANCE_QUERY.GRID_TITLE">
+                <a:grid autoFocus="false" bindTarget="wfl3010_workflow_instance_approve_record_ds" height="180" marginWidth="75" navBar="false" style="border:none">
+                    <a:columns>
+                        <a:column name="creation_date" align="center" prompt="WFL_INSTANCE_QUERY.APPROVE_DATE" width="150"/>
+                        <a:column name="user_name" align="center" prompt="WFL_INSTANCE_QUERY.USER_NAME" width="100"/>
+                        <a:column name="node" align="center" prompt="WFL_INSTANCE_QUERY.NODE" width="100"/>
+                        <a:column name="action_title" align="center" prompt="WFL_INSTANCE_QUERY.ACTION_TITLE" width="75"/>
+                        <a:column name="comment_text" prompt="WFL_INSTANCE_QUERY.COMMENT_TEXT" width="75"/>
+                    </a:columns>
+                </a:grid>
+            </a:form>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

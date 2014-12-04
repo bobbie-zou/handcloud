@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-7-14 下午3:24:55  
+    $Revision: 1.0  
+    $Purpose: 站内信，同意好友申请，选择好友组和填写昵称
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="far.add_record_id = ${/parameter/@add_record_id}" fetchAll="true" model="fnd.FND7010.fnd_message_friend_add_records" rootPath="add_record"/>
+        <a:model-query defaultWhereClause="fg.default_group_flag = &apos;Y&apos;" fetchAll="true" model="fnd.FND7010.fnd_message_friend_group_list" rootPath="default_friend_group"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd7010_fnd_message_move_friend_group_link" model="fnd.FND7010.fnd_message_move_friend_group" modelaction="execute"/>
+        <script><![CDATA[
+            function fnd7010_messageAddNewFriendDisposeOK() {
+                if ($('fnd7010_message_add_new_friend_dispose_ds').validate()) {
+                    var record = $('fnd7010_message_add_new_friend_dispose_ds').getCurrentRecord();
+                    Aurora.request({
+                        url: $('fnd7010_fnd_message_move_friend_group_link').getUrl(),
+                        para: {
+                            'add_record_id': '${/model/add_record/record/@add_record_id}',
+                            'friend_user_id': '${/model/add_record/record/@from_user_id}',
+                            'friend_group_id': record.get('friend_group_id'),
+                            'nickname': record.get('nickname')
+                        },
+                        success: function() {
+                            window.close();
+                            window.opener.location.reload();
+                        },
+                        error: function() {},
+                        failure: function() {},
+                        scope: this
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd7010_message_add_new_friend_record_ds">
+                <a:datas dataSource="/model/add_record"/>
+                <a:fields>
+                    <a:field name="add_infomation" prompt="附加信息"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd7010_message_user_friend_group_list_ds" autoQuery="true" model="fnd.FND7010.fnd_message_friend_group_list"/>
+            <a:dataSet id="fnd7010_message_add_new_friend_dispose_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="friend_group_name" displayField="friend_group_name" options="fnd7010_message_user_friend_group_list_ds" prompt="好友组" required="true" requiredMessage="好友组不能为空" returnField="friend_group_id" valueField="friend_group_id"/>
+                    <a:field name="nickname" prompt="昵称"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet title="添加好友">
+                <a:vBox style="margin-top:10px;">
+                    <a:label name="add_infomation" bindTarget="fnd7010_message_add_new_friend_record_ds" width="150"/>
+                    <a:comboBox name="friend_group_name" bindTarget="fnd7010_message_add_new_friend_dispose_ds" width="150"/>
+                    <a:textField name="nickname" bindTarget="fnd7010_message_add_new_friend_dispose_ds" width="150"/>
+                    <a:hBox style="margin-top:10px;">
+                        <a:button click="fnd7010_messageAddNewFriendDisposeOK" text="HAP_OK" width="100"/>
+                    </a:hBox>
+                </a:vBox>
+            </a:fieldSet>
+        </a:screenBody>
+        <script><![CDATA[
+        	Aurora.onReady(function(){
+        	    var record = $('fnd7010_message_add_new_friend_dispose_ds').getCurrentRecord();
+        	    record.set('friend_group_id','${/model/default_friend_group/record/@friend_group_id}');
+        	    record.set('friend_group_name','${/model/default_friend_group/record/@friend_group_name}');
+        	});
+        ]]></script>
+    </a:view>
+</a:screen>

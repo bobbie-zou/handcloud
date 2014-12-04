@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-8-23 上午9:58:06  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:c="aurora.application.action" xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="demo.DEMO5011.demo_adeo_kpi" rootPath="demo5011_adeo_ve_kpi"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="demo5011_adeo_save_link" url="${/request/@context_path}/modules/demo/DEMO5011/demo_adeo_save.svc"/>
+        <div/>
+        <script><![CDATA[
+            function demo5011Query() {
+                $('demo5011_adeo_ve_result_ds').query();
+            }
+            
+            function demo5011Save() {
+                var ds = $('demo5011_adeo_ve_result_ds');
+                var kpi_ds = $('demo5011_adeo_kpi_ds');
+                var recs = ds.getAll();
+                var kpi_recs = kpi_ds.getAll();
+            
+                var rec_count = recs.length;
+                var kpi_count = kpi_recs.length;
+            
+                var data = [];
+                for (var i = 0;i < rec_count;i++) {
+                    for (var j = 0;j < kpi_count;j++) {
+            
+                        data.push({
+                            'item_category_id': recs[i].get('item_category_id'),
+                            'vendor_id': recs[i].get('vendor_id'),
+                            'kpi_id': kpi_recs[j].get('kpi_id'),
+                            'data': recs[i].get(kpi_recs[j].get('kpi_id'))
+                        });
+                    }
+                }
+            
+                Aurora.request({
+                    url: $('demo5011_adeo_save_link').getUrl(),
+                    para: data,
+                    success: function(res) {
+                        $('demo5011_adeo_ve_result_ds').query();
+                    },
+                    failure: function() {
+                        return;
+                    },
+                    error: function() {
+                        return;
+                    }
+                });
+            
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="demo5011_adeo_kpi_ds">
+                <a:datas dataSource="/model/demo5011_adeo_ve_kpi"/>
+            </a:dataSet>
+            <a:dataSet id="demo5011_adeo_ve_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="purchase_category_code" autoComplete="true" autoCompleteField="purchase_category_code" lovGridHeight="350" lovHeight="500" lovLabelWidth="100" lovService="public.pur_purchase_category_tree_query" lovWidth="500" title="Item category">
+                        <a:mapping>
+                            <a:map from="purchase_category_id" to="item_category_id"/>
+                            <a:map from="purchase_category_code" to="purchase_category_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_desc" autoComplete="true" autoCompleteField="short_name" lovGridHeight="350" lovHeight="500" lovLabelWidth="100" lovService="public.pur_system_vendors_lov" lovWidth="500" title="Vendor">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="short_name" to="vendor_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="demo5011_adeo_ve_result_ds" autoCount="true" autoPageSize="true" queryDataSet="demo5011_adeo_ve_query_ds" queryUrl="${/request/@context_path}/modules/demo/DEMO5011/demo_adeo_query.svc" selectable="true">
+                <a:fields>
+                    <a:field name="purchase_category_code" autoComplete="true" autoCompleteField="purchase_category_code" lovGridHeight="350" lovHeight="500" lovLabelWidth="100" lovService="public.pur_purchase_category_tree_query" lovWidth="500" required="true" title="Item category">
+                        <a:mapping>
+                            <a:map from="purchase_category_id" to="item_category_id"/>
+                            <a:map from="purchase_category_code" to="purchase_category_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="vendor_desc" autoComplete="true" autoCompleteField="short_name" lovGridHeight="350" lovHeight="500" lovLabelWidth="100" lovService="public.pur_system_vendors_lov" lovWidth="500" required="true" title="Vendor">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="short_name" to="vendor_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="demo5011_adeo_ve_result_grid" type="add" width="100"/>
+                <!-- <a:gridButton bind="demo5011_adeo_ve_result_grid" type="save" width="100"/> -->
+                <a:gridButton bind="demo5011_adeo_ve_result_grid" type="clear" width="100"/>
+                <a:toolbarButton click="demo5011Save" text="Save" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="demo5011_adeo_ve_query_ds" resultTarget="demo5011_adeo_ve_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:lov name="purchase_category_code" bindTarget="demo5011_adeo_ve_query_ds" prompt="Item category">
+                        <a:events>
+                            <a:event name="enterdown" handler="demo5011Query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="vendor_desc" bindTarget="demo5011_adeo_ve_query_ds" prompt="Vendor">
+                        <a:events>
+                            <a:event name="enterdown" handler="demo5011Query"/>
+                        </a:events>
+                    </a:lov>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="demo5011_adeo_ve_result_grid" bindTarget="demo5011_adeo_ve_result_ds" marginHeight="150" marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="purchase_category_code" align="left" editor="demo5011_adeo_result_lov" prompt="Item category" width="60"/>
+                    <a:column name="vendor_desc" align="left" editor="demo5011_adeo_result_lov" prompt="Vendor" width="60"/>
+                    <a:placeHolder id="demo5011_dynamic_columns_placeHolder"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="demo5011_adeo_result_lov"/>
+                    <a:numberField id="demo5011_adeo_result_nf" allowDecimals="true" decimalPrecision="2"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+    <a:view-config>
+        <c:batch-config source="/model/demo5011_adeo_ve_kpi" targetId="demo5011_dynamic_columns_placeHolder">
+            <a:column name="${@kpi_id}" align="right" editor="demo5011_adeo_result_nf" prompt="${@kpi_desc}" renderer="Aurora.formatMoney" width="120"/>
+        </c:batch-config>
+    </a:view-config>
+</a:screen>

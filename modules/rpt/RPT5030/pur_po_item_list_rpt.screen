@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-9-25 上午9:25:08  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.flex_value_set_code=&apos;REPORT_TYPES&apos;" fetchAll="true" model="rpt.RPT5030.fnd_flex_value_v_lov_2" rootPath="rpt5030_report_types_list"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="rpt5030_print_link" url="${/request/@context_path}/modules/rpt/RPT5030/pur_po_item_list_details.screen"/>
+        <a:link id="rpt5030_init_pur_po_category_link" model="rpt.RPT5030.init_pur_po_category" modelaction="insert"/>
+        <script><![CDATA[
+            var rpt5030_data_change_flag = 0;
+            var rpt5030_rp_hearder_id = 0;
+            
+            function rpt5030_init() {
+                $('rpt5030_query_from_id').hide();
+                $('rpt5030_query_to_id').hide();
+            }
+            
+            function rpt5030_set_print_btn_disable() {
+                $('rpt5030_print_btn').disable();
+            }
+            
+            function rpt5030_set_print_btn_enable() {
+                $('rpt5030_print_btn').enable();
+            }
+            
+            function rpt5030_lock_current_window() {
+                if ($('rpt1010_go5030_screen')) {
+                    Aurora.Masker.mask($('rpt1010_go5030_screen').wrap, '..');
+                } else {
+                    Aurora.Masker.mask(Ext.getBody(), '${l:RPT.RPT_IS_OPERATING}');
+                }
+            }
+            
+            function rpt5030_unlock_current_window() {
+                if ($('rpt1010_go5030_screen')) {
+                    Aurora.Masker.unmask($('rpt1010_go5030_screen').wrap);
+                } else {
+                    Aurora.Masker.unmask(Ext.getBody());
+                }
+            }
+            
+            function rpt5030_print_function() {
+                if (rpt5030_data_change_flag == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.MAKE_DATA_FIRST}');
+                } else {
+                    rpt5030_set_print_btn_disable();
+                    rpt5030_lock_current_window();
+                    var url = $('rpt5030_print_link').getUrl() + '?rp_header_id=' + rpt5030_rp_hearder_id;
+                    var form = document.createElement("form");
+                    form.target = "word_export_window";
+                    form.method = "post";
+                    form.action = url;
+                    var iframe = Ext.get('word_export_window') || new Ext.Template('<iframe id ="word_export_window" name="word_export_window" style="position:absolute;left:-10000px;top:-10000px;width:1px;height:1px;display:none"></iframe>').insertFirst(document.body, {}, true);
+                    document.body.appendChild(form);
+                    form.submit();
+                    Ext.fly(form).remove();
+                    rpt5030_unlock_current_window();
+                    rpt5030_set_print_btn_enable();
+                }
+            }
+            
+            function rpt5030_query_year_validate_function(record, name, value) {
+                var query_ds = $('rpt5030_make_ds').getAt(0);
+                if (name == 'base_period_year_from' || name == 'base_period_year_to') {
+                    var nowDate = new Date();
+                    if (query_ds.get('base_period_year_from') > query_ds.get('base_period_year_to')) {
+                        return '${l:RPT.START_YEAR_GRATER_THEN_END_YEAR}';
+                    }
+                    return true;
+                }
+                if ((name == 'base_period_from' || name == 'base_period_to') && (record.get('base_period_year_from') == record.get('base_period_year_to')) && !Aurora.isEmpty(record.get('base_period_year_from')) && !Aurora.isEmpty(record.get('base_period_year_to'))) {
+                    if (record.get('report_type_value') == 'HALF_YEAR') {
+                        if (record.get('base_period_from_value') >  record.get('base_period_to_value')) {
+                            return '${l:RPT.START_HALFYEAR_GRATER_THEN_END_HALFYEAR}';
+                        }
+                        return true;
+                    }
+                    if (record.get('report_type_value') == 'QUARTER') {
+                        if (record.get('base_period_from_value') > record.get('base_period_to_value')) {
+                            return '${l:RPT.START_QUARTER_GRATER_THEN_END_QUARTER}';
+                        }
+                        return true;
+                    }
+                    if (record.get('report_type_value') == 'MONTH') {
+                        if (parseInt(record.get('base_period_from_value')) > parseInt(record.get('base_period_to_value'))) {
+                            return '${l:RPT.START_MONTH_GRATER_THEN_END_MONTH}';
+                        }
+                        return true;
+                    }
+                }
+                return true;
+            }
+            
+            function rpt5030_ds_clear() {
+                $('rpt5030_make_ds').getAt(0).set('base_period_from', '');
+                $('rpt5030_make_ds').getAt(0).set('base_period_to', '');
+            }
+            
+            function rpt5030_btn_required_false() {
+                $('rpt5030_make_ds').getAt(0).getField('base_period_from').setRequired(false);
+                $('rpt5030_make_ds').getAt(0).getField('base_period_to').setRequired(false);
+            }
+            
+            function rpt5030_btn_required_true() {
+                $('rpt5030_make_ds').getAt(0).getField('base_period_from').setRequired(true);
+                $('rpt5030_make_ds').getAt(0).getField('base_period_to').setRequired(true);
+            }
+            
+            function rpt5030_make_ds_update(ds, record, name, value) {
+                if (name == 'base_period_year_from' || name == 'base_period_year_to') {
+                    record.validate((name == 'base_period_year_from') ? 'base_period_year_to' : 'base_period_year_from');
+                    record.validate('base_period_from');
+                    record.validate('base_period_to');
+                }
+            
+                if (name == 'base_period_from_value' || name == 'base_period_to_value') {
+                    record.validate('base_period_from');
+                    record.validate('base_period_to');
+                }
+                if (name == 'report_type_value') {
+                    rpt5030_ds_clear();
+                    if (value == 'YEAR') {
+                        $('rpt5030_query_from_id').hide();
+                        $('rpt5030_query_to_id').hide();
+                        rpt5030_btn_required_false();
+                    }
+                    if (value == 'HALF_YEAR') {
+                        $('rpt5030_query_from_id').show();
+                        $('rpt5030_query_to_id').show();
+                        $('rpt5030_query_from_id').setPrompt('${l:RPT.YEAR_PERIOD_FROM}:');
+                        $('rpt5030_query_to_id').setPrompt('${l:RPT.YEAR_PERIOD_TO}:');
+                        rpt5030_btn_required_true();
+                        flex_value_ds = $('rpt5030_flex_value_ds');
+                        flex_value_ds.setQueryParameter('flex_value_set_code', 'HALF_YEAR');
+                        flex_value_ds.query();
+                    }
+                    if (value == 'QUARTER') {
+                        $('rpt5030_query_from_id').show();
+                        $('rpt5030_query_to_id').show();
+                        $('rpt5030_query_from_id').setPrompt('${l:RPT.SESSION_FROM}:');
+                        $('rpt5030_query_to_id').setPrompt('${l:RPT.SESSION_TO}:');
+                        rpt5030_btn_required_true();
+                        flex_value_ds = $('rpt5030_flex_value_ds');
+                        flex_value_ds.setQueryParameter('flex_value_set_code', 'QUARTER');
+                        flex_value_ds.query();
+                    }
+                    if (value == 'MONTH') {
+                        $('rpt5030_query_from_id').show();
+                        $('rpt5030_query_to_id').show();
+                        $('rpt5030_query_from_id').setPrompt('${l:RPT.MONTH_FROM}:');
+                        $('rpt5030_query_to_id').setPrompt('${l:RPT.MONTH_TO}:');
+                        rpt5030_btn_required_true();
+                        flex_value_ds = $('rpt5030_flex_value_ds');
+                        flex_value_ds.setQueryParameter('flex_value_set_code', 'MONTH');
+                        flex_value_ds.query();
+                    }
+                    if (value == '') {
+                        $('rpt5030_query_from_id').hide();
+                        $('rpt5030_query_to_id').hide();
+                        rpt5030_btn_required_false();
+                    }
+                }
+            }
+            
+            function rpt5030_before_save(value1, value2, value3, value4, value5, value6) {
+                var make_ds = $('rpt5030_make_ds').getAt(0);
+                make_ds.set('base_year_period_from', value1);
+                make_ds.set('base_year_period_to', value2);
+                make_ds.set('base_season_from', value3);
+                make_ds.set('base_season_to', value4);
+                make_ds.set('base_month_from', value5);
+                make_ds.set('base_month_to', value6);
+            }
+            
+            function rpt5030_save() {
+                rpt5030_lock_current_window();
+                var ds = $('rpt5030_make_ds').getAt(0);
+                if ($('rpt5030_make_ds').validate()) {
+                    var ds_null = '';
+                    var base_from = ds.get('base_period_from_value');
+                    var base_to = ds.get('base_period_to_value');
+                    if (ds.get('report_type_value') == 'YEAR') {
+                        rpt5030_before_save(ds_null, ds_null, ds_null, ds_null, ds_null, ds_null);
+                    }
+                    if (ds.get('report_type_value') == 'HALF_YEAR') {
+                        rpt5030_before_save(base_from, base_to, ds_null, ds_null, ds_null, ds_null);
+                    }
+                    if (ds.get('report_type_value') == 'QUARTER') {
+                        rpt5030_before_save(ds_null, ds_null, base_from, base_to, ds_null, ds_null);
+                    }
+                    if (ds.get('report_type_value') == 'MONTH') {
+                        rpt5030_before_save(ds_null, ds_null, ds_null, ds_null, base_from, base_to);
+                    }
+                    Aurora.request({
+                        url: $('rpt5030_init_pur_po_category_link').getUrl(),
+                        para: {
+                            fnd_companies: ds.get('company_id'),
+                            business_unit: ds.get('business_unit_id'),
+                            report_type_value: ds.get('report_type_value'),
+                            base_period_year_from_value: ds.get('base_period_year_from_value'),
+                            base_period_year_to_value: ds.get('base_period_year_to_value'),
+                            base_year_period_from: ds.get('base_year_period_from'),
+                            base_year_period_to: ds.get('base_year_period_to'),
+                            base_season_from: ds.get('base_season_from'),
+                            base_season_to: ds.get('base_season_to'),
+                            base_month_from: ds.get('base_month_from'),
+                            base_month_to: ds.get('base_month_to')
+                        },
+                        success: rpt5030_submitsuccess,
+                        scope: this
+                    });
+                } else {
+                    rpt5030_unlock_current_window();
+                }
+            }
+            
+            function rpt5030_query_clear() {
+                var query_ds = $('rpt5030_query_ds').getAt(0);
+                query_ds.set('total_transaction_amount_from', '');
+                query_ds.set('total_transaction_amount_to', '');
+                query_ds.set('total_ranking_from', '');
+                query_ds.set('total_ranking_to', '');
+                query_ds.set('category', '');
+            }
+            
+            function rpt5030_submitsuccess(res) {
+                //alert(res.result.rp_hearder_id);
+                rpt5030_rp_hearder_id = res.result.rp_hearder_id;
+                rpt5030_data_change_flag = 1;
+                var result_ds = $('rpt5030_result_ds');
+                rpt5030_query_clear();
+                result_ds.setQueryParameter('rp_header_id', rpt5030_rp_hearder_id);
+                $('rpt5030_chart_data_ds').setQueryParameter('rp_header_id', rpt5030_rp_hearder_id);
+                $('rpt5030_result_ds').query();
+                $('rpt5030_chart_data_ds').query();
+/*                 Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '操作成功',
+                    duration: 600
+                }); */
+                rpt5030_unlock_current_window();
+            }
+            
+            function rpt5030_query() {
+                result_ds = $('rpt5030_result_ds');
+                result_ds.setQueryParameter('rp_header_id', rpt5030_rp_hearder_id);
+                $('rpt5030_result_ds').query();
+            }
+            
+            function rpt5030_queryHook_query(value, ds) {
+                result_ds = $('rpt5030_result_ds');
+                result_ds.setQueryParameter('rp_header_id', rpt5030_rp_hearder_id);
+                $('rpt5030_result_ds').query();
+            }
+            
+            function rpt5030_formatter1() {
+                return '<b>' + this.x + '</b><br/>' + this.series.name + ': ' + this.y + '万元';
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="rpt5030_report_type_ds">
+                <a:datas dataSource="/model/rpt5030_report_types_list"/>
+            </a:dataSet>
+            <a:dataSet id="rpt5030_flex_value_ds" fetchAll="true" loadData="true" model="rpt.RPT5030.fnd_flex_value_v_lov"/>
+            <a:dataSet id="rpt5030_make_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="report_type" displayField="flex_desc" options="rpt5030_report_type_ds" required="true" returnField="report_type_value" valueField="flex_value"/>
+                    <a:field name="base_period_from" displayField="flex_desc" options="rpt5030_flex_value_ds" returnField="base_period_from_value" validator="rpt5030_query_year_validate_function" valueField="flex_value"/>
+                    <a:field name="base_period_to" displayField="flex_desc" options="rpt5030_flex_value_ds" returnField="base_period_to_value" validator="rpt5030_query_year_validate_function" valueField="flex_value"/>
+                    <a:field name="base_period_year_from" autoComplete="true" autoCompleteField="flex_desc" lovHeight="490" lovService="rpt.RPT5030.fnd_flex_value_v_lov_2?flex_value_set_code=YEAR" lovWidth="490" required="true" title="报告期年度" validator="rpt5030_query_year_validate_function">
+                        <a:mapping>
+                            <a:map from="flex_desc" to="base_period_year_from"/>
+                            <a:map from="flex_value" to="base_period_year_from_value"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="base_period_year_to" autoComplete="true" autoCompleteField="flex_desc" lovHeight="490" lovService="rpt.RPT5030.fnd_flex_value_v_lov_2?flex_value_set_code=YEAR" lovWidth="490" required="true" title="报告期年度" validator="rpt5030_query_year_validate_function">
+                        <a:mapping>
+                            <a:map from="flex_desc" to="base_period_year_to"/>
+                            <a:map from="flex_value" to="base_period_year_to_value"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="rpt5030_make_ds_update"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="rpt5030_query_ds"/>
+            <a:dataSet id="rpt5030_result_ds" autoCount="true" autoPageSize="true" model="rpt.RPT5030.pur_po_rp_details" queryDataSet="rpt5030_query_ds" sortType="local"/>
+            <a:dataSet id="rpt5030_chart_data_ds" bindTarget="rpt5030_result_ds" fetchAll="true" model="rpt.RPT5030.pur_po_rp_details">
+                <a:fields>
+                    <a:field name="item_category_name" prompt="采购品"/>
+                    <a:field name="amount" prompt="累计交易金额"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <!-- <a:screenTitle/> -->
+                <a:toolbarButton id="rpt5030_save_btn" className="item-rbtn-blue save" click="rpt5030_save" style="margin-left:20px;" text="RPT_MAKING_UP" width="100"/>
+                <a:gridButton bind="rpt5030_result_grid" style="margin-left:20px;" type="excel" width="100"/>
+                <a:toolbarButton id="rpt5030_print_btn" className="item-rbtn-blue print" click="rpt5030_print_function" style="margin-left:20px;" text="RPT_REPORT_PRINT" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="rpt5030_query_ds" queryHook="rpt5030_query" resultTarget="rpt5030_result_ds" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:hBox labelWidth="150">
+                        <a:textField name="category" bindTarget="rpt5030_query_ds" prompt="RPT.RPT_ITEM_CATEGORY_CODE">
+                            <a:events>
+                                <a:event name="enterdown" handler="rpt5030_query"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="150">
+                        <a:numberField name="total_transaction_amount_from" bindTarget="rpt5030_query_ds" prompt="RPT.RPT_TOTAL_AMOUNT_MONEY_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="rpt5030_query"/>
+                            </a:events>
+                        </a:numberField>
+                        <a:numberField name="total_transaction_amount_to" bindTarget="rpt5030_query_ds" prompt="RPT.RPT_TOTAL_AMOUNT_MONEY_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="rpt5030_query"/>
+                            </a:events>
+                        </a:numberField>
+                    </a:hBox>
+                    <a:hBox labelWidth="150">
+                        <a:numberField name="total_ranking_from" bindTarget="rpt5030_query_ds" prompt="RPT.RPT_OVERALL_RANKING_FROM">
+                            <a:events>
+                                <a:event name="enterdown" handler="rpt5030_query"/>
+                            </a:events>
+                        </a:numberField>
+                        <a:numberField name="total_ranking_to" bindTarget="rpt5030_query_ds" prompt="RPT.RPT_OVERALL_RANKING_TO">
+                            <a:events>
+                                <a:event name="enterdown" handler="rpt5030_query"/>
+                            </a:events>
+                        </a:numberField>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:form id="rpt5030_print_field_01_id" bindTarget="rpt5030_make_ds" column="5" labelWidth="100" marginWidth="55" row="1" title="RPT.RPT_DATA_RAGE">
+                <a:comboBox name="report_type" bindTarget="rpt5030_make_ds" prompt="RPT.RPT_REPORT_TYPE" width="120"/>
+                <a:lov name="base_period_year_from" id="rpt5030_base_period_year_from_id" allowDecimals="false" bindTarget="rpt5030_make_ds" prompt="RPT.YEAR_FROM" width="120"/>
+                <a:lov name="base_period_year_to" id="rpt5030_base_period_year_to_id" allowDecimals="false" bindTarget="rpt5030_make_ds" prompt="RPT.YEAR_TO" width="120"/>
+                <a:comboBox name="base_period_from" id="rpt5030_query_from_id" bindTarget="rpt5030_make_ds" prompt="RPT.YEAR_PERIOD_FROM" width="120"/>
+                <a:comboBox name="base_period_to" id="rpt5030_query_to_id" bindTarget="rpt5030_make_ds" prompt="RPT.YEAR_PERIOD_TO" width="120"/>
+            </a:form>
+            <a:tabPanel marginHeight="273" marginWidth="55">
+                <a:tabs>
+                    <a:tab prompt="RPT.RPT_ORIGINAL_DATA" width="100">
+                        <a:grid id="rpt5030_result_grid" bindTarget="rpt5030_result_ds" marginHeight="305" marginWidth="58" navBar="true">
+                            <a:columns>
+                                <a:column name="item_category_code" align="left" prompt="RPT.RPT_ITEM_CATEGORY_CODE" sortable="true" width="100"/>
+                                <a:column name="item_category_name" align="left" prompt="RPT.RPT_ITEM_CATEGORY_NAME" width="150"/>
+                                <a:column name="total_amount" id="rpt5030_grid_growth_speed" align="right" prompt="RPT.RPT_TOTAL_AMOUNT_MONEY" sortable="true" width="100"/>
+                                <a:column name="overall_ranking" align="right" prompt="RPT.RPT_OVERALL_RANKING" sortable="true" width="100"/>
+                                <a:column name="total_ratio" align="right" prompt="RPT.RPT_TOTAL_RATIO" sortable="true" width="100"/>
+                                <a:column name="coop_company_name" align="left" prompt="RPT.RPT_LARGEST_VENDOR" width="150"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tabl prompt="RPT.RPT_DATA_GRAPHICS" width="100">
+                        <a:chart bindTarget="rpt5030_chart_data_ds" height="320" type="column" width="1300">
+                            <a:title text="占总交易额比重"/>
+                            <a:xAxis>
+                                <a:xAxi name="item_category_name"/>
+                            </a:xAxis>
+                            <a:yAxis>
+                                <a:yAxi name="amount" allowDecimals="false" min="0">
+                                    <a:title text="累计交易金额(万元)"/>
+                                </a:yAxi>
+                            </a:yAxis>
+                            <a:tooltip formatter="rpt5030_formatter1"/>
+                            <a:plotOptions>
+                                <a:chartcolumn stacking="normal"/>
+                            </a:plotOptions>
+                        </a:chart>
+                    </a:tabl>
+                </a:tabs>
+            </a:tabPanel>
+            <script><![CDATA[
+            Aurora.onReady(function() {
+                rpt5030_init();
+            });
+        ]]></script>
+        </a:screenBody>
+    </a:view>
+</a:screen>

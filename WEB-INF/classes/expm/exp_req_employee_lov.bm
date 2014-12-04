@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            select * from (
+             select distinct s.employee_id,
+                                     emp.employee_code || '-' ||emp.name employee_code,
+                                    emp.employee_code employee_code1,
+                                    emp.name,
+                                    emp.bank_of_deposit  bank_branch_code,
+                                    emp.bank_account bank_account_code
+                      from exp_employee_assigns s, exp_employees emp
+                     where s.employee_id = emp.employee_id
+                       and s.enabled_flag = 'Y'
+                       and s.company_id =
+                           nvl(${/parameter/@company_id}, ${/session/@company_id})
+                       and (${/parameter/@auth_type} is null or
+                           exp_document_authorities_pkg.exist_exp_doc_authorities(${/parameter/@doc_type},
+                                                                                   (select employee_id
+                                                                                      from sys_user
+                                                                                     where user_id = ${/session/@user_id}),
+                                                                                   s.employee_id,
+                                                                                   ${/parameter/@auth_type},
+                                                                                   ${/session/@user_id}) = 'Y'))  v
+             #WHERE_CLAUSE#
+             order by employee_code
+             ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="employee_id" databaseType="number" datatype="java.lang.Long" forDisplay="FALSE"/>
+        <bm:field name="employee_code" Prompt="EXP_EMPLOYEE.EMPLOYEE_CODE" databaseType="varchar2" datatype="java.lang.String" displayWidth="220" forDisplay="true"/>
+        <bm:field name="employee_code1" Prompt="EXP_EMPLOYEE.EMPLOYEE_CODE" databaseType="varchar2" datatype="java.lang.String" forDisplay="false" forQuery="true"/>
+        <bm:field name="name" Prompt="EXP_EMPLOYEE.EMPLOYEE_NAME" databaseType="varchar2" datatype="java.lang.String" displayWidth="220" forDisplay="true" forQuery="true"/>
+        <bm:field name="bank_branch_code" Prompt="EXP_EMPLOYEE.BANK_OF_DEPOSIT" databaseType="varchar2" datatype="java.lang.String"/>
+        <bm:field name="bank_account_code" Prompt="EXP_EMPLOYEE.BANK_ACCOUNT" databaseType="varchar2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="employee_code1" queryExpression="v.employee_code1 like ${@employee_code1}"/>
+        <bm:query-field name="name" queryExpression="v.name like ${@name}"/>
+    </bm:query-fields>
+</bm:model>

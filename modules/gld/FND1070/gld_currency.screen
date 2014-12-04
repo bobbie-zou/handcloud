@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: sunxi2681 $
+    $Date: 2014/04/02 02:43:52 $
+    $Revision: 1.10 $
+    $Purpose: 币种定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" model="gld.FND1070.gld_currency_message_query" rootPath="fnd1070_messageQuery"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd1070_currency_bg_details_link" url="${/request/@context_path}/modules/gld/FND1070/gld_currency_reference_details.screen"/>
+        <script><![CDATA[
+            function fnd1070_queryCurrency() {
+                $('fnd1070_currency_result_ds').query();
+            }
+            
+            function fnd1070_currencyResultDsBeforeSubmit(record, name, value) {
+                if (name == 'currency_code') {
+                    if (fnd1070_getLength(value) >= 10) {
+                        return '${l:FND1070.CURRENCY_CODE_OVERLENGTH}';
+                    }
+                }
+                if(name=='currency_name'){
+                    if (fnd1070_getLength(value) >= 1000) {
+                        return '${l:FND1070.CURRENCY_NAME_OVERLENGTH}';
+                    }
+                }
+                if (name == 'currency_symbol') {
+                    if (fnd1070_getLength(value) >= 10) {
+                        return '${l:FND1070.CURRENCY_SYMBOL_OVERLENGTH}';
+                    }
+                }
+                return true;
+            }
+            
+            function fnd1070_getLength(str) {
+                if (!Aurora.isEmpty(str)) {
+                    var realLength = 0,
+                        len = str.length,
+                        charCode = -1;
+                    for (var i = 0;i < len;i++) {
+                        charCode = str.charCodeAt(i);
+                        if (charCode >= 0 && charCode <= 128) {
+                            realLength += 1;
+                        } else {
+                            realLength += 3;
+                        }
+                    }
+                    return realLength;
+                }
+                return 0;
+            }
+            
+            function fnd1070_onValuesChange(ds, record, name, newValue, oldValue) {
+                if (name == 'precision') {
+                    if (newValue < oldValue) {
+                        var confirmPrecision = new Aurora.showConfirm("${l:PROMPT}", "${l:GLD_CURRENCY_SYS_MESSAGE_1}", function() {
+                            confirmPrecision.close();
+                        }, function() {
+                            record.set('precision', oldValue);
+                        });
+                    }
+                }
+                if (name == 'transaction_precision') {
+                    if (newValue < oldValue) {
+                        var confirmTransactionPrecision = new Aurora.showConfirm("${l:PROMPT}", "${l:GLD_CURRENCY_SYS_MESSAGE_1}", function() {
+                            confirmTransactionPrecision.close();
+                        }, function() {
+                            record.set('transaction_precision', oldValue);
+                        });
+                    }
+                }
+            }
+            
+            //编辑器
+            
+            function fnd1070_currency_result_grid_editorFun(record, name) {
+                if (record.isNew) {
+                    return 'fnd1070_currency_result_grid_utf';
+                }
+                return '';
+            }
+            
+			//引用明细            
+            function fnd1070_currencyBg(value,record, name) {
+                if (!record.isNew) {
+                    var currencyCode = record.get('currency_code');
+                    return '<a href="javascript:fnd1070_currencyBgDetails(\'' + currencyCode + '\')">${l:PROMPT.REFERENCE_DETAIL}</a>';
+                }
+            }
+            
+            function fnd1070_currencyBgDetails(currencyCode) {
+                //alert(currencyCode);
+                new Aurora.Window({
+                    id: 'fnd1070_currency_bg_window',
+                    url: 
+                    $('fnd1070_currency_bg_details_link').getUrl() + '?currency_code=' + currencyCode,
+                    title: '${l:PROMPT.REFERENCE_DETAIL}',
+                    width: 750,
+                    height: 500
+                });
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd1070_currency_query_ds" model="gld.gld_currency"/>
+            <a:dataSet id="fnd1070_currency_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" fetchAll="false" model="gld.gld_currency" queryDataSet="fnd1070_currency_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="currency_code" required="true" validator="fnd1070_currencyResultDsBeforeSubmit"/>
+                    <a:field name="currency_name" required="true" validator="fnd1070_currencyResultDsBeforeSubmit"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="country_code" autoComplete="true" autoCompleteField="country_code" autoCompleteSize="1" lovHeight="490" lovService="public.fnd_country_lov" lovWidth="490" required="true" title="GLD_CURRENCY.COUNTRY_NAME">
+                        <a:mapping>
+                            <a:map from="country_code" to="country_code"/>
+                            <a:map from="country_name" to="country_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="precision" required="true"/>
+                    <a:field name="transaction_precision" required="true"/>
+                    <a:field name="currency_symbol" validator="fnd1070_currencyResultDsBeforeSubmit"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd1070_onValuesChange"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="fnd1070_grid" type="add" width="100"/>
+                <a:gridButton bind="fnd1070_grid" type="save" width="100"/>
+                <a:gridButton bind="fnd1070_grid" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd1070_currency_query_ds" defaultQueryField="journal_num" resultTarget="fnd1070_currency_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="currency_code" bindTarget="fnd1070_currency_query_ds" prompt="GLD_CURRENCY.CURRENCY_CODE" typeCase="upper">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd1070_queryCurrency"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="currency_name" bindTarget="fnd1070_currency_query_ds" prompt="GLD_CURRENCY.CURRENCY_NAME" typeCase="upper">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd1070_queryCurrency"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="country_name" bindTarget="fnd1070_currency_query_ds" prompt="GLD_CURRENCY.COUNTRY_NAME" typeCase="upper">
+                        <a:events>
+                            <a:event name="enterdown" handler="fnd1070_queryCurrency"/>
+                        </a:events>
+                    </a:textField>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:grid id="fnd1070_grid" bindTarget="fnd1070_currency_result_ds" height="350" marginHeight="180" marginWidth="70" navBar="true" width="1290">
+                <a:columns>
+                    <a:column name="currency_code" editorFunction="fnd1070_currency_result_grid_editorFun" sortable="true" width="100"/>
+                    <a:column name="currency_name" align="left" editor="fnd1070_currency_result_grid_tf" width="100"/>
+                    <a:column name="country_code" editor="fnd1070_currency_result_grid_lov" prompt="GLD_CURRENCY.COUNTRY_CODE" width="100"/>
+                    <a:column name="country_name" align="left" prompt="GLD_CURRENCY.COUNTRY_NAME" width="250"/>
+                    <a:column name="precision" align="right" editor="fnd1070_currency_result_grid_nf" width="100"/>
+                    <a:column name="transaction_precision" align="right" editor="fnd1070_currency_result_transaction_grid_nf" sortable="true" width="100"/>
+                    <a:column name="currency_symbol" align="left" editor="fnd1070_currency_result_grid_tf" sortable="true" width="200"/>
+                    <a:column name="enabled_flag" editor="fnd1070_currency_result_grid_cb" width="100"/>
+                    <a:column name="currency_bg_details" prompt="PROMPT.REFERENCE_DETAIL" renderer="fnd1070_currencyBg" width="150"/>
+                </a:columns>
+                <a:editors>
+                    <a:numberField id="fnd1070_currency_result_grid_nf"/>
+                    <a:numberField id="fnd1070_currency_result_transaction_grid_nf"/>
+                    <a:textField id="fnd1070_currency_result_grid_utf" typeCase="upper"/>
+                    <a:textField id="fnd1070_currency_result_grid_tf"/>
+                    <a:checkBox id="fnd1070_currency_result_grid_cb"/>
+                    <a:lov id="fnd1070_currency_result_grid_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

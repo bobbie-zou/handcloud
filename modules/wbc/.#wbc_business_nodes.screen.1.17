@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Mouse Chow  
+    $Date: 2011-12-7 上午10:41:46  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <script><![CDATA[
+            function setDispatchingRules(value, record, name) {
+                if (!record.isNew) {
+                    var business_node_sequence = record.get('business_node_sequence');
+                    var text = '<a href="wbc_dispatch_rule_assign.screen?assign_id=${/parameter/@assign_id}&business_node_sequence=' + business_node_sequence + '">${l:WBC.DISPATCHING_RULES}</a>';
+                    return text;
+                } else {
+                    return "";
+                }
+            }
+            
+            function getBack() {
+                history.go(-1);
+            }
+            
+            function nodesQuery() {
+                $('wbc_business_nodes_ds').query();
+            }
+            
+            function getNodeSequence(dataSet, record, index) {
+                var dsarray = dataSet.getAll();
+                var n;
+                for (var i = 0;i < dsarray.length;i++) {
+                    if (i == index - 2) {
+                        n = dataSet.getAt(i).get('business_node_sequence');
+                        record.set('business_node_sequence', parseInt(parseInt(n) / 10) * 10 + 10);
+                    }
+                }
+            }
+            
+           /* function setNodeSequence(dataSet, record, index) {
+                var dsarray = dataSet.getAll();
+                var n;
+                for (var i = 0;i < dsarray.length;i++) {
+                    if (i >= index) {
+                        n = dataSet.getAt(i).get('business_node_sequence');
+                        dataSet.getAt(i).set('business_node_sequence', parseInt(parseInt(n) / 10) * 10 - 10);
+                    }
+                }
+            }*/
+            function saveNodes(){
+                var dataSet = $('wbc_business_nodes_ds');
+                var dsarray = dataSet.getAll();
+                for (var i = 0;i < dsarray.length;i++) {
+                    for (var j = i+1;j < dsarray.length;j++){
+                       var n = dataSet.getAt(i).get('business_node_sequence');
+                       var m = dataSet.getAt(j).get('business_node_sequence');
+                       if (m == n){
+                           Aurora.showMessage('${l:WBC_BUSINESS_NODES.HELPFUL_HINTS}','${l:WBC_BUSINESS_NODES.HELPFUL_HINTS_INFO}');
+                           return;
+                       }
+                    }
+                }
+                dataSet.submit();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="business_type_ds" lookupCode="EXP_DOCUMENT_CATEGORY"/>
+            <a:dataSet id="business_type_assign_result_ds" autoQuery="true" model="wbc.wbc_business_type_assign" queryUrl="${/request/@context_path}/autocrud/wbc.wbc_business_type_assign_query/query?assign_id=${/parameter/@assign_id}">
+                <a:fields>
+                    <a:field name="business_type_name" displayField="code_value_name" options="business_type_ds" prompt="WBC_BUSINESS_TYPE_ASSIGN.BUSINESS_TYPE" returnField="business_type_code" valueField="code_value"/>
+                    <a:field name="business_type_code"/>
+                    <a:field name="document_type_id" readOnly="true"/>
+                    <a:field name="document_type_display" defaultValue="${/parameter/@document_type_display}" prompt="WBC_BUSINESS_TYPE_ASSIGN.DOCUMENT_TYPE_DISPLAY" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wbc_business_nodes_ds" autoQuery="true" model="wbc.wbc_business_nodes" queryUrl="${/request/@context_path}/autocrud/wbc.wbc_business_nodes/query?assign_id=${/parameter/@assign_id}" selectable="true">
+                <a:fields>
+                    <a:field name="business_node_id"/>
+                    <a:field name="business_node_sequence" defaultValue="10" required="true"/>
+                    <a:field name="assign_id" defaultValue="${/parameter/@assign_id}"/>
+                    <a:field name="business_node_code" lovGridHeight="360" lovHeight="500" lovService="wbc.wbc_business_nodes_code" lovWidth="470" required="true" title="WBC_BUSINESS_NODES.BUSINESS_NODE_CODE">
+                        <a:mapping>
+                            <a:map from="code_value" to="business_node_code"/>
+                            <a:map from="code_value_name" to="business_node_description"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="business_node_description"/>
+                    <a:field name="business_node_service" lovGridHeight="330" lovHeight="460" lovService="sys.sys_service" lovWidth="450" title="PAGE_SELECT">
+                        <mapping>
+                            <map from="service_id" to="business_node_service_id"/>
+                            <map from="service_name" to="business_node_service"/>
+                        </mapping>
+                    </a:field>
+                    <a:field name="business_node_service_id"/>
+                    <a:field name="business_node_mark" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="fixed" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="getNodeSequence"/>
+                    <!-- <a:event name="remove" handler="setNodeSequence"/>-->
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form labelWidth="120" row="1" title="BUSINESS_TYPE_DISTRIBUTION_INFORMATION" width="750">
+                <a:label name="business_type_name" bindTarget="business_type_assign_result_ds"/>
+                <a:label name="document_type_id" bindTarget="business_type_assign_result_ds"/>
+                <a:label name="document_type_display" bindTarget="business_type_assign_result_ds"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="nodesQuery" text="HAP_QUERY"/>
+                <a:button click="getBack" text="HAP_BACK"/>
+            </a:hBox>
+            <a:grid bindTarget="wbc_business_nodes_ds" height="450" navBar="true" width="901">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="clear"/>
+                    <a:button click="saveNodes" icon="../../images/save.gif" text="HAP_SAVE"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="business_node_sequence" align="center" editor="business_node_tf" prompt="WBC_BUSINESS_NODES.BUSINESS_NODE_SEQUENCE" width="75"/>
+                    <a:column name="business_node_code" align="center" editor="business_node_lov" prompt="WBC_BUSINESS_NODES.BUSINESS_NODE_CODE"/>
+                    <a:column name="business_node_description" align="center" prompt="WBC_BUSINESS_NODES.BUSINESS_NODE_DESCRIBE"/>
+                    <a:column name="business_node_service" align="center" editor="business_node_lov" prompt="WBC_BUSINESS_NODES.BUSINESS_NODE_PAGE" width="200"/>
+                    <a:column name="business_node_mark" align="center" editor="business_node_cb" prompt="WBC_BUSINESS_NODES.BUSINESS_NODE_MARK"/>
+                    <a:column name="fixed" align="center" editor="business_node_cb" prompt="WBC_BUSINESS_NODES.FIXED"/>
+                    <a:column name="enabled_flag" align="center" editor="business_node_cb" prompt="WBC_BUSINESS_NODES.ENABLED_FLAG"/>
+                    <a:column name="dispatch_rules" align="center" prompt="WBC_BUSINESS_NODES.BUSINESS_RULE" renderer="setDispatchingRules"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="business_node_tf"/>
+                    <a:checkBox id="business_node_cb"/>
+                    <a:lov id="business_node_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

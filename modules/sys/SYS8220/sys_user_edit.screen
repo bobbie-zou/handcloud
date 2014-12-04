@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao 
+    $Date: 2014/09/01 下午02:43:53 
+    $Revision: 1.12 
+    $Purpose: 集团子账户管理，维护账户信息页面-管理员
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <style><![CDATA[
+    		.item-ckb {
+				float: left;
+				margin-top: 3px;
+				margin-right: 8px;
+				outline: none;
+			}
+    	]]></style>
+        <a:link id="sys8220_sys_user_set_password_link_update" model="sys.SYS8220.sys_user_set_password" modelaction="update"/>
+        <script><![CDATA[
+            var sys8220_tablpanel_index = 0;
+            
+            function sys8220_closeUserCreateWindow() {
+                $('sys8220_user_edit_window').close();
+            }
+            
+            function sys8220_saveUser() {
+                if (sys8220_tablpanel_index == 0) {
+                    if ($('sys8220_user_edit_ds').validate()) {
+                        $('sys8220_user_edit_ds').submit();
+                    }
+                }else if(sys8220_tablpanel_index == 1){
+                    sys8220_resetPassword();
+                }else if(sys8220_tablpanel_index == 2){
+                    $('sys8010_add_user_role_assign_ds').submit();
+                }
+            }
+            
+            function sys8220_onCheckBoxChange(checkbox, newValue, oldValue) {
+                var record = $('sys8220_user_edit_ds').getCurrentRecord();
+                if (newValue == 'Y') {
+                    record.getField('description').setReadOnly(true);
+                    record.getField('start_date').setReadOnly(true);
+                    record.getField('end_date').setReadOnly(true);
+                } else {
+                    record.getField('description').setReadOnly(false);
+                    record.getField('start_date').setReadOnly(false);
+                    record.getField('end_date').setReadOnly(false);
+                }
+            }
+            
+            function sys8220_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function sys8220_userEditDsValidator(record, name, value) {
+                if (name == 'description') {
+                    if (sys8220_getLength(value) >= 240) {
+                        return '${l:SYS8210.USER_DESCRIPTION_OVERLENGTH}';
+                    }
+                    return true;
+                }
+            
+                if (name == 'start_date' || name == 'end_date') {
+                    var start_date = record.get('start_date');
+                    var end_date = record.get('end_date');
+                    if (typeof(end_date) != 'undefined' && !Ext.isEmpty(end_date)) {
+                        if (!sys8220_compareDate(start_date, end_date)) {
+                            return '${l:START_GREATER_THAN_END}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function sys8220_userEditDsSubmitSuccess(dataset, res) {
+                Aurora.showMessage('${l:EXP_REP_PARTIALLY_SUBMITTED}', '${l:USER_INFORMATION_MODIFY_SUCCESS}');
+            }
+            
+            function sys8220_userEditDsLoad(ds) {
+                var record = ds.getCurrentRecord();
+                if (record.get('frozen_flag') == 'Y') {
+                    record.getField('description').setReadOnly(true);
+                    record.getField('start_date').setReadOnly(true);
+                    record.getField('end_date').setReadOnly(true);
+                } else {
+                    record.getField('description').setReadOnly(false);
+                    record.getField('start_date').setReadOnly(false);
+                    record.getField('end_date').setReadOnly(false);
+                }
+            }
+            
+            function sys8220_getLength(str) {
+                var realLength = 0,
+                    len = str.length,
+                    charCode = -1;
+                for (var i = 0;i < len;i++) {
+                    charCode = str.charCodeAt(i);
+                    if (charCode >= 0 && charCode <= 128) {
+                        realLength += 1;
+                    } else {
+                        realLength += 3;
+                    }
+                }
+                return realLength;
+            }
+            
+            function sys8220_userSetPasswordDsValidator(record, name, value) {
+                if (name == 'user_password' || name == 'user_password_re') {
+                    var password = record.get('user_password');
+                    var passwordRe = record.get('user_password_re');
+                    if (password != passwordRe) {
+                        return '${l:FND_PRV_SET_PASS.PWD_NO_EQU}';
+                    }
+                    if (sys8220_getLength(value) >= 100) {
+                        return '${l:SYS8210.USER_PASSWORD_OVERLENGTH}';
+                    }
+                    return true;
+                }
+            }
+            
+            function sys8220_password_onUpdate(ds, record, name, value) {
+                if (name == 'user_password_re') {
+                    if (value == record.get('user_password')) {
+                        record.set('encrypted_user_password', value);
+                        record.set('encrypted_foundation_password', value);
+                    }
+                }
+                if (name == 'user_password' || name == 'user_password_re') {
+                    record.validate((name == 'user_password') ? 'user_password_re' : 'user_password');
+                }
+            }
+            
+            function sys8220_resetPassword() {
+                var record = $('sys8220_user_set_password_ds').getCurrentRecord();
+                if ($('sys8220_user_set_password_ds').validate()) {
+                    Aurora.request({
+                        url: $('sys8220_sys_user_set_password_link_update').getUrl(),
+                        para: record.data,
+                        success: function() {
+                            Aurora.showMessage('${l:EXP_REP_PARTIALLY_SUBMITTED}', '${l:PASSWORD_CHANGING_SUCCESS}');
+                        },
+                        failure: function() {},
+                        error: function() {},
+                        scope: this
+                    });
+                }
+            }
+            
+            function sys8220_userRoleAssignGridEditorFunction(record, name) {
+                var business_group = '${/model/role_assign_user_info/record/@business_group}';
+                if (name == 'role_code') {
+                    if (record.isNew) {
+                        return 'sys8220_add_user_role_assign_grid_lov';
+                    }
+                }
+            }
+            
+            function sys8220_role_dateValidator(record, name, value) {
+                if (name == 'start_date' || name == 'end_date') {
+                    var start_date = record.get('start_date');
+                    var end_date = record.get('end_date');
+                    if (typeof(end_date) != 'undefined' && !Ext.isEmpty(end_date)) {
+                        if (!sys8220_compareDate(start_date, end_date)) {
+                            return '${l:START_GREATER_THAN_END}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function sys8220_userInfoSubmitsuccess(ds) {
+                ds.query();
+            }
+            
+            function sys8010_userRoleAssignDsAdd(dataset, record, index) {
+                var now = new Date();
+                var month = now.getMonth() + 1;
+                month = month > 9 ? month : '0' + month;
+                var day = now.getDate();
+                day = day > 9 ? day : '0' + day;
+                var date = now.getFullYear() + '-' + month + '-' + day; //STRING类型
+                record.set('start_date', date);
+            }
+            
+            function sys8010_userRoleAssignDsUpdate(ds, record, name, value, oldvalue) {
+                var records = ds.getAll();
+                if (name == 'default_flag') {
+                    if (value && value == 'Y') {
+                        for (var i = 0;i < records.length;i++) {
+                            if (ds.indexOf(record) != ds.indexOf(records[i])) {
+                                ds.indexOf(record);
+                                records[i].set('default_flag', 'N');
+                            }
+                        }
+                    }
+                }
+            }
+            
+            function sys8220_tabpanel_select(tabPanel, index, tab) {
+                sys8220_tablpanel_index = index;
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys8220_user_edit_ds" loadData="true" model="sys.SYS8220.sys_business_group_user_manage" queryUrl="${/request/@context_path}/autocrud/sys.SYS8220.sys_business_group_user_manage/query?user_id=${/parameter/@user_id}">
+                <a:fields>
+                    <a:field name="user_name" readOnly="true"/>
+                    <a:field name="start_date" required="true" requiredMessage="${l:SYS8210.START_DATE_NOT_NULL}" validator="sys8220_userEditDsValidator"/>
+                    <a:field name="end_date" validator="sys8220_userEditDsValidator"/>
+                    <a:field name="description" required="true" requiredMessage="${l:SYS8210.DESCRIPTION_NOT_NULL}" validator="sys8220_userEditDsValidator"/>
+                    <a:field name="frozen_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="bg_admin_flag" checkedValue="Y" readOnly="true" uncheckedValue="N"/>
+                    <a:field name="email" required="true"/>
+                    <a:field name="mobile_phone"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="sys8220_userEditDsLoad"/>
+                    <a:event name="submitsuccess" handler="sys8220_userEditDsSubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys8220_user_set_password_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="user_id" defaultValue="${/parameter/@user_id}"/>
+                    <a:field name="user_password" required="true" requiredMessage="${l:SYS8210.NEW_PASSWORD_NOT_NULL}" validator="sys8220_userSetPasswordDsValidator"/>
+                    <a:field name="user_password_re" required="true" requiredMessage="${l:SYS8210.RE_PASSWORD_NOT_NULL}" validator="sys8220_userSetPasswordDsValidator"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="sys8220_password_onUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys8010_add_user_role_assign_ds" autoQuery="true" fetchAll="true" model="sys.SYS8220.sys_user_role_assign" queryUrl="${/request/@context_path}/autocrud/sys.SYS8220.sys_user_role_assign/query?ORDER_FIELD=role_code&amp;user_id=${/parameter/@user_id}" selectable="true">
+                <a:fields>
+                    <a:field name="user_role_group_id"/>
+                    <a:field name="role_code" autoComplete="true" autoCompleteField="role_name" lovGridHeight="320" lovHeight="460" lovService="public.sys_role_lov" lovWidth="500" required="true" requiredMessage="${l:SYS8110.ROLE_CODE_NOT_NULL}" title="HAP_SELECT_ROLE">
+                        <a:mapping>
+                            <a:map from="role_id" to="role_id"/>
+                            <a:map from="role_code" to="role_code"/>
+                            <a:map from="role_name" to="role_name"/>
+                            <a:map from="role_description" to="role_description"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="user_id" defaultValue="${/parameter/@user_id}"/>
+                    <a:field name="start_date" required="true" requiredMessage="${l:SYS8210.START_DATE_NOT_NULL}" validator="sys8220_role_dateValidator"/>
+                    <a:field name="end_date" validator="sys8220_role_dateValidator"/>
+                    <a:field name="default_flag" checkedValue="Y" displayField="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="sys8010_userRoleAssignDsAdd"/>
+                    <a:event name="update" handler="sys8010_userRoleAssignDsUpdate"/>
+                    <a:event name="submitsuccess" handler="sys8220_userInfoSubmitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton click="sys8220_saveUser" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="sys8220_closeUserCreateWindow" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+            </a:screenTopToolbar>
+            <a:tabPanel width="600">
+                <a:tabs>
+                    <a:tab prompt="SYS8220.BASE_INFO" width="100">
+                        <!--                         <a:screenTopToolbar>
+                            <a:toolbarButton click="sys8220_saveUser" text="PROMPT.SAVE" width="100"/>
+                            <a:toolbarButton click="sys8220_closeUserCreateWindow" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+                        </a:screenTopToolbar> -->
+                        <a:vBox style="margin-left:120px">
+                            <a:hBox height="20" labelWidth="120">
+                                <a:label name="user_name" bindTarget="sys8220_user_edit_ds" prompt="SYS_USER.ACCOUNT"/>
+                            </a:hBox>
+                            <a:hBox height="20" labelWidth="120">
+                                <a:textField name="description" bindTarget="sys8220_user_edit_ds" prompt="SYS_USER.DESCRIPTION"/>
+                            </a:hBox>
+                            <a:hBox height="20" labelWidth="120">
+                                <a:checkBox name="bg_admin_flag" bindTarget="sys8220_user_edit_ds" prompt="SYS_USER.BG_ADMIN_FLAG"/>
+                            </a:hBox>
+                            <a:hBox height="20" labelWidth="120">
+                                <a:datePicker name="start_date" bindTarget="sys8220_user_edit_ds" prompt="SYS_USER.START_DATE"/>
+                            </a:hBox>
+                            <a:hBox height="20" labelWidth="120">
+                                <a:datePicker name="end_date" bindTarget="sys8220_user_edit_ds" prompt="SYS_USER.END_DATE"/>
+                            </a:hBox>
+                            <a:hBox height="20" labelWidth="120">
+                                <a:checkBox name="frozen_flag" bindTarget="sys8220_user_edit_ds" prompt="SYS_USER.FROZEN_FLAG">
+                                    <a:events>
+                                        <a:event name="change" handler="sys8220_onCheckBoxChange"/>
+                                    </a:events>
+                                </a:checkBox>
+                            </a:hBox>
+                            <a:hBox height="20" labelWidth="120">
+                                <a:textField name="email" bindTarget="sys8220_user_edit_ds" prompt="SYS8220.EMAIL_ADDRESS"/>
+                            </a:hBox>
+                            <a:hBox height="20" labelWidth="120">
+                                <a:textField name="mobile_phone" bindTarget="sys8220_user_edit_ds" prompt="SYS8220.MOBILE_PHONE"/>
+                            </a:hBox>
+                        </a:vBox>
+                    </a:tab>
+                    <a:tab prompt="SYS8220.PASSWD_SECURITY" width="100">
+                        <!--                         <a:screenTopToolbar>
+                            <a:toolbarButton click="sys8220_resetPassword" text="PROMPT.SAVE" width="100"/>
+                            <a:toolbarButton click="sys8220_closeUserCreateWindow" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+                        </a:screenTopToolbar> -->
+                        <a:vBox style="margin-left:120px;margin-top:30px">
+                            <a:hBox height="35" labelWidth="120">
+                                <a:passWord name="user_password" bindTarget="sys8220_user_set_password_ds" prompt="SYS_USER.NEW_PASSWORD"/>
+                            </a:hBox>
+                            <a:hBox height="35" labelWidth="120">
+                                <a:passWord name="user_password_re" bindTarget="sys8220_user_set_password_ds" prompt="SYS_USER.CONFIRM"/>
+                            </a:hBox>
+                        </a:vBox>
+                    </a:tab>
+                    <a:tab prompt="SYS8220.ROLE_ASSIGN" width="100">
+                        <a:grid id="sys8220_add_user_role_assign_grid" bindTarget="sys8010_add_user_role_assign_ds" height="300" navBar="false" width="597">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="clear"/>
+                                <!-- <a:button type="save"/> -->
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="role_code" align="center" editor="sys8220_add_user_role_assign_grid_lov" editorFunction="sys8220_userRoleAssignGridEditorFunction" prompt="SYS_ROLE.ROLE_CODE" width="100"/>
+                                <a:column name="role_name" align="left" prompt="SYS_ROLE.ROLE_NAME" width="100"/>
+                                <a:column name="role_description" align="left" prompt="SYS_ROLE.ROLE_DESCRIPTION" width="100"/>
+                                <a:column name="start_date" align="center" editor="sys8220_add_user_role_assign_grid_datepicker" renderer="Aurora.formatDate" width="100"/>
+                                <a:column name="end_date" align="center" editor="sys8220_add_user_role_assign_grid_datepicker" renderer="Aurora.formatDate" width="100"/>
+                                <a:column name="default_flag" align="center" editor="sys8220_add_user_role_assign_grid_checkbox" prompt="PROMPT.DEFAULT" width="40"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="sys8220_add_user_role_assign_grid_lov"/>
+                                <a:datePicker id="sys8220_add_user_role_assign_grid_datepicker"/>
+                                <a:checkBox id="sys8220_add_user_role_assign_grid_checkbox"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+                <a:events>
+                    <a:event name="select" handler="sys8220_tabpanel_select"/>
+                </a:events>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

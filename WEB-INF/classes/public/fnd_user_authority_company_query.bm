@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select distinct *
+  from (SELECT f.company_id,
+       f.company_code,
+       f.company_short_name,
+       f.company_full_name
+  FROM fnd_user_authority t,
+       fnd_companies_vl   f
+ WHERE t.assign_id = f.company_id
+       AND (f.end_date_active IS NULL OR trunc(f.end_date_active) >= trunc(SYSDATE))
+       AND trunc(f.start_date_active) <= trunc(SYSDATE)
+       AND f.enabled_flag = 'Y'
+       AND f.business_group = ${/session/@business_group}
+       AND t.authority_type = 'COMPANY'
+       AND t.user_id = ${/session/@user_id}
+UNION
+SELECT f.company_id,
+       f.company_code,
+       f.company_short_name,
+       f.company_full_name
+  FROM fnd_companies_vl f
+ WHERE EXISTS (SELECT 1
+          FROM sys_role sr
+         WHERE sr.role_type = 'GROUP_ADMIN'
+               AND sr.role_id = ${/session/@role_id})
+       AND (f.end_date_active IS NULL OR trunc(f.end_date_active) >= trunc(SYSDATE))
+       AND trunc(f.start_date_active) <= trunc(SYSDATE)
+       AND f.business_group = ${/session/@business_group}
+       AND f.enabled_flag = 'Y'
+) #WHERE_CLAUSE#
+ order by company_code
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+    </bm:query-fields>
+</bm:model>

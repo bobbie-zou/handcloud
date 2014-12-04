@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-11 下午1:27:02  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:c="aurora.application.action" xmlns:s="aurora.plugin.script" xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="bid5150_entrustment_save_link" url="${/request/@context_path}/modules/bid/BID5150/bid_entrustment_edit_save.svc"/>
+        <a:link id="bid5150_entrustment_expert_random_choose_link" url="${/request/@context_path}/modules/bid/BID5150/bid_entrustment_expert_random_choose.screen"/>
+        <a:link id="bid5150_entrustment_turn_over_link" url="${/request/@context_path}/modules/bid/BID5150/bid_entrustment_turn_over.screen"/>
+        <a:link id="bid5150_issue_entrustment_link" model="bid.BID5150.bid_issue" modelaction="execute"/>
+        <script><![CDATA[
+            function bid5150EntrustmentEditCompareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            function bid5150EntrustmentEditValidator(record, name, value) {
+                if (name == 'bid_opening_start_date' || name == 'bid_opening_end_date') {
+                    var start_date = record.get('bid_opening_start_date');
+                    var end_date = record.get('bid_opening_end_date');
+                    if (!bid5150EntrustmentEditCompareDate(start_date, end_date)) {
+                        return '${l:START_GREATER_THAN_END}';
+                    }
+                    return true;
+                }
+            }
+            
+            function bid5150EntrustmentEditOnLoad(ds) {
+                var record = ds.getCurrentRecord(0);
+            
+                var entrustment_type_id = record.get('entrustment_type_id');
+                record.getField('invitation_tmpl_desc').setLovPara('entrustment_type_id', entrustment_type_id);
+                record.getField('bidding_tmpl_desc').setLovPara('entrustment_type_id', entrustment_type_id);
+                record.getField('evaluation_tmpl_desc').setLovPara('entrustment_type_id', entrustment_type_id);
+            
+                var company_id = record.get('company_id');
+                record.getField('tendering_agent_desc').setLovPara('company_id', company_id);
+            
+                var using_company_id = record.get('using_company_id');
+                record.getField('using_company_agent_desc').setLovPara('company_id', using_company_id);
+            
+                var margin_required_flag = record.get('margin_required_flag');
+                if (margin_required_flag == 'Y') {
+                    record.getMeta().getField('deposit_amount').setRequired(true);
+                } else if (margin_required_flag == 'N') {
+                    record.getMeta().getField('deposit_amount').setReadOnly(true);
+                }
+            
+                var suggested_bidding_method = record.get('suggested_bidding_method');
+                var bidding_method = record.get('bidding_method');
+                if (Aurora.isEmpty(bidding_method)) {
+                    record.set('bidding_method', suggested_bidding_method);
+                    record.set('bidding_method_desc', record.get('suggested_bidding_method_desc'));
+            
+                    if (bidding_method == 'OPEN') {
+                        $('bid5150_edit_entrustment_tab').setDisabled(1);
+                    } else if (bidding_method == 'INVITATION') {
+                        $('bid5150_edit_entrustment_tab').setEnabled(1);
+                    }
+                }
+            }
+            
+            function bid5150EntrustmentEditOnUpdate(ds, record, name, value, oldvalue) {
+                if (name == 'bidding_method') {
+                    if (value == 'OPEN') {
+                        $('bid5150_edit_entrustment_tab').setDisabled(1);
+                    } else if (value == 'INVITATION') {
+                        $('bid5150_edit_entrustment_tab').setEnabled(1);
+                    }
+                }
+            }
+            
+            function bid5150EntrustmentEditExpertOnUpdate(ds, record, name, value, oldValue) {
+                if (name == 'leader_flag') {
+                    var records = ds.getAll();
+                    if (value == 'Y') {
+                        for (var i = 0;i < records.length;i++) {
+                            if (ds.indexOf(record) != ds.indexOf(records[i])) {
+                                records[i].set('leader_flag', 'N');
+                            }
+                        }
+                    }
+                }
+            }
+            
+            function bid5150EntrustmentEditSave() {
+                var header_ds = $('bid5150_edit_entustment_header_ds');
+                var expert_ds = $('bid5150_edit_expert_line_ds');
+                var bidder_ds = $('bid5150_edit_bidder_line_ds');
+            
+                if (!header_ds.validate()) {
+                    return;
+                }
+                if (!expert_ds.validate()) {
+                    return;
+                }
+                if (!bidder_ds.validate()) {
+                    return;
+                }
+            
+                var data = header_ds.getCurrentRecord().data;
+                data['experts'] = expert_ds.getJsonData();
+                data['bidders'] = bidder_ds.getJsonData();
+            
+                Aurora.Masker.mask($('bid5150_operation_window').wrap, '${l:LOADING}');
+            
+                Aurora.request({
+                    url: $('bid5150_entrustment_save_link').getUrl(),
+                    para: data,
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SAVED}', function() {
+                            header_ds.query();
+                            expert_ds.query();
+                            bidder_ds.query();
+                        });
+                    },
+                    failure: function() {
+                        return;
+                    },
+                    error: function() {
+                        return;
+                    }
+                });
+            
+                Aurora.Masker.unmask($('bid5150_operation_window').wrap);
+            }
+            
+            function bid5150EntrustmentEditBulletinPreview() {
+                var header_ds = $('bid5150_edit_entustment_header_ds');
+                var rec = header_ds.getCurrentRecord();
+                var entrustment_header_id = rec.get('entrustment_header_id');
+                var status = rec.get('status');
+                var round = rec.get('round');
+                var version = rec.get('version');
+            
+                Aurora.showConfirm('${l:PROMPT}', '${l:PROMPT.CONFIRM_RELEASE}？', function() {
+                    Aurora.Masker.mask($('bid5150_operation_window').wrap, '${l:LOADING}');
+            
+                    Aurora.request({
+                        url: $('bid5150_issue_entrustment_link').getUrl(),
+                        para: {
+                            'entrustment_header_id': entrustment_header_id,
+                            'status': status,
+                            'round': round,
+                            'version': version
+                        },
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.RELEASED}', function() {
+                                $('bid5150_operation_window').close();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+            
+                    Aurora.Masker.unmask($('bid5150_operation_window').wrap);
+                });
+            }
+            
+            function bid5150EntrustmentEditTurnOver() {
+                var header_ds = $('bid5150_edit_entustment_header_ds');
+                var rec = header_ds.getCurrentRecord();
+                var entrustment_header_id = rec.get('entrustment_header_id');
+                var status = rec.get('status');
+                new Aurora.Window({
+                    id: 'bid5150_entrustment_turn_over_window',
+                    title: '$(l:PROMPT.DELIVER)',
+                    url: $('bid5150_entrustment_turn_over_link').getUrl() + '?entrustment_header_id=' + entrustment_header_id + '&status=' + status,
+                    width: 350,
+                    height: 150
+                });
+            }
+            
+            function bid5150EntrustmentEditReturn() {
+                $('bid5150_operation_window').close();
+            }
+            
+            /* function bid5150EntrustmentEditExpertRandomChoose() {
+             if (!$('bid5150_edit_entustment_header_ds').validate()) {
+             return;
+             }
+             if (!$('bid5150_edit_expert_line_ds').validate()) {
+             return;
+             }
+             if (!$('bid5150_edit_bidder_line_ds').validate()) {
+             return;
+             }
+             var head_record = $('bid5150_edit_entustment_header_ds').getAt(0);
+             if (head_record.dirty) {
+             Aurora.showMessage('${l:PROMPT}', '${l:SAVE_FIRST}');
+             return;
+             }
+             var expert_records = $('bid5150_edit_expert_line_ds').getAll();
+             for (var i = 0;i < expert_records.length;i++) {
+             if (expert_records[i].dirty) {
+             Aurora.showMessage('${l:PROMPT}', '${l:SAVE_FIRST}');
+             return;
+             }
+             }
+             var bidder_records = $('bid5150_edit_bidder_line_ds').getAll();
+             for (var j = 0;i < bidder_records.length;j++) {
+             if (bidder_records[j].dirty) {
+             Aurora.showMessage('${l:PROMPT}', '${l:SAVE_FIRST}');
+             return;
+             }
+             }
+             new Aurora.Window({
+             id: 'bid5150_entrustment_expert_random_choose_window',
+             title: '随机选择专家',
+             url: $('bid5150_entrustment_expert_random_choose_link').getUrl(),
+             height: 300,
+             width: 600
+             });
+             } */
+            
+            function bid5150EntrustmentEditExpertEditor(record, name) {
+                if (name == 'employee_code') {
+                    if (record.isNew) {
+                        return 'bid5150_edit_expert_lov';
+                    } else {
+                        var source_type = record.get('source_type');
+                        if (source_type == 'RANDOM') {
+                            return '';
+                        }
+                        return 'bid5150_edit_expert_lov';
+                    }
+                }
+            }
+            
+            function bid5150EntrustmentEditBidderEditor(record, name) {
+                if (name == 'bidder_code') {
+                    var suggested_flag = record.get('suggested_flag');
+                    if (record.isNew) {
+                        return 'bid5150_edit_bidder_lov';
+                    } else {
+                        if (!record.dirty && suggested_flag == 'Y') {
+                            return '';
+                        }
+                        return 'bid5150_edit_bidder_lov';
+                    }
+                }
+            }
+            
+            function bid5150EntrustmentEditAtmRender(value, rec, name) {
+                if (name == 'file_download_link') {
+                    var file_download_link = rec.get('file_download_link');
+                    return file_download_link;
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bid5150_edit_bidding_types_ds" lookupCode="BID_BIDDING_TYPES"/>
+            <a:dataSet id="bid5150_edit_entustment_header_ds" autoQuery="true" model="bid.BID5150.bid_entrustment_headers" queryUrl="${/request/@context_path}/autocrud/bid.BID5150.bid_entrustment_headers/query?entrustment_header_id=${/parameter/@entrustment_header_id}">
+                <a:fields>
+                    <a:field name="bidding_method" required="true"/>
+                    <a:field name="bidding_method_desc" displayField="code_value_name" options="bid5150_bidding_methods_ds" required="true" returnField="bidding_method" valueField="code_value"/>
+                    <a:field name="bidding_type" required="true"/>
+                    <a:field name="bidding_type_desc" displayField="code_value_name" options="bid5150_edit_bidding_types_ds" required="true" returnField="bidding_type" valueField="code_value"/>
+                    <a:field name="bid_closing_date" required="true"/>
+                    <a:field name="opening_place_id" required="true"/>
+                    <a:field name="opening_place_desc" autoComplete="true" autoCompleteField="place_desc" lovGridHeight="320" lovHeight="500" lovService="bid.public.bid_opening_places_vl" lovWidth="500" required="true" title="开标地点">
+                        <a:mapping>
+                            <a:map from="place_id" to="opening_place_id"/>
+                            <a:map from="place_desc" to="opening_place_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bid_opening_start_date" required="true" validator="bid5150EntrustmentEditValidator"/>
+                    <a:field name="bid_opening_end_date" required="true" validator="bid5150EntrustmentEditValidator"/>
+                    <a:field name="bid_file_amount" required="true"/>
+                    <!-- <a:field name="invitation_tmpl_id"/>
+                    <a:field name="invitation_tmpl_desc" lovGridHeight="320" lovHeight="450" lovService="public.bid_templates_lov" lovWidth="500" title="邀标模板">
+                        <a:mapping>
+                            <a:map from="template_id" to="invitation_tmpl_id"/>
+                            <a:map from="template_desc" to="invitation_tmpl_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bidding_tmpl_id"/>
+                    <a:field name="bidding_tmpl_desc" lovGridHeight="320" lovHeight="450" lovService="public.bid_templates_lov" lovWidth="500" title="投标模板">
+                        <a:mapping>
+                            <a:map from="template_id" to="bidding_tmpl_id"/>
+                            <a:map from="template_desc" to="bidding_tmpl_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="evaluation_tmpl_id"/>
+                    <a:field name="evaluation_tmpl_desc" lovGridHeight="320" lovHeight="450" lovService="public.bid_templates_lov" lovWidth="500" title="评标模板">
+                        <a:mapping>
+                            <a:map from="template_id" to="evaluation_tmpl_id"/>
+                            <a:map from="template_desc" to="evaluation_tmpl_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_id"/>
+                    <a:field name="tendering_agent_id"/>
+                    <a:field name="tendering_agent_desc" lovGridHeight="320" lovHeight="450" lovService="bid.public.bid_tendering_agents_lov" lovWidth="500" title="申请公司参与人">
+                        <a:mapping>
+                            <a:map from="employee_id" to="tendering_agent_id"/>
+                            <a:map from="name" to="tendering_agent_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="using_company_id"/>
+                    <a:field name="using_company_agent_id"/>
+                    <a:field name="using_company_agent_desc" lovGridHeight="320" lovHeight="450" lovService="bid.public.bid_using_company_agents_lov" lovWidth="500" title="使用公司参与人">
+                        <a:mapping>
+                            <a:map from="employee_id" to="using_company_agent_id"/>
+                            <a:map from="name" to="using_company_agent_desc"/>
+                        </a:mapping>
+                    </a:field> -->
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="bid5150EntrustmentEditOnLoad"/>
+                    <a:event name="update" handler="bid5150EntrustmentEditOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5150_edit_expert_line_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="bid.BID5150.bid_entrustment_ln_experts" queryUrl="${/request/@context_path}/autocrud/bid.BID5150.bid_entrustment_ln_experts/query?entrustment_header_id=${/parameter/@entrustment_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="entrustment_header_id" defaultValue="${/parameter/@entrustment_header_id}"/>
+                    <a:field name="line_expert_id"/>
+                    <a:field name="employee_code" lovGridHeight="320" lovHeight="450" lovService="bid.BID5150.bid_expert_employee_lov" lovWidth="500" required="true" title="专家">
+                        <a:mapping>
+                            <a:map from="expert_id" to="expert_id"/>
+                            <a:map from="employee_code" to="employee_code"/>
+                            <a:map from="name" to="name"/>
+                            <a:map from="source_type" to="source_type"/>
+                            <a:map from="source_type_desc" to="source_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="name"/>
+                    <a:field name="expert_id"/>
+                    <a:field name="source_type"/>
+                    <a:field name="source_type_desc"/>
+                    <a:field name="leader_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="bid5150EntrustmentEditExpertOnUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="bid5150_edit_bidder_line_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="bid.BID5150.bid_entrustment_ln_bidders" queryUrl="${/request/@context_path}/autocrud/bid.BID5150.bid_entrustment_ln_bidders/query?entrustment_header_id=${/parameter/@entrustment_header_id}" selectable="true">
+                <a:fields>
+                    <a:field name="entrustment_header_id" defaultValue="${/parameter/@entrustment_header_id}"/>
+                    <a:field name="line_bidder_id"/>
+                    <a:field name="bidder_id"/>
+                    <a:field name="suggested_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="bidder_code" autoComplete="true" autoCompleteField="code_name" lovGridHeight="350" lovHeight="500" lovService="public.pur_system_vendors_lov" lovWidth="500" required="true" title="投标方">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="bidder_id"/>
+                            <a:map from="vendor_code" to="bidder_code"/>
+                            <a:map from="vendor_full_name" to="bidder_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="bid5150_edit_atm_files_ds" autoCount="true" autoQuery="true" fetchAll="true" model="public.fnd_attachment_file" queryUrl="${/request/@context_path}/autocrud/public.fnd_attachment_file/query?table_name=BID_ENTRUSTMENT_HEADERS&amp;pk_value=${/parameter/@entrustment_header_id}"/>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="bid5150EntrustmentEditSave" text="保存" width="100"/>
+                <!-- <a:toolbarButton click="bid5150EntrustmentEditBulletinPreview" text="公告预览" width="100"/> -->
+                <a:toolbarButton click="bid5150EntrustmentEditBulletinPreview" text="发布" width="100"/>
+                <a:toolbarButton click="bid5150EntrustmentEditTurnOver" text="转交" width="100"/>
+                <a:toolbarButton click="bid5150EntrustmentEditReturn" text="返回" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100">
+                <a:vBox labelWidth="100">
+                    <a:comboBox name="bidding_method_desc" bindTarget="bid5150_edit_entustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.BIDDING_METHOD"/>
+                    <a:dateTimePicker name="bid_opening_start_date" bindTarget="bid5150_edit_entustment_header_ds" prompt="BID_OPENING_PLACE_SCHEDULES.DATE_FROM"/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:comboBox name="bidding_type_desc" bindTarget="bid5150_edit_entustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.BID_TYPE"/>
+                    <a:dateTimePicker name="bid_opening_end_date" bindTarget="bid5150_edit_entustment_header_ds" prompt="BID_OPENING_PLACE_SCHEDULES.DATE_TO"/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:dateTimePicker name="bid_closing_date" bindTarget="bid5150_edit_entustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.BID_CLOSING_DATE"/>
+                    <a:numberField name="deposit_amount" allowDecimals="true" allowNegative="false" bindTarget="bid5150_edit_entustment_header_ds" decimalPrecision="2" prompt="BID_ENTRUSTMENT_HEADERS.DEPOSIT_AMOUNT"/>
+                </a:vBox>
+                <a:vBox labelWidth="100">
+                    <a:lov name="opening_place_desc" bindTarget="bid5150_edit_entustment_header_ds" prompt="BID_ENTRUSTMENT_HEADERS.OPENING_PLACE_DESC"/>
+                    <a:numberField name="bid_file_amount" allowDecimals="true" allowNegative="false" bindTarget="bid5150_edit_entustment_header_ds" decimalPrecision="2" prompt="BID_ENTRUSTMENT_HEADERS.BID_FILE_AMOUNT"/>
+                </a:vBox>
+            </a:hBox>
+            <a:tabPanel id="bid5150_edit_entrustment_tab" height="370" marginWidth="40">
+                <a:tabs>
+                    <a:tab prompt="BID_ENTRUSTMENT_LN_EXPERTS.EXPERT" width="100">
+                        <a:placeHolder id="bid5150_edit_expert_line_placeHolder"/>
+                    </a:tab>
+                    <a:tab prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_BIDDERS" width="100">
+                        <a:grid id="bid5040_edit_entrustment_bidders_grid" bindTarget="bid5040_edit_entrustment_bidders_ds" height="350" marginWidth="60" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="bidder_code" align="left" editor="bid5040_edit_entrustment_bidders_lov" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_CODE" width="100"/>
+                                <a:column name="bidder_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_NAME" width="150"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="bid5040_edit_entrustment_bidders_lov"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="BID_ENTRUSTMENT_HEADERS.ENTRUSTMENT_BIDDERS" width="100">
+                        <a:grid id="bid5150_edit_bidder_line_grid" bindTarget="bid5150_edit_bidder_line_ds" height="340" marginWidth="50" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="bidder_code" align="left" editorFunction="bid5150EntrustmentEditBidderEditor" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_CODE" width="80"/>
+                                <a:column name="bidder_desc" align="left" prompt="BID_ENTRUSTMENT_HEADERS.BIDDER_NAME" width="100"/>
+                                <a:column name="responded_flag_desc" align="center" prompt="BID_ENTRUSTMENT_HEADERS.RESPONDED_FLAG_DESC" width="60"/>
+                                <a:column name="suggested_flag" align="center" prompt="BID_ENTRUSTMENT_HEADERS.SUGGESTED_FLAG" width="50"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="bid5150_edit_bidder_lov"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="PROMPT.ATTACHMENT" width="100">
+                        <a:grid id="bid5150_edit_atm_files_grid" bindTarget="bid5150_edit_atm_files_ds" height="340" marginWidth="50" navBar="true">
+                            <a:columns>
+                                <a:column name="file_download_link" align="left" prompt="PROMPT.ATTACHMENT_NAME" renderer="bid5150EntrustmentEditAtmRender" width="150"/>
+                                <a:column name="upload_user_name" align="left" prompt="PROMPT.UPLOADED_BY" width="80"/>
+                                <a:column name="upload_date" align="center" prompt="PROMPT.UPLOAD_DATE" renderer="Aurora.formatDateTime" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:defaultScreen>
+    </a:view>
+    <a:view-config>
+        <c:create-config targetId="bid5150_edit_expert_line_placeHolder">
+            <p:switch test="/parameter/@multistage_flag">
+                <p:case value="N">
+                    <c:process-config>
+                        <a:grid id="bid5150_edit_expert_line_grid" bindTarget="bid5150_edit_expert_line_ds" height="340" marginWidth="50" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="delete"/>
+                                <!-- <a:button click="bid5150EntrustmentEditExpertRandomChoose" icon="${/request/@context_path}/images/jump.png" text="随机抽取"/> -->
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="employee_code" align="left" editorFunction="bid5150EntrustmentEditExpertEditor" prompt="BID_ENTRUSTMENT_LN_EXPERTS.EXPERT_EMP_NUMBER" width="80"/>
+                                <a:column name="name" align="left" prompt="BID_ENTRUSTMENT_LN_EXPERTS.EXPERT_EMP_NAME" width="100"/>
+                                <a:column name="source_type_desc" align="center" prompt="BID_ENTRUSTMENT_LN_EXPERTS.SOURCE_TYPE" width="60"/>
+                                <a:column name="leader_flag" align="center" editor="bid5150_edit_expert_cb" prompt="BID_ENTRUSTMENT_LN_EXPERTS.LEADER_FLAG" width="40"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="bid5150_edit_expert_lov"/>
+                                <a:checkBox id="bid5150_edit_expert_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </c:process-config>
+                </p:case>
+                <p:case value="Y">
+                    <c:process-config>
+                        <a:grid id="bid5150_edit_expert_line_grid" bindTarget="bid5150_edit_expert_line_ds" height="340" marginWidth="50" navBar="true">
+                            <a:columns>
+                                <a:column name="employee_code" align="left" prompt="BID_ENTRUSTMENT_LN_EXPERTS.EXPERT_EMP_NUMBER" width="80"/>
+                                <a:column name="name" align="left" prompt="BID_ENTRUSTMENT_LN_EXPERTS.EXPERT_EMP_NAME" width="100"/>
+                                <a:column name="source_type_desc" align="center" prompt="BID_ENTRUSTMENT_LN_EXPERTS.SOURCE_TYPE" width="60"/>
+                                <a:column name="leader_flag" align="center" prompt="BID_ENTRUSTMENT_LN_EXPERTS.LEADER_FLAG" width="40"/>
+                            </a:columns>
+                        </a:grid>
+                    </c:process-config>
+                </p:case>
+            </p:switch>
+        </c:create-config>
+    </a:view-config>
+</a:screen>

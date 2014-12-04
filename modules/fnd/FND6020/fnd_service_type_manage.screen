@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui6743 $
+    $Date: 2014/10/9 15:02:55 $
+    $Revision: 1.0 $
+    $Purpose: 服务委托管理规则，关联类型模板
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="cont.sys_date" rootpath="sysdate"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd6020_serviceManageRuleDefineDescription_link" url="${/request/@context_path}/modules/fnd/FND6020/fnd_service_manage_rule_description.screen"/>
+        <a:link id="fnd6020_serviceManageRuleDefineDetails_link" url="${/request/@context_path}/modules/fnd/FND6020/fnd_service_manage_rule_details.screen"/>
+        <script><![CDATA[
+            function fnd6020_serviceManageRuleDefine_query() {
+                $('fnd6020_service_manage_rule_define_result_ds').query();
+            }
+            
+            //比较日期大小
+            
+            function fnd6020_serviceManageRuleDefine_compareDate(start, end) {
+                if (start > end) {
+                    return false;
+                }
+                return true;
+            }
+            
+            //触发update事件
+            
+            function fnd6020_serviceManageRuleDefine_onUpdate(ds, record, name, value) {
+                //当start_date或end_date更新时，验证合法性
+                if (name == 'start_date' || name == 'end_date') {
+                    record.validate((name == 'start_date') ? 'end_date' : 'start_date');
+                }
+            }
+            
+            //验证日期是否合法
+            
+            function fnd6020_serviceManageRuleDefine_dateValidator(record, name, value) {
+                if (name == 'start_date' || name == 'end_date') {
+                    var start_date = record.get('start_date');
+                    var end_date = record.get('end_date');
+                    if (!Aurora.isEmpty(end_date)) {
+                        if (!fnd6020_serviceManageRuleDefine_compareDate(start_date, end_date)) {
+                            return '${l:START_GREATER_THAN_END}';
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            function fnd6020_serviceManageRuleDefineDescription(value, record, name) {
+                if (!record.isNew) {
+                    var codingRuleObjectId = record.get('service_rule_id');
+                    return '<a href="javascript:fnd6020_serviceManageRuleDefineDescriptionInfo(' + codingRuleObjectId + ')">${l:FND_SERVICE_MANAGE_RULE.RULE_DETAILS}</a>';
+                }
+            }
+            
+            function fnd6020_serviceManageRuleDefineDescriptionInfo(codingRuleObjectId) {
+                //alert(codingRuleObjectId);
+                new Aurora.Window({
+                    id: 'fnd6020_serviceManageRuleDefineDescription_window',
+                    url: $('fnd6020_serviceManageRuleDefineDescription_link').getUrl() + '?service_rule_id=' + codingRuleObjectId,
+                    title: '${l:FND_SERVICE_MANAGE_RULE.RULE_DETAILS}',
+                    fullScreen: true
+                    //height: 480,
+                    //width: 620
+                });
+            }
+            
+            function fnd6020_serviceManageRuleDefineDetails(value, record, name) {
+                if (!record.isNew) {
+                    var codingRuleObjectId = record.get('service_rule_id');
+                    return '<a href="javascript:fnd6020_serviceManageRuleDefineDetailsInfo(' + codingRuleObjectId + ')">${l:FND_SERVICE_MANAGE_RULE.RULE_DETAILS}</a>';
+                }
+            }
+            
+            function fnd6020_serviceManageRuleDefineDetailsInfo(codingRuleObjectId) {
+                //alert(codingRuleObjectId);
+                new Aurora.Window({
+                    id: 'fnd6020_serviceManageRuleDefineDetails_window',
+                    url: $('fnd6020_serviceManageRuleDefineDetails_link').getUrl() + '?service_rule_id=' + codingRuleObjectId,
+                    title: '${l:FND_SERVICE_MANAGE_RULE.RULE_DETAILS}',
+                    fullScreen: true
+                    //height: 480,
+                    //width: 620
+                });
+            }
+            
+            //触发保存成功事件
+            
+            function fnd6020_serviceManageRuleDefine_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd6020_service_manage_rule_define_type_ds" autoQuery="true" model="fnd.FND6020.fnd_service_type_list"/>
+            <a:dataSet id="fnd6020_service_manage_rule_define_company_ds" autoQuery="true" model="fnd.FND6020.fnd_service_manage_rule" queryUrl="${/request/@context_path}/autocrud/fnd.FND6020.fnd_service_manage_rule/query?service_rule_id=${/parameter/@service_rule_id}"/>
+            <a:dataSet id="fnd6020_service_manage_rule_define_result_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="fnd.FND6020.fnd_service_type_manage">
+                <a:fields>
+                    <a:field name="srv_type_temp_id"/>
+                    <a:field name="srv_type_temp_name" options="fnd6020_service_manage_rule_define_type_ds" required="true">
+                        <a:mapping>
+                            <a:map from="srv_type_temp_id" to="srv_type_temp_id"/>
+                            <a:map from="srv_type_temp_name" to="srv_type_temp_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="start_date" defaultValue="${/model/sysdate/record/@now}" required="true" validator="fnd6020_serviceManageRuleDefine_dateValidator"/>
+                    <a:field name="end_date" validator="fnd6020_serviceManageRuleDefine_dateValidator"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd6020_serviceManageRuleDefine_onUpdate"/>
+                    <a:event name="submitsuccess" handler="fnd6020_serviceManageRuleDefine_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton id="fnd6020_service_manage_rule_define_grid_addButton" bind="fnd6020_service_manage_rule_define_grid" style="margin-left:20px;" type="add" width="100"/>
+                <a:gridButton id="fnd6020_service_manage_rule_define_grid_saveButton" bind="fnd6020_service_manage_rule_define_grid" style="margin-left:20px;" type="save" width="100"/>
+                <a:gridButton id="fnd6020_service_manage_rule_define_grid_clearButton" bind="fnd6020_service_manage_rule_define_grid" style="margin-left:20px;" type="clear" width="100"/>
+            </a:screenTopToolbar>
+            <a:hBox labelWidth="100">
+                <a:label name="company_name" bindTarget="fnd6020_service_manage_rule_define_company_ds" prompt="公司"/>
+                <a:label name="service_company_name" bindTarget="fnd6020_service_manage_rule_define_company_ds" prompt="服务商公司"/>
+            </a:hBox>
+            <a:grid id="fnd6020_service_manage_rule_define_grid" bindTarget="fnd6020_service_manage_rule_define_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+                <a:columns>
+                    <a:column name="srv_type_temp_name" align="left" editor="fnd6020_service_manage_rule_define_grid_cb" prompt="服务类型模版" width="100"/>
+                    <a:column name="start_date" align="left" editor="fnd6020_service_manage_rule_define_grid_dp" prompt="FND_SERVICE_TYPE_MANAGE.START_DATE" width="100"/>
+                    <a:column name="end_date" align="left" editor="fnd6020_service_manage_rule_define_grid_dp" prompt="FND_SERVICE_TYPE_MANAGE.END_DATE" width="100"/>
+                    <a:column name="service_description" align="center" prompt="FND_SERVICE_MANAGE_RULE.SERVICE_DESCRIPTION" renderer="fnd6020_serviceManageRuleDefineDescription" width="100"/>
+                    <a:column name="rule_details" align="center" prompt="FND_SERVICE_MANAGE_RULE.RULE_DETAILS" renderer="fnd6020_serviceManageRuleDefineDetails" width="100"/>
+                    <a:column name="enabled_flag" align="left" editor="fnd6020_service_manage_rule_define_grid_chb" prompt="FND_SERVICE_TYPE_MANAGE.ENABLED_FLAG" width="100"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd6020_service_manage_rule_define_grid_tf"/>
+                    <a:comboBox id="fnd6020_service_manage_rule_define_grid_cb"/>
+                    <a:checkBox id="fnd6020_service_manage_rule_define_grid_chb"/>
+                    <a:datePicker id="fnd6020_service_manage_rule_define_grid_dp"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

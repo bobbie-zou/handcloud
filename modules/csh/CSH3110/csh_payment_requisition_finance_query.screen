@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+	&author:ZhouHao
+	&date:2010.4.16
+	&purpose:鍊熸鐢宠璐㈠姟鏌ヨ
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="csh.csh_payment_requisition_init_pay_obj_list" rootpath="pay_obj_list"/>
+        <!-- <a:model-query defaultWhereClause="status = &apos;GENERATE&apos; and company_id = ${/session/@company_id}" model="csh.csh_payment_requisition_hds" rootpath="rqu_num_list"/> -->
+        <a:model-query model="csh.csh_payment_requisition_init_user" rootpath="user"/>
+        <a:model-query defaultWhereClause="enabled_flag = &apos;Y&apos;" model="gld.gld_currency_vl" rootpath="cry_list"/>
+        <!-- <a:model-query defaultWhereClause="posted_flag = &apos;N&apos; and company_id = ${/session/@company_id}" model="csh.csh_transaction_v" rootpath="trans_num_list"/> -->
+        <!-- <a:model-query defaultWhereClause="company_id = ${/session/@company_id} and enabled_flag = &apos;Y&apos; and account_type = &apos;COMPANY&apos;" model="csh.csh_bank_accounts_vl" rootpath="bank_accounts_list"/> -->
+        <a:model-query model="csh.CSH3110.csh_payment_requisition_finance_status_init" rootpath="status_list"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="csh_pay_req_query_detail_link_11" url="${/request/@context_path}/modules/csh/public/csh_pay_req_for_finance_detail.screen"/>
+        <a:link id="csh_pay_req_query_trans_link" url="${/request/@context_path}/modules/csh/public/csh_pay_req_query_trans.screen"/>
+        <a:link id="csh_pay_req_query_link_1" model="csh.CSH3110.csh_payment_requisition_finance_query" modelaction="query"/>
+        <a:link id="csh_pay_req_query_link_2" model="csh.CSH3110.csh_payment_req_com_finance_query" modelaction="query"/>
+        <script><![CDATA[
+    		function updateEventFunction(dataSet,record,name,value){
+    			if(name == 'partner_category'){
+					$('pay_req_query_ds').getAt(0).set('partner_id','');
+					$('pay_req_query_ds').getAt(0).set('partner_id_display','');
+					if(value!=null&&value!=''){
+						record.getField('partner_id_display').setLovPara('partner_category',value);
+						record.getField('partner_id_display').setLovService('csh.csh_vender_customer_list');
+						record.getField('partner_id_display').setReadOnly(false);
+					}else{
+						record.getField('partner_id_display').setLovService('');
+						record.getField('partner_id_display').setReadOnly(true);
+					}
+    			}
+    		}
+    		
+    		function resetFunction(){
+    			var dataSet = $('pay_req_query_ds');
+    			var record = dataSet.getCurrentRecord();
+    			$('pay_req_query_ds').getAt(0).set('partner_id','');
+				$('pay_req_query_ds').getAt(0).set('partner_id_display','');
+				record.getField('partner_id_display').setLovService('');
+				record.getField('partner_id_display').setReadOnly(true);
+    			dataSet.reset();
+    		}
+    		
+    		function queryFunction(){
+                var all_company_flag=$('pay_req_query_ds').getAt(0).get('all_company_flag');
+                if(all_company_flag=='N'){
+                	$('pay_req_result_ds').setQueryUrl($('csh_pay_req_query_link_1').getUrl());
+                }else{
+	                $('pay_req_result_ds').setQueryUrl($('csh_pay_req_query_link_2').getUrl());
+                }
+    			$('pay_req_result_ds').query();
+    		}
+    		
+    		function paymentFunction(){
+    			var dataSet = $('pay_req_result_ds');
+    			var records = dataSet.getJsonData(true);
+    			if(records.length != 1){
+    				Aurora.showMessage('${l:PROMPT}','${l:PROMPT.PLEASE_SELECT_ONE}');
+    				return ;
+    			}
+    			var record = records[0];
+    			var head_id = record.payment_requisition_header_id;
+    			new Aurora.Window({
+    				id:'csh_pay_req_query_trans_screen',
+    				url:/*csh_pay_req_query_trans.screen*/$('csh_pay_req_query_trans_link').getUrl()+'?header_id='+head_id,
+    				title:'${l:CSH_PAYMENT_REQUISITION_HDS.CSH_TRANSACTION_QUERY}',
+    				width:1000,
+    				height:600
+    			});
+    		}
+    		
+    		function reqNumRenFunction(value,record,name){
+    			var url='<a href = "javascript:reqNumDispatch(' + record.get('payment_requisition_header_id') + ')">' + value + '</a>';
+    			return url;
+    		}
+    		
+    		function reqNumDispatch(header_id){
+    			window.open(/*csh_pay_req_query_detail.screen*/$('csh_pay_req_query_detail_link_11').getUrl()+'?payment_requisition_header_id='+header_id,'','fullscreen=no,resizable=yes,width=1000,height=500');
+    		}
+    		
+    		
+    		function tabSelectFunction(tab,index){
+    			if(index == 1){
+    				var dataSet = $('pay_req_result_ds');
+	    			var records = dataSet.getJsonData(true);
+	    			if(records.length != 1){
+	    				Aurora.showMessage('${l:PROMPT}','${l:PROMPT.PLEASE_SELECT_ONE}');
+	    				return ;
+	    			}else{
+	    				var ds = $('finance_result_ds');
+	    				ds.setQueryParameter('header_id',records[0]['payment_requisition_header_id']);
+	    				ds.query();
+	    			}
+    			}
+    		}
+    		
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="pay_obj_list_ds">
+                <a:datas dataSource="/model/pay_obj_list"/>
+            </a:dataSet>
+            <a:dataSet id="user_ds">
+                <a:datas dataSource="/model/user"/>
+            </a:dataSet>
+            <a:dataSet id="cry_list_ds">
+                <a:datas dataSource="/model/cry_list"/>
+            </a:dataSet>
+            <!-- <a:dataSet id="trans_num_list_ds">
+                <a:datas dataSource="/model/trans_num_list"/>
+            </a:dataSet> -->
+            <!-- <a:dataSet id="bank_accounts_list_ds">
+                <a:datas dataSource="/model/bank_accounts_list"/>
+            </a:dataSet> -->
+            <a:dataSet id="status_list_ds">
+                <a:datas dataSource="/model/status_list"/>
+            </a:dataSet>
+            <a:dataSet id="pay_req_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="requisition_number" prompt="CSH_PAYMENT_REQUISITION_HDS.REQUISITION_NUMBER"/>
+                    <a:field name="employee_id"/>
+                    <a:field name="employee_id_display" autoComplete="true" autoCompleteField="name_code" lovGridHeight="350" lovHeight="500" lovService="exp.exp_company_employees_v_namecode?ORDER_FIELD=employee_code" lovWidth="500" prompt="CSH_BANK_CONTACT_PERSONS.EMPLOYEE_ID" title="EXP_EMPLOYEE.EMPLOYEE_SELECT">
+                        <a:mapping>
+                            <a:map from="name_code" to="employee_id_display"/>
+                            <a:map from="employee_id" to="employee_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="requisition_date_from" prompt="CSH_PAYMENT_REQUISITION_HDS.REQUISITION_DATE_FROM"/>
+                    <a:field name="requisition_date_to" prompt="CSH_PAYMENT_REQUISITION_HDS.REQUISITION_DATE_TO"/>
+                    <a:field name="currency_code"/>
+                    <a:field name="currency_code_display" displayField="currency_name" options="cry_list_ds" prompt="GLD_EXCHANGE_RATES.FROM_CURRENCY" returnField="currency_code" valueField="currency_code"/>
+                    <a:field name="status"/>
+                    <a:field name="status_display" displayField="status_name" options="status_list_ds" prompt="CON_CONTRACT_HEADERS.STATUS" returnField="status" valueField="p_status"/>
+                    <a:field name="partner_category"/>
+                    <a:field name="partner_category_display" displayField="code_value_name" options="pay_obj_list_ds" prompt="CSH_CASH_PLAN_LINES.PARTNER_CATEGORY">
+                        <a:mapping>
+                            <a:map from="code_value" to="partner_category"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="partner_id"/>
+                    <a:field name="partner_id_display" autoComplete="true" autoCompleteField="name" lovGridHeight="350" lovHeight="500" lovWidth="500" prompt="EXP_REPORT_LINES.PAYEE_CATEGORY" readOnly="true" title="CSH_TRANSACTION_LINES.PARTNER_SELECT">
+                        <a:mapping>
+                            <a:map from="name" to="partner_id_display"/>
+                            <a:map from="id" to="partner_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="amount_from" prompt="CSH_PAYMENT_REQUISITION_HDS.AMOUNT_FROM"/>
+                    <a:field name="amount_to" prompt="CSH_PAYMENT_REQUISITION_HDS.AMOUNT_TO"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="updateEventFunction"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pay_req_result_ds" autoQuery="false" model="csh.CSH3110.csh_payment_requisition_finance_query" pageSize="10" queryDataSet="pay_req_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="payment_requisition_header_id"/>
+                    <a:field name="requisition_number" prompt="CSH_CASH_PLAN_LINE_ASSIGN.DOCUMENT_ID"/>
+                    <a:field name="requisitor" prompt="CON_CONTRACT_REF_AUTHORITY.EMPLOYEE_ID"/>
+                    <a:field name="requisition_date" prompt="CSH_PAYMENT_REQUISITION_HDS.REQUISITION_DATE"/>
+                    <a:field name="currency_code" prompt="CSH_PAYMENT_REQUISITION_HDS.CURRENCY_CODE"/>
+                    <a:field name="currency_name" prompt="CSH_PAYMENT_REQUISITION_HDS.CURRENCY_CODE"/>
+                    <a:field name="amount" prompt="CSH_PAYMENT_REQUISITION_HDS.AMOUNT"/>
+                    <a:field name="paymented_amount" prompt="CSH_PAYMENT_REQUISITION_HDS.PAYMENTED_AMOUNT"/>
+                    <a:field name="p_partner_category" prompt="CSH_PAYMENT_REQ_TYPES.PARTNER_CATEGORY"/>
+                    <a:field name="payee_name" prompt="CSH_PAYMENT_REQUISITION_HDS.PARTNER_ID"/>
+                    <a:field name="status_des" prompt="CSH_PAYMENT_REQUISITION_HDS.STATUS"/>
+                    <a:field name="description" prompt="CSH_PAYMENT_REQUISITION_HDS.DESCRIPTION"/>
+                    <a:field name="closed_date" prompt="CSH_PAYMENT_REQUISITION_HDS.CLOSED_DATE"/>
+                    <a:field name="all_company_flag" checkedValue="Y" defaultValue="N" prompt="CONTAIN_SUB_COMPANY" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="finance_result_ds" autoQuery="false" fetchAll="false" model="csh.csh_pay_req_finance_list_query" pageSize="15">
+                <a:fields>
+                    <a:field name="description" prompt="CSH_PAYMENT_REQ_ACCOUNTS.DESCRIPTION"/>
+                    <a:field name="period_name" prompt="BGT_CHECK_LOGS.PERIOD_NAME"/>
+                    <a:field name="company_short_name" prompt="BGT_JOURNAL_INTERFACE.COMPANY_CODE"/>
+                    <a:field name="responsibility_center_name" prompt="CSH_PAYMENT_REQ_ACCOUNTS.RESPONSIBILITY_CENTER_ID"/>
+                    <a:field name="account_code" prompt="GLD_ACCOUNTS.ACCOUNT_CODE"/>
+                    <a:field name="account_desc" prompt="CSH_WRITE_OFF_ACCOUNTS.ACCOUNT_NAME"/>
+                    <a:field name="entered_amount_dr" prompt="CSH_BANK_BALANCES.ENTERED_DATE_NET_DR"/>
+                    <a:field name="entered_amount_cr" prompt="CSH_BANK_BALANCES.ENTERED_DATE_NET_CR"/>
+                    <a:field name="functional_amount_dr" prompt="CSH_PAY_REQ.FUNCTIONAL_AMOUNT_DR"/>
+                    <a:field name="functional_amount_cr" prompt="CSH_PAY_REQ.FUNCTIONAL_AMOUNT_CR"/>
+                    <a:field name="je_line_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:form column="3" labelWidth="120" style="margin-left:10px;margin-top:10px;" title="CSH_PAY_REQ_FINANCE_QUERY.PAY_REQ_FINANCE_QUERY">
+            <a:textField name="requisition_number" bindTarget="pay_req_query_ds"/>
+            <a:lov name="employee_id_display" bindTarget="pay_req_query_ds"/>
+            <a:datePicker name="requisition_date_from" bindTarget="pay_req_query_ds"/>
+            <a:datePicker name="requisition_date_to" bindTarget="pay_req_query_ds"/>
+            <a:comboBox name="currency_code_display" bindTarget="pay_req_query_ds"/>
+            <a:comboBox name="status_display" bindTarget="pay_req_query_ds"/>
+            <a:comboBox name="partner_category_display" bindTarget="pay_req_query_ds"/>
+            <a:lov name="partner_id_display" bindTarget="pay_req_query_ds"/>
+            <a:textField name="amount_from" bindTarget="pay_req_query_ds"/>
+            <a:textField name="amount_to" bindTarget="pay_req_query_ds"/>
+            <a:checkBox name="all_company_flag" bindTarget="pay_req_query_ds" prompt="CONTAIN_SUB_COMPANY"/>
+        </a:form>
+        <a:hBox style="margin-left:10px;margin-top:10px;">
+            <a:button click="queryFunction" text="HAP_QUERY"/>
+            <a:button click="resetFunction" text="HAP_RESET"/>
+        </a:hBox>
+        <a:hBox style="margin-left:10px;margin-top:10px;">
+            <a:button click="paymentFunction" text="PROMPT.PAYMENT_TRANSACTION"/>
+        </a:hBox>
+        <a:tabPanel id="tab_panel" height="380" style="margin:10px" width="955">
+            <a:tabs>
+                <a:tab prompt="ACP_INVOICE_REVERSE.DOCUMENTTAB" selected="true">
+                    <a:grid bindTarget="pay_req_result_ds" height="330" navBar="true" style="margin-left:10px;margin-top:10px;" width="930">
+                        <a:toolBar>
+                            <a:button type="excel"/>
+                        </a:toolBar>
+                        <a:columns>
+                            <a:column name="requisition_number" align="center" renderer="reqNumRenFunction" sortable="true" width="100"/>
+                            <a:column name="requisitor" align="center" sortable="true" width="90"/>
+                            <a:column name="requisition_date" align="center" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                            <a:column name="currency_name" align="center" sortable="true" width="60"/>
+                            <a:column name="amount" align="right" renderer="Aurora.formatMoney" sortable="true" width="80"/>
+                            <a:column name="paymented_amount" align="center" sortable="true" width="80"/>
+                            <a:column name="p_partner_category" align="center" sortable="true" width="80"/>
+                            <a:column name="payee_name" align="center" sortable="true" width="90"/>
+                            <a:column name="description" align="left" sortable="true" width="80"/>
+                            <a:column name="status_des" align="center" sortable="true" width="60"/>
+                            <a:column name="closed_date" align="center" renderer="Aurora.formatDate" sortable="true" width="80"/>
+                        </a:columns>
+                        <a:editors/>
+                    </a:grid>
+                </a:tab>
+                <!--  <a:tab prompt="EXP_PRE_POST_RO.FINA_INFO" selected="false">
+                    <a:grid bindTarget="finance_result_ds" height="330" navBar="true" width="950">
+                        <a:columns>
+                            <a:column name="description" align="center" width="80"/>
+                            <a:column name="period_name" align="center" width="80"/>
+                            <a:column name="company_short_name" align="center" width="80"/>
+                            <a:column name="responsibility_center_name" align="center" width="80"/>
+                            <a:column name="account_code" align="center" width="80"/>
+                            <a:column name="account_desc" align="center" width="80"/>
+                            <a:column name="entered_amount_dr" align="center" width="80"/>
+                            <a:column name="entered_amount_cr" align="center" width="80"/>
+                            <a:column name="functional_amount_dr" align="center" width="80"/>
+                            <a:column name="functional_amount_cr" align="center" width="80"/>
+                        </a:columns>
+                    </a:grid>
+                </a:tab> -->
+            </a:tabs>
+            <a:events>
+                <a:event name="select" handler="tabSelectFunction"/>
+            </a:events>
+        </a:tabPanel>
+    </a:view>
+</a:screen>

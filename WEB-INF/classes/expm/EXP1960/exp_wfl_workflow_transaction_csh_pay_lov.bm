@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            select *
+			  from (SELECT 'PAYMENT_REQUISITION' document_type,
+			       E.TYPE_ID,
+			       E.TYPE_CODE,
+			       E.DESCRIPTION,
+			       E.COMPANY_ID,
+			       V.COMPANY_CODE,
+			       V.COMPANY_CODE || '-' || V.COMPANY_SHORT_NAME COMPANY,
+			       V.COMPANY_SHORT_NAME
+			  FROM CSH_PAY_REQ_TYPES_VL E, fnd_companies_vl v
+			 WHERE E.ENABLED_FLAG = 'Y'
+			   and v.COMPANY_ID = e.COMPANY_ID
+			union all
+			SELECT 'EXP_REQUISITION' document_type,
+			       E.EXPENSE_REQUISITION_TYPE_ID TYPE_ID,
+			       E.EXPENSE_REQUISITION_TYPE_CODE TYPE_CODE,
+			       E.DESCRIPTION,
+			       E.COMPANY_ID,
+			       V.COMPANY_CODE,
+			       V.COMPANY_CODE || '-' || V.COMPANY_SHORT_NAME COMPANY,
+			       V.COMPANY_SHORT_NAME
+			  FROM EXP_EXPENSE_REQ_TYPES_VL E, fnd_companies_vl v
+			 WHERE E.ENABLED_FLAG = 'Y'
+			   and v.COMPANY_ID = e.COMPANY_ID
+			union all
+			SELECT 'EXP_REPORT' document_type,
+			       E.EXPENSE_REPORT_TYPE_ID TYPE_ID,
+			       E.EXPENSE_REPORT_TYPE_CODE TYPE_CODE,
+			       E.DESCRIPTION,
+			       E.COMPANY_ID,
+			       V.COMPANY_CODE,
+			       V.COMPANY_CODE || '-' || V.COMPANY_SHORT_NAME COMPANY,
+			       V.COMPANY_SHORT_NAME
+			  FROM EXP_EXPENSE_REPORT_TYPES_VL E, FND_COMPANIES_VL V
+			 WHERE E.ENABLED_FLAG = 'Y'
+			   AND V.COMPANY_ID = E.COMPANY_ID
+			union all
+			SELECT 'CASH_PLAN' document_type,
+			       b.cash_plan_type_id type_id,
+			       b.cash_plan_type_code type_code,
+			       b.description,
+			       to_number('') COMPANY_ID,
+			       '' COMPANY_CODE,
+			       '' COMPANY,
+			       '' COMPANY_SHORT_NAME
+			  FROM (SELECT T.CASH_PLAN_TYPE_ID, T.CASH_PLAN_TYPE_CODE, T.DESCRIPTION
+			          FROM CSH_CASH_PLAN_TYPES_VL T
+			         WHERE T.ENABLED_FLAG = 'Y'
+			           AND T.AUTO_APPROVE_FLAG = 'N') B
+			union all
+			SELECT 'ACP_REQUISITION' document_type,
+			       E.acp_req_type_id TYPE_ID,
+			       E.ACP_REQ_TYPE_CODE TYPE_CODE,
+			       E.description,
+			       to_number('') COMPANY_ID,
+			       '' COMPANY_CODE,
+			       '' COMPANY,
+			       '' COMPANY_SHORT_NAME
+			  FROM acp_sys_acp_req_types_vl E
+			union all
+			select 'BANK_TREASURER_REQ' document_type,
+			       t.bank_treasurer_req_type_id type_id,
+			       t.bank_treasurer_req_type_code type_code,
+			       t.description,
+			       to_number('') company_id,
+			       '' company_code,
+			       '' company,
+			       '' company_short_name
+			  from (select v.bank_treasurer_req_type_id,
+			               v.bank_treasurer_req_type_code,
+			               v.description
+			          from csh_bank_treas_req_types_vl v
+			         where v.enabled_flag = 'Y'
+			           and v.auto_approve_flag = 'N') t
+			union all
+			select 'BUDGET_JOURNAL' document_type,
+			       s.budget_structure_id type_id,
+			       s.budget_strc_code type_code,
+			       s.DESCRIPTION,
+			       to_number('') COMPANY_ID,
+			       '' COMPANY_CODE,
+			       '' COMPANY,
+			       '' COMPANY_SHORT_NAME
+			  from bgt_budget_structures_vl s
+			 where s.enabled_flag = 'Y'
+			) v
+            
+              #WHERE_CLAUSE# order by v.TYPE_CODE]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="type_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="TYPE_ID"/>
+        <bm:field name="type_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="TYPE_CODE" prompt="BGT_BALANCE_RUNNING_PARAMETERS.DOCUMENT_TYPE"/>
+        <bm:field name="description" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="DESCRIPTION" prompt="EXP_DOCUMENT_ALL.DESCRIPTION"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="COMPANY_ID"/>
+        <bm:field name="company_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="COMPANY_CODE" prompt="FND_COMPANIES.COMPANY_CODE"/>
+        <bm:field name="company" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY"/>
+        <bm:field name="company_short_name" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" physicalName="COMPANY_SHORT_NAME" prompt="EXP_DOCUMENT_ALL.DESCRIPTION"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="type_code" queryExpression="type_code like ${@type_code}"/>
+        <bm:query-field name="description" queryExpression="description like ${@description}"/>
+        <bm:query-field name="company_code" queryExpression="company_code like ${@company_code}"/>
+        <bm:query-field name="company_short_name" queryExpression="company_short_name like ${@company_short_name}"/>
+        <bm:query-field name="document_type" queryExpression="document_type = ${@document_type}"/>
+        <bm:query-field name="company_id" queryExpression=" ((v.company_id is not null and v.company_id = ${@company_id}) or v.company_id is null) "/>
+    </bm:query-fields>
+</bm:model>

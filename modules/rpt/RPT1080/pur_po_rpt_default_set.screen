@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-10-22 下午9:13:33  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="rpt1080_default_setting_execute_link" model="rpt.RPT1080.rpt_default_setting_details" modelaction="execute"/>
+        <a:link id="rpt1080_default_setting_apply_all_link" model="rpt.RPT1080.rpt_default_setting_apply_all" modelaction="execute"/>
+        <a:link id="rpt1080_default_orderNo_apply_all_link" model="db.rpt_default_setting_app_pkg.rpt_default_orderno_apply_all" modelaction="execute"/>
+        <a:script><![CDATA[
+            var rpt1080_default_line_id;
+            
+            function rpt1080_default_line_details_back() {
+                $('rpt1080_default_line_set_window').close();
+            }
+            
+            function rpt1080_default_details_add(ds, record, name, value) {
+                var line_id = $('rpt1080_default_line_result_ds').getAll()[0].get('rpt_line_id');
+                record.set('rpt_line_id', line_id);
+                record.getField('flex_value_desc').setLovPara('flex_value_set_code', '');
+                record.getField('flex_value_desc').setLovService('rpt.RPT1080.fnd_flex_value_v_lov_2');
+            }
+            
+            function rpt1080_default_details_update(ds, record, name, value) {
+                var i;
+                if (name == 'flex_value_set_code' && value != '1_CREATION_DATE') {
+                    //同行的lov连动
+                    value = value.substr(2);
+                    record.getField('flex_value_desc').setLovPara('flex_value_set_code', value);
+                    record.getField('flex_value_desc').setLovService('rpt.RPT1080.fnd_flex_value_v_lov_2');
+                    record.set('flex_value_desc', '');
+                } else if (name == 'flex_value_desc' && record.get('flex_value_set_code') == '1_CREATION_DATE') {
+                    record.set('flex_value_code', Aurora.formatDate(value));
+                }
+            }
+            
+            function rpt1080_default_set_from_desc_load() {
+                var desc_list = $('rpt1080_default_set_from_desc_ds').getAll()[0];
+                var desc = $('rpt1080_default_set_from_desc_ds');
+                var details_ds = $('rpt1080_default_detail_result_ds').getAll();
+                for (var i = 0;i < details_ds.length;i++) {
+                    if (details_ds[i].get('flex_value_set_code') == desc_list.get('flex_value')) {
+                        details_ds[i].set('flex_value_set_desc', desc_list.get('flex_desc'));
+                    }
+                }
+                //依次将时间从和时间至的描述赋值到对应的框内
+                if (desc_list.get('flex_value').substr(0, 1) == '1') {
+                    desc.setQueryParameter('flex_value_set_code', 'RPT_DEFAULT_SETTING');
+                    desc.setQueryParameter('flex_value', '2_' + desc_list.get('flex_value').substr(2));
+                    desc.query();
+                } else if (desc_list.get('flex_value').substr(0, 1) == '2') {
+                    desc.setQueryParameter('flex_value_set_code', 'RPT_DEFAULT_SETTING');
+                    desc.setQueryParameter('flex_value', '3_' + desc_list.get('flex_value').substr(2));
+                    desc.query();
+                }
+            }
+            
+            function rpt1080_default_details_load() {
+                //明细行加载时设置同行lov连动
+                var details_ds = $('rpt1080_default_detail_result_ds').getAll();
+                for (var i = 0;i < details_ds.length;i++) {
+                    if (details_ds[i].get('flex_value_set_code') != '1_CREATION_DATE') {
+                        details_ds[i].getField('flex_value_desc').setLovPara('flex_value_set_code', details_ds[i].get('flex_value_set_code').substr(2));
+                        details_ds[i].getField('flex_value_desc').setLovService('rpt.RPT1080.fnd_flex_value_v_lov_2');
+                    }
+                    if (details_ds[i].get('rpt_required_flag') == 'Y') {
+                        details_ds[i].getField('flex_value_set_desc').setRequired(true);
+                        details_ds[i].getField('flex_value_desc').setRequired(true);
+                    } else {
+                        details_ds[i].getField('flex_value_set_desc').setRequired(false);
+                        details_ds[i].getField('flex_value_desc').setRequired(false);
+                    }
+                }
+            }
+            
+            function rpt1080_default_detail_save() {
+                var detail_ds = $('rpt1080_default_detail_result_ds').getAll();
+                for (var i = 0;i < detail_ds.length;i++) {
+                    if (detail_ds[i].isNew) {
+                        detail_ds[i].set('_status', 'update');
+                    } else {
+                        detail_ds[i].set('_status', 'update');
+                    }
+                }
+                $('rpt1080_default_detail_result_ds').submit();
+            }
+            
+            function rpt1080_defalult_submitsuccess(res) {
+                $('rpt1080_default_detail_result_ds').query();
+            }
+            
+            function rpt1080_default_save_to_all() {
+                Aurora.Masker.mask($('rpt1080_default_line_set_window').wrap, '..');
+                Aurora.request({
+                    url: $('rpt1080_default_setting_apply_all_link').getUrl(),
+                    success: function() {
+                        Aurora.Masker.unmask($('rpt1080_default_line_set_window').wrap);
+                        Aurora.SideBar.enable = true;
+                        Aurora.SideBar.show({
+                            msg: '${l:PROMPT.OPERATION_SUCCESS}',
+                            duration: 600
+                        });
+                    },
+                    scope: this
+                });
+            }
+            
+            function rpt1080_default_order_no_save_all() {
+                Aurora.Masker.mask($('rpt1080_default_line_set_window').wrap, '..');
+                Aurora.request({
+                    url: $('rpt1080_default_orderNo_apply_all_link').getUrl(),
+                    success: function() {
+                        Aurora.Masker.unmask($('rpt1080_default_line_set_window').wrap);
+                        Aurora.SideBar.enable = true;
+                        Aurora.SideBar.show({
+                            msg: '${l:PROMPT.OPERATION_SUCCESS}',
+                            duration: 600
+                        });
+                    },
+                    scope: this
+                });
+            }
+            
+            function rpt1080_default_detail_grid_edit(record, name) {
+                if (record.get('flex_value_set_code') == '1_CREATION_DATE') {
+                    return 'rpt1080_default_details_grid_edit_dp';
+                } else {
+                    return 'rpt1080_default_details_grid_edit_lov';
+                }
+            }
+            
+            function rpt1080_default_detail_grid_renderer(value, record, name) {
+                if (record.get('flex_value_set_code') == '1_CREATION_DATE') {
+                    return Aurora.formatDateTime(Aurora.formatDate(value));
+                } else {
+                    return value;
+                }
+            }
+        ]]></a:script>
+        <a:dataSets>
+            <a:dataSet id="rpt1080_default_set_from_desc_ds" fetchAll="true" model="rpt.RPT1080.fnd_flex_value_v_lov_2">
+                <a:events>
+                    <a:event name="load" handler="rpt1080_default_set_from_desc_load"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="rpt1080_default_header_ds" autoQuery="true" model="rpt.RPT1080.rpt_setting_headers" queryUrl="${/request/@context_path}/autocrud/rpt.RPT1080.rpt_setting_headers/query?rpt_header_id=${/parameter/@rpt_header_id}">
+                <a:fields>
+                    <a:field name="rpt_code" readOnly="true"/>
+                    <a:field name="rpt_name" readOnly="true"/>
+                    <a:field name="rpt_header_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="rpt1080_default_line_result_ds" autoQuery="true" fetchAll="true" model="rpt.RPT1080.rpt_setting_lines" queryUrl="${/request/@context_path}/autocrud/rpt.RPT1080.rpt_setting_lines/query?rpt_header_id=${/parameter/@rpt_header_id}">
+                <a:fields>
+                    <a:field name="rpt_setting_code" readOnly="true"/>
+                    <a:field name="rpt_setting_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="rpt1080_default_detail_result_ds" autoCount="true" autoPageSize="true" bindName="details_ds" bindTarget="rpt1080_default_line_result_ds" model="rpt.RPT1080.rpt_default_setting_details" sortType="local" submitUrl="${/request/@context_path}/modules/rpt/RPT1080/pur_po_rpt_default_set.svc">
+                <a:fields>
+                    <a:field name="flex_value_set_code" readOnly="true"/>
+                    <a:field name="flex_value_code" readOnly="true"/>
+                    <a:field name="rpt_line_id"/>
+                    <a:field name="flex_value_set_desc" autoComplete="true" autoCompleteField="flex_desc" lovHeight="490" lovService="rpt.RPT1080.fnd_flex_value_v_lov_2?flex_value_set_code=RPT_DEFAULT_SETTING" lovWidth="490" title="字段">
+                        <a:mapping>
+                            <a:map from="flex_desc" to="flex_value_set_desc"/>
+                            <a:map from="flex_value" to="flex_value_set_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="flex_value_desc" autoComplete="true" autoCompleteField="flex_desc" lovHeight="490" lovService="rpt.RPT1080.fnd_flex_value_v_lov_2" lovWidth="490" title="字段值">
+                        <a:mapping>
+                            <a:map from="flex_desc" to="flex_value_desc"/>
+                            <a:map from="flex_value" to="flex_value_code"/>
+                        </a:mapping>
+                        <a:field name="_status"/>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="rpt1080_default_details_update"/>
+                    <a:event name="load" handler="rpt1080_default_details_load"/>
+                    <a:event name="add" handler="rpt1080_default_details_add"/>
+                    <a:event name="submitsuccess" handler="rpt1080_defalult_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton className="item-rbtn-blue save" click="rpt1080_default_detail_save" style="margin-left:5px;" text="RPT_SAVING" width="100"/>
+                <a:toolbarButton click="rpt1080_default_save_to_all" style="margin-left:5px;" text="RPT_SETTING_APPLY_TO_ALL" width="100"/>
+                <!-- <a:toolbarButton click="rpt1080_default_order_no_save_all" style="margin-left:5px;" text="RPT.RPT1080_DEFAULT_ORDER_APPLY_ALL" width="100"/> -->
+                <a:toolbarButton className="item-rbtn-blue back" click="rpt1080_default_line_details_back" style="margin-left:5px;" text="RPT_RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:form bindTarget="rpt1080_default_header_ds" labelWidth="150" marginWidth="30" row="2" title="RPT.RPT1080_RPT_REPORT_INFO">
+                <a:textField name="rpt_code" bindTarget="rpt1080_default_header_ds" prompt="RPT.RPT1080_RPT_HEADER_CODE" width="200"/>
+                <a:textField name="rpt_name" bindTarget="rpt1080_default_header_ds" prompt="RPT.RPT1080_RPT_HEADER_NAME" width="200"/>
+                <a:textField name="rpt_setting_code" bindTarget="rpt1080_default_line_result_ds" prompt="RPT.RPT1080_RPT_LINE_SETTING_CODE" width="200"/>
+                <a:textField name="rpt_setting_desc" bindTarget="rpt1080_default_line_result_ds" prompt="RPT.RPT1080_RPT_LINE_SETTING_NAME" width="200"/>
+            </a:form>
+            <a:grid id="rpt1080_default_detail_grid" bindTarget="rpt1080_default_detail_result_ds" marginHeight="200" marginWidth="30" navBar="true">
+                <a:toolBar>
+                    <!--                     <a:button type="add"/>
+                     <a:button type="delete"/> --><![CDATA[
+                              
+                ]]></a:toolBar>
+                <a:columns>
+                    <a:column name="flex_value_set_desc" prompt="RPT.RPT1080_RPT_DETAIL_SETTING_DESC" width="150"/>
+                    <a:column name="flex_value_desc" editorFunction="rpt1080_default_detail_grid_edit" prompt="RPT.RPT1080_RPT_DETAIL_SETTING_VALUE_DESC" renderer="rpt1080_default_detail_grid_renderer" width="300"/>
+                    <!-- <a:column name="rpt_order_no" align="right" editor="rpt1080_default_details_grid_edit_nf" prompt="RPT.RPT1080_RPT_DETAIL_ORDER_NO" sortable="true" width="100"/> -->
+                    <!-- <a:column name="rpt_required_flag" editor="rpt1080_default_details_grid_edit_tf" prompt="RPT.RPT1080_RPT_DETAIL_REQUIRED_OR_NOT" width="100"/> -->
+                </a:columns>
+                <a:editors>
+                    <a:textField id="rpt1080_default_details_grid_edit_tf"/>
+                    <a:lov id="rpt1080_default_details_grid_edit_lov"/>
+                    <a:datePicker id="rpt1080_default_details_grid_edit_dp"/>
+                    <a:numberField id="rpt1080_default_details_grid_edit_nf" allowDecimals="false" allowNegative="false"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duxiaofu4653 $
+    $Date: 2013/01/29 06:13:54 $
+    $Revision: 1.3 $
+    $Purpose: 供应商类型定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure><![CDATA[     
+    ]]></a:init-procedure>
+    <a:view>
+        <a:link id="fnd2400_pur_vender_types_assign_link" url="${/request/@context_path}/modules/fnd/FND2400/fnd_system_vender_type_assign.screen"/>
+        <a:link id="fnd2400_pur_vender_types_batch_assign_link" url="${/request/@context_path}/modules/fnd/FND2400/pur_vender_type_batch_ass_company.screen"/>
+        <script><![CDATA[
+            function fnd2400_queryPurTypes() {
+                $('fnd2400_pur_vender_types_result_ds').query();
+            }
+            
+            function resetPurTypes() {
+                $('fnd2400_pur_vender_types_query_ds').reset();
+            }
+            
+            function fnd2400_typeCodeEditer(record, name) {
+                if (record.isNew) {
+                    return 'fnd2400_fnd_calendar_code_grid_tf';
+                } else {
+                    return '';
+                }
+            }
+            
+            function FND2400_assign(value, record, name) {
+                if (record.isNew) {
+                    return '';
+                }
+                return '<a href="#" onclick="javascript:FND2400_openAssignCM(\'' + encodeURIComponent(record.get('vender_type_id')) + '\',\'' + encodeURIComponent(record.get('vender_type_code')) + '\',\'' + encodeURIComponent(record.get('description')) + '\');">${l:INV_SYSTEM_ITEM_TYPES.ALLOCATE}</a>';
+            }
+            
+            function FND2400_openAssignCM(type_id, type_code, description) {
+            
+                new Aurora.Window({
+                    id: 'pur_vender_types_assign_id',
+                    url: $('fnd2400_pur_vender_types_assign_link').getUrl() + '?vender_type_id=' + type_id + '&vender_type_code=' + type_code + '&description=' + description,
+                    title: '${l:INV_SYSTEM_ITEM_TYPES.ALLOCATE}',
+                    fullScreen:true
+                });
+            }
+            
+            function FND2400_Onfnd2400_pur_vender_types_result_ds_submitsuccess(ds, res) {
+                fnd2400_queryPurTypes();
+            
+            }
+            
+            function FND2400_batch_ass_vender_type() {
+                var Arr_records = $('fnd2400_pur_vender_types_result_ds').getSelected();
+                if (Arr_records.length < 1) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}');
+                    return false;
+                } else {
+                    for(var i=0;i<Arr_records.length;i++){
+                        if(Arr_records[i].isNew||Arr_records[i].dirty){Aurora.showMessage('${l:PROMPT_MESSAGE}','${l:WORK_FLOW_ACTION.EXIT_BEFORE_SAVE}',null,230,100);
+                   	return false;}
+                    }
+                    new Aurora.Window({
+                        id: 'pur_vender_types_batch_assign_id',
+                        url: $('fnd2400_pur_vender_types_batch_assign_link').getUrl(),
+                        title: '${l:FND_SYS_VENDERS.BATCH_DISP_COMPANY}',
+                        fullScreen:true
+                    });
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2400_pur_vender_types_query_ds" model="fnd.pur_vender_types"/>
+            <a:dataSet id="fnd2400_pur_vender_types_result_ds" autoCount="true" autoQuery="true" fetchAll="false" model="fnd.pur_vender_types" queryDataSet="fnd2400_pur_vender_types_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="vender_type_code" required="true"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="one_off_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="FND2400_Onfnd2400_pur_vender_types_result_ds_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:gridButton bind="fnd2400_grid" style="margin-left:20px;" type="add" width="100"/>
+            <a:gridButton bind="fnd2400_grid" type="save" width="100"/>
+            <a:gridButton bind="fnd2400_grid" type="delete" width="100"/>
+            <a:toolbarButton click="FND2400_batch_ass_vender_type" text="FND_SYS_VENDERS.BATCH_DISP_COMPANY" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="fnd_2400_query_form" bindTarget="fnd2400_pur_vender_types_query_ds" defaultQueryField="position_code" defaultQueryHint="FND.VENDOR_TYPE_DEFINITION_DEFAULT_QUERY_HINT" resultTarget="fnd2400_pur_vender_types_result_ds" style="width:100%;border:none"><![CDATA[
+        ]]></a:queryForm>
+        <a:grid id="fnd2400_grid" bindTarget="fnd2400_pur_vender_types_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="vender_type_code" align="center" editorFunction="fnd2400_typeCodeEditer" width="250"/>
+                <a:column name="description" align="left" editor="fnd2400_fnd_calendar_description_grid_tf" width="250"/>
+                <a:column name="one_off_flag" editor="fnd2400_pur_vender_checkbox"/>
+                <a:column name="enabled_flag" editor="fnd2400_pur_vender_checkbox"/>
+                <a:column align="center" prompt="INV_SYSTEM_ITEM_TYPES.ALLOCATE" renderer="FND2400_assign" width="80"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="fnd2400_fnd_calendar_code_grid_tf" typeCase="upper"/>
+                <a:textField id="fnd2400_fnd_calendar_description_grid_tf"/>
+                <a:checkBox id="fnd2400_pur_vender_checkbox"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

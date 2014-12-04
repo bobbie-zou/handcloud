@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2014年1月17日 下午2:54:25  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="po_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="po_release_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="company_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="company_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="vendor_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="vendor_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="vendor_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="vendor_site_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="vendor_site_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="po_num" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="release_num" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="currency_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="bill_amount" databaseType="NUMBER" datatype="java.lang.Double"/>
+        <bm:field name="buyer_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="buyer_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="buyer_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="creation_date" databaseType="DATE" datatype="java.util.Date"/>
+        <bm:field name="data_source" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        bs.po_header_id,
+                        bs.po_release_id,
+                        bs.company_id,
+                        bs.company_code,
+                        bs.company_desc,
+                        bs.vendor_id,
+                        bs.vendor_code,
+                        bs.vendor_desc,
+                        bs.vendor_site_id,
+                        bs.vendor_site_desc,
+                        bs.po_num,
+                        bs.release_num,
+                        bs.currency_code,
+                        bs.bill_amount,
+                        bs.buyer_id,
+                        bs.buyer_code,
+                        bs.buyer_desc,
+                        bs.creation_date,
+                        bs.data_source
+                    FROM
+                        acp_csgn_bill_sources_vl bs
+                    WHERE
+                        NOT EXISTS
+                        (SELECT
+                            1
+                        FROM
+                            po_line_locations_all_mv ll,
+                            acp_csgn_bill_headers h,
+                            acp_csgn_bill_lines l
+                        WHERE
+                            ll.po_release_id = bs.po_release_id AND
+                            ll.quantity      > ll.quantity_billed AND
+                            h.status        IN ('NEW', 'RELEASED', 'CONFIRMED', 'RETURNED') AND
+                            h.bill_header_id = l.bill_header_id AND
+                            l.data_source    = bs.data_source AND
+                            l.data_source_id = ll.line_location_id
+                        )
+                    ORDER BY
+                        bs.company_code ASC,
+                        bs.vendor_code ASC,
+                        bs.po_num DESC,
+                        bs.release_num DESC
+                    ) #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field field="po_num" queryExpression="po_num like &apos;%&apos; || ${@po_num} || &apos;%&apos;"/>
+        <bm:query-field field="company_id" queryOperator="="/>
+        <bm:query-field field="vendor_id" queryOperator="="/>
+    </bm:query-fields>
+</bm:model>

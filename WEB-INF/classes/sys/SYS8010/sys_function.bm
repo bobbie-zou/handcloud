@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:query-fields>
+        <bm:query-field name="function_id" queryExpression="fv.function_id = ${@function_id}"/>
+        <bm:query-field name="function_type" queryExpression="fv.function_type = ${@function_type}"/>
+        <bm:query-field name="function_code" queryExpression="fv.function_code like &apos;%&apos; || ${@function_code} || &apos;%&apos;"/>
+        <bm:query-field name="function_name" queryExpression="fv.function_name like &apos;%&apos; || ${@function_name} || &apos;%&apos;"/>
+        <bm:query-field name="function_code_name" queryExpression="(fv.function_code like &apos;%&apos; || ${@function_code_name} || &apos;%&apos; or fv.function_name like &apos;%&apos; || ${@function_code_name} || &apos;%&apos;)"/>
+        <bm:query-field name="parent_function_id" queryExpression="fv.parent_function_id ＝ ${@parent_function_id}"/>
+        <bm:query-field name="function_level" queryExpression="fv.function_level ＝ ${@function_level}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT fv.function_id,
+				       fv.function_code,
+				       fv.function_name,
+				       fv.parent_function_id,
+				       (SELECT pfv.function_name FROM sys_function_vl pfv WHERE pfv.function_id = fv.parent_function_id) AS parent_function_name,
+				       fv.function_description,
+				       fv.function_camp,
+				       (SELECT cvv.code_value_name
+				          FROM sys_code_values_v cvv
+				         WHERE cvv.code = 'SYS_FUNCTION_CAMP'
+				               AND cvv.code_value = fv.function_camp) AS function_camp_display,
+				       fv.function_type,
+				       (SELECT cvv.code_value_name
+				          FROM sys_code_values_v cvv
+				         WHERE cvv.code = 'SYS_FUNCTION_TYPE'
+				               AND cvv.code_value = fv.function_type) AS function_type_display,
+				       fv.function_level,
+				       decode(fv.function_level,
+				              'G',
+				              '目录',
+				              'F',
+				              '功能') AS function_level_display,
+				       fv.sequence,
+				       fv.foundation_code,
+				       fv.service_id,
+				       (SELECT ss.service_name FROM sys_service ss WHERE ss.service_id = fv.service_id) AS service_name,
+				       fv.icon,
+				       'N' AS expanded
+				  FROM sys_function_vl fv
+				 #WHERE_CLAUSE#
+				 ORDER BY fv.function_level,
+				          fv.function_code,
+				          fv.sequence
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+	            begin
+	            	sys_function_pkg.create_sys_function(p_function_code 		=> ${@function_code},
+						                                 p_function_name 		=> ${@function_name},
+						                                 p_function_description	=> ${@function_description},
+						                                 p_parent_function_id	=> ${@parent_function_id},
+						                                 p_function_camp        => ${@function_camp},
+						                                 p_function_type        => ${@function_type},
+						                                 p_function_level       => ${@function_level},
+						                                 p_sequence       		=> ${@sequence},
+						                                 p_foundation_code      => ${@foundation_code},
+						                                 p_service_id  			=> ${@service_id},
+						                                 p_icon     			=> ${@icon},
+						                                 p_session_user_id 		=> ${/session/@user_id});
+	            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+	            begin
+	            	sys_function_pkg.modify_sys_function(p_function_id        	=> ${@function_id},
+						                                 p_function_name 		=> ${@function_name},
+						                                 p_function_description	=> ${@function_description},
+						                                 p_parent_function_id	=> ${@parent_function_id},
+						                                 p_function_camp        => ${@function_camp},
+						                                 p_function_type        => ${@function_type},
+						                                 p_function_level       => ${@function_level},
+						                                 p_sequence       		=> ${@sequence},
+						                                 p_foundation_code      => ${@foundation_code},
+						                                 p_service_id  			=> ${@service_id},
+						                                 p_icon     			=> ${@icon},
+						                                 p_session_user_id 		=> ${/session/@user_id});
+	            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+	            begin
+	            	sys_function_pkg.remove_sys_function(p_function_id        	=> ${@function_id},
+						                                 p_session_user_id 		=> ${/session/@user_id});
+	            end;                                 
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

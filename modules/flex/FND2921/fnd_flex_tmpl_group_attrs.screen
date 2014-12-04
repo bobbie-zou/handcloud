@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-12-10 下午2:05:38  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure><![CDATA[
+    ]]></a:init-procedure>
+    <a:view>
+        <script><![CDATA[  
+        	function fnd29213_tmpl_group_queryHook(value,ds){
+        	    var record = ds.getCurrentRecord();
+	            record.set('flex_value_set_code', null);
+	            record.set('quick_value',value);
+        	}    
+        
+        	function fnd29213_attribute_set_back(){
+        	    $('fnd29211_group_attribute_set_window').close();
+        	}    
+        	
+        	function fnd29213_attribute_code_ef(record,name){
+        	    if(record.isNew){
+        	        return 'fnd29213_attr_set_tf';
+        	    }    
+        	}
+        
+        	function fnd29213_flex_value_set_desc_ef(record,name){
+        	    var data_source_desc=record.get('data_source_desc');
+        	    if(!Aurora.isEmpty(data_source_desc) && record.get('data_source')=='FLEX_VALUE_SET'){
+        	        record.getField('format_category_desc').setRequired(false);
+        	        record.getField('flex_value_set_desc').setRequired(true);
+        	        return 'fnd29213_attr_set_lov';
+        	    }    
+        	}
+        	
+        	function fnd29213_format_category_desc_ef(record,name){
+        	    var data_source_desc=record.get('data_source_desc');
+        	    if(!Aurora.isEmpty(data_source_desc) && record.get('data_source')!='FLEX_VALUE_SET'){
+        	        record.getField('format_category_desc').setRequired(true);
+        	        record.getField('flex_value_set_desc').setRequired(false);
+        	        return 'fnd29213_attr_set_lov';
+        	    }    
+        	}               
+        	
+        	function fnd29213_attribute_set_result_add(ds,record,index){
+        	    record.set('tmpl_group_id','${/parameter/@tmpl_group_id}');
+        	    record.set('display_sequence',index+1);
+        	}    
+        	
+        	function fnd_2920_attribute_set_header_add(ds,record,index){
+       		    var ds1=$('fnd2921_tmpl_group_result_ds').getCurrentRecord();
+       		    var tmpl_category_desc=ds1.get('tmpl_category_desc');
+       		    var tmpl_group_code=ds1.get('tmpl_group_code');
+       		    var tmpl_group_desc=ds1.get('tmpl_group_desc');
+       		    record.set('tmpl_category_code',ds1.get('tmpl_category_code'));
+       		    record.set('tmpl_category_desc',tmpl_category_desc);
+       		    record.set('tmpl_group_code',tmpl_group_code);
+       		    record.set('tmpl_group_desc',tmpl_group_desc);
+       		}
+       		
+       		function fnd29213_attribute_set_result_update(ds, record, name, value, oldvalue){
+       		    if(name == 'data_source'){
+	                 record.set('flex_value_set_id','');
+	                 record.set('flex_value_set_desc','');
+	                 record.set('flex_format_id','');
+	                 record.set('display_example','');
+	                 record.set('group_attribute_id','');
+	                 record.set('attribute_code','');
+	                 record.set('attribute_desc','');
+	                 record.set('format_category_desc','');
+	             }
+       		}
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd29213_attribute_set_data_source_options" lookupCode="FND_ATTR_SET_DATA_SOURCE"/>
+            <a:dataSet id="fnd29213_attribute_set_query_ds"/>
+            <a:dataSet id="fnd29213_attribute_set_header_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="tmpl_category_code"/>
+                    <a:field name="tmpl_category_desc"/>
+                    <a:field name="tmpl_group_code"/>
+                    <a:field name="tmpl_group_desc"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="fnd_2920_attribute_set_header_add"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd29213_attribute_set_result_ds" autoPageSize="true" autoQuery="true" model="flex.FND2921.fnd_flex_tmpl_group_attrs" queryDataSet="fnd29213_attribute_set_query_ds" queryUrl="${/request/@context_path}/autocrud/flex.FND2921.fnd_flex_tmpl_group_attrs/query?tmpl_group_id=${/parameter/@tmpl_group_id}" selectable="true">
+                <a:fields>
+                    <a:field name="group_attribute_id"/>
+                    <a:field name="tmpl_group_id"/>
+                    <a:field name="display_sequence" required="true"/>
+                    <a:field name="attribute_code" required="true"/>
+                    <a:field name="attribute_desc" required="true"/>
+                    <a:field name="data_source_desc" displayField="code_value_name" options="fnd29213_attribute_set_data_source_options" required="true" returnField="data_source" valueField="code_value"/>
+                    <a:field name="data_source"/>
+                    <a:field name="statistical_attribute" autoComplete="true" autoCompleteField="code_name" autoCompleteSize="1" lovHeight="500" lovService="flex.fnd_flex_select_attribute_lov?maxnum=200" lovWidth="300" required="true" title="汇总段">
+                        <a:mapping>
+                            <a:map from="attribute_name" to="statistical_attribute"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="format_category_desc" autoComplete="false" lovHeight="200" lovUrl="${/request/@context_path}/modules/flex/fnd_flex_format_lov.screen" lovWidth="540" title="选择格式">
+                        <a:mapping>
+                            <a:map from="flex_format_id" to="flex_format_id"/>
+                            <a:map from="flex_format_category_desc" to="format_category_desc"/>
+                            <a:map from="display_example" to="display_example"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="display_example"/>
+                    <a:field name="flex_value_set_desc" autoComplete="true" autoCompleteField="quick_value" lovHeight="500" lovService="public.fnd_flex_value_sets_lov" lovWidth="500" title="值集">
+                        <a:mapping>
+                            <a:map from="flex_value_set_code" to="attribute_code"/>
+                            <a:map from="flex_value_set_desc" to="attribute_desc"/>
+                            <a:map from="flex_value_set_desc" to="flex_value_set_desc"/>
+                            <a:map from="flex_value_set_id" to="flex_value_set_id"/>
+                            <a:map from="format_category_desc" to="format_category_desc"/>
+                            <a:map from="display_example" to="display_example"/>
+                            <a:map from="flex_format_id" to="flex_format_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="flex_value_set_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="fnd29213_attribute_set_result_add"/>
+                    <a:event name="update" handler="fnd29213_attribute_set_result_update"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:gridButton bind="fnd29213_attribute_set_grid" type="add" width="100"/>
+            <a:gridButton bind="fnd29213_attribute_set_grid" type="save" width="100"/>
+            <a:gridButton bind="fnd29213_attribute_set_grid" type="clear" width="100"/>
+            <a:toolbarButton click="fnd29213_attribute_set_back" text="返回" width="100"/>
+        </a:screenTopToolbar>
+        <a:hBox labelWidth="100">
+            <a:label name="tmpl_category_desc" bindTarget="fnd29213_attribute_set_header_ds" prompt="模板类型" width="140"/>
+            <a:label name="tmpl_group_code" bindTarget="fnd29213_attribute_set_header_ds" prompt="模板组代码" width="140"/>
+            <a:label name="tmpl_group_desc" bindTarget="fnd29213_attribute_set_header_ds" prompt="模板组描述" width="140"/>
+        </a:hBox>
+        <a:grid id="fnd29213_attribute_set_grid" bindTarget="fnd29213_attribute_set_result_ds" height="350" marginHeight="130" marginWidth="40" navBar="true" width="1209">
+            <a:columns>
+                <a:column name="display_sequence" align="right" editor="fnd29213_attr_set_nf" prompt="编号" width="100"/>
+                <a:column name="data_source_desc" align="left" editor="fnd29213_attr_set_cmb" prompt="数据来源" width="100"/>
+                <a:column name="flex_value_set_desc" align="left" editorFunction="fnd29213_flex_value_set_desc_ef" prompt="值集" width="100"/>
+                <a:column name="attribute_code" align="left" editorFunction="fnd29213_attribute_code_ef" prompt="属性代码" width="100"/>
+                <a:column name="attribute_desc" align="left" editor="fnd29213_attr_set_tf" prompt="属性描述" width="200"/>
+                <a:column name="statistical_attribute" align="left" editor="fnd29213_attr_set_lov" prompt="汇总段" width="100"/>
+                <a:column name="format_category_desc" align="left" editorFunction="fnd29213_format_category_desc_ef" prompt="数据格式类型" width="100"/>
+                <a:column name="display_example" align="left" prompt="数据格式示例" width="100"/>
+                <a:column name="enabled_flag" align="center" editor="fnd29213_attr_set_ckb" prompt="启动" width="100"/>
+            </a:columns>
+            <a:editors>
+                <a:numberField id="fnd29213_attr_set_nf" allowDecimals="false"/>
+                <a:comboBox id="fnd29213_attr_set_cmb"/>
+                <a:checkBox id="fnd29213_attr_set_ckb" checkedValue="Y" uncheckedValue="N"/>
+                <a:textField id="fnd29213_attr_set_tf"/>
+                <a:lov id="fnd29213_attr_set_lov"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

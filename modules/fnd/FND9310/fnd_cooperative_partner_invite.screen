@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-4 下午3:33:04  
+    $Revision: 1.0  
+    $Purpose: 合作邀约申请
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <a:link id="fnd9310_coopPartnerInviteComment_link" url="${/request/@context_path}/modules/fnd/FND9310/fnd_cooperative_partner_invite_comment.screen"/>
+        <script><![CDATA[
+            //查询条件update
+            
+            
+            function fnd9310_coopPartnerInvite_query_updateFun(ds, record, name, value, oldvalue) {
+                if (name == 'registered_country_code') {
+                    if (Ext.isEmpty(record.get('registered_country_code')) || record.get('registered_country_code') == undefined) {
+                        record.set('registered_province_id', '');
+                        record.set('registered_province_desc', '');
+                        record.getField("registered_province_desc").setReadOnly(true);
+            
+                        $('fnd9310_registered_province_ds').setQueryParameter('country_code', '-1');
+                        $('fnd9310_registered_province_ds').query();
+            
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc', '');
+                        record.getField("registered_city_desc").setReadOnly(true);
+            
+                        $('fnd9310_registered_city_ds').setQueryParameter('province_id', -1);
+                        $('fnd9310_registered_city_ds').query();
+                    } else {
+                        record.getField("registered_province_desc").setReadOnly(false);
+            
+                        $('fnd9310_registered_province_ds').setQueryParameter('country_code', record.get('registered_country_code'));
+                        $('fnd9310_registered_province_ds').query();
+                    }
+                } else if (name == 'registered_province_id') {
+                    if (Ext.isEmpty(record.get('registered_province_id')) || record.get('registered_province_id') == undefined) {
+                        record.set('registered_city_id', '');
+                        record.set('registered_city_desc', '');
+                        record.getField("registered_city_desc").setReadOnly(true);
+            
+                        $('fnd9310_registered_city_ds').setQueryParameter('province_id', -1);
+                        $('fnd9310_registered_city_ds').query();
+                    } else {
+                        record.getField("registered_city_desc").setReadOnly(false);
+            
+                        $('fnd9310_registered_city_ds').setQueryParameter('province_id', record.get('registered_province_id'));
+                        $('fnd9310_registered_city_ds').query();
+                    }
+                } 
+            }
+            
+            //查询
+            function fnd9310_coopPartnerInvite_queryFun(){
+                $('fnd9310_coopPartnerInvite_resultDs').query();
+            }
+            
+            //邀请
+            function fnd9310_coopPartnerInvite_renderer(value, record, name){
+                if(record.get('already_flag') == 'N'){
+                    return '<a href="javascript:fnd9310_coopPartnerInvite_open(\'' + record.get('cooperative_bg') +'\','+record.get('cooperative_company_id')+',\''+record.get('cooperative_ways')+'\')">' + '${l:FND9310.INVITE}' + '</a>';
+                }else{
+                    return '${l:FND9310.ALREADY_INVITED}';
+                }
+            }
+            
+            function fnd9310_coopPartnerInvite_open(cooperative_bg,cooperative_company_id,cooperative_ways){
+                if(Ext.isEmpty(cooperative_bg)){
+                    cooperative_bg = '';
+                }
+                
+                if(Ext.isEmpty(cooperative_company_id)){
+                    cooperative_company_id = '';
+                }
+                
+                if(Ext.isEmpty(cooperative_ways)){
+                    cooperative_ways = '';
+                }
+                
+                var owner_ways = '${/parameter/@owner_ways}';
+                var owner_company_id = '${/parameter/@owner_company_id}';
+                
+                new Aurora.Window({
+                    url: $('fnd9310_coopPartnerInviteComment_link').getUrl() + '?cooperative_bg=' + cooperative_bg+'&cooperative_company_id='+cooperative_company_id+'&cooperative_ways='+cooperative_ways+'&owner_company_id='+owner_company_id+'&owner_ways='+owner_ways,
+                    id: 'fnd9310_coopPartnerInviteComment_window',
+                    title: '${l:FND9310.INVITE_COMMENT}',
+                    width: 400,
+                    height: 200
+                });
+            }
+            //关闭
+            function fnd9310_inviteReqCloseFun(){
+                $('fnd9310_coopPartnerInvite_window').close();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd9310_registered_country_ds" fetchAll="true" loadData="true" model="public.fnd_country_lov"/>
+            <a:dataSet id="fnd9310_registered_province_ds" fetchAll="true" model="pur.public.fnd_region_province_by_country_lov"/>
+            <a:dataSet id="fnd9310_registered_city_ds" fetchAll="true" model="pur.public.fnd_region_city_by_province_lov"/>
+            <a:dataSet id="fnd9310_coopPartnerInvite_queryDs" model="fnd.FND9310.fnd_cooperative_partner_invite">
+                <a:fields>
+                    <a:field name="cooperative_company_code" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_CODE"/>
+                    <a:field name="cooperative_company_name" prompt="FND_COOPERATIVE_PARTNERS.COOPERATIVE_COMPANY_NAME"/>
+                    <a:field name="business_license_number" prompt="PUR_VENDORS.BUSINESS_LICENSE_NUMBER"/>
+                    <a:field name="national_organization_code" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE"/>
+                    <a:field name="registered_country_code"/>
+                    <a:field name="registered_country_name" displayField="country_name" options="fnd9310_registered_country_ds" prompt="FND_COMPANIES.REGISTERED_COUNTRY_CODE" returnField="registered_country_code" valueField="country_code"/>
+                    <a:field name="registered_province_id"/>
+                    <a:field name="registered_province_desc" displayField="province_name" options="fnd9310_registered_province_ds" prompt="FND_COMPANIES.REGISTERED_PROVINCE_ID" readOnly="true" returnField="registered_province_id" valueField="province_id"/>
+                    <a:field name="registered_city_id"/>
+                    <a:field name="registered_city_desc" displayField="city_name" options="fnd9310_registered_city_ds" prompt="FND_COMPANIES.REGISTERED_CITY_ID" readOnly="true" returnField="registered_city_id" valueField="city_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd9310_coopPartnerInvite_query_updateFun"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd9310_coopPartnerInvite_resultDs" autoCount="true" model="fnd.FND9310.fnd_cooperative_partner_invite" queryDataSet="fnd9310_coopPartnerInvite_queryDs" queryUrl="${/request/@context_path}/autocrud/fnd.FND9310.fnd_cooperative_partner_invite/query?owner_company_id=${/parameter/@owner_company_id}&amp;owner_ways=${/parameter/@owner_ways}"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="fnd9310_inviteReqCloseFun" text="PROMPT.CLOSE" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd9310_coopPartnerInvite_queryDs" resultTarget="fnd9310_coopPartnerInvite_resultDs" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none"/>
+                    <a:hBox labelWidth="100">
+                        <a:textField name="cooperative_company_code" bindTarget="fnd9310_coopPartnerInvite_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9310_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="cooperative_company_name" bindTarget="fnd9310_coopPartnerInvite_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9310_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="business_license_number" bindTarget="fnd9310_coopPartnerInvite_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9310_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="national_organization_code" bindTarget="fnd9310_coopPartnerInvite_queryDs">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9310_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:textField>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:comboBox name="registered_country_name" bindTarget="fnd9310_coopPartnerInvite_queryDs" prompt="PUR_VENDORS.REGISTERED_COUNTRY_CODE">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9310_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="registered_province_desc" bindTarget="fnd9310_coopPartnerInvite_queryDs" prompt="PUR_VENDORS.REGISTERED_PROVINCE_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9310_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:comboBox>
+                        <a:comboBox name="registered_city_desc" bindTarget="fnd9310_coopPartnerInvite_queryDs" prompt="PUR_VENDORS.REGISTERED_CITY_ID">
+                            <a:events>
+                                <a:event name="enterdown" handler="fnd9310_coopPartnerInvite_queryFun"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="fnd9310_coopPartnerInvite_grid" bindTarget="fnd9310_coopPartnerInvite_resultDs" height="350" navBar="true" width="900">
+                <a:columns>
+                    <a:column name="invite" align="center" prompt="FND9310.INVITE" renderer="fnd9310_coopPartnerInvite_renderer" width="80"/>
+                    <a:column name="cooperative_company_code" align="center" prompt="SYS_COOPERATIVE_PARTNERS.PARTNER_CODE" renderer="fnd9310_partnerView_rendererFun" sortable="true" width="120"/>
+                    <a:column name="cooperative_company_name" align="center" prompt="SYS_COOPERATIVE_PARTNERS.PARTNER_NAME" sortable="true" width="170"/>
+                    <a:column name="national_organization_code" align="center" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE" sortable="true" width="100"/>
+                    <a:column name="business_license_number" align="center" prompt="PUR_VENDORS.BUSINESS_LICENSE_NUMBER" sortable="true" width="100"/>
+                    <a:column name="registered_country_name" align="center" prompt="PUR_VENDORS.REGISTERED_COUNTRY_CODE" sortable="true" width="90"/>
+                    <a:column name="registered_province_desc" align="center" prompt="PUR_VENDORS.REGISTERED_PROVINCE_ID" sortable="true" width="90"/>
+                    <a:column name="registered_city_desc" align="center" prompt="PUR_VENDORS.REGISTERED_CITY_ID" sortable="true" width="90"/>
+                </a:columns>
+                <a:editors/>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

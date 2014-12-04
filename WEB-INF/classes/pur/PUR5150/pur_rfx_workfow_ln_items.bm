@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-10-31 下午4:50:34  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select li.*,
+       fl.vendor_id,
+       fl.vendor_code,
+       fl.vendor_desc,
+       fl.valid_fb_retail_price,
+       fl.valid_fb_wholesale_price,
+       to_char(fl.promised_date, 'yyyy-mm-dd') promised_date,
+       to_char(fl.feedback_expiry_date_from, 'yyyy-mm-dd') feedback_expiry_date_from,
+       to_char(fl.feedback_expiry_date_to, 'yyyy-mm-dd') feedback_expiry_date_to
+  from (select rownum * 10 line_number,
+               rh.round,
+               rh.version,
+               li.rfx_line_item_id,
+               li.rfx_header_id,
+               li.company_id,
+               (select fc.company_short_name
+                  from fnd_companies_vl fc
+                 where fc.COMPANY_ID = li.company_id) company_desc,
+               li.inv_organization_id,
+               (select io.description
+                  from inv_organizations_vl io
+                 where io.inv_organization_id = li.inv_organization_id) inv_organization_desc,
+               li.item_category_id,
+               (select ic.item_category_desc
+                  from inv_item_categories_v ic
+                 where ic.item_category_id = li.item_category_id) item_category_desc,
+               li.item_id,
+               li.item_code,
+               li.item_desc,
+               li.item_note,
+               li.item_parameter_config,
+               li.suggested_feedback_line_id,
+               li.uom_code,
+               (SELECT
+                        fv.uom_desc
+                    FROM
+                        fnd_uom_codes_vl fv
+                    WHERE
+                        fv.uom_code = li.uom_code
+                    ) uom_desc,
+               li.quantity,
+               to_char(need_by_date, 'yyyy-mm-dd') need_by_date,
+               li.suggested_operation,
+               (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = li.suggested_operation
+           and sc.code = 'PUR_RFX_SUGGESTED_OPERATION') suggested_operation_desc,
+               li.cancel_flag,
+               li.rfx_finished_flag,
+               li.data_source,
+               li.data_source_id,
+               li.data_source_code,
+               li.data_source_name,
+               li.comments,
+               li.pur_req_num,
+               li.feedback_range,
+               li.flex_appl_relevance_id,
+               li.proposed_vendor_id,
+       li.proposed_vendor_code,
+       li.proposed_vendor_desc,
+       li.proposed_price,
+       li.proposed_net_price,
+       li.proposed_net_amount,
+       li.proposed_tax_amount,
+       li.proposed_total_amount,
+       li.proposed_functional_amount,
+       li.proposed_entered_amount,
+               #flex_query_sql#
+          from pur_rfx_ln_items li, pur_rfx_headers rh
+         where 1 = 1
+           and li.rfx_header_id = rh.rfx_header_id
+           and li.rfx_header_id = ${/parameter/@rfx_header_id}) li,
+       (select fh.rfx_header_id,
+               fh.rfx_round,
+               fh.rfx_version,
+               fh.vendor_id,
+               fh.vendor_code,
+               fh.vendor_desc,
+               fl.feedback_line_id,
+               fl.item_id,
+               fl.rfx_line_item_id,
+               fl.inv_organization_id,
+               fl.promised_date,
+               fl.feedback_expiry_date_from,
+               fl.feedback_expiry_date_to,
+               fl.valid_fb_retail_price,
+               fl.valid_fb_wholesale_price
+          from pur_rfx_feedback_headers fh, pur_rfx_feedback_lines fl
+         where fh.feedback_header_id = fl.feedback_header_id
+           ) fl
+ where fl.rfx_round(+) = li.round
+   and fl.rfx_version(+) = li.version
+   and fl.feedback_line_id(+) = li.suggested_feedback_line_id
+   and li.rfx_header_id = ${/parameter/@rfx_header_id}
+
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <flex-segmentBm applTableAliasName="li" headerIdPath="/parameter/@rfx_header_id" headerTableName="PUR_RFX_HEADERS" lineTableName="PUR_RFX_LN_ITEMS" templateFieldName="template_id" type="grid_expanded_bm_query"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_grid_expanded_bm.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: FelixDru
+    $Date: 2014-05-05 下午2:27:03  
+    $Revision: 1.0  
+    $Purpose: 供应商认证查询
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        t.vendor_id,
+                        t.vendor_code AS vendor_code,
+                        t.version,
+                        t.vendor_category,
+                        (select sc.code_value_name from sys_code_values_v sc where sc.code_value = t.vendor_category and sc.code = 'PUR_VENDOR_CATEGORY') vendor_category_desc,
+                        t.vendor_type_id,
+                        t.short_name,
+                        t.full_name,
+                        
+                        t.comments,
+                        t.status,
+                        t.approved_flag,
+                        t.rejected_flag,
+                        t.approving_date,
+                        t.approving_by,
+                        t.approving_comments,
+                        NVL(t.maintained_flag,'N') maintain_flag,
+                        t.sys_vendor_flag,
+                        t.enabled_flag,
+                        t.invalid_date,
+                        t.invalid_by,
+                        t.data_source,
+                        t.data_source_id,
+                        t.data_source_code,
+                        t.data_source_name,
+                        t.source_type,
+                        t.source_code,
+                        t.creation_date,
+                        TO_CHAR(t.creation_date,'YYYY-MM-DD HH24:Mi:SS') creation_date_desc,
+                        t.created_by,
+                        t.last_update_date,
+                        t.last_updated_by,
+                        NVL(t.independent_flag,'N') independent_flag,
+                        t.client,
+                        t.writed_back_flag,
+                        (select s.code_value_name from sys_code_values_v s where s.code_value = t.status and s.code = 'PUR_VENDOR_STATUS') status_display,
+                        t.registered_province_id,
+                    (select f.description from fnd_region_code_vl f where f.region_id = t.registered_province_id ) registered_province_desc,
+                    t.registered_city_id,
+                    (select f.description from fnd_region_code_vl f where f.region_id = t.registered_city_id ) registered_city_desc
+                    FROM
+                        pur_vendors_vl t
+                    ) t1 #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="vendor_id" queryExpression="t1.vendor_id = ${@vendor_id}"/>
+        <bm:query-field name="vendor_code" queryExpression="t1.vendor_code like &apos;%&apos;||${@vendor_code}||&apos;%&apos;"/>
+        <bm:query-field name="full_name" queryExpression=" t1.full_name like &apos;%&apos; || ${@full_name} || &apos;%&apos; "/>
+        <bm:query-field name="vendor_type_id" queryExpression="t1.vendor_type_id = ${@vendor_type_id}"/>
+        <bm:query-field name="data_source" queryExpression="t1.data_source = ${@data_source}"/>
+        <bm:query-field name="creation_date_start" queryExpression="t1.creation_date &gt;= to_date(${@creation_date_start},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="creation_date_end" queryExpression="t1.creation_date &lt;= to_date(${@creation_date_end},&apos;YYYY-MM-DD&apos;)+1"/>
+        <bm:query-field name="agent_brand" queryExpression="t1.agent_brand like &apos;%&apos; || ${@agent_brand} || &apos;%&apos;"/>
+        <bm:query-field name="product_category_id" queryExpression="t1.vendor_id in (select pc.vendor_id from pur_vendor_product_category pc where pc.vendor_id=t1.vendor_id and pc.product_category_id=${@product_category_id})"/>
+        <bm:query-field name="company_id" queryExpression="t1.vendor_id in (select t.vendor_id from pur_vendor_company_v t where t.company_id = ${@company_id})"/>
+        <bm:query-field name="linkman_name" queryExpression="exists (select 1 from pur_sys_vendor_contacts pc where pc.vendor_id=t1.vendor_id and pc.linkman_name like &apos;%&apos;||${@linkman_name}||&apos;%&apos;)"/>
+        <bm:query-field name="independent_flag" queryExpression="independent_flag = ${@independent_flag}"/>
+        <bm:query-field name="short_name" queryExpression=" t1.short_name like &apos;%&apos; || ${@short_name} || &apos;%&apos; "/>
+        <bm:query-field name="vendor_category" queryExpression="vendor_category = ${@vendor_category}"/>
+        <bm:query-field name="business_license_number" queryExpression=" t1.business_license_number like &apos;%&apos; || ${@business_license_number} || &apos;%&apos; "/>
+        <bm:query-field name="national_organization_code" queryExpression=" t1.national_organization_code like &apos;%&apos; || ${@national_organization_code} || &apos;%&apos; "/>
+        <bm:query-field name="registered_country_code" queryExpression="registered_country_code = ${@registered_country_code}"/>
+        <bm:query-field name="registered_province_id" queryExpression="registered_province_id = ${@registered_province_id}"/>
+        <bm:query-field name="registered_city_id" queryExpression="registered_city_id = ${@registered_city_id}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="NVL(t1.writed_back_flag,&apos;N&apos;) = &apos;N&apos;"/>
+    </bm:data-filters>
+    <authority client_alias="t1" client_name="client"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-12-17 上午10:28:53  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="pur1060_vendor_classes_child_level_link" url="${/request/@context_path}/modules/pur/PUR1060/pur_vendor_classes_level2.screen"/>
+        <script><![CDATA[			
+			
+			//查询
+			function pur1060_vendor_classes_query(){
+			    $('pur1060_vendor_classes_result_ds').query();
+			}
+			
+			//保存成功
+			function pur1060_vendor_classes_submitSuccess_handler(ds,res){
+			    pur1060_vendor_classes_query();
+			}
+			
+			//列编辑器渲染
+			function pur1060_vendor_class_code_editFunction(record,name){
+			    if (name == 'vendor_class_code') {
+                    if (record.isNew) {
+                        return 'pur1060_vendor_class_tf';
+                    }
+                    return '';
+                }
+			}
+			
+			//新增
+			function pur1060_vendor_classes_add(){
+			    var ds = $('pur1060_vendor_classes_result_ds');
+			    var record = ds.getCurrentRecord();
+			    
+			    if(Aurora.isEmpty(record.get('vendor_class_id'))){
+			        return;
+			    }
+			    
+			    var new_rec = ds.create({
+			        'vendor_class_id':'',
+			        'vendor_class_code':'',
+			        'vendor_class_desc_id':'',
+			        'vendor_class_desc':'',
+			        'parent_class_id':record.get('vendor_class_id'),
+			        'parent_class_desc':record.get('vendor_class_desc'),
+			        'level_id':record.get('level_id')+1,
+			        'expanded':'Y',
+			        'enabled_flag':'Y'
+			    });
+			}
+			
+			//新增顶层分类
+			function pur1060_vendor_classes_addRoot(){
+			    var ds = $('pur1060_vendor_classes_result_ds');
+			    
+			    var new_rec = ds.create({
+			        'vendor_class_id':'',
+			        'vendor_class_code':'',
+			        'vendor_class_desc_id':'',
+			        'vendor_class_desc':'',
+			        'parent_class_id':-1,
+			        'parent_class_desc':'',
+			        'level_id':1,
+			        'expanded':'Y',
+			        'enabled_flag':'Y'
+			    });
+			}
+			
+			
+			//保存
+			function pur1060_vendor_classes_save(){
+			    var ds = $('pur1060_vendor_classes_result_ds');
+			    ds.submit();
+			}
+			
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur1060_vendor_classes_query_ds" autoCreate="true"/>
+            <a:dataSet id="pur1060_vendor_classes_result_ds" autoQuery="true" model="pur.PUR1060.pur_vendor_classes" queryDataSet="pur1060_vendor_classes_query_ds">
+                <a:fields>
+                    <a:field name="vendor_class_code" required="true"/>
+                    <a:field name="vendor_class_desc" required="true"/>
+                    <a:field name="parent_class_id"/>
+                    <a:field name="level_id"/>
+                    <a:field name="expanded" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="industry_field_desc" lovHeight="500" lovService="pur.PUR1060.pur_vendor_industry_field_code_lov" lovWidth="500" prompt="PUR_INDUS_FIELD_RELATIONS.INDUSTRY_FIELD_CODE" title="PUR_INDUS_FIELD_RELATIONS.INDUSTRY_FIELD_CODE">
+                        <a:mapping>
+                            <a:map from="industry_field_code" to="industry_field"/>
+                            <a:map from="industry_field_code_desc" to="industry_field_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="pur1060_vendor_classes_submitSuccess_handler"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="pur1060_vendor_classes_add" style="margin-left:20px;" text="HAP_NEW" width="100"/>
+            <a:toolbarButton click="pur1060_vendor_classes_addRoot" text="PUR_VENDOR.CREATE_TOP_CLASS" width="100"/>
+            <a:toolbarButton click="pur1060_vendor_classes_save" text="HAP_SAVE" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm id="pur1060_query_form" bindTarget="pur1060_vendor_classes_query_ds" defaultQueryField="class_code_name" defaultQueryHint="PUR_VENDOR.VENDOR_CLASS_DEFINITION_DEFAULT_QUERY_HINT" resultTarget="pur1060_vendor_classes_result_ds" style="width:100%;border:none"/>
+        <a:dynamicTreeGrid id="pur1060_vendor_class_tree_grid" bindTarget="pur1060_vendor_classes_result_ds" idField="vendor_class_id" marginHeight="180" marginWidth="80" parentField="parent_class_id" showCheckBox="false">
+            <a:columns>
+                <a:column name="vendor_class_code" align="center" editorFunction="pur1060_vendor_class_code_editFunction" prompt="PUR_VENDOR_CLASSES.VENDOR_CLASS_CODE" width="80"/>
+                <a:column name="vendor_class_desc" align="left" editor="pur1060_vendor_class_tf" prompt="PUR_VENDOR_CLASSES.VENDOR_CLASS_DESC_ID" width="150"/>
+                <a:column name="level_id" align="center" prompt="PUR_VENDOR_CLASSES.LEVEL_ID" width="80"/>
+                <a:column name="industry_field_desc" align="center" editor="pur1060_vendor_class_lov" width="100"/>
+                <a:column name="enabled_flag" align="center" editor="pur1060_vendor_class_cb" prompt="PUR_VENDOR_CLASSES.ENABLED_FLAG" width="80"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="pur1060_vendor_class_tf"/>
+                <a:checkBox id="pur1060_vendor_class_cb"/>
+                <a:lov id="pur1060_vendor_class_lov"/>
+            </a:editors>
+        </a:dynamicTreeGrid>
+    </a:view>
+</a:screen>

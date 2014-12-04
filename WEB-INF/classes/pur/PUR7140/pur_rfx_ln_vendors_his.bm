@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-27 下午10:59:14  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    lv.rfx_line_vendor_id,
+                    lv.rfx_header_id,
+                    rh.round,
+                    rh.version,
+                    lv.vendor_id,
+                    lv.vendor_code,
+                    lv.vendor_desc,
+                    lv.vendor_site_id,
+                    lv.vendor_address,
+                    lv.vendor_contact_id,
+                    lv.contact_person,
+                    lv.contact_mobile,
+                    lv.e_mail,
+                    lv.feedback_status,
+                    lv.proposed_flag,
+                    lv.sms_schicken_flag,
+                    lv.comments,
+                    (select nvl(sum(nvl(fl.valid_fb_wholesale_price, 0)), 0)
+          from pur_rfx_feedback_lines   fl,
+               pur_rfx_ln_items         li,
+               pur_rfx_feedback_headers fh
+         where fh.feedback_header_id = fl.feedback_header_id
+           and fh.cancel_flag = 'N'
+           and fl.cancel_flag = 'N'
+           and li.rfx_line_item_id = fl.rfx_line_item_id
+           and li.rfx_header_id = rh.rfx_header_id
+           and li.cancel_flag = 'N'
+           and fh.rfx_header_id = rh.rfx_header_id
+           and fh.vendor_id = lv.vendor_id
+           and fh.rfx_round = rh.round
+           and fh.rfx_version = rh.version) total_price,
+       (select nvl(sum(nvl(fl.fb_total_whlsale_amount, 0)), 0)
+          from pur_rfx_feedback_lines   fl,
+               pur_rfx_ln_items         li,
+               pur_rfx_feedback_headers fh
+         where fh.feedback_header_id = fl.feedback_header_id
+           and fh.cancel_flag = 'N'
+           and fl.cancel_flag = 'N'
+           and fh.rfx_header_id = rh.rfx_header_id
+           and fh.vendor_id = lv.vendor_id
+           and li.rfx_header_id = rh.rfx_header_id
+           and fh.rfx_round = rh.round
+           and fh.rfx_version = rh.version
+           and li.rfx_line_item_id = fl.rfx_line_item_id
+           and li.cancel_flag = 'N') total_amount
+                FROM
+                    pur_rfx_ln_vendors_hist lv,
+                    pur_rfx_headers_hist rh
+                WHERE
+                    lv.history_header_id = ${@history_header_id} AND
+                    lv.history_header_id = rh.history_header_id AND
+                    (
+                        lv.feedback_status = 'PARTICIPATED' OR
+                        rh.rfx_method      = 'INVITE'
+                    )
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

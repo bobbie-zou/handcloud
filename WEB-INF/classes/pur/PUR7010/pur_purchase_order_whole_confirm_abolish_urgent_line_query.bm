@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-23 下午1:57:01  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" needAccessControl="false">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT pll.pur_line_location_id,
+       l.line_num,
+       pll.shipment_num,
+       l.item_code,
+       l.item_description,
+       l.unit_meas_lookup_code,
+       pll.quantity,
+       l.unit_price,
+       pll.quantity * l.unit_price AS line_amount,
+       to_char(pll.need_by_date,
+               'yyyy-mm-dd') AS need_by_date,
+       to_char(pll.promised_date,
+               'yyyy-mm-dd') AS promised_date,
+       decode(pll.consigned_flag,
+              'Y',
+              '是',
+              '否') AS consigned_flag,
+       pll.vendor_desc,
+       pll.ship_to_location_name,
+       h.bill_to_location_name,
+       l.line_type_name,
+       l.category_name,
+       l.secondary_unit_of_measure,
+       l.secondary_quantity
+  FROM pur_headers_all        h,
+       pur_lines_all          l,
+       pur_line_locations_all pll
+ WHERE h.pur_header_id = l.pur_header_id
+       AND l.pur_line_id = pll.pur_line_id
+       AND h.last_version = 'Y'
+       AND EXISTS (SELECT 1
+          FROM sys_user_messages     SUM,
+               sys_user_message_list suml
+         WHERE sum.message_id = suml.message_id
+               AND sum.source_table = 'PUR_HEADER_ALL_URGENT'
+               AND sum.source_id = h.pur_header_id
+               AND suml.push_user_id = ${/session/@user_id})
+       AND h.pur_header_id = ${@pur_header_id}
+       ORDER BY
+    l.line_num ASC,
+    pll.shipment_num ASC
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

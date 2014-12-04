@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="merge_detail_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="merge_rule_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="merge_rule_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="FND_DOCUMENT_MERGE_RULES.MERGE_RULE_NAME"/>
+        <bm:field name="company_short_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="FND_COMPANIES.COMPANY_SHORT_NAME"/>
+        <bm:field name="company_full_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="FND_COMPANIES.COMPANY_FULL_NAME"/>
+        <bm:field name="dimension_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="PROMPT.ENABLED_FLAG"/>
+        <bm:field name="comments" databaseType="VARCHAR2" datatype="java.lang.String" prompt="FND_DOCUMENT_MERGE_DETAILS.COMMENTS"/>
+        <bm:field name="unchange_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="FND_DOCUMENT_MERGE_DETAILS.UNCHANGE_FLAG"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="merge_rule_id" queryExpression="t1.merge_rule_id = ${@merge_rule_id}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        fdmd.merge_detail_id,
+                        fdmd.merge_rule_id,
+                        fdmr.merge_rule_name,
+                        fc.company_short_name,
+                        fc.company_full_name,
+                        fdmd.dimension_code,
+                        fdmd.enabled_flag,
+                        fdmd.comments,
+                        fdmd.unchange_flag
+                    FROM
+                        fnd_document_merge_details fdmd,
+                        fnd_document_merge_rules_vl fdmr,
+                        fnd_companies_vl fc
+                    WHERE
+                        fdmd.merge_rule_id=fdmr.merge_rule_id AND
+                        fc.company_id     =fdmr.company_id
+                    ) t1 #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="merge_detail_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@merge_detail_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              BEGIN
+                fnd_document_merge_rule_pkg.create_doc_merge_details
+                (
+                  x_merge_detail_id=>${@merge_detail_id},
+                  p_merge_rule_id=>${@merge_rule_id},
+                  p_dimension_code=>${@dimension_code},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_comments=>${@comments},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                fnd_document_merge_rule_pkg.modify_doc_merge_details
+                (
+                  p_merge_detail_id=>${@merge_detail_id},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_comments=>${@comments},
+                  p_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

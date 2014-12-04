@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="country_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="country_code" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_COUNTRY_CODE.COUNTRY_CODE"/>
+        <bm:field name="description_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="country_name" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_COUNTRY_CODE.DESCRIPTION"/>
+        <bm:field name="enabled_flag" prompt="PROMPT.ENABLED_FLAG"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="country_code" queryOperator="="/>
+        <bm:query-field field="country_id" queryOperator="="/>
+        <bm:query-field name="country_code_name" queryExpression="(fcc.country_code like &apos;%&apos;||trim(upper(${@country_code_name}))||&apos;%&apos; or (select fd.description_text from fnd_descriptions fd where fd.description_id=fcc.description_id and fd.language=${/session/@lang}) like &apos;%&apos;||${@country_code_name}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+        		SELECT
+        		    fcc.country_id,
+        		    fcc.country_code,
+        		    fcc.description_id,
+        		    (SELECT
+        		        description_text
+        		    FROM
+        		        fnd_descriptions
+        		    WHERE
+        		        description_id = fcc.description_id AND
+        		        LANGUAGE       = userenv('LANG')
+        		    ) country_name,
+        		    fcc.enabled_flag
+        		FROM
+        		    fnd_country_code fcc #WHERE_CLAUSE#
+    		]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+            BEGIN
+				fnd_country_code_pkg.create_country_code(p_country_code => ${@country_code},
+				                                         p_country_name => ${@country_name},
+				                                         p_enabled_flag => ${@enabled_flag},
+				                                         p_user_id      => ${/session/@user_id});
+				END;
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            BEGIN
+				fnd_country_code_pkg.modify_country_code(p_country_code => ${@country_code},
+				                                         p_country_name => ${@country_name},
+				                                         p_enabled_flag => ${@enabled_flag},
+				                                         p_user_id      => ${/session/@user_id});
+				END;
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

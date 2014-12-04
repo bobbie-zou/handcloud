@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+     SELECT *
+  FROM (SELECT DISTINCT v.vendor_id,
+       v.display_vendor_code AS vendor_code,
+       v.full_name           AS vendor_name
+  FROM (SELECT pv.vendor_id,
+               pv.display_vendor_code,
+               pv.full_name,
+               pv.business_group,
+               null useless_id  
+          FROM pur_vendors_v pv) v,
+       pur_vendor_sites   s,
+       fnd_business_units bu
+   #AUTHORIY_FROM# 
+ WHERE v.business_group = ${/session/@business_group}
+    and v.vendor_id = s.vendor_id
+       AND s.org_id = bu.business_unit_id
+  #AUTHORIY_WHERE#
+) v
+#WHERE_CLAUSE# ORDER BY v.vendor_code
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="vendor_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="vendor_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="PUR_VENDORS.VENDOR_CODE"/>
+        <bm:field name="vendor_name" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="PUR_SYSTEM_VENDERS.DESCRIPTION"/>
+        <!-- <bm:field name="external_system_name" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" prompt="PROMPT.DATA_SOURCE"/> -->
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="vendor_code" queryExpression="v.vendor_code like &apos;%&apos;||${@vendor_code}||&apos;%&apos;"/>
+        <bm:query-field name="vendor_name" queryExpression="v.vendor_name like &apos;%&apos;||${@vendor_name}||&apos;%&apos;"/>
+    </bm:query-fields>
+    <authority foundation_code="PUR_PO">
+        <authority-segment source_alias="v" source_name="useless_id" type="CREATER"/>
+        <authority-segment source_alias="bu" source_name="company_id" type="COMPANY"/>
+        <authority-segment source_alias="v" source_name="useless_id" type="RECEIVER"/>
+        <authority-segment source_alias="bu" source_name="business_unit_id" type="BUSINESS_UNIT"/>
+        <authority-segment source_alias="v" source_name="useless_id" type="PUR_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="useless_id" type="SD_ORGANIZATION"/>
+        <authority-segment source_alias="v" source_name="vendor_id" type="VENDOR"/>
+        <authority-segment source_alias="v" source_name="useless_id" type="CLIENT"/>
+        <authority-segment source_alias="v" source_name="useless_id" type="PURHASE_MATERIAL"/>
+        <authority-segment source_alias="v" source_name="useless_id" type="SALES_PRODUCTION"/>
+        <authority-segment source_alias="v" source_name="useless_id" type="CLIENT_SITE"/>
+        <authority-segment source_alias="v" source_name="useless_id" type="VENDOR_SITE"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+            var cx = Packages.aurora.javascript.Context.getCurrentContext();
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

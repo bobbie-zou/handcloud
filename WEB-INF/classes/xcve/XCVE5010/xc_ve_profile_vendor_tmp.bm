@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-5 下午3:16:48  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:e="aurora.service.exception" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="XC_VE_PROFILE_VENDOR_TMP" defaultOrderBy="(select u.user_name from sys_user u where u.user_id=t1.vendor_id)">
+    <bm:fields>
+        <bm:field name="session_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SESSION_ID" prompt="session_id"/>
+        <bm:field name="vendor_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_ID" prompt="PUR_VENDORS.VENDOR_ID"/>
+        <bm:field name="vendor_srm_code" expression="(select u.user_name from sys_user u where u.user_id=t1.vendor_id)" forInsert="false" forUpdate="false" prompt="PUR_VENDORS.VENDOR_SRM_CODE"/>
+        <bm:field name="vendor_erp_code" expression="(select r.vender_erp_code from hsp_sys_vender_reg r where r.user_id=t1.vendor_id)" forInsert="false" forUpdate="false" prompt="PUR_VENDORS.VENDOR_ERP_CODE"/>
+        <bm:field name="vendor_name" expression="(select r.company_full_name from hsp_sys_vender_reg r where r.user_id=t1.vendor_id)" forInsert="false" forUpdate="false" prompt="PUR_VENDORS.VENDOR_DESCRIPTION"/>
+        <bm:field name="vender_type_desc" expression="(select t.vender_type_name from hsp_inv_vender_type t,hsp_sys_vender_reg r where t.vender_type_code = r.vender_type and r.user_id=t1.vendor_id)" forInsert="false" forUpdate="false" prompt="PUR_VENDORS.VENDOR_TYPE_ID"/>
+        <bm:field name="platform" expression="(select decode(platform_k, &apos;Y&apos;, &apos;K &apos;, &apos;&apos;)||decode(platform_f, &apos;Y&apos;, &apos;F &apos;, &apos;&apos;)||decode(platform_l, &apos;Y&apos;, &apos;L &apos;, &apos;&apos;)||decode(platform_m, &apos;Y&apos;, &apos;M &apos;, &apos;&apos;)||decode(platform_n, &apos;Y&apos;, &apos;N &apos;, &apos;&apos;)||decode(platform_x, &apos;Y&apos;, &apos;X &apos;, &apos;&apos;)||decode(platform_w, &apos;Y&apos;, &apos;W&apos;, &apos;&apos;) from hsp_sys_vender_reg r where r.user_id = t1.vendor_id)" forInsert="false" forUpdate="false" prompt="PUR_VENDORS.PLATFORM"/>
+    </bm:fields>
+    <bm:primary-key>
+        <bm:pk-field name="session_id"/>
+        <bm:pk-field name="vendor_id"/>
+    </bm:primary-key>
+    <bm:operations>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+    		begin
+    			DELETE
+					FROM
+					    XC_VE_PROFILE_VENDOR_TMP t
+					WHERE
+					    t.SESSION_ID = ${@session_id} AND
+					    t.VENDOR_ID  = ${@vendor_id};
+		     	DELETE
+					FROM
+					    XC_VE_PROFILE_ITEM_GROUP_TMP t
+					WHERE
+					    t.SESSION_ID    = ${@session_id} AND
+					    t.VENDOR_ID		= ${@vendor_id};
+    		end;
+    		]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:features>
+        <f:standard-who/>
+    </bm:features>
+    <bm:data-filters>
+        <bm:data-filter name="session_id" enforceOperations="query" expression="t1.session_id=${/session/@session_id}"/>
+    </bm:data-filters>
+    <e:exception-descriptor-config>
+        <e:exception-descriptor exception="java.sql.SQLException" handleClass="aurora.database.SQLExceptionDescriptor">
+            <e:error-message code="1" message="一个供应商用户在同一考评档案下仅能被分配一次！"/>
+        </e:exception-descriptor>
+    </e:exception-descriptor-config>
+</bm:model>

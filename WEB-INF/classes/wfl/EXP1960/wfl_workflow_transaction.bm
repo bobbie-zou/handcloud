@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duanjian  
+    $Date: 2012-3-19 下午02:58:24  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="WFL_WORKFLOW_TRANSACTION"  >
+    <bm:fields>
+        <bm:field name="workflow_transaction_id" databaseType="NUMBER" datatype="java.lang.Long" insertExpression="WFL_WORKFLOW_TRANSACTION_S.NEXTVAL" physicalName="WORKFLOW_TRANSACTION_ID" prompt="WFL_WORKFLOW_TRANSACTION.WORKFLOW_TRANSACTION_ID"/>
+        <bm:field name="transaction_category" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="TRANSACTION_CATEGORY" prompt="WFL_WORKFLOW_TRANSACTION.TRANSACTION_CATEGORY"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID" prompt="WFL_WORKFLOW_TRANSACTION.COMPANY_ID"/>
+        <bm:field name="transaction_type_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="TRANSACTION_TYPE_ID" prompt="WFL_WORKFLOW_TRANSACTION.TRANSACTION_TYPE_ID"/>
+        <bm:field name="workflow_id" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="WORKFLOW_ID" prompt="WFL_WORKFLOW_TRANSACTION.WORKFLOW_ID"/>
+        <bm:field name="transaction_category_code" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="transaction_category_code" prompt="WFL_WORKFLOW_TRANSACTION.TRANSACTION_CATEGORY"/>
+        <bm:field name="workflow_code" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="workflow_code" prompt="WFL_WORKFLOW_TRANSFER.WORKFLOW_ID" required="true"/>
+        <bm:field name="name" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="NAME" prompt="EXP_WFL_TRANSACTION.NAME"/>
+        <bm:field name="type_code" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="TYPE_CODE" prompt="CSH_CASH_PLAN_TYPES.TYPE_CODE"/>
+        <bm:field name="description_text" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="description_text" prompt="CSH_CASH_PLAN_TYPES.DESCRIPTION_TEXT"/>
+        <bm:field name="company_code" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="COMPANY_CODE" prompt="FND_COMPANIES.COMPANY_CODE"/>
+        <bm:field name="company_short_name" databaseType="VARCHAR2" datatype="java.lang.String" forInsert="false" forUpdate="false" physicalName="COMPANY_SHORT_NAME" prompt="BGT_COMPANY_PERIOD_SETS.COMPANY_FULL_NAME"/>
+    </bm:fields>
+    <bm:features>
+        <f:standard-who/>
+    </bm:features>
+    <bm:primary-key>
+        <bm:pk-field name="workflow_transaction_id"/>
+    </bm:primary-key>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            
+       select v.*,(select sv.code_value_name from sys_code_values_vl sv,sys_codes sc
+where sc.code= 'WFL_WORKFLOW_CATEGORY'
+and sc.code_id=sv.code_id
+and sv.code_value=v.transaction_category ) transaction_category_code
+ from (select t.workflow_transaction_id,t.transaction_category,
+       t.transaction_type_id,
+       t.workflow_id,
+       w.workflow_code as workflow_code,
+       w.workflow_desc as name,
+       e1.type_code,
+       e1.description as description_text,
+       t.company_id,
+       fc.company_code,
+       fc.company_short_name
+  from wfl_workflow_transaction t,
+       wfl_tra_document_type_v     e1,
+       WFL_WORKFLOW		        w,
+       fnd_companies_vl            fc
+ where t.transaction_type_id = e1.type_id(+)
+   and t.transaction_category=e1.document_type(+)
+   and t.workflow_id = w.workflow_id
+   and t.company_id = fc.company_id(+)) v
+   #WHERE_CLAUSE#
+   order by transaction_category,transaction_type_id
+   
+   ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="transaction_category" queryExpression="transaction_category =${@transaction_category}"/>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+        <bm:query-field name="type_code" queryExpression="type_code = ${@type_code}"/>
+        <bm:query-field name="workflow_code" queryExpression="workflow_code like ${@workflow_code}"/>
+    </bm:query-fields>
+</bm:model>

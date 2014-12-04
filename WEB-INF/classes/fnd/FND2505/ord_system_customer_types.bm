@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Robin  
+    $Date: 2011-6-2 上午09:16:23  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.customer_type_id,
+                    v.customer_type_code,
+                    v.description,
+                    v.enabled_flag,
+                    v.created_by,
+                    f.company_short_name company_desc,
+                    f.company_id
+                FROM
+                    ord_system_customer_types_vl v,
+                    fnd_companies_vl f #WHERE_CLAUSE# AND
+                    v.company_id    = f.company_id AND
+                    f.company_type IN (1, 2)
+                ORDER BY
+                    v.customer_type_code
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+        	begin
+			ord_system_customer_types_pkg.ins_ord_system_customer_types
+			 ( ${@customer_type_id},
+			   ${@customer_type_code},
+			   ${@enabled_flag},
+			   ${@description},
+			   ${/session/@user_id},
+			   ${@company_id}
+			  );
+		end;
+        	]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="customer_type_id" output="true" outputPath="@customer_type_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        	begin
+			ord_system_customer_types_pkg.upd_ord_system_customer_types
+			 ( ${@customer_type_id},
+			   ${@enabled_flag},
+			   ${@description},
+			   ${/session/@user_id},
+			   ${@company_id}
+			  );
+			  		
+		end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter enforceOperations="query" expression="f.company_id in (select c.company_id from fnd_auth_company_v c where c.session_id = ${/session/@session_id})"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="customer_type_id" queryExpression="v.customer_type_id = ${@customer_type_id}"/>
+        <bm:query-field name="company_id" queryExpression="f.company_id = ${@company_id}"/>
+        <bm:query-field name="customer_type_code" queryExpression="v.customer_type_code like &apos;%&apos;||(${@customer_type_code})||&apos;%&apos;"/>
+        <bm:query-field name="description" queryExpression="v.description like &apos;%&apos;||${@description}||&apos;%&apos;"/>
+        <bm:query-field name="customer_type_id" queryExpression="v.customer_type_id=${@customer_type_id}"/>
+    </bm:query-fields>
+</bm:model>

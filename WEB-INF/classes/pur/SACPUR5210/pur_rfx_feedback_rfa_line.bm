@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-7-5 上午10:40:26  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select l.feedback_line_id,
+       l.feedback_header_id,
+       l.company_id,
+       h.rfx_header_id,
+       h.rfx_round,
+       h.status header_status,
+       h.rfx_version,
+       rfxh.rfx_method,
+       rfxh.auction_direction,
+       rfxh.auction_rule,
+       rfxh.open_rule,
+       rfxh.ranking_rule,
+       rfxh.auction_ranking,
+       l.rfx_line_item_id,
+       l.inv_organization_id,
+       l.status,
+       l.item_category_id,
+       l.item_id,
+       l.item_code,
+       l.item_desc,
+       l.uom_code,
+       (SELECT
+                        fv.uom_desc
+                    FROM
+                        fnd_uom_codes_vl fv
+                    WHERE
+                        fv.uom_code = l.uom_code
+                    ) uom_desc,
+       l.quantity,
+       to_char(l.need_by_date, 'yyyy-mm-dd') need_by_date,
+       l.feedback_range,
+       to_char(l.promised_date, 'yyyy-mm-dd') promised_date,
+       to_char(l.feedback_expiry_date_from, 'yyyy-mm-dd') feedback_expiry_date_from,
+       to_char(l.feedback_expiry_date_to, 'yyyy-mm-dd') feedback_expiry_date_to,
+       l.current_fb_by,
+       (select u.user_desc
+          from sys_user_v u
+         where u.user_id = l.current_fb_by) current_fb_by_desc,
+       l.current_fb_quantity,
+       l.current_fb_wholesale_price,
+       l.current_fb_retail_price,
+       l.current_fb_reason,
+       l.current_bargain_by,
+       (select u.user_desc
+          from sys_user_v u
+         where u.user_id = l.current_bargain_by) current_bargain_by_desc,
+       l.current_bargain_quantity,
+       l.current_bargain_whlsale_price,
+       l.current_bargain_retail_price,
+       l.current_bargain_reason,
+       l.valid_fb_by,
+       (select u.user_desc from sys_user_v u where u.user_id = l.valid_fb_by) valid_fb_by_desc,
+       l.valid_fb_quantity,
+       
+       l.valid_fb_retail_price,
+       l.valid_fb_reason,
+       l.valid_bargain_by,
+       (select u.user_desc
+          from sys_user_v u
+         where u.user_id = l.valid_bargain_by) valid_bargain_by_desc,
+       l.valid_bargain_quantity,
+       l.valid_bargain_wholesale_price,
+       l.valid_bargain_retail_price,
+       l.valid_bargain_reason,
+       l.abandoned_flag,
+       l.suggested_flag,
+       l.suggested_note,
+       l.comments,
+       l.valid_fb_wholesale_price,
+       (select count(1)
+          from pur_rfx_feedback_headers allh
+         where allh.rfx_header_id = h.rfx_header_id
+           and allh.rfx_round = h.rfx_round
+           and allh.rfx_version = h.rfx_version) feedback_by_count,
+       
+       (select count(1)
+          from pur_rfx_feedback_headers allh
+         where allh.rfx_header_id = h.rfx_header_id
+           and allh.rfx_round = h.rfx_round
+           and allh.rfx_version = h.rfx_version
+           and exists
+         (select 1
+                  from pur_rfx_feedback_lines validl
+                 where allh.feedback_header_id = validl.feedback_header_id
+                   and validl.rfx_line_item_id = l.rfx_line_item_id
+                   and (decode((select h.auction_direction
+                                 from pur_rfx_headers h
+                                where h.rfx_header_id = allh.rfx_header_id),
+                               'FORWARD',
+                               -nvl(validl.valid_fb_wholesale_price,999999999999999999999999999999),
+                               'REVERSE',
+                               nvl(validl.valid_fb_wholesale_price,999999999999999999999999999999)) <=
+                       decode((select h.auction_direction
+                                 from pur_rfx_headers h
+                                where h.rfx_header_id = allh.rfx_header_id),
+                               'FORWARD',
+                               -nvl(l.valid_fb_wholesale_price,999999999999999999999999999999),
+                               'REVERSE',
+                               nvl(l.valid_fb_wholesale_price,999999999999999999999999999999)) or
+                       l.valid_fb_wholesale_price is null))) current_rank,
+       #flex_query_sql#
+  from pur_rfx_feedback_lines   l,
+       pur_rfx_feedback_headers h,
+       pur_rfx_headers          rfxh
+ where h.feedback_header_id = l.feedback_header_id
+   and rfxh.rfx_header_id = h.rfx_header_id
+   and l.feedback_header_id = ${/parameter/@feedback_header_id}
+  ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <flex-segmentBm applTableAliasName="l" headerIdPath="/parameter/@feedback_header_id" headerTableName="PUR_RFX_FEEDBACK_HEADERS" lineTableName="PUR_RFX_FEEDBACK_LINES" templateFieldName="template_id" type="grid_expanded_bm_query"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_grid_expanded_bm.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

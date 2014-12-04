@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lily  
+    $Date: 2013-1-21 下午06:50:56  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy=" h.company_code desc,h.segment1 desc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    pll.pur_line_location_id,
+                    l.pur_line_id,
+                    l.pur_header_id,
+                    h.srm_status,
+                    (SELECT
+                        v.code_value_name
+                    FROM
+                        sys_code_values_v v
+                    WHERE
+                        v.code       = 'SRM_STATUS' AND
+                        v.code_value = h.srm_status
+                    ) AS srm_name_desc,
+                    h.company_name,
+                    h.vendor_id,
+                    h.vendor_code,
+                    h.vendor_name,
+                    h.segment1,
+                    h.revision_num,
+                    h.release_id,
+                    h.release_num,
+                    l.line_num,
+                    pll.shipment_num,
+                    l.item_id,
+                    l.item_code,
+                    l.item_description,
+                    l.unit_meas_lookup_code,
+                    l.quantity quantity,
+                    DECODE(h.type_lookup_code, 'BLANKET', pll.price_override, l.unit_price) unit_price,
+                    (SELECT
+                        gc.CURRENCY_NAME
+                    FROM
+                        gld_currency_vl gc
+                    WHERE
+                        gc.CURRENCY_CODE = h.currency_code
+                    ) currency_code,
+                    l.quantity * DECODE(h.type_lookup_code, 'BLANKET', pll.price_override, l.unit_price) line_amount,
+                    pll.need_by_date,
+                    TO_CHAR(pll.need_by_date,'yyyy-mm-dd') AS need_by_date_desc,
+                    pll.promised_date,
+                    TO_CHAR(pll.promised_date,'yyyy-mm-dd') AS promised_date_desc,
+                    NVL(pll.consigned_flag, 'N') consigned_flag,
+                    pll.quantity_received,
+                    pll.deliver_quantity,
+                    pll.quantity_shipped,
+                    pll.quantity_billed,
+                    nvl(l.closed_code,'OPEN') as closed_code,
+                    nvl(l.cancel_flag,'N') as cancel_flag,
+                    l.line_type_id,
+                    l.line_type_name,
+                    l.category_id,
+                    l.category_name,
+                    l.secondary_unit_of_measure,
+                    l.vendor_desc,
+                    h.type_lookup_code,
+                    h.type_lookup_desc,
+                    h.vendor_site_id,
+                    h.vendor_site_code,
+                    h.vendor_site_name,
+                    h.agent_id,
+                    h.agent_code,
+                    h.agent_name,
+                    h.ship_to_location_id,
+                    h.ship_to_location_code,
+                    h.ship_to_location_name,
+                    h.bill_to_location_id,
+                    h.bill_to_location_code,
+                    h.bill_to_location_name,
+                    l.secondary_unit_of_measure,
+                    l.secondary_quantity,
+                    TO_CHAR(h.creation_date,'yyyy-mm-dd hh24:mi:ss') AS creation_date_desc,
+                    h.release_date,
+                    TO_CHAR(h.release_date,'yyyy-mm-dd hh24:mi:ss') AS release_date_desc,
+                    h.confirm_date,
+                    TO_CHAR(h.confirm_date,'yyyy-mm-dd hh24:mi:ss') AS confirm_date_desc,
+                    h.reply_date,
+                    TO_CHAR(h.reply_date,'yyyy-mm-dd') AS reply_date_desc,
+                    h.data_source,
+                    h.reply_over_flag
+                FROM
+                    pur_headers_all h,
+                    pur_lines_all l,
+                    pur_line_locations_all pll #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="segment1_from" queryExpression="h.segment1 &gt;= ${@segment1_from}"/>
+        <bm:query-field name="segment1_to" queryExpression="h.segment1 &lt;= ${@segment1_to}"/>
+        <bm:query-field name="company_id" queryExpression="h.company_id = ${@company_id}"/>
+        <bm:query-field name="line_num_from" queryExpression="l.line_num &gt;= ${@line_num_from}"/>
+        <bm:query-field name="line_num_to" queryExpression="l.line_num &lt;= ${@line_num_to}"/>
+        <bm:query-field name="agent_id" queryExpression="h.agent_id = ${@agent_id}"/>
+        <bm:query-field name="srm_status" queryExpression="h.srm_status = ${@srm_status}"/>
+        <bm:query-field name="type_lookup_code" queryExpression="h.type_lookup_code = ${@type_lookup_code}"/>
+        <bm:query-field name="cancel_flag" queryExpression="nvl(pll.cancel_flag,&apos;N&apos;) = ${@cancel_flag}"/>
+        <bm:query-field name="release_num" queryExpression="h.release_num = ${@release_num}"/>
+        <bm:query-field name="vendor_id" queryExpression="h.vendor_id = ${@vendor_id}"/>
+        <bm:query-field name="item_id" queryExpression="l.item_id = ${@item_id}"/>
+        <bm:query-field name="release_date_from" queryExpression="h.release_date &gt;= to_date(${@release_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="release_date_to" queryExpression="h.release_date &lt;= to_date(${@release_date_to},&apos;YYYY-MM-DD&apos;)+1"/>
+        <bm:query-field name="confirm_date_from" queryExpression="h.confirm_date &gt;= to_date(${@confirm_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="confirm_date_to" queryExpression="h.confirm_date &lt;= to_date(${@confirm_date_to},&apos;YYYY-MM-DD&apos;)+1"/>
+        <bm:query-field name="need_by_date_from" queryExpression="need_by_date &gt;= to_date(${@need_by_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="need_by_date_to" queryExpression="need_by_date &lt;= to_date(${@need_by_date_to},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="promised_date_from" queryExpression="promised_date &gt;= to_date(${@promised_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="promised_date_to" queryExpression="promised_date &lt;= to_date(${@promised_date_to},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="closed_code" queryExpression="nvl(l.closed_code,&apos;OPEN&apos;) = ${@closed_code}"/>
+        <bm:query-field name="consigned_flag" queryExpression="nvl(pll.consigned_flag,&apos;N&apos;) = ${@consigned_flag}"/>
+        <bm:query-field name="reply_over_flag" queryExpression="h.reply_over_flag = ${@reply_over_flag}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="h.pur_header_id = l.pur_header_id"/>
+        <bm:data-filter expression="h.pur_header_id = pll.pur_header_id"/>
+        <bm:data-filter expression="l.pur_line_id = pll.pur_line_id"/>
+    </bm:data-filters>
+    <authority client_alias="h" client_name="client" vendor_alias="h" vendor_name="vendor_id">
+        <authority-segment source_alias="h" source_name="company_id" type="COMPANY"/>
+        <authority-segment source_alias="h" source_name="inv_organization_id" type="INV_ORGANIZATION"/>
+        <authority-segment source_alias="h" source_name="pur_organization_id" type="PUR_ORGANIZATION"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

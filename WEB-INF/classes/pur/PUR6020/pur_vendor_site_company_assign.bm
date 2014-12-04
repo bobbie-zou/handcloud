@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-6-1 上午11:47:45  
+    $Revision: 1.0  
+    $Purpose: 供应商地点分配公司
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT s.site_company_id,
+               s.vendor_site_id,
+               s.company_id,
+               nvl(s.enabled_flag,
+                   'N') enabled_flag,
+               f.company_code,
+               f.company_short_name,
+               f.company_full_name,
+               f.client,
+               (SELECT c.client_full_name FROM fnd_clients_vl c WHERE c.client = f.client) client_name
+          FROM pur_vendor_site_company s,
+               fnd_companies_vl        f
+         WHERE s.company_id = f.company_id
+           AND s.vendor_site_id = ${@vendor_site_id})
+    #WHERE_CLAUSE# ORDER BY company_code]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+     BEGIN
+  pur_vendor_pkg.create_vendor_site_company(x_site_company_id => ${@site_company_id},
+                                            p_vendor_site_id  => ${@vendor_site_id},
+                                            p_company_id      => ${@company_id},
+                                            p_enabled_flag    => ${@enabled_flag},
+                                            p_user_id         => ${/session/@user_id});
+END;
+  ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+     BEGIN
+  pur_vendor_pkg.modify_vendor_site_company(p_site_company_id => ${@site_company_id},
+                                            p_vendor_site_id  => ${@vendor_site_id},
+                                            p_company_id      => ${@company_id},
+                                            p_enabled_flag    => ${@enabled_flag},
+                                            p_user_id         => ${/session/@user_id});
+END;
+  ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="site_company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SITE_COMPANY_ID"/>
+        <bm:field name="vendor_site_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VENDOR_SITE_ID"/>
+        <bm:field name="company_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="COMPANY_ID"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG"/>
+        <bm:field name="company_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_CODE"/>
+        <bm:field name="company_short_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_SHORT_NAME"/>
+        <bm:field name="company_full_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMPANY_FULL_NAME"/>
+        <bm:field name="client"/>
+        <bm:field name="client_name"/>
+    </bm:fields>
+</bm:model>

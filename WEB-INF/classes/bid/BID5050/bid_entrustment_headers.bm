@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-3-11 下午07:10:06  
+    $Revision: 1.0  
+    $Purpose: 招标委托头表
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                        h.entrustment_header_id,
+                        h.entrustment_header_number,
+                        h.title,
+                        h.status,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_vl scv,
+                            sys_codes_vl sc
+                        WHERE
+                            sc.code_id     = scv.code_id AND
+                            scv.code_value = h.status AND
+                            sc.code        = 'BID_ENTRUSTMENT_STATUS'
+                        ) status_desc,
+                        h.closed_flag,
+                        h.tenderee_id,
+                        h.private_date,
+                        (SELECT e.name FROM exp_employees e WHERE e.employee_id = h.tenderee_id
+                        ) tenderee_name,
+                        TO_CHAR(h.private_date,'yyyy-mm-dd') private_date_desc,
+                        h.tendering_company_id,
+                        (SELECT
+                            cvl.COMPANY_SHORT_NAME
+                        FROM
+                            fnd_companies_vl cvl
+                        WHERE
+                            cvl.COMPANY_ID = h.tendering_company_id
+                        ) tendering_company_desc,
+                        h.organization_id,
+                        (SELECT
+                            ov.description
+                        FROM
+                            inv_organizations_vl ov
+                        WHERE
+                            ov.inv_organization_id = h.organization_id
+                        ) organization_desc,
+                        h.using_unit_type,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_vl scv,
+                            sys_codes_vl sc
+                        WHERE
+                            sc.code_id     = scv.code_id AND
+                            scv.code_value = h.using_unit_type AND
+                            sc.code        = 'BID_USING_UNIT_TYPES'
+                        ) using_unit_type_desc,
+                        h.using_unit_id,
+                        h.using_unit_code,
+                        h.using_unit_desc,
+                        h.entrustment_type_id,
+                        (SELECT
+                            fd.description_text
+                        FROM
+                            bid_entrustment_types et,
+                            fnd_descriptions fd
+                        WHERE
+                            et.entrustment_type_id = h.entrustment_type_id AND
+                            fd.description_id      = et.description_id AND
+                            fd.language            = ${/session/@lang}
+                        ) entrustment_type_desc,
+                        h.tendering_tmpl_id,
+                        (SELECT
+                            fd.description_text
+                        FROM
+                            fnd_flex_templates t ,
+                            fnd_descriptions fd
+                        WHERE
+                            t.template_id    = h.tendering_tmpl_id AND
+                            t.description_id = fd.description_id AND
+                            fd.language      = ${/session/@lang}
+                        ) tendering_tmpl_desc,
+                        h.suggested_bidding_method,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_vl scv,
+                            sys_codes_vl sc
+                        WHERE
+                            sc.code_id     = scv.code_id AND
+                            scv.code_value = h.suggested_bidding_method AND
+                            sc.code        = 'BID_BIDDING_METHODS'
+                        ) suggested_bidding_method_desc,
+                        h.reversed_entrust_flag,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_vl scv,
+                            sys_codes_vl sc
+                        WHERE
+                            sc.code_id     = scv.code_id AND
+                            scv.code_value = h.reversed_entrust_flag AND
+                            sc.code        = 'YES_OR_NO'
+                        ) reversed_entrust_flag_desc,
+                        h.necessary_lead_time,
+                        h.completion_date,
+                        TO_CHAR(h.completion_date,'yyyy-mm-dd') completion_date_desc,
+                        h.suggested_qty_of_bidders,
+                        h.winning_bidder_maxcount,
+                        h.functional_amount,
+                        h.entered_amount,
+                        h.currency_code,
+                        (SELECT
+                            gc.CURRENCY_NAME
+                        FROM
+                            gld_currency_vl gc
+                        WHERE
+                            gc.CURRENCY_CODE = h.currency_code
+                        ) currency_code_desc,
+                        h.margin_required_flag,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_vl scv,
+                            sys_codes_vl sc
+                        WHERE
+                            sc.code_id     = scv.code_id AND
+                            scv.code_value = h.margin_required_flag AND
+                            sc.code        = 'YES_OR_NO'
+                        ) margin_required_flag_desc,
+                        h.bidder_qualified_flag,
+                        (SELECT
+                            scv.code_value_name
+                        FROM
+                            sys_code_values_vl scv,
+                            sys_codes_vl sc
+                        WHERE
+                            sc.code_id     = scv.code_id AND
+                            scv.code_value = h.bidder_qualified_flag AND
+                            sc.code        = 'YES_OR_NO'
+                        ) bidder_qualified_flag_desc,
+                        h.note
+                    FROM
+                        bid_entrustment_headers h #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="entrustment_header_number" queryExpression="t.entrustment_header_number like &apos;%&apos;||${@entrustment_header_number}||&apos;%&apos;"/>
+        <bm:query-field name="title" queryExpression="title like &apos;%&apos;||${@title}||&apos;%&apos;"/>
+        <bm:query-field name="private_date_from" queryExpression="private_date &gt;= to_date(${@private_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="private_date_to" queryExpression="private_date &lt; to_date(${@private_date_to},&apos;yyyy-mm-dd&apos;)+1"/>
+        <bm:query-field name="completion_date_from" queryExpression="completion_date &gt;= to_date(${@completion_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="completion_date_to" queryExpression="completion_date &lt; to_date(${@completion_date_to},&apos;yyyy-mm-dd&apos;+1)"/>
+        <bm:query-field name="entrustment_type" queryExpression="entrustment_type = ${@entrustment_type}"/>
+        <bm:query-field name="tenderee_id" queryExpression="tenderee_id = ${@tenderee_id}"/>
+        <bm:query-field name="suggested_bidding_method" queryExpression="suggested_bidding_method = ${@suggested_bidding_method}"/>
+        <bm:query-field name="entrustment_type" queryExpression="entrustment_type = ${@entrustment_type}"/>
+        <bm:query-field name="tendering_company_id" queryExpression="tendering_company_id = ${@tendering_company_id}"/>
+        <bm:query-field name="organization_id" queryExpression="organization_id = ${@organization_id}"/>
+        <bm:query-field name="using_unit_type" queryExpression="using_unit_type = ${@using_unit_type}"/>
+        <bm:query-field name="using_unit_id" queryExpression="using_unit_id = ${@using_unit_id}"/>
+        <bm:query-field name="margin_required_flag" queryExpression="margin_required_flag = ${@margin_required_flag}"/>
+        <bm:query-field name="bidder_qualified_flag" queryExpression="bidder_qualified_flag = ${@bidder_qualified_flag}"/>
+        <bm:query-field name="status" queryExpression="status = ${@status}"/>
+        <bm:query-field name="entrustment_header_id" queryExpression="entrustment_header_id = ${@entrustment_header_id}"/>
+    </bm:query-fields>
+</bm:model>

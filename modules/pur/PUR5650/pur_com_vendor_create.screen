@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-12-20 下午2:25:04  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="company_id=${/parameter/@company_id}" fetchAll="true" model="public.fnd_company" rootPath="company_info"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            //供应商更新事件
+            
+            function pur5650_vendor_update_handler(ds, record, name, value, oldvalue) {
+                var vendor_id = record.get('vendor_id');
+                $('pur5650_site_company_assign_ds').setQueryParameter('vendor_id', vendor_id);
+                $('pur5650_site_company_assign_ds').setQueryParameter('company_id', '${/parameter/@company_id}');
+                $('pur5650_site_company_assign_ds').query();
+            }
+            
+            //grid点击事件
+            
+            function pur5650_site_assign_company_cellclick(grid, row, name, record) {
+                if (record.get('rfq_only_site_flag') == 'Y') {
+                    record.getField('purchasing_site_flag').setReadOnly(true);
+                    record.getField('pay_site_flag').setReadOnly(true);
+                } else {
+                    record.getField('purchasing_site_flag').setReadOnly(false);
+                    record.getField('pay_site_flag').setReadOnly(false);
+                }
+            }
+            
+            //更新事件
+            
+            function pur5650_site_assign_update_handler(ds, record, name, value, oldvalue) {
+                if (name == 'rfq_only_site_flag') {
+                    if (value == 'Y') {
+                        record.set('purchasing_site_flag', 'N');
+                        record.set('pay_site_flag', 'N');
+                        record.getField('purchasing_site_flag').setReadOnly(true);
+                        record.getField('pay_site_flag').setReadOnly(true);
+                    } else if (value == 'N') {
+                        record.getField('purchasing_site_flag').setReadOnly(false);
+                        record.getField('pay_site_flag').setReadOnly(false);
+                    }
+                }
+            }
+            
+            //返回
+            function pur5650_create_reback(){
+                $('pur5650_vendor_maintain_create_win').close();
+                $('pur5650_vendor_maintain_result_ds').query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5650_company_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_code" defaultValue="${/model/company_info/record/@company_code}" readOnly="true"/>
+                    <a:field name="company_short_name" defaultValue="${/model/company_info/record/@company_short_name}" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="pur5650_com_vendor_create_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="full_name" lovHeight="500" lovService="pur.PUR5650.pur_com_vendor_lov" lovWidth="400" required="true" title="VENDER_SEARCH">
+                        <a:mapping>
+                            <a:map from="vendor_id" to="vendor_id"/>
+                            <a:map from="vendor_code" to="vendor_code"/>
+                            <a:map from="vendor_category_name" to="vendor_category_name"/>
+                            <a:map from="vendor_type_name" to="vendor_type_name"/>
+                            <a:map from="short_name" to="short_name"/>
+                            <a:map from="full_name" to="full_name"/>
+                            <a:map from="version" to="version"/>
+                            <a:map from="national_organization_code" to="national_organization_code"/>
+                            <a:map from="tax_id_number" to="tax_id_number"/>
+                            <a:map from="d_b_code" to="d_b_code"/>
+                            <a:map from="enabled_flag" to="enabled_flag"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enabled_flag" checkedValue="Y" readOnly="true" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur5650_vendor_update_handler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur5650_site_company_assign_ds" model="pur.PUR5650.pur5650_com_site_company_assign" submitUrl="${/request/@context_path}/modules/pur/PUR5650/pur_com_vendor_site_company.svc">
+                <a:fields>
+                    <a:field name="vendor_id"/>
+                    <a:field name="company_id"/>
+                    <a:field name="site_name" required="true"/>
+                    <a:field name="address"/>
+                    <a:field name="enabled_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="purchasing_site_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="pay_site_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="rfq_only_site_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="pur5650_site_assign_update_handler"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <a:toolbarButton click="pur5650_create_reback" text="HAP_BACK" width="100"/>
+        </a:screenTopToolbar>
+        <a:hBox labelWidth="100">
+            <a:textField name="company_code" bindTarget="pur5650_company_ds" prompt="COMPANY_CODE"/>
+            <a:textField name="company_short_name" bindTarget="pur5650_company_ds" prompt="FND_COMPANIES.COMPANY_NAME"/>
+        </a:hBox>
+        <a:hBox labelWidth="100">
+            <a:lov name="full_name" bindTarget="pur5650_com_vendor_create_ds" prompt="PUR_SYSTEM_VENDORS.FULL_NAME" width="408"/>
+            <a:checkBox name="enabled_flag" bindTarget="pur5650_com_vendor_create_ds" prompt="SYS_CODE.ENABLED_FLAG"/>
+        </a:hBox>
+        <a:hBox labelWidth="100">
+            <a:textField name="short_name" bindTarget="pur5650_com_vendor_create_ds" prompt="PUR_SYSTEM_VENDORS.SHORT_NAME" readOnly="true" width="408"/>
+            <a:numberField name="version" bindTarget="pur5650_com_vendor_create_ds" decimalPrecision="1" prompt="PUR_SYS_VENDOR_BASICS.VERSION_NUM" readOnly="true"/>
+        </a:hBox>
+        <a:hBox labelWidth="100">
+            <a:textField name="vendor_category_name" bindTarget="pur5650_com_vendor_create_ds" prompt="PUR_VENDORS.VENDOR_CATEGORY" readOnly="true"/>
+            <a:textField name="vendor_type_name" bindTarget="pur5650_com_vendor_create_ds" prompt="PUR_VENDER_TYPES.VENDER_TYPE_CODE" readOnly="true"/>
+            <a:textField name="vendor_code" bindTarget="pur5650_com_vendor_create_ds" prompt="VENDER_CODE" readOnly="true"/>
+        </a:hBox>
+        <a:hBox labelWidth="100">
+            <a:textField name="national_organization_code" bindTarget="pur5650_com_vendor_create_ds" prompt="PUR_VENDORS.NATIONAL_ORGANIZATION_CODE" readOnly="true"/>
+            <a:textField name="tax_id_number" bindTarget="pur5650_com_vendor_create_ds" prompt="PUR_VENDORS.TAX_ID_NUMBER" readOnly="true"/>
+            <a:textField name="d_b_code" bindTarget="pur5650_com_vendor_create_ds" prompt="PUR_VENDORS.D_B_CODE" readOnly="true"/>
+        </a:hBox>
+        <a:tabPanel marginWidth="65" width="1000">
+            <a:tabs>
+                <a:tab prompt="PUR_REGISTER_VENDOR_REJECT_DETAIL.ADDRESS_INFORMATION" width="100">
+                    <a:grid id="pur5650_site_company_grid" bindTarget="pur5650_site_company_assign_ds" height="300" marginWidth="70" navBar="true">
+                        <a:toolBar>
+                            <a:button type="save"/>
+                        </a:toolBar>
+                        <a:columns>
+                            <a:column name="site_name" align="left" editor="pur5650_site_name_tf" prompt="PUR_VENDOR_SITES.SITE_NAME_ID" width="100"/>
+                            <a:column name="purchasing_site_flag" align="center" editor="pur5650_site_assign_com_cb" prompt="PUR5640_SITE_ASSIGN_COMPANY.CAN_BE_PURCHASED" width="60"/>
+                            <a:column name="pay_site_flag" align="center" editor="pur5650_site_assign_com_cb" prompt="PUR5640_SITE_ASSIGN_COMPANY.CAN_BE_PAYMENT" width="60"/>
+                            <a:column name="rfq_only_site_flag" align="center" editor="pur5650_site_assign_com_cb" prompt="PUR5640_SITE_ASSIGN_COMPANY.ONLY_INQUIRY" width="60"/>
+                            <a:column name="enabled_flag" align="center" editor="pur5650_site_assign_com_cb" prompt="SYS_CODE.ENABLED_FLAG" width="80"/>
+                            <a:column name="country_name" align="left" prompt="PUR_SYSTEM_VENDERS.COUNTRY_CODE" width="120"/>
+                            <a:column name="province_name" align="left" prompt="PUR_SYSTEM_VENDERS.PROVINCE" width="100"/>
+                            <a:column name="city_name" align="left" prompt="EXP_REQUISITION_LINES.CITY" width="100"/>
+                            <a:column name="address" align="left" prompt="PUR_VENDOR_SITES.ADDRESS_ID" width="150"/>
+                            <a:column name="post_code" align="left" prompt="CUSTOMER.ZIP_CODE" width="60"/>
+                            <a:column name="address_comments" align="left" prompt="PUR_SYSTEM_VENDERS.NOTE_OF_ADDRESS" width="150"/>
+                        </a:columns>
+                        <a:editors>
+                            <a:textField id="pur5650_site_name_tf"/>
+                            <a:checkBox id="pur5650_site_assign_com_cb"/>
+                        </a:editors>
+                        <!-- <a:events>
+                            <a:event name="cellclick" handler="pur5650_site_assign_company_cellclick"/>
+                        </a:events> -->
+                    </a:grid>
+                </a:tab>
+            </a:tabs>
+        </a:tabPanel>
+    </a:view>
+</a:screen>

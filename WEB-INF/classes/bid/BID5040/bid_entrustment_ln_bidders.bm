@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-3-12 下午6:34:18  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="line_bidder_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="entrustment_header_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="bidder_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="bidder_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="bidder_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    lb.line_bidder_id,
+                    lb.entrustment_header_id,
+                    lb.bidder_id,
+                    b.bidder_code,
+                    b.bidder_desc
+                FROM
+                    bid_entrustment_ln_bidders lb,
+                    bid_bidders_v b
+                WHERE
+                    lb.bidder_id             = b.bidder_id(+) AND
+                    lb.entrustment_header_id = ${/parameter/@entrustment_header_id}
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="line_bidder_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@line_bidder_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+				BEGIN
+				  -- Call the procedure
+				  bid_entrustment_pkg.create_entrustment_bidder(o_line_bidder_id        => ${@line_bidder_id},
+				                                                p_entrustment_header_id => ${@entrustment_header_id},
+				                                                p_bidder_id             => ${@bidder_id},
+				                                                p_suggested_flag		=> 'Y',
+				                                                p_user_id               => ${/session/@user_id});
+				END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+				BEGIN
+				  -- Call the procedure
+				  bid_entrustment_pkg.modify_entrustment_bidder(p_line_bidder_id        => ${@line_bidder_id},
+				                                                p_entrustment_header_id => ${@entrustment_header_id},
+				                                                p_bidder_id             => ${@bidder_id},
+				                                                p_user_id               => ${/session/@user_id});
+				END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+				BEGIN
+				  -- Call the procedure
+				  bid_entrustment_pkg.clear_bidder(p_entrustment_header_id => ${@entrustment_header_id},
+				                                   p_user_id               => ${/session/@user_id});
+				END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

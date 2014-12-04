@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui 6743$
+    $Date: 2014/09/29 10:46:59 $
+    $Revision: 1.0 $
+    $Purpose: ERP应付发票明细查询-供应方
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        eail.invoice_line_id,
+                        eail.invoice_id,
+                        eail.line_number,
+                        eail.line_type,
+                        eail.comments,
+                        eail.quantity_invoiced,
+                        eail.uom_code,
+                        (SELECT
+                            fuc.uom_desc
+                        FROM
+                            fnd_uom_codes_vl fuc
+                        WHERE
+                            fuc.uom_code      = eail.uom_code AND
+                            fuc.business_group= eaih.owner_business_group
+                        ) uom_name,
+                        eail.unit_price,
+                        eail.amount,
+                        eail.pur_header_id,
+                        pha.display_po_number
+                        ||'-'
+                        ||pha.display_release_num pur_header_num,
+                        eail.pur_line_id,
+                        (SELECT
+                            pla.line_num
+                        FROM
+                            pur_lines_all pla
+                        WHERE
+                            pla.pur_line_id=eail.pur_line_id
+                        ) pur_line_num,
+                        eail.pur_line_location_id,
+                        (SELECT
+                            plla.shipment_num
+                        FROM
+                            pur_line_locations_all plla
+                        WHERE
+                            plla.pur_line_location_id=eail.pur_line_location_id
+                        ) shipment_num,
+                        pha.agent_name,
+                        eail.rcv_transaction_id,
+                        eail.rcv_transaction_line_id rcv_trx_line_id,
+                        (SELECT
+                            prth.display_number
+                        FROM
+                            pur_rcv_trx_headers_v prth
+                        WHERE
+                            prth.rcv_trx_header_id=eail.rcv_transaction_id
+                        )
+                        ||'-'
+                        ||
+                        (SELECT
+                            prtl.line_number
+                        FROM
+                            pur_rcv_trx_lines_v prtl
+                        WHERE
+                            prtl.rcv_trx_line_id=eail.rcv_transaction_line_id
+                        ) rcv_trx_number
+                    FROM
+                        erp_ap_invoice_lines eail,
+                        erp_ap_invoice_headers eaih,
+                        pur_headers_all_v pha
+                    WHERE
+                        eail.invoice_id    =eaih.invoice_id AND
+                        eail.pur_header_id =pha.pur_header_id(+)
+                    ) t1 #WHERE_CLAUSE#
+                ORDER BY
+                    line_number
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters/>
+    <bm:query-fields>
+        <bm:query-field name="invoice_id" queryExpression="t1.invoice_id=${@invoice_id}"/>
+    </bm:query-fields>
+</bm:model>

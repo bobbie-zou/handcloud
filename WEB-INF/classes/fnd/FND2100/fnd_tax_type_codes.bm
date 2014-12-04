@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="tax_type_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="tax_type_code" databaseType="VARCHAR" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="FND_TAX_TYPE_CODES.TAX_TYPE_CODE"/>
+        <bm:field name="description_id" databaseType="BIGINT" datatype="java.lang.Long"/>
+        <bm:field name="description" databaseType="VARCHAR" datatype="java.lang.String" forDisplay="true" forInsert="false" forQuery="true" forUpdate="false" prompt="FND_TAX_TYPE_CODES.DESCRIPTION"/>
+        <bm:field name="tax_type_rate" databaseType="NUMBER" datatype="java.lang.Double" prompt="FND_TAX_TYPE_CODES.TAX_TYPE_RATE"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR" datatype="java.lang.String" prompt="FND_TAX_TYPE_CODES.ENABLED_FLAG"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="tax_type_code" queryExpression="fttc.tax_type_code like &apos;%&apos;||${@tax_type_code}||&apos;%&apos;"/>
+        <bm:query-field field="tax_type_rate" queryOperator="="/>
+        <bm:query-field field="description" queryExpression="exists (select 1 from fnd_descriptions fd where fttc.description_id=fd.description_id and fd.description_text like &apos;%&apos;||${@description}||&apos;%&apos; and fd.language = ${/session/@lang})"/>
+        <bm:query-field name="tax_type_code_name_rate" queryExpression="(fttc.tax_type_code like &apos;%&apos;||trim(upper(${@tax_type_code_name_rate}))||&apos;%&apos; or (select fd.description_text from fnd_descriptions fd where fd.description_id=fttc.description_id and fd.language=${/session/@lang}) like &apos;%&apos;||${@tax_type_code_name_rate}||&apos;%&apos; or fttc.tax_type_rate=${@tax_type_code_name_rate})"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+        		SELECT
+        		    fttc.tax_type_id,
+        		    fttc.tax_type_code,
+        		    fttc.description_id,
+        		    (SELECT
+        		        description_text
+        		    FROM
+        		        fnd_descriptions
+        		    WHERE
+        		        description_id = fttc.description_id AND
+        		        LANGUAGE       = userenv('LANG')
+        		    ) description,
+        		    fttc.tax_type_rate ,
+        		    fttc.enabled_flag
+        		FROM
+        		    fnd_tax_type_codes fttc #WHERE_CLAUSE#
+        		ORDER BY
+        		    tax_type_code
+    		]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+            BEGIN
+				fnd_tax_type_codes_pkg.insert_fnd_tax_type_codes(p_tax_type_code => ${@tax_type_code},
+			                                                     p_description   => ${@description},
+			                                                     p_tax_type_rate => ${@tax_type_rate},
+			                                                     p_enabled_flag  => ${@enabled_flag},
+			                                                     p_created_by    => ${/session/@user_id},
+			                                                     p_tax_type_id   => ${@tax_type_id});
+			END;
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            BEGIN
+				fnd_tax_type_codes_pkg.update_fnd_tax_type_codes(p_tax_type_code   => ${@tax_type_code},
+			                                                     p_description     => ${@description},
+			                                                     p_tax_type_rate   => ${@tax_type_rate},
+			                                                     p_enabled_flag    => ${@enabled_flag},
+			                                                     p_last_updated_by => ${/session/@user_id},
+			                                                     p_tax_type_id     => ${@tax_type_id});
+			END;
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

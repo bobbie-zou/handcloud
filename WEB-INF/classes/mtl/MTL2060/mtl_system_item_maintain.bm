@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-6-9 下午3:12:07  
+    $Revision: 1.0  
+    $Purpose: 物品管理，物品维护BM 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="item_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ITEM_ID"/>
+        <bm:field name="item_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_CODE"/>
+        <bm:field name="display_item_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_SYSTEM_CODE"/>
+        <bm:field name="item_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_NAME"/>
+        <bm:field name="item_category_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ITEM_CATEGORY_ID"/>
+        <bm:field name="item_category_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_CATEGORY_NAME"/>
+        <bm:field name="category_name_all" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CATEGORY_NAME_ALL"/>
+        <bm:field name="item_type_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="ITEM_TYPE_ID"/>
+        <bm:field name="item_specs" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_SPECS"/>
+        <bm:field name="item_model" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_MODEL"/>
+        <bm:field name="primary_uom" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PRIMARY_UOM"/>
+        <bm:field name="secondary_uom_enabled" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="SECONDARY_UOM_ENABLED"/>
+        <bm:field name="secondary_uom" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="SECONDARY_UOM"/>
+        <bm:field name="gross_weight" databaseType="NUMBER" datatype="java.lang.Long" physicalName="GROSS_WEIGHT"/>
+        <bm:field name="net_weight" databaseType="NUMBER" datatype="java.lang.Long" physicalName="NET_WEIGHT"/>
+        <bm:field name="uom_of_weight" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="UOM_OF_WEIGHT"/>
+        <bm:field name="version_num" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VERSION_NUM"/>
+        <bm:field name="lot_numbering_rule" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="LOT_NUMBERING_RULE"/>
+        <bm:field name="item_manage_method" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ITEM_MANAGE_METHOD"/>
+        <bm:field name="quota_manage_type" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="QUOTA_MANAGE_TYPE"/>
+        <bm:field name="comments" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMMENTS"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="item_id" queryExpression="siv.item_id = ${@item_id}"/>
+        <bm:query-field name="display_item_code" queryExpression="siv.display_item_code like &apos;%&apos;||trim(${@display_item_code})||&apos;%&apos;"/>
+        <bm:query-field name="item_code" queryExpression="siv.item_code like &apos;%&apos;||trim(${@item_code})||&apos;%&apos;"/>
+        <bm:query-field name="item_name" queryExpression="siv.item_name like &apos;%&apos;||trim(${@item_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="siv.enabled_flag = &apos;Y&apos;"/>
+        <bm:data-filter expression="siv.business_group = ${/session/@business_group}"/>
+    </bm:data-filters>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    siv.item_id,
+                    siv.item_code,
+                    siv.display_item_code,
+                    siv.item_name,
+                    siv.item_category_id,
+                    (SELECT
+                        cud.category_name
+                    FROM
+                        mtl_categories_user_defined_vl cud
+                    WHERE
+                        cud.category_udf_id = siv.item_category_id
+                    )AS item_category_name,
+                    public_tools_pkg.get_all_parent_category_name(siv.item_category_id,'Y') as category_name_all,
+                    siv.item_type_id,
+                    siv.inventory_item_status_code,
+                    siv.item_specs,
+                    siv.item_model,
+                    siv.primary_uom,
+                    NULL AS primary_uom_desc,
+                    siv.secondary_uom_enabled,
+                    siv.secondary_uom,
+                    NULL AS secondary_uom_desc,
+                    siv.gross_weight,
+                    siv.net_weight,
+                    siv.uom_of_weight,
+                    siv.version_num,
+                    siv.lot_numbering_rule,
+                    siv.item_manage_method,
+                    siv.quota_manage_type,
+                    siv.comments
+                FROM
+                    mtl_system_items_vl siv #WHERE_CLAUSE#
+                ORDER BY
+                    siv.item_code
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:parameters>
+                <bm:parameter name="item_id" dataType="java.lang.Long" input="true" output="true" outputPath="@item_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+	        	begin
+				  mtl_system_item_pkg.save_system_item
+				  	(
+				  		p_item_id        				=> ${@item_id},
+				  		p_item_code						=> ${@item_code},
+					    p_item_name             		=> ${@item_name},
+					    p_inventory_item_status_code	=> ${@inventory_item_status_code},
+					    p_item_category_id      		=> ${@item_category_id},
+					    p_item_type_id        			=> ${@item_type_id},
+					    p_item_specs            		=> ${@item_specs},
+					    p_item_model            		=> ${@item_model},
+					    p_primary_uom           		=> ${@primary_uom},
+					    p_secondary_uom_enabled 		=> ${@secondary_uom_enabled},
+					    p_secondary_uom         		=> ${@secondary_uom},
+					    p_conversion					=> ${@conversion},
+					    p_gross_weight					=> ${@gross_weight},
+					    p_net_weight					=> ${@net_weight},
+					    p_uom_of_weight					=> ${@uom_of_weight},
+					    p_enabled_flag          		=> ${@enabled_flag},
+					    p_lot_numbering_rule    		=> ${@lot_numbering_rule},
+					    p_item_manage_method    		=> ${@item_manage_method},
+					    p_quota_manage_type     		=> ${@quota_manage_type},
+					    p_comments              		=> ${@comments},
+					    p_for_purchase_flag				=> ${@for_purchase_flag},
+					    p_for_sales_flag				=> ${@for_sales_flag},
+					    p_business_group				=> ${/session/@business_group},
+				  		p_user_id   					=> ${/session/@user_id}
+			  		);
+				end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

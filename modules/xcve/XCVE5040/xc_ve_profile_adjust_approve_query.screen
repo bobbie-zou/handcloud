@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang  
+    $Date: 2011-12-5 下午2:58:55  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <a:link id="xc_ve_profile_adjust_approve_list_link" url="${/request/@context_path}/modules/xcve/XCVE5040/xc_ve_profile_adjust_approve_list.screen"/>
+        <script><![CDATA[
+            function queryResultDs() {
+                queryProfile();
+            }
+            
+            function ve_profile_num_function(value, record, name) {
+                return '<a href="javascript:ve_profile_detail(' + record.get('ve_profile_id') + ')">' + record.get('ve_profile_num') + '</a>';
+            }
+            
+            function ve_profile_detail(ve_profile_id) {
+                Aurora.go($('xc_ve_profile_adjust_approve_list_link').getUrl() + '?ve_profile_id=' + ve_profile_id);
+            }
+            
+            function queryProfile() {
+                $('ve_profiles_result').query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="ve_profile_num_datas" autoQuery="true" model="xcve.XCVE5010.xc_ve_profiles" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE5010.xc_ve_profiles/query?company_id=${/session/@company_id}&amp;status=ESTIMATED">
+                <a:fields>
+                    <a:field name="ve_profile_num"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="ve_template_description_datas" autoQuery="true" model="xcve.XCVE1030.xc_ve_template" queryUrl="${/request/@context_path}/autocrud/xcve.XCVE1030.xc_ve_template/query?company_id=${/session/@company_id}&amp;enabled_flag=Y">
+                <a:fields>
+                    <a:field name="description"/>
+                    <a:field name="ve_template_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="period_ds" loadData="true" model="xcve.XCVE5010.xc_ve_profile_copy_gld_period_combo">
+                <a:fields>
+                    <a:field name="period_name"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="ve_profiles_for_query" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@company_id}"/>
+                    <a:field name="status" defaultValue="ESTIMATED"/>
+                    <a:field name="ve_template_id"/>
+                    <a:field name="ve_template_id_desc" displayField="description" options="ve_template_description_datas" returnField="ve_template_id" valueField="ve_template_id"/>
+                    <a:field name="period_name" displayField="period_name" options="period_ds" returnField="period_name" valueField="period_name"/>
+                    <a:field name="adj_req_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="ve_profiles_result" autoQuery="false" model="xcve.XCVE5010.xc_ve_profiles" pageSize="20" queryDataSet="ve_profiles_for_query">
+                <a:fields>
+                    <a:field name="company_id" defaultValue="${/session/@company_id}"/>
+                    <a:field name="ve_profile_id"/>
+                    <a:field name="ve_profile_num"/>
+                    <a:field name="ve_profile_desc"/>
+                    <a:field name="ve_template_id_desc"/>
+                    <a:field name="status_desc"/>
+                    <a:field name="available_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="queryResultDs"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="3" labelWidth="70" title="供应商考评档案查询" width="750">
+                <a:comboBox name="ve_profile_num" bindTarget="ve_profiles_for_query" displayField="ve_profile_num" options="ve_profile_num_datas" prompt="档案编号" valueField="ve_profile_num"/>
+                <a:textField name="ve_profile_desc" bindTarget="ve_profiles_for_query" prompt="档案描述"/>
+                <a:comboBox name="period_name" bindTarget="ve_profiles_for_query" prompt="考评月度"/>
+                <a:numberField name="version_number" allowDecimals="false" allowNegative="false" bindTarget="ve_profiles_for_query" prompt="版本号"/>
+                <a:comboBox name="ve_template_id_desc" bindTarget="ve_profiles_for_query" prompt="考评模板"/>
+                <a:label width="10"/>
+                <a:label width="10"/>
+                <a:checkBox name="adj_req_flag" bindTarget="ve_profiles_for_query" label="仅显示已申请调整相关档案"/>
+            </a:form>
+            <a:hBox>
+                <a:button click="queryProfile" text="查询"/>
+            </a:hBox>
+            <a:grid id="ve_profiles_result_grid" bindTarget="ve_profiles_result" height="320" navBar="true" width="750">
+                <a:toolBar>
+                    <a:button type="Customize"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="ve_profile_num" align="center" prompt="考评档案编号" renderer="ve_profile_num_function" width="100"/>
+                    <a:column name="profile_creation_date" align="center" prompt="档案创建日期" width="100"/>
+                    <a:column name="ve_profile_desc" prompt="考评档案描述" width="220"/>
+                    <a:column name="ve_template_id_desc" prompt="考评模板" width="200"/>
+                    <a:column name="period_name" align="center" prompt="考评月度" width="80"/>
+                    <a:column name="version_number" align="center" prompt="版本号" width="60"/>
+                    <a:column name="estimate_date_from" align="center" prompt="考评日期从" renderer="Aurora.formatDate" width="90"/>
+                    <a:column name="estimate_date_to" align="center" prompt="考评日期到" renderer="Aurora.formatDate" width="90"/>
+                    <a:column name="status_desc" align="center" prompt="档案状态" width="90"/>
+                    <a:column name="available_flag" align="center" prompt="有效" width="50"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

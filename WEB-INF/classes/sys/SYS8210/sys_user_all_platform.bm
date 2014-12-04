@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-8-30 下午1:20:40  
+    $Revision: 1.0  
+    $Purpose: 平台账户管理，用户查询BM
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="user_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="USER_ID"/>
+        <bm:field name="user_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="USER_NAME"/>
+        <bm:field name="description" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DESCRIPTION"/>
+        <bm:field name="start_date" databaseType="DATE" datatype="java.lang.String" physicalName="START_DATE"/>
+        <bm:field name="end_date" databaseType="DATE" datatype="java.lang.String" physicalName="END_DATE"/>
+        <bm:field name="last_logon_date" databaseType="DATE" datatype="java.util.Date" physicalName="LAST_LOGON_DATE"/>
+        <bm:field name="frozen_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FROZEN_FLAG"/>
+        <bm:field name="frozen_date" databaseType="DATE" datatype="java.util.Date" physicalName="FROZEN_DATE"/>
+        <bm:field name="business_group" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BUSINESS_GROUP"/>
+        <bm:field name="business_group_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BUSINESS_GROUP_NAME"/>
+        <bm:field name="never_remove_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="NEVER_REMOVE_FLAG"/>
+        <bm:field name="bg_admin_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BG_ADMIN_FLAG"/>
+        <bm:field name="email"/>
+        <bm:field name="mobile_phone"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="user_id" queryExpression="su.user_id = ${@user_id}"/>
+        <bm:query-field name="user_name" queryExpression="su.user_name like &apos;%&apos;||upper(trim(${@user_name}))||&apos;%&apos;"/>
+        <bm:query-field name="description" queryExpression="su.description like &apos;%&apos;||trim(${@description})||&apos;%&apos;"/>
+        <bm:query-field name="business_group_code" queryExpression="su.business_group = ${@business_group_code}"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	SELECT su.user_id,
+				       su.user_name,
+				       su.description,
+				       to_char(su.start_date,'yyyy-mm-dd')as start_date,
+				       to_char(su.end_date,'yyyy-mm-dd')as end_date,
+				       su.last_logon_date,
+				       su.frozen_flag,
+				       su.frozen_date,
+				       su.business_group,
+				       (SELECT bgv.business_group_name
+				          FROM fnd_business_groups_vl bgv
+				         WHERE bgv.business_group_code = su.business_group) AS business_group_name,
+				       su.never_remove_flag,
+				       su.bg_admin_flag,
+				       su.mobile_phone,
+				       su.email
+				  FROM sys_user su
+				 #WHERE_CLAUSE#
+				 ORDER BY su.business_group,
+				          su.user_name
+	         ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="user_name" dataType="java.lang.String" output="true" outputPath="@user_name"/>
+                <bm:parameter name="user_id" dataType="java.lang.Long" output="true" outputPath="@user_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+	            BEGIN
+				  sys_user_pkg.create_sys_user(p_user_password            => ${@user_password},
+				                               p_description              => ${@description},
+				                               p_start_date               => to_date(${@start_date},'YYYY-MM-DD'),
+				                               p_end_date                 => to_date(${@end_date},'YYYY-MM-DD'),
+				                               p_business_group   		  => ${@business_group},
+				                               p_bg_admin_flag            => ${@bg_admin_flag},
+				                               p_ip_address               => ${/request/@address},
+				                               p_session_user_id          => ${/session/@user_id},
+				                               p_mobile_phone             => ${@mobile_phone},
+				                               p_email                    => ${@email},
+				                               x_user_name				  => ${@user_name},
+				                               p_user_id                  => ${@user_id});
+				END;
+			]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+			  BEGIN
+				  sys_user_pkg.modify_sys_user(p_user_id                  => ${@user_id},
+				                               p_description              => ${@description},
+				                               p_start_date               => to_date(${@start_date},'YYYY-MM-DD'),
+				                               p_end_date                 => to_date(${@end_date},'YYYY-MM-DD'),
+				                               p_frozen_flag              => ${@frozen_flag},
+				                               p_session_user_id          => ${/session/@user_id},
+				                               p_mobile_phone             => ${@mobile_phone},
+				                               p_email                    => ${@email});
+				END;
+			]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

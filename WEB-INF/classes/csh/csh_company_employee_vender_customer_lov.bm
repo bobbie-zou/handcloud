@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="partner_id" datatype="java.lang.Long"/>
+        <bm:field name="partner_code" datatype="java.lang.String" displayWidth="220" forDisplay="true" forQuery="true" prompt="ACP_ACP_REQUISITION_LNS.PARTNER_PAYEE_CODE"/>
+        <bm:field name="partner_name" datatype="java.lang.String"/>
+        <bm:field name="partner_category" datatype="java.lang.String"/>
+        <bm:field name="address" datatype="java.lang.String"/>
+        <bm:field name="bank_account_code" datatype="java.lang.String"/>
+        <bm:field name="bank_branch_code" datatype="java.lang.String"/>
+        <bm:field name="payee_name" datatype="java.lang.String" displayWidth="220" forDisplay="true" forQuery="true" prompt="CSH_PREPAYMENT_BALANCE_QUERY.PARTNER_NAME"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	select partner_id,
+				       partner_code,
+				       partner_name,
+				       partner_category,
+				       address,
+				       bank_account_code,
+				       bank_branch_code,
+				       payee_name
+				  from (select cev.employee_id as partner_id,
+				               cev.employee_code || '-' || cev.name as partner_name,
+				               cev.employee_code as partner_code,
+				               'EMPLOYEE' as partner_category,
+				               cev.name payee_name,
+				               cev.bank_of_deposit bank_branch_code,
+				               cev.bank_account bank_account_code,
+				               null as address
+				          from exp_company_employees_v cev
+				         where cev.employee_enabled_flag = 'Y'
+				           and cev.company_id = ${/session/@company_id}
+				        union
+				        select svv.vender_id as partner_id,
+				               svv.vender_code || '-' || svv.description as partner_name,
+				               svv.vender_code as partner_code,
+				               'VENDER' as partner_category,
+				               svv.description payee_name,
+				               svv.bank_branch_code,
+				               svv.bank_account_code,
+				               svv.address
+				          from pur_company_venders cv, pur_system_venders_vl svv
+				         where cv.company_id = ${/session/@company_id}
+				           and cv.vender_id = svv.vender_id
+				           and cv.enabled_flag = 'Y'
+				        union
+				        select cv.customer_id as partner_id,
+				               cv.customer_code || '-' || cv.description as partner_name,
+				               cv.customer_code as partner_code,
+				               'CUSTOMER' as partner_category,
+				               cv.description payee_name,
+				               cv.bank_branch_code,
+				               cv.bank_account_code,
+				               cv.address
+				          from ord_company_customers cc, ord_system_customers_vl cv
+				         where cc.company_id = ${/session/@company_id}
+				           and cc.customer_id = cv.customer_id
+				           and cc.enabled_flag = 'Y') v
+				        #WHERE_CLAUSE#
+				]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="partner_code" queryExpression="v.partner_code like &apos;%&apos;||${@partner_code}||&apos;%&apos;"/>
+        <bm:query-field name="payee_name" queryExpression="v.payee_name like &apos;%&apos;||${@payee_name}||&apos;%&apos;"/>
+        <bm:query-field name="partner_name" queryExpression="partner_name like ${@partner_name}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter enforceOperations="query" expression="partner_category = ${@partner_category}"/>
+    </bm:data-filters>
+</bm:model>

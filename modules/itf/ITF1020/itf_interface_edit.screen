@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: Apr 22, 2014 4:40:48 PM  
+    $Revision: 1.0  
+    $Purpose: 接口编辑
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="i.interface_id = ${/parameter/@interface_id}" fetchAll="true" model="itf.ITF1020.itf_interfaces" rootPath="itf1020_interfaces_rs"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function itf1020_interfaceParameterDefineEditor(record, name) {
+                if (name == 'parameter_code') {
+                    if (record.isNew) {
+                        return 'itf1020_interface_parameter_result_grid_utf';
+                    }
+                }
+            
+                if (name == 'transfer_source_field' || name == 'transfer_ref_field1' || name == 'transfer_ref_field2' || name == 'transfer_ref_field3') {
+                    if (record.get('transfer_source_table') != undefined) {
+                        return 'itf1020_interface_parameter_result_grid_lov';
+                    }
+                }
+            }
+            
+            function itf1020_interfaceEditSave() {
+                $('itf1020_interface_edit_ds').submit();
+            }
+            
+            function itf1020_interfaceEditBack() {
+                $('itf1020_interface_edit_window').close();
+                $('itf1020_interfaces_result_ds').query();
+            }
+            
+            function itf1020_parameter_onUpdate(ds,record,name,value,oldValue){
+                debugger;
+                if(name=='data_type_display'){
+                    var data_type_display = record.get('data_type_display');
+                    if(data_type_display == '日期'){
+                        record.set('date_format','YYYY/MM/DD');
+                    }
+                    else{
+                        record.set('date_format','');
+                    }
+                }
+                else{
+                    return;
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="itf1020_data_type_ds" loadData="true" lookupCode="ITF_DATA_TYPE"/>
+            <a:dataSet id="itf1020_interface_edit_ds" model="itf.ITF1020.itf_interfaces" submitUrl="${/request/@context_path}/modules/itf/ITF1020/itf_interface_edit.svc">
+                <a:datas dataSource="/model/itf1020_interfaces_rs"/>
+                <a:fields>
+                    <a:field name="interface_code" required="true"/>
+                    <a:field name="interface_desc" required="true"/>
+                    <a:field name="interface_category_id"/>
+                    <a:field name="interface_category_code"/>
+                    <a:field name="interface_category_desc" lovGridHeight="320" lovHeight="450" lovService="itf.ITF1020.itf_interface_categories_lov" lovWidth="500" required="true" title="ITF_INTERFACE_CATEGORIES.INTERFACE_CATEGORY">
+                        <a:mapping>
+                            <a:map from="interface_category_id" to="interface_category_id"/>
+                            <a:map from="interface_category_code" to="interface_category_code"/>
+                            <a:map from="interface_category_desc" to="interface_category_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="interface_type"/>
+                    <a:field name="interface_type_display" displayField="code_value_name" options="itf1020_interface_type_ds" required="true" returnField="interface_type" valueField="code_value"/>
+                    <a:field name="interface_class_desc" displayField="code_value_name" options="itf1020_interface_class_ds" required="true" returnField="interface_class" valueField="code_value"/>
+                    <a:field name="real_time_levle"/>
+                    <a:field name="real_time_levle_des" displayField="code_value_name" options="itf1020_real_time_ds" returnField="real_time_levle" valueField="code_value"/>
+                    <a:field name="lot_seg_num"/>
+                    <a:field name="synchronous_flag" checkedValue="Y" defaultValue="N" required="true" uncheckedValue="N"/>
+                    <a:field name="released_flag" checkedValue="Y" defaultValue="N" required="true" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" required="true" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="itf1020_interface_parameter_query_ds">
+                <a:fields>
+                    <a:field name="interface_id" defaultValue="${/parameter/@interface_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="itf1020_interface_parameter_result_ds" autoQuery="true" bindName="itf1020_interface_parameter_bindname" bindTarget="itf1020_interface_edit_ds" fetchAll="true" model="itf.ITF1020.itf_interface_parameter_define" queryDataSet="itf1020_interface_parameter_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="interface_id" defaultValue="${/parameter/@interface_id}"/>
+                    <a:field name="parameter_code" required="true"/>
+                    <a:field name="parameter_desc" required="true"/>
+                    <a:field name="parameter_formal" required="true"/>
+                    <a:field name="data_type" required="true"/>
+                    <a:field name="data_type_display" displayField="code_value_name" options="itf1020_data_type_ds" required="true" returnField="data_type" valueField="code_value"/>
+                    <a:field name="nullabled_flag" checkedValue="Y" defaultValue="Y" required="true" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="N" required="true" uncheckedValue="N"/>
+                    <a:field name="date_format"/>
+                    <a:field name="comments"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="itf1020_parameter_onUpdate"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="itf1020_interfaceEditSave" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="itf1020_interfaceEditBack" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:form column="4" labelWidth="100" marginWidth="70" title="ITF_INTERFACE.INTERFACE_INFO">
+                <a:textField name="interface_code" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.INTERFACE_CODE"/>
+                <a:textField name="interface_desc" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.INTERFACE_DESC"/>
+                <a:lov name="interface_category_desc" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACE_CATEGORIES.INTERFACE_CATEGORY"/>
+                <a:comboBox name="interface_type_display" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.INTERFACE_TYPE"/>
+                <a:comboBox name="interface_class_desc" bindTarget="itf1020_interface_edit_ds" prompt="ITF_ITF_DFN_PARAMETERS.INTERFACE_CLASS"/>
+                <a:comboBox name="real_time_levle_des" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.REAL_TIME_LEVLE"/>
+                <a:textField name="lot_seg_num" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.LOT_SEG_NUM"/>
+                <a:textField name="interface_table_name" bindTarget="itf1020_interface_edit_ds" prompt="ITF_STRUCTURES.ITF_TABLE_NAME"/>
+                <a:textField name="import_execute_procedure" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.IMPORT_EXECUTE_PROCEDURE"/>
+                <a:textField name="export_pack_procedure" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.EXPORT_PACK_PROCEDURE"/>
+                <a:textField name="export_extract_procedure" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.EXPORT_EXTRACT_PROCEDURE"/>
+                <a:textField name="callback_s_procedure" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.CALLBACK_S_PROCEDURE"/>
+                <a:textField name="callback_f_procedure" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.CALLBACK_F_PROCEDURE"/>
+                <a:textField name="query_url" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.QUERY_URL"/>
+                <a:checkBox name="released_flag" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.RELEASED_FLAG"/>
+                <a:checkBox name="enabled_flag" bindTarget="itf1020_interface_edit_ds" prompt="PROMPT.ENABLED_FLAG"/>
+                <a:checkBox name="synchronous_flag" bindTarget="itf1020_interface_edit_ds" prompt="ITF_INTERFACES.SYNCHRONOUS_FLAG"/>
+                <a:textField name="comments" bindTarget="itf1020_interface_edit_ds" prompt="PROMPTS.COMMENTS"/>
+            </a:form>
+            <a:tabPanel id="itf1020_interface_edit_tabpanel" marginHeight="180" marginWidth="70">
+                <a:tabs>
+                    <a:tab id="itf1020_interface_parameter_define_tab" prompt="ITF_INTERFACE.PARAMETER_DEFINE" width="110">
+                        <a:grid id="itf1020_interface_parameter_result_grid" bindTarget="itf1020_interface_parameter_result_ds" marginHeight="240" marginWidth="100" navBar="true">
+                            <a:toolBar>
+                                <a:button type="add"/>
+                                <a:button type="clear"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="parameter_code" editorFunction="itf1020_interfaceParameterDefineEditor" prompt="ITF_ITF_DFN_PARAMETERS.PARAMETER_CODE" width="100"/>
+                                <a:column name="parameter_desc" editor="itf1020_interface_parameter_result_grid_tf" prompt="ITF_ITF_DFN_PARAMETERS.PARAMETER_DESC" width="110"/>
+                                <a:column name="parameter_formal" editor="itf1020_interface_parameter_result_grid_tf" prompt="ITF_ITF_DFN_PARAMETERS.PARAMETER_FORMAL" width="110"/>
+                                <a:column name="data_type_display" editor="itf1020_interface_parameter_result_grid_cmb" prompt="ITF_STRUCTURE_FIELDS.DATA_TYPE" width="100"/>
+                                <a:column name="nullabled_flag" editor="itf1020_interface_parameter_result_grid_chb" prompt="ITF_ITF_DFN_PARAMETERS.NULLABLED_FLAG" width="40"/>
+                                <a:column name="enabled_flag" editor="itf1020_interface_parameter_result_grid_chb" prompt="PROMPT.ENABLED_FLAG" width="40"/>
+                                <a:column name="date_format" editor="itf1020_interface_parameter_result_grid_tf" prompt="ITF_ITF_DFN_PARAMETERS.DATE_FORMAT" width="80"/>
+                                <a:column name="comments" editor="itf1020_interface_parameter_result_grid_tf" prompt="PROMPTS.COMMENTS" width="200"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="itf1020_interface_parameter_result_grid_utf" typeCase="Upper"/>
+                                <a:textField id="itf1020_interface_parameter_result_grid_tf"/>
+                                <a:comboBox id="itf1020_interface_parameter_result_grid_cmb"/>
+                                <a:checkBox id="itf1020_interface_parameter_result_grid_chb"/>
+                                <a:lov id="itf1020_interface_parameter_result_grid_lov"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

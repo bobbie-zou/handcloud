@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zhangyi2652 $
+    $Date: 2010/11/22 01:46:00 $
+    $Revision: 1.3 $
+    $Purpose: 工作流节点动作定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autoCount="false" fetchAll="true" fieldNameCase="lower" model="wfl.WFL2010.wfl_workflow_node_action" rootPath="wfl2010_workflow_node_action_node_action_rootpath"/>
+        <a:model-query autoCount="false" fetchAll="true" fieldNameCase="lower" model="wfl.WFL2010.wfl_workflow_action" rootPath="wfl2010_workflow_node_action_action_rootpath"/>
+        <a:model-query autoCount="false" defaultwhereclause="proc_type=50" fetchAll="true" fieldNameCase="lower" model="wfl.wfl_workflow_procedure" rootPath="wfl2010_workflow_node_action_procedure_rootpath"/>
+    </a:init-procedure>
+    <a:view package="aurora.ui.std" template="default">
+        <div/>
+        <script><![CDATA[
+            //数据加载
+            
+            
+            function on_wfl2010_workflow_node_action_node_action_ds_loadFun(ds) {
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    var action_type = record.get('action_type');
+                    //仅执行
+                    if (action_type == '99') {
+                        record.getField('appoint_mannul_flag').setReadOnly(true);
+                        record.getField('appoint_procedure').setReadOnly(false);
+                        record.getField('appoint_procedure').setRequired(true);
+                    } else {
+                        record.getField('appoint_mannul_flag').setReadOnly(false);
+                        record.getField('appoint_procedure').setRequired(false);
+                        record.getField('appoint_procedure').setReadOnly(true);
+                    }
+                }
+            }
+            
+            //数据修改
+            
+            
+            function on_wfl2010_workflow_node_action_node_action_ds_updateFun(ds, record, name, value) {
+                if (name == 'action_type') {
+                    if (value == '99') {
+                        record.set('appoint_mannul_flag','');
+                        record.getField('appoint_mannul_flag').setReadOnly(true);
+                        record.getField('appoint_procedure').setReadOnly(false);
+                        record.getField('appoint_procedure').setRequired(true);
+                    } else {
+                        record.set('appoint_procedure','');
+                        record.getField('appoint_mannul_flag').setReadOnly(false);
+                        record.getField('appoint_procedure').setRequired(false);
+                        record.getField('appoint_procedure').setReadOnly(true);
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl2010_workflow_node_action_action_ds">
+                <a:datas dataSource="/model/wfl2010_workflow_node_action_action_rootpath"/>
+            </a:dataSet>
+            <a:dataSet id="wfl2010_workflow_node_action_procedure_ds">
+                <a:datas dataSource="/model/wfl2010_workflow_node_action_procedure_rootpath"/>
+            </a:dataSet>
+            <a:dataSet id="wfl2010_workflow_node_action_node_action_ds" bindName="actions" bindTarget="wfl2010_workflow_node_node_edit_ds" model="wfl.WFL2010.wfl_workflow_node_action" selectable="true" submiturl="${/request/@context_path}/autocrud/wfl.WFL2010.wfl_workflow_node_action/batch_update">
+                <a:datas dataSource="/model/wfl2010_workflow_node_action_node_action_rootpath"/>
+                <a:fields>
+                    <a:field name="action_id_display" displayField="action_title" options="wfl2010_workflow_node_action_action_ds" required="true" returnField="action_id" valueField="action_id">
+                        <a:mapping>
+                            <a:map from="action_type" to="action_type"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="exec_proc_display" displayfield="proc_display" options="wfl2010_workflow_node_action_procedure_ds" prompt="EVT_EVENT_HANDLE.PRO" valueField="proc_display_id">
+                        <a:mapping>
+                            <a:map from="proc_display" to="exec_proc_display"/>
+                            <a:map from="proc_name" to="exec_proc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="appoint_mannul_flag" checkedValue="Y" defaultValue="N" readOnly="true" uncheckedValue="N"/>
+                    <a:field name="appoint_procedure" readOnly="true" requiredMessage="请填写仅执行-存储过程"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="on_wfl2010_workflow_node_action_node_action_ds_loadFun"/>
+                    <a:event name="update" handler="on_wfl2010_workflow_node_action_node_action_ds_updateFun"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:grid bindTarget="wfl2010_workflow_node_action_node_action_ds" height="185" style="margin:5px;" width="835">
+            <a:toolBar>
+                <a:button type="add"/>
+                <a:button type="delete"/>
+            </a:toolBar>
+            <a:columns>
+                <a:column name="action_id_display" editor="wfl2010_workflow_node_action_node_action_cmb" width="150"/>
+                <a:column name="exec_proc_display" editor="wfl2010_workflow_node_action_node_action_cmb" width="150"/>
+                <a:column name="order_num" editor="wfl2010_workflow_node_action_node_action_tf" width="100"/>
+                <a:column name="appoint_mannul_flag" editor="wfl2010_workflow_node_action_node_action_cb" prompt="WFL2010.APPOINT_MANNUL_FLAG" width="100"/>
+                <a:column name="appoint_procedure" editor="wfl2010_workflow_node_action_node_action_tf" prompt="仅执行-存储过程" width="200"/>
+            </a:columns>
+            <a:editors>
+                <a:textField id="wfl2010_workflow_node_action_node_action_tf"/>
+                <a:checkBox id="wfl2010_workflow_node_action_node_action_cb"/>
+                <a:comboBox id="wfl2010_workflow_node_action_node_action_cmb"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

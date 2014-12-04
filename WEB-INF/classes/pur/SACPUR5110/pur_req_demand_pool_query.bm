@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-24 下午7:22:38  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select * from (            
+select pool_id,
+       enabled_flag,
+       company_id,
+       (select fc.company_short_name
+          from fnd_companies_vl fc
+         where fc.company_id = p.company_id) company_desc,
+       inv_organization_id,
+       (select io.description
+          from inv_organizations_vl io
+         where io.inv_organization_id = p.inv_organization_id) inv_organization_desc,
+       p.pur_ln_type,
+       (select scv.code_value_name
+          from sys_code_values_vl scv, sys_codes_vl sc
+         where sc.code_id = scv.code_id
+           and scv.code_value = p.pur_ln_type
+           and sc.code = 'PUR_REQ_LINE_PURCHASE_TYPE') pur_ln_type_desc,
+       data_source,
+       data_source_id,
+       data_source_code,
+       data_source_name,
+       pur_req_num,
+       pur_req_line_num,
+       pur_agreement_id,
+       pur_agreement_num,
+       pa_vendor_id,
+       pa_vendor_code,
+       pa_vendor_desc,
+       pa_price,
+       item_id,
+       item_code,
+       item_desc,
+       item_category_id,
+       item_category_code,
+       item_category_desc,
+       p.item_note,
+       p.item_parameter_config,
+       vendor_id,
+       vendor_code,
+       vendor_desc,
+       price,
+       currency_code,
+       (select c.currency_name
+          from gld_currency_vl c
+         where c.currency_code = p.currency_code) currency_desc,
+       quantity_required,
+       uom,
+       (select u.uom_desc from fnd_uom_codes_vl u where u.uom_code = p.uom) uom_desc,
+       need_by_date,
+       to_char(need_by_date, 'yyyy-mm-dd') need_by_date_desc,
+       proposed_vendor_id,
+       proposed_vendor_code,
+       proposed_vendor_desc,
+       proposed_price,
+       proposed_net_price,
+       proposed_net_amount,
+       proposed_tax_amount,
+       proposed_total_amount,
+       proposed_functional_amount,
+       proposed_entered_amount,
+       pur_req_created_by,
+       pur_req_created_by_code,
+       pur_req_created_by_name,
+       pur_req_creation_date,
+       rfx_user_id,
+       rfx_user_code,
+       rfx_user_name,
+       rfx_created_flag,
+       p.tax_included_flag,
+       p.tax_type_rate,
+       p.exchange_rate,
+       (select min(fp.feedback_wholesale_price)
+          from pur_rfx_filing_pool fp
+         where fp.company_id = p.company_id
+           and fp.inv_organization_id = p.inv_organization_id
+           and fp.item_id = p.item_id
+           and fp.pur_ln_type = p.pur_ln_type
+           and fp.currency_code = p.currency_code
+           and fp.tax_included_flag = p.tax_included_flag
+         group by fp.company_id,
+                  fp.inv_organization_id,
+                  fp.item_id,
+                  fp.pur_ln_type,
+                  fp.currency_code,
+                  fp.tax_included_flag) filing_wholesale_price,
+       p.flex_appl_relevance_id,
+       p.note_to_receiver,
+       p.comments
+  from pur_req_demand_pool p
+ where 1 = 1
+   and p.status = 'DISTRIBUTED'
+   and p.pur_method = 'RFX'
+   and p.rfx_created_flag = 'N'
+   and p.enabled_flag = 'Y'
+   and p.rfx_user_id = ${/session/@user_id}
+   and 
+         p.company_id in
+       (select c.company_id
+          from fnd_auth_company_v c
+         where c.session_id = ${/session/@session_id})) t
+   #WHERE_CLAUSE#
+ order by pur_req_num desc
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="company_id" queryExpression="company_id = ${@company_id}"/>
+        <bm:query-field name="pur_req_num_from" queryExpression="pur_req_num &gt;= ${@pur_req_num_from}"/>
+        <bm:query-field name="pur_req_num_to" queryExpression="pur_req_num &lt;= ${@pur_req_num_to}"/>
+        <bm:query-field name="inv_organization_id" queryExpression="inv_organization_id = ${@inv_organization_id}"/>
+        <bm:query-field name="item_category_id" queryExpression="item_category_id = ${@item_category_id}"/>
+        <bm:query-field name="item_id" queryExpression="item_id = ${@item_id}"/>
+        <bm:query-field name="need_by_date_from" queryExpression="need_by_date &gt;= to_date(${@need_by_date_from},&apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="need_by_date" queryExpression="need_by_date &lt; to_date(${@need_by_date_to},&apos;yyyy-mm-dd)+1&apos;"/>
+    </bm:query-fields>
+</bm:model>

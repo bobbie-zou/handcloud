@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: FelixDru
+    $Date: 2014-10-16 上午10:55:29  
+    $Revision: 1.0  
+    $Purpose: 子账号批量创建
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.imp_template_code = &apos;MTL_CATEGORIES_USER_DEFINED_IMPORT&apos;" fetchAll="true" model="public.get_fnd_excel_import_template" rootPath="import_template"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="mtl1050_categoryImportUpload_link" url="${/request/@context_path}/modules/mtl/MTL1050/mtl_category_user_defined_import_upload.screen"/>
+        <a:link id="mtl1050_categoryCheckSubmit_link" model="mtl.MTL1050.mtl_category_user_defined_import_check_and_submit" modelaction="execute"/>
+        <a:link id="mtl1050_category_excel_import_template_uploadtimes_link" model="public.get_fnd_excel_import_template" modelaction="execute"/>
+        <script><![CDATA[
+            //Close
+            function mtl1050_categoryImportCancelData(){
+                window.close();
+            }
+            
+            function mtl1050_categoryImportLoadData() {
+                new Aurora.Window({
+                    id: 'mtl1050_categoryImportUpload_window',
+                    url: $('mtl1050_categoryImportUpload_link').getUrl(),
+                    title: '${l:MTL_CATEGORY_IMPORTS.BATCH_IMPORT}',
+                    width: 450,
+                    height: 300
+                });
+            }
+            
+            function mtl1050_categoryImportCheckData() {
+                var allData = $('mtl1050_category_import_temp_ds').getAll();
+                if (allData.length == 0) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.NO_DATA_TO_IMPORT}');
+                    return;
+                } else {
+                    Aurora.request({
+                        url: $('mtl1050_categoryCheckSubmit_link').getUrl(),
+                        para: {},
+                        success: function() {
+                            Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SUBMIT_SUCCESS}');
+                            $('mtl1050_category_import_temp_ds').query();
+                            $('mtl1050_category_import_error_ds').query();
+                        },
+                        error:function() {
+                            $('mtl1050_category_import_error_ds').query();
+                        },
+                        failure:function() {
+                            $('mtl1050_category_import_error_ds').query();
+                        },
+                        scope: this
+                    });
+                }
+            }            
+            
+            function mtl1050_categoryImportRrrorDsLoad(ds) {
+                var error_lines = ds.getAll().length;
+                if (error_lines > 0) {
+                    $('mtl1050_categoryImportTab').setEnabled(1);
+                }
+            }
+            
+            function mtl1050_categoryImportTemplateDownload() {
+                var attachment_id = '${/model/import_template/record/@attachment_id}';
+                if (attachment_id == undefined || Aurora.isEmpty(attachment_id)) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:PUR5611_VENDOR_IMPORT.NO_IMPORT_TEMPLATE_TO_DOWNLOAD}');
+                    return;
+                } else {
+                    Aurora.request({
+                        url: $('mtl1050_category_excel_import_template_uploadtimes_link').getUrl(),
+                        para: {
+                            imp_template_code: 'MTL_CATEGORIES_USER_DEFINED_IMPORT'
+                        },
+                        success: function() {
+                            document.getElementById('attachment_id').value = attachment_id;
+                            document.downloadform.submit();
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function mtl1050_categoryImportRrrorDs_indexChangeFun(ds, record){
+                document.getElementById('mtl1050_categoryErrorMsgDiv').innerHTML = record.get('error_message');
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="mtl1050_category_import_error_ds" autoCount="true" autoQuery="true" model="mtl.MTL1050.mtl_category_user_defined_import_errors">
+                <a:events>
+                    <a:event name="load" handler="mtl1050_categoryImportRrrorDsLoad"/>
+                    <a:event name="indexchange" handler="mtl1050_categoryImportRrrorDs_indexChangeFun"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="mtl1050_category_import_temp_ds" autoCount="true" autoPageSize="true" autoQuery="true" model="mtl.MTL1050.mtl_category_user_defined_imports"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="mtl1050_categoryImportTemplateDownload" style="margin-left:20px;" text="PROMPT.DOWNLOAD_IMPORT_TEMPLATE" width="100"/>
+                <a:toolbarButton click="mtl1050_categoryImportLoadData" style="margin-left:20px;" text="PROMPT.LOADDATA" width="100"/>
+                <a:toolbarButton click="mtl1050_categoryImportCheckData" style="margin-left:20px;" text="SYS8220.CHECK_AND_SUBMIT" width="100"/>
+                <a:toolbarButton click="mtl1050_categoryImportCancelData" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+            </a:screenTopToolbar>
+            <a:tabPanel id="mtl1050_categoryImportTab" marginHeight="100" marginWidth="100">
+                <a:tabs>
+                    <a:tab prompt="SYS8220.IMPORTS_DATA" width="130">
+                        <a:grid id="mtl1050_category_import_temp_ds_grid" autoAppend="false" bindTarget="mtl1050_category_import_temp_ds" marginHeight="140" marginWidth="120" navBar="true" style="margin-top:5px;">
+                            <a:columns>
+                                <a:column name="line_number" align="center" lock="true" prompt="PROMPT.LINE_NUMBER" width="30"/>
+                                <a:column name="category_code" align="left" prompt="MTL_CATEGORIES_USER_DEFINED.CATEGORY_CODE" width="120"/>
+                                <a:column name="category_name" align="left" prompt="MTL_CATEGORIES_USER_DEFINED.CATEGORY_NAME_ID" width="120"/>
+                                <a:column name="parent_category_udf_code" align="left" prompt="MTL_CATEGORIES_USER_DEFINED.PARENT_CATEGORY_UDF_ID" width="120"/>
+                                <a:column name="uom_code" align="left" prompt="MTL_CATEGORIES_USER_DEFINED.UOM_CODE" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab disabled="true" prompt="SYS8220.IMPORT_ERROR_DATA" width="130">
+                        <a:fieldSet height="100" marginWidth="120" title="PROMPT.CHECK_IMPORT_ERROR">
+                            <div id="mtl1050_categoryErrorMsgDiv"/>
+                        </a:fieldSet>
+                        <a:grid id="mtl1050_category_import_error_ds_grid" autoAppend="false" bindTarget="mtl1050_category_import_error_ds" marginHeight="250" marginWidth="120" navBar="true" style="margin-top:5px;">
+                            <a:columns>
+                                <a:column name="line_number" align="center" lock="true" prompt="PROMPT.LINE_NUMBER" width="30"/>
+                                <a:column name="error_message" align="left" lock="true" prompt="PROMPT.ERROR_MESSAGE" width="300"/>
+                                <a:column name="category_code" align="left" prompt="MTL_CATEGORIES_USER_DEFINED.CATEGORY_CODE" width="120"/>
+                                <a:column name="category_name" align="left" prompt="MTL_CATEGORIES_USER_DEFINED.CATEGORY_NAME_ID" width="120"/>
+                                <a:column name="parent_category_udf_code" align="left" prompt="MTL_CATEGORIES_USER_DEFINED.PARENT_CATEGORY_UDF_ID" width="120"/>
+                                <a:column name="uom_code" align="left" prompt="MTL_CATEGORIES_USER_DEFINED.UOM_CODE" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+            <form name="downloadform" action="${/request/@context_path}/atm_download.svc" enctype="multipart/form-data" method="get" style="display:none;">
+                <input name="attachment_id" id="attachment_id" type="hidden"/>
+            </form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

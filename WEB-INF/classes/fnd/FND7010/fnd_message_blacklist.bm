@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: huyijun 
+    $Date: 2013-5-23 下午03:12:30  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="FND_MESSAGE_BLACKLIST" needAccessControl="false">
+    <bm:fields>
+        <bm:field name="blacklist_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="BLACKLIST_ID" prompt="FND_MESSAGE_BLACKLIST.BLACKLIST_ID"/>
+        <bm:field name="user_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="USER_ID" prompt="FND_MESSAGE_BLACKLIST.USER_ID"/>
+        <bm:field name="message_to" databaseType="NUMBER" datatype="java.lang.Long" physicalName="MESSAGE_TO" prompt="FND_MESSAGE_BLACKLIST.MESSAGE_TO"/>
+        <bm:field name="user_name" forInsert="false" forUpdate="false" prompt="FND.SYS_MESSAGE_USER_NAME"/>
+        <bm:field name="description" forInsert="false" forUpdate="false" prompt="FND.SYS_MESSAGE_USER_DESCRIPTION"/>
+        <bm:field name="join_date" forInsert="false" forUpdate="false" prompt="FND_MESSAGE.BLACK_DATE"/>
+    </bm:fields>
+    <bm:data-filters>
+        <bm:data-filter name="filter" expression="user_id = ${/session/@user_id}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="user_name" queryExpression="exists (select 1 from sys_user u where u.user_name like &apos;%&apos;|| upper(${@user_name})||&apos;%&apos; and t1.message_to = u.user_id)"/>
+        <bm:query-field name="description" queryExpression="exists (select 1 from sys_user u where u.description like &apos;%&apos;|| ${@description}||&apos;%&apos; and t1.message_to = u.user_id)"/>
+        <bm:query-field name="join_date_from" queryExpression="trunc(t1.join_date) &gt;= to_date(${@join_date_from}, &apos;yyyy-mm-dd&apos;)"/>
+        <bm:query-field name="join_date_to" queryExpression="trunc(t1.join_date) &lt;= to_date(${@join_date_to}, &apos;yyyy-mm-dd&apos;)"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+        		SELECT
+        		    fmb.blacklist_id,
+        		    fmb.user_id,
+        		    fmb.message_to,
+        		    su.user_name,
+        		    su.description,
+        		    (TO_CHAR(fmb.join_date, 'yyyy-mm-dd hh24:mi:ss')) AS join_date
+        		FROM
+        		    fnd_message_blacklist fmb,
+        		    sys_user su
+        		WHERE
+        		    fmb.message_to = su.user_id
+    		]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+    			begin
+				  fnd_message_pkg.blacklist_insert(p_message_from => ${/session/@user_id},
+				                                   p_message_to   => ${@message_to},
+				                                   p_user_id      => ${/session/@user_id});
+				end;
+    		]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="delete">
+            <bm:update-sql><![CDATA[
+    			begin
+				  fnd_message_pkg.blacklist_delete(p_message_from => ${/session/@user_id},
+				                                   p_message_to   => ${@message_to},
+				                                   p_user_id      => ${/session/@user_id});
+				end;
+    		]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

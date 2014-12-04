@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="exp.exp_expense_report_types_vl" rootPath="exp_rep_ref_object_type_path"/>
+        <a:model-query defaultWhereclause="exists (select 1                                from sys_codes h                               where h.code_id = t1.code_id                                 and h.enabled_flag = &apos;Y&apos;                                 and h.code = &apos;LAYOUT_LOCALITY&apos;)                         and t1.enabled_flag = &apos;Y&apos;" model="sys.sys_code_values_vl" rootPath="layout_list"/>
+    </a:init-procedure>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+        	
+        	function setinitdata(ds,record,index){
+        		record.set('expense_report_type_id',${/parameter/@expense_report_type_id});
+        		record.set('required_flag','Y');
+        	}
+        
+        	function gridcellclick(grid,row,name,record){
+        	    var MetaData = record.getMeta();
+        	    var MetaField = MetaData.getField('default_object_code');
+        	    MetaField.setLovPara('expense_object_type_id',record.get('expense_object_type_id'));
+        	}
+        	
+        	function gridEditorFunction(record,name){
+        		if(record.isNew){
+        			return 'expense_object_type_code_errot_lov';
+        		}
+				return '';
+        	}
+        
+		]]></script>
+        <a:dataSets>
+            <a:dataSet id="exp_rep_ref_object_type_layout_list" loadData="true">
+                <a:datas dataSource="/model/layout_list"/>
+                <a:fields>
+                    <a:field name="code_value"/>
+                    <a:field name="code_value_name"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="exp_rep_ref_object_type_query_ds" loadData="true">
+                <a:datas dataSource="/model/exp_rep_ref_object_type_path"/>
+                <a:fields>
+                    <a:field name="expense_report_type_code" readOnly="true"/>
+                    <a:field name="description" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="exp_rep_ref_object_type_result_ds" autoQuery="true" model="expm.EXP2110.exp_report_ref_object_types_define" queryDataSet="exp_rep_ref_object_type_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="exp_rep_ref_object_types_id"/>
+                    <a:field name="expense_report_type_id"/>
+                    <a:field name="expense_object_type_code" autoComplete="true" autoCompleteField="expense_object_type_code" lovGridHeight="320" lovHeight="440" lovService="expm.exp_expense_object_types_vl" lovWidth="500" prompt="EXP_EXPENSE_OBJECT_TYPES.EXPENSE_OBJECT_TYPE_CODE" required="true" title="EXP_EXPENSE_OBJECT_TYPES.EXPENSE_OBJECT_TYPE_CODE">
+                        <a:mapping>
+                            <a:map from="expense_object_type_id" to="expense_object_type_id"/>
+                            <a:map from="expense_object_type_code" to="expense_object_type_code"/>
+                            <a:map from="description" to="description"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="expense_object_type_id"/>
+                    <a:field name="description" prompt="EXP_REQ_REF_OBJ_TMP1.DESCRIPTION"/>
+                    <a:field name="code_value_name" displayField="code_value_name" options="exp_rep_ref_object_type_layout_list" prompt="EXP_REQ_OBJECTS_LAYOUTS.LAYOUT_POSITION" required="true" returnField="layout_position" valueField="code_value"/>
+                    <a:field name="layout_priority" prompt="EXP_REQ_OBJECTS_LAYOUTS.LAYOUT_PRIORITY" required="true"/>
+                    <a:field name="default_object_id"/>
+                    <a:field name="default_object_code" lovGridHeight="320" lovHeight="440" lovUrl="${/request/@context_path}/modules/expm/public/exp_req_ref_obj_sql_query_lov.screen" lovWidth="500" prompt="EXP_REQ_REF_OBJ.DEF_OBJ" title="EXP_REQ_REF_OBJ.DEF_OBJ">
+                        <a:mapping>
+                            <a:map from="code" to="default_object_code"/>
+                            <a:map from="description" to="default_object_desc"/>
+                            <a:map from="id" to="default_object_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="default_object_desc" prompt="EXP_REQ_REF_OBJ.OBJ_DESC"/>
+                    <a:field name="required_flag" checkedValue="Y" defaultValue="N" prompt="EXP_REQ_REF_OBJ.REQUIRED_FLAG" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="setinitdata"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet row="1" title="EXP_REF_OBJ_TYPE.EXP_TYPE_FEE_OBJ">
+                <a:textField name="expense_report_type_code" bindTarget="exp_rep_ref_object_type_query_ds" prompt="EXP_EXP_REPORT_TYPE.EXPENSE_REPORT_TYPE_CODE"/>
+                <a:textField name="description" bindTarget="exp_rep_ref_object_type_query_ds" prompt="EXP_EXP_REPORT_TYPE.EXPENSE_REPORT_TYPE_DESCRIPTION"/>
+            </a:fieldSet>
+            <a:grid bindTarget="exp_rep_ref_object_type_result_ds" height="350" navBar="true" width="600">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="delete"/>
+                    <a:button type="save"/>
+                    <a:button type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="expense_object_type_code" align="center" editorFunction="gridEditorFunction" width="80"/>
+                    <a:column name="description" width="80"/>
+                    <a:column name="code_value_name" align="center" editor="code_value_name_errot_cmb" width="80"/>
+                    <a:column name="layout_priority" align="center" editor="layout_priority_errot_tf" width="80"/>
+                    <a:column name="default_object_code" align="center" editor="default_object_code_errot_lov" width="80"/>
+                    <a:column name="default_object_desc" width="80"/>
+                    <a:column name="required_flag" align="center" editor="required_flag_errot_cb" width="50"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="expense_object_type_code_errot_lov"/>
+                    <a:comboBox id="code_value_name_errot_cmb"/>
+                    <a:numberField id="layout_priority_errot_tf"/>
+                    <a:lov id="default_object_code_errot_lov"/>
+                    <a:checkBox id="required_flag_errot_cb"/>
+                </a:editors>
+                <a:events>
+                    <a:event name="cellclick" handler="gridcellclick"/>
+                </a:events>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

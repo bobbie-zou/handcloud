@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lily  
+    $Date: 2013-1-21 下午06:50:56  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy=" h.company_code desc,h.segment1 desc">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    h.pur_header_id,
+                    h.srm_status,
+                    (SELECT
+                        v.code_value_name
+                    FROM
+                        sys_code_values_v v
+                    WHERE
+                        v.code       = 'SRM_STATUS' AND
+                        v.code_value = h.srm_status
+                    ) AS srm_name_desc,
+                    h.company_name,
+                    h.vendor_id,
+                    h.vendor_code,
+                    h.vendor_name,
+                    h.segment1,
+                    h.revision_num,
+                    h.release_id,
+                    h.release_num,
+                    (SELECT
+                        gc.CURRENCY_NAME
+                    FROM
+                        gld_currency_vl gc
+                    WHERE
+                        gc.CURRENCY_CODE = h.currency_code
+                    ) currency_code,
+                    h.type_lookup_code,
+                    h.type_lookup_desc,
+                    h.vendor_site_id,
+                    h.vendor_site_code,
+                    h.vendor_site_name,
+                    h.agent_id,
+                    h.agent_code,
+                    h.agent_name,
+                    h.ship_to_location_id,
+                    h.ship_to_location_code,
+                    h.ship_to_location_name,
+                    h.bill_to_location_id,
+                    h.bill_to_location_code,
+                    h.bill_to_location_name,
+                    TO_CHAR(h.creation_date,'yyyy-mm-dd hh24:mi:ss') AS creation_date_desc,
+                    h.release_date,
+                    TO_CHAR(h.release_date,'yyyy-mm-dd hh24:mi:ss') AS release_date_desc,
+                    h.confirm_date,
+                    TO_CHAR(h.confirm_date,'yyyy-mm-dd hh24:mi:ss') AS confirm_date_desc,
+                    h.reply_date,
+                    TO_CHAR(h.reply_date,'yyyy-mm-dd') AS reply_date_desc,
+                    h.data_source,
+                    h.reply_over_flag,
+                    h.urgent_status,
+                    (select code_value_name from sys_code_values_v sc where sc.code_value = h.urgent_status and sc.code= 'PUR_PO_URGENT_STATUS') urgent_status_desc,
+                    h.urgent_date,
+                    to_char(h.urgent_date,'yyyy-mm-dd hh24:mi:ss') urgent_date_desc
+                FROM
+                    pur_headers_all h  #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE# 
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="segment1" queryExpression="h.segment1 like &apos;%&apos;||trim(${@segment1})||&apos;%&apos;"/>
+        <bm:query-field name="company_id" queryExpression="h.company_id = ${@company_id}"/>
+        <bm:query-field name="agent_name" queryExpression="h.agent_name like &apos;%&apos;||${@agent_name}||&apos;%&apos;"/>
+        <bm:query-field name="srm_status" queryExpression="h.srm_status = ${@srm_status}"/>
+        <bm:query-field name="type_lookup_code" queryExpression="h.type_lookup_code = ${@type_lookup_code}"/>
+        <bm:query-field name="release_num" queryExpression="h.release_num = ${@release_num}"/>
+        <bm:query-field name="vendor_id" queryExpression="h.vendor_id = ${@vendor_id}"/>
+        <bm:query-field name="release_date_from" queryExpression="h.release_date &gt;= to_date(${@release_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="release_date_to" queryExpression="h.release_date &lt;= to_date(${@release_date_to},&apos;YYYY-MM-DD&apos;)+1"/>
+        <bm:query-field name="confirm_date_from" queryExpression="h.confirm_date &gt;= to_date(${@confirm_date_from},&apos;YYYY-MM-DD&apos;)"/>
+        <bm:query-field name="confirm_date_to" queryExpression="h.confirm_date &lt;= to_date(${@confirm_date_to},&apos;YYYY-MM-DD&apos;)+1"/>
+        <bm:query-field name="reply_over_flag" queryExpression="h.reply_over_flag = ${@reply_over_flag}"/>
+        <bm:query-field name="urgent_status" queryExpression="h.urgent_status = ${@urgent_status}"/>
+        <bm:query-field name="urgent_date_from" queryExpression="h.urgent_date &gt;= to_date(${@urgent_date_from},&apos;YYYY-MM-DD hh24:mi:ss&apos;)"/>
+        <bm:query-field name="urgent_date_to" queryExpression="h.urgent_date &lt;= to_date(${@urgent_date_to},&apos;YYYY-MM-DD hh24:mi:ss&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="h.last_version = &apos;Y&apos;"/>
+    </bm:data-filters>
+    <authority foundation_code="PUR_PO">
+        <authority-segment source_alias="h" source_name="coop_company_id" type="COMPANY"/>
+    </authority>
+    <bm:features>
+        <s:bm-script><![CDATA[
+            var cx = Packages.aurora.javascript.Context.getCurrentContext();
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+            Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-8-5 上午9:53:20  
+    $Revision: 1.0  
+    $Purpose: 物品基础信息属性（动态弹性域），只读页面查询
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    v.temp_instance_id,
+                    v.temp_insc_attr_id,
+                    v.format_category,
+                    v.attribute_code,
+                    v.attribute_desc,
+                    v.value_id,
+                    v.value_code,
+                    v.value_description
+                FROM
+                    (SELECT
+                        ac.temp_instance_id,
+                        ac.temp_insc_attr_id,
+                        ff.format_category,
+                        ia.attribute_code,
+                        ia.attribute_desc,
+                        av.value_id,
+                        av.value_code,
+                        av.value_description
+                    FROM
+                        inv_item_attr_configs ac,
+                        inv_item_attr_config_values av,
+                        fnd_flex_temp_insc_attrs_vl ia,
+                        fnd_flex_appl_tables ft,
+                        fnd_flex_formats ff
+                    WHERE
+                        ac.temp_insc_attr_id = ia.temp_insc_attr_id AND
+                        ac.temp_instance_id  = ia.temp_instance_id AND
+                        ac.temp_insc_attr_id = av.temp_insc_attr_id AND
+                        av.appl_table_id     = ft.appl_table_id AND
+                        ia.flex_format_id    = ff.flex_format_id AND
+                        ft.appl_table_name   = 'INV_SYSTEM_ITEMS' AND
+                        av.field_pk_id       = ${/parameter/@item_id} AND
+                        ac.temp_instance_id  = ${/parameter/@temp_instance_id}
+                    UNION ALL
+                    SELECT
+                        ia.temp_instance_id,
+                        ia.temp_insc_attr_id,
+                        (SELECT
+                            ff.format_category
+                        FROM
+                            fnd_flex_formats ff
+                        WHERE
+                            ff.flex_format_id = ia.flex_format_id
+                        ) AS format_category,
+                        ia.attribute_code,
+                        ia.attribute_desc,
+                        NULL AS value_id,
+                        NULL AS value_code,
+                        NULL AS value_description
+                    FROM
+                        fnd_flex_temp_insc_attrs_vl ia
+                    WHERE
+                        ia.temp_instance_id = ${/parameter/@temp_instance_id} AND
+                        NOT EXISTS
+                        (SELECT
+                            1
+                        FROM
+                            inv_item_attr_config_values ac
+                        WHERE
+                            ac.temp_insc_attr_id = ia.temp_insc_attr_id
+                        )
+                    ) v
+                ORDER BY
+                    v.attribute_code
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="temp_instance_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="TEMP_INSTANCE_ID"/>
+        <bm:field name="temp_insc_attr_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="TEMP_INSC_ATTR_ID"/>
+        <bm:field name="format_category" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="FORMAT_CATEGORY"/>
+        <bm:field name="attribute_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ATTRIBUTE_CODE"/>
+        <bm:field name="attribute_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ATTRIBUTE_DESC"/>
+        <bm:field name="value_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="VALUE_ID"/>
+        <bm:field name="value_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="VALUE_CODE"/>
+        <bm:field name="value_description" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="VALUE_DESCRIPTION"/>
+    </bm:fields>
+</bm:model>

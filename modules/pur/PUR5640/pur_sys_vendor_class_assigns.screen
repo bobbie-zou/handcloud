@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-12-19 下午1:54:06  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:view>
+        <script><![CDATA[
+    		
+    		//记录首位置
+    		var local_index = 0;
+    		
+    		//数组记录查询到的结果在dataset中的row
+    		var row_list = [];
+    		
+    		//是否初始化定位数组
+    		var local_flag = false;
+    		
+    		//初始化定位数组
+    		function initRowList(para){
+    		    //获取dataset数据
+    		    var records = $('pur5640_vendor_class_tree_ds').getAll();
+    		    //对dataset进行遍历
+    		    for(var i = 0;i<records.length;i++){
+    		        var record = records[i];
+    		        
+    		        //判断是否包含当前查询字符，且当前index不等于全局变量local_index
+    		        if(record.get('vendor_class_code').indexOf(para)!=-1 || record.get('vendor_class_desc').indexOf(para)!=-1){
+    		            //记录当前指针
+    		            local_index = $('pur5640_vendor_class_tree_ds').indexOf(record)+1;
+    		            
+    		            //定位行
+    		            row_list.push(local_index);    
+    		        }   		        
+    		    }
+    		    local_flag = true;
+    		}
+    		
+    		//查询
+    		function pur5640_vendor_class_tree_query(){
+    		    
+    		    //获取查询字符串
+    		    var para = $('pur5640_vendor_class_tree_query_ds').getCurrentRecord().get('class_code_name');
+    		    if(para != undefined && !Ext.isEmpty(para)){
+    		        //判断是否初始化定位数组
+    		        if(!local_flag){
+    		            initRowList(para);
+    		        }
+    		        
+    		        if(row_list.length>0){
+    		            //定位至当前数组位置
+    		            $('pur5640_vendor_class_tree_ds').locate(local_index);
+    		            //数组当前指针+1
+    		            if(local_index < row_list.length-1){
+    		                local_index++;
+    		            } else{
+    		                //若当前指针超过数组长度，从0开始
+    		                local_index = 0;
+    		            }
+    		            
+    		            
+    		        }
+    		    }
+    		    
+    		}
+    		
+    		//查询dataset更新事件
+    		function pur5640_vendor_class_query_updateHandler(ds,record,name,value,oldvalue){
+    		    $('pur5640_vendor_class_tree_query_ds').getCurrentRecord().dirty = false;
+    		    if(name == 'class_code_name'){
+    		        //查询条件改变，重置全局定位变量
+    		        local_index = 0;
+    		        row_list = [];
+    		        local_flag = false;
+    		    }
+    		}
+    		
+    		//关闭
+    		function pur5640_vendor_class_autogrid_close(){
+    		    $('pur5641_vendor_class_assigns_win').close();
+    		    $('pur5641_class_assign_ds').query();
+    		}
+    		
+    		//检查是否已经添加到右侧grid
+    		function check_grid_by_class_id(grid_ds,vendor_class_id){
+    		    var records = grid_ds.getAll();
+    		    //循环校验右边的ds，如果已经添加过，则不会再进行添加动作
+    		    for(var i=0;i<records.length;i++){
+    		        if(records[i].get('vendor_class_id')==vendor_class_id){
+    		            //校验不通过
+    		            return false;
+    		        }
+    		    }
+    		    //校验通过
+    		    return true;
+    		}
+    		
+    		//添加
+    		function pur5640_vendor_class_tree_add(){
+    		    //获取两个数据集
+    		    var tree_ds = $('pur5640_vendor_class_tree_ds');
+    		    var grid_ds = $('pur5640_vendor_class_grid_ds');
+    		    
+    		    var tree_records = tree_ds.getAll();
+    		    for(var i=0;i<tree_records.length;i++){
+    		        var record = tree_records[i];
+    		        
+    		        //判断，只有被勾选且没有子节点的品类才会被添加到右边的数据源
+    		        if(record.get('checked')=='Y' && record.get('extend_flag')=='N'){
+    		            if(check_grid_by_class_id(grid_ds,record.get('vendor_class_id'))){
+    		                record.set('vendor_id','${/parameter/@vendor_id}');
+    		                grid_ds.add(record);
+    		            }
+    		        } 
+    		    }	    
+    		}
+    		
+    		//移除
+    		function pur5640_vendor_class_tree_remove(){
+    		    $('pur5640_vendor_class_autogrid_grid').clear();
+    		}
+    		
+    		//保存
+    		function pur5640_vendor_class_autogrid_save(){
+    		    $('pur5640_vendor_class_grid_ds').submit();
+    		}
+    		
+    	]]></script>
+        <a:dataSets>
+            <a:dataSet id="pur5640_vendor_class_tree_query_ds" autoCreate="true">
+                <a:events>
+                    <a:event name="update" handler="pur5640_vendor_class_query_updateHandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="pur5640_vendor_class_tree_ds" fetchAll="true" loadData="true" model="pur.PUR5640.pur_vendor_class_tree_query"/>
+            <a:dataSet id="pur5640_vendor_class_grid_ds" model="pur.PUR5640.pur_vendor_class_assigns" selectable="true">
+                <a:fields>
+                    <a:field name="vendor_class_id"/>
+                    <a:field name="vendor_id" defaultValue="${/parameter/@vendor_id}"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:hBox>
+            <a:vBox>
+                <a:form row="1">
+                    <a:textField name="class_code_name" bindTarget="pur5640_vendor_class_tree_query_ds" emptyText="PUR5640_VENDOR_CLASS.PROMPT" width="270"/>
+                    <a:toolbarButton click="pur5640_vendor_class_tree_query" style="margin-left:20px;" text="PROMPT.QUERY" width="100"/>
+                </a:form>
+                <a:treeGrid id="pur5640_vendor_class_tree_grid" bindTarget="pur5640_vendor_class_tree_ds" height="600" idField="vendor_class_id" parentField="parent_class_id" showCheckBox="true" width="425">
+                    <a:columns>
+                        <a:column name="vendor_class_code" width="280"/>
+                        <a:column name="vendor_class_desc" width="144"/>
+                    </a:columns>
+                </a:treeGrid>
+            </a:vBox>
+            <a:vBox height="650" width="50">
+                <div style="vertical-align:middle">
+                    <a:toolbarButton click="pur5640_vendor_class_tree_add" text="HAP_NEW" width="80"/>
+                    <a:toolbarButton click="pur5640_vendor_class_tree_remove" text="PROMPT.REMOVE" width="80"/>
+                </div>
+            </a:vBox>
+            <a:vBox>
+                <a:form row="1">
+                    <a:toolbarButton click="pur5640_vendor_class_autogrid_save" text="HAP_SAVE" width="100"/>
+                    <a:toolbarButton click="pur5640_vendor_class_autogrid_close" style="margin-left:10px;" text="HAP_CLOSE" width="100"/>
+                </a:form>
+                <a:grid id="pur5640_vendor_class_autogrid_grid" bindTarget="pur5640_vendor_class_grid_ds" height="600" width="420">
+                    <a:columns>
+                        <a:column name="vendor_class_code" prompt="PUR_SYS_VENDOR_CATEGORY_QUERY.CODE" width="150"/>
+                        <a:column name="vendor_class_desc" prompt="PUR_SYS_VENDOR_CATEGORY_QUERY.DESC" width="235"/>
+                    </a:columns>
+                </a:grid>
+            </a:vBox>
+        </a:hBox>
+    </a:view>
+</a:screen>

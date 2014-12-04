@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hansen  
+    $Date: 2014-9-17 下午5:18:21  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="PUR_PO_RP_DETAILS">
+    <bm:fields>
+        <bm:field name="rp_header_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="RP_HEADER_ID" prompt="PUR_PO_RP_DETAILS.RP_HEADER_ID"/>
+        <bm:field name="item_category_name1"/>
+    </bm:fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    t1.category_name item_category_name1,
+                    t1.rp_header_id,
+                    sum
+                FROM
+                    (SELECT
+                        category_name,
+                        rp_header_id,
+                        sum
+                    FROM
+                        (SELECT
+                            sum(total_amount) sum,
+                            v2.category_name,
+                            pr.rp_header_id
+                        FROM
+                            PUR_PO_RP_DETAILS pr,
+                            mtl_categories_user_defined_vl v2,
+                            rpt_setting_frequency sf
+                        WHERE
+                            pr.rp_header_id         = sf.rp_header_id AND
+                            sf.rpt_code = 'RPT5010' AND
+                            v2.category_udf_id = pr.item_category_id
+                        GROUP BY
+                            v2.category_name,
+                            pr.rp_header_id
+                        ORDER BY
+                            sum DESC
+                        )
+                    WHERE
+                        rownum < 7
+                    ) t1 #WHERE_CLAUSE#
+                    order by sum desc
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <!--     <bm:query-fields>
+        <bm:query-field field="rp_header_id" queryExpression="t1.rp_header_id = ${@rp_header_id}"/>
+    </bm:query-fields> -->
+    <!--     <bm:data-filters>
+        <bm:data-filter enforceOperations="query" expression="t1.rp_header_id = ${@rp_header_id}"/>
+    </bm:data-filters> -->
+</bm:model>

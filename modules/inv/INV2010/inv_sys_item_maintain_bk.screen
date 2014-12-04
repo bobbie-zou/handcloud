@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao  
+    $Date: 2013-6-5 下午1:47:40  
+    $Revision: 1.0  
+    $Purpose: 物品主数据维护页面
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <!-- 进入页面，初始完成通过物料ID查询物料主数据，主要是针对维护物料数据而做 -->
+        <a:model-query defaultWhereClause="t1.item_id = ${/parameter/@item_id}" model="inv.INV2010.inv_sys_item_maintain" rootPath="sys_item"/>
+    </a:init-procedure>
+    <a:view>
+        <!-- 定义页面中用到的弹出页面，请求页面，请求执行BM等 -->
+        <a:link id="inv2010_link_sys_item_inventory_detail" url="${/request/@context_path}/modules/inv/INV2010/inv_sys_item_inventory_detail_maintain.screen"/>
+        <a:link id="inv2010_link_sys_item_inventory_batch_add" url="${/request/@context_path}/modules/inv/INV2010/inv_sys_item_inventory_batch_add.screen"/>
+        <a:link id="inv2010_link_sys_item_attachment_file_upload" url="${/request/@context_path}/attachment_file_upload.screen"/>
+        <a:link id="inv2010_link_public_pur_purchase_category_tree" url="${/request/@context_path}/modules/public/pur_purchase_category_tree.screen"/>
+        <a:link id="inv2010_link_sys_item_attachment_file_download" url="${/request/@context_path}/atm_download.svc"/>
+        <a:link id="inv2010_link_sys_item_save" model="inv.INV2010.inv_sys_item_maintain" modelaction="update"/>
+        <a:link id="inv2010_link_sys_item_delete" model="inv.INV2010.inv_sys_item_delete" modelaction="delete"/>
+        <a:link id="inv2010_link_sys_item_category_batch_save" model="inv.INV2010.inv_sys_item_categories" modelaction="batch_update"/>
+        <script><![CDATA[
+            var item_id = '${/parameter/@item_id}'; //全局变量，物料ID，初始是物料查询页面传递过来的ID（针对物料数据修改）
+            
+            //页面在加载完毕之后，执行此方法，为页面进行初始化工作
+            function inv2010_itemMaintainInit() {
+            
+                if (item_id) { //判断全局变量是否有值，有值表示是修改，执行下面操作
+                    
+                    //置页面所有TAB页可用
+                    inv2010_setItemTabsEnable();
+                    
+                    //修改物料数据，进入页面默认选择第二个TAB页
+                    $('inv2010_inv_sys_item_tabPanel').selectTab(1);
+            
+                    //为TAB页中的grid列表绑定的DataSet设置查询，并查询数据
+                    $('inv2010_sys_item_inventory_maintain_ds').setQueryParameter('item_id', item_id);
+                    $('inv2010_sys_item_inventory_maintain_ds').query();
+                    $('inv2010_sys_item_categories_maintain_ds').setQueryParameter('item_id', item_id);
+                    $('inv2010_sys_item_categories_maintain_ds').query();
+                    $('inv2010_sys_item_attachment_maintain_ds').setQueryParameter('item_id', item_id);
+                    $('inv2010_sys_item_attachment_maintain_ds').query();
+                    
+                    //判断物料是否已经作废
+                    if('${/model/sys_item/record/@deleted_flag}'=="Y"){
+                        inv2010_setItemReadOnly();
+                    }
+                }
+            }
+            
+            //所有头信息字段置为只读，行信息按钮不可用
+            function inv2010_setItemReadOnly(){
+                var record = $('inv2010_sys_item_basics_create_ds').getCurrentRecord();
+                record.getMeta().getField('item_type_code_desc').setReadOnly(true);
+                record.getMeta().getField('item_name').setReadOnly(true);
+                record.getMeta().getField('primary_uom_desc').setReadOnly(true);
+                record.getMeta().getField('item_manage_method_display').setReadOnly(true);
+                record.getMeta().getField('quota_manage_type_display').setReadOnly(true);
+                record.getMeta().getField('secondary_uom_enabled').setReadOnly(true);
+                record.getMeta().getField('secondary_uom_desc').setReadOnly(true);
+                record.getMeta().getField('conversion').setReadOnly(true);
+                record.getMeta().getField('item_specs').setReadOnly(true);
+                record.getMeta().getField('item_model').setReadOnly(true);
+                record.getMeta().getField('lot_numbering_rule').setReadOnly(true);
+                record.getMeta().getField('enabled_flag').setReadOnly(true);
+                record.getMeta().getField('note').setReadOnly(true);
+                
+                //grid上的按钮
+                $('inv2010_sys_item_inventory_maintain_grid_add_btn').disable();
+                $('inv2010_sys_item_inventory_maintain_grid_save_btn').disable();
+                $('inv2010_sys_item_inventory_maintain_grid_clear_btn').disable();
+                $('inv2010_sys_item_inventory_maintain_grid_batch_add_btn').disable();
+                $('inv2010_sys_item_categories_maintain_grid_add_btn').disable();
+                $('inv2010_sys_item_categories_maintain_grid_save_btn').disable();
+                $('inv2010_sys_item_attachment_maintain_grid_add_btn').disable();
+                $('inv2010_sys_item_attachment_maintain_grid_save_btn').disable();
+
+				//保存按钮
+                $('inv2010_saveSysItemBasic_btn').disable();
+                $('inv2010_deleteSysItemBasic_btn').disable();
+                
+            }
+            
+            //页面保存按钮执行的方法
+            function inv2010_saveSysItemBasic() {
+                if ($('inv2010_sys_item_basics_create_ds').validate()) { //进行数据校验（必输字段是否必输等）
+                    //获取物料头信息数据
+                    var item_record = $('inv2010_sys_item_basics_create_ds').getCurrentRecord();
+                    
+                    //判断如果启用了辅计量单位，辅单位不能与主单位相同
+                    if(item_record.get('secondary_uom_enabled')=="Y"){
+                        if(item_record.get('primary_uom')==item_record.get('secondary_uom')){
+                            Aurora.showMessage('${l:PROMPT}', '主单位不能与辅单位相同！');
+                            return false;
+                        }
+                    }
+            
+                    //提交AjAX请求
+                    Aurora.request({
+                        url: $('inv2010_link_sys_item_save').getUrl(),
+                        para: item_record.data,
+                        success: function(res){
+                            Aurora.showMessage('${l:PROMPT}', '保存成功!', function(){
+	                            inv2010_invsysItemSubmitSuccess(res);                                
+                            });
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            //保存请求执行完成后
+            function inv2010_invsysItemSubmitSuccess(response) {
+                item_id = response.result.item_id; //将AJAX请求返回的物料ID赋予全局变量
+                //重新加载物料头信息DataSet
+                var item_ds = $('inv2010_sys_item_basics_create_ds');
+                item_ds.setQueryParameter('item_id', item_id);
+                item_ds.query();
+            
+                //头信息保存成功后，所有TAB页都可用
+                inv2010_setItemTabsEnable();
+            
+                //在提交物料头信息时，如果TAB页里的grid有数据，则同时进行提交，此目的是完成一次保存所有数据（物料头、TAB页的）
+                if ($('inv2010_sys_item_inventory_maintain_ds')) {
+                    if ($('inv2010_sys_item_inventory_maintain_ds').getAll().length > 0) {
+                        $('inv2010_sys_item_inventory_maintain_ds').submit();
+                    }
+                }
+                if ($('inv2010_sys_item_categories_maintain_ds')) {
+                    if ($('inv2010_sys_item_categories_maintain_ds').getAll().length > 0) {
+                        $('inv2010_sys_item_categories_maintain_ds').submit();
+                    }
+                }
+                if ($('inv2010_sys_item_attachment_maintain_ds')) {
+                    if ($('inv2010_sys_item_attachment_maintain_ds').getAll().length > 0) {
+                        $('inv2010_sys_item_attachment_maintain_ds').submit();
+                    }
+                }
+            }
+            
+            //将所有TAB页置为可用
+            function inv2010_setItemTabsEnable() {
+                $('inv2010_inv_sys_item_tabPanel').setEnabled(0);
+                $('inv2010_inv_sys_item_tabPanel').setEnabled(1);
+                $('inv2010_inv_sys_item_tabPanel').setEnabled(2);
+                $('inv2010_inv_sys_item_tabPanel').setEnabled(3);
+            }
+            
+            //返回按钮执行的方法
+            function inv2010_returnSysItemBasic() {
+                $('inv2010_link_item_maintain_window').close();
+            }
+            
+            //作废按钮执行的方法
+            function inv2010_deleteSysItemBasic() {
+                if (item_id) {
+                    Aurora.showConfirm('${l:PROMPT}', '${l:INV_SYS_ITEMS.SURE_DELETE_OR_NOT}', function() {
+                        Aurora.request({
+                            url: $('inv2010_link_sys_item_delete').getUrl(),
+                            //para: item_record.data,
+                            para: {
+                                item_id: item_id
+                            },
+                            success: inv2010_returnSysItemBasic, //作废完成后，返回到物料查询页面
+                            scope: this
+                        });
+                    });
+                }
+            }
+            
+            //物料头信息DataSet完成查询后，加载的方法
+            function inv2010_invSysItemLoad(ds) {
+                var record = ds.getCurrentRecord();
+                record.getMeta().getField('item_type_code_desc').setReadOnly(true); //除了新增物料时，其他进入页面的时候，物料类型都不能维护
+            
+                //启用辅计量单位，辅计量单位（必输）、主单位基准转换率都可维护
+                if (record.get('secondary_uom_enabled') == "Y") {
+                    record.getMeta().getField('secondary_uom_desc').setReadOnly(false);
+                    record.getMeta().getField('conversion').setReadOnly(false);
+                    record.getMeta().getField('secondary_uom_desc').setRequired(true);
+            
+                    //不启用辅计量单位，辅计量单位（必输）、主单位基准转换率都不可维护
+                } else if (record.get('secondary_uom_enabled') == "N") {
+                    record.getMeta().getField('secondary_uom_desc').setReadOnly(true);
+                    record.getMeta().getField('conversion').setReadOnly(true);
+                    record.getMeta().getField('secondary_uom_desc').setRequired(false);
+                }
+            }
+            
+            //物料头信息数据发生修改时，执行的update事件
+            function inv2010_invSysItemUpdate(ds, record, name, value, oldvalue) {
+                if(name == 'secondary_uom_enabled_display'){
+                    if(!value){
+                        record.set('secondary_uom_enabled', '');
+                    }
+                }
+                if (name == "secondary_uom_enabled") {
+                    //启用辅计量单位，辅计量单位（必输）、主单位基准转换率都可维护
+                    if (value == "Y") {
+                        record.getMeta().getField('secondary_uom_desc').setReadOnly(false);
+                        record.getMeta().getField('conversion').setReadOnly(false);
+                        record.getMeta().getField('secondary_uom_desc').setRequired(true);
+            
+                        //不启用辅计量单位，辅计量单位（必输）、主单位基准转换率值清空，且都不可维护
+                    } else{
+                        record.set('secondary_uom', '');
+                        record.set('secondary_uom_desc', '');
+                        record.set('conversion', '');
+                        record.getMeta().getField('secondary_uom_desc').setReadOnly(true);
+                        record.getMeta().getField('conversion').setReadOnly(true);
+                        record.getMeta().getField('secondary_uom_desc').setRequired(false);
+                	}
+                }
+            }
+            
+            //接收单位数据发生修改时，执行的update事件
+            function inv2010_invItemInventoryUpdate(ds, record, name, value, oldvalue) {
+                if (name == "inventory_organization_code") {
+                    if (!value || value != oldvalue) { //当接收单位代码为空或者不等于原值时，需要清空组织级明细里的信息
+                        record.set('qualified_vendors_required', 'N');
+                        record.set('lot_required_flag', 'N');
+                        record.set('default_purchasing_group', null);
+                        record.set('default_buyer', null);
+                        record.set('default_tax_type', null);
+                    }
+                }
+            }
+            
+            //接收单位TAB页，在提交数据之前执行的方法（添加物料ID等）
+            function inv2010_invItemInventoryBeforeSubmit(ds) {
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    record.set('item_id', item_id); //添加全局物料ID
+                }
+            }
+            
+            //物品分类TAB页，在提交数据之前执行的方法（添加物料ID等）
+            function inv2010_invItemCategoryBeforeSubmit(ds) {
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    record.set('item_id', item_id); //添加全局物料ID
+                }
+            }
+            
+            //附件信息TAB页，在提交数据之前执行的方法（添加物料ID等）
+            function inv2010_invItemAttachmentBeforeSubmit(ds) {
+                var records = ds.getAll();
+                for (var i = 0;i < records.length;i++) {
+                    var record = records[i];
+                    record.set('item_id', item_id); //添加全局物料ID
+                    record.set('_status', 'update'); //添加提交执行的方法（insert\update\delete..），这里是更新附件说明和是否启用信息
+                }
+            }
+            
+            //接收单位TAB页，在提交成功之后执行的方法（设置grid查询参数、执行查询）
+            function inv2010_invItemInventorySubmitSuccess(ds, obj) {
+                ds.setQueryParameter('item_id', item_id);
+                ds.query();
+            }
+            
+            //物品分类TAB页，在提交成功之后执行的方法（设置grid查询参数、执行查询）
+            function inv2010_invItemCategorySubmitSuccess(ds, obj) {
+                ds.setQueryParameter('item_id', item_id);
+                ds.query();
+            }
+            
+            //附件信息TAB页，在提交成功之后执行的方法（设置grid查询参数、执行查询）
+            function inv2010_invItemAttachmentSubmitSuccess(ds, response) {
+                ds.setQueryParameter('item_id', item_id);
+                ds.query();
+            }
+            
+            //接收单位TAB页，组织级明细字段的渲染方法，弹出明细维护页面
+            function inv2010_inventoryOrganizationDetailRenderer(value, record, name) {
+                var inventory_organization_code = record.get('inventory_organization_code');
+                if (inventory_organization_code) { //只要选择了库存组织（未保存也可以），就能维护明细
+                    return '<a href="javascript:inv2010_inventoryOrganizationDetailRendererWindow()">${l:BGT_PERIOD_SETS.DETAIL}</a>';
+                }
+            }
+            
+            //打开组织级明细维护页面
+            function inv2010_inventoryOrganizationDetailRendererWindow() {
+                new Aurora.Window({
+                    id: 'inv2010_link_sys_item_inventory_detail_window',
+                    url: $('inv2010_link_sys_item_inventory_detail').getUrl(),
+                    title: '${l:INV_SYS_ITEMS.INVENTORY_INFOMATION}',
+                    height: 260,
+                    width: 650
+                });
+            }
+            
+            //接收单位grid上的编辑器执行方法（通过判断，返回是否可以维护，这里是保存以后，就不能维护了）
+            function inv2010_itemInventoryEditorFunction(record, name) {
+                if (name == "inventory_organization_code") {
+                    if (record.get('item_inventory_id')) { //接收单位主键ID,有则表示已经保存，返回空（不能维护）
+                        return '';
+                    } else {
+                        return 'inv2010_item_inventory_organization_code_lov'; //返回编辑器ID，可以维护
+                    }
+                }
+            }
+            
+            //接收单位grid上，数据新增事件，将物料头上的主单位赋值给组织级明细页面的采购计量单位
+            function inv2010_invItemInventoryAdd(ds, record, index) {
+                var item_record = $('inv2010_sys_item_basics_create_ds').getCurrentRecord();
+                record.set('uom_of_purchasing', item_record.get('primary_uom'));
+                record.set('uom_of_purchasing_desc', item_record.get('primary_uom_desc'));
+            }
+            
+            //接收单grid上，批量新增按钮执行的方法，打开批量新增物料接收单位的页面
+            function inv2010_itemInventoryBatchAdd() {
+                if (item_id) {
+                    new Aurora.Window({
+                        id: 'inv2010_link_sys_item_inventory_batch_add_window',
+                        url: $('inv2010_link_sys_item_inventory_batch_add').getUrl() + '?item_id=' + item_id,
+                        title: '${l:INV_SYS_ITEMS.BATCH_ADD_ITEM_INVENTORY}',
+                        height: 460,
+                        width: 650
+                    }).on('beforeclose', function() { //关闭批量新增页面，执行的方法，刷新接收单位grid
+                        $('inv2010_sys_item_inventory_maintain_ds').setQueryParameter('item_id', item_id);
+                        $('inv2010_sys_item_inventory_maintain_ds').query();
+                    });
+                }
+            }
+            
+            //附件信息TAB页grid上，数据新增事件，打开公用的附件上传页面
+            function inv2010_attachmentFileAdd() {
+                new Aurora.Window({
+                    id: 'inv2010_link_sys_item_attachment_file_upload_window',
+                    title: '${l:HAP_UPLOAD_TITLE}',
+                    url: $('inv2010_link_sys_item_attachment_file_upload').getUrl() + '?pkvalue=' + item_id + '&table_name=INV_SYSTEM_ITEMS',
+                    width: 500,
+                    height: 500
+                }).on('close', function() { //关闭附件上传页面，执行的方法，刷新附件信息grid
+                    $('inv2010_sys_item_attachment_maintain_ds').setQueryParameter('item_id', item_id);
+                    $('inv2010_sys_item_attachment_maintain_ds').query();
+                });
+            }
+            
+            //附件信息TAB页，附件名称的渲染方法，点击附件名称的超链，可以下载该附件
+            function inv2010_sysItemAttachmentFileNameRenderer(value, record, name) {
+                var attachment_id = record.get('attachment_id');
+                var file_name = record.get('file_name');
+                if (attachment_id) {
+                    return '<a href="' + $('inv2010_link_sys_item_attachment_file_download').getUrl() + '?attachment_id=' + attachment_id + '">' + file_name + '</a>';
+                }
+            }
+            
+            //物品分类TAB页grid上，新增事件，打开公用的采购品类选择页面
+            function inv2010_itemCategoryAdd() {
+                new Aurora.Window({
+                    id: 'link_public_pur_purchase_category_tree_window',  //因为是公用页面，故ID没加功能号
+                    title: '${l:PUBLIC.SELECT_PURCHASE_CATEGORY}',
+                    url: $('inv2010_link_public_pur_purchase_category_tree').getUrl(),
+                    width:900,
+                    height:600
+                }).on('close', function() { //关闭选择采购品类页面，执行的方法，刷新物品分类信息grid
+                    $('inv2010_sys_item_categories_maintain_ds').setQueryParameter('item_id', item_id);
+                    $('inv2010_sys_item_categories_maintain_ds').query();
+                });
+            }
+            
+            //采购品类tree保存按钮执行方法
+            function publicPurchaseCategoryTreeSave() {
+                //获取公用采购品类页面的数据集
+                var ds = $('public_pur_purchase_category_grid_ds');
+                var records = ds.getAll();
+                
+                //如果没有数据，保存没有效果
+                if(records.length < 1){
+                    return false;
+                }
+                
+                //设置数据
+                var datas = [];
+                for(var i=0;i<records.length;i++){
+                    var record = records[i];
+                    record.set('item_id',item_id);
+                    record.set('_status','execute'); //执行的方法
+                    datas.push(record.data);
+                }
+            	Aurora.showConfirm('${l:PROMPT}', '${l:ARE_YOU_SURE_OR_NOT_TO_SAVE}', function() {
+                    Aurora.request({
+                        url: $('inv2010_link_sys_item_category_batch_save').getUrl(),
+                        para: datas,
+                        success: publicPurchaseCategoryTreeClose, //保存完后关闭树形页面
+                        scope: this
+                    });
+                });
+           }
+        ]]></script>
+        <a:dataSets>
+            <!-- 系统定义SYSCODE -->
+            <a:dataSet id="inv2010_yes_or_no_ds" lookupCode="YES_OR_NO"/>
+            <a:dataSet id="inv2010_sys_item_manage_method_list_ds" lookupCode="INV_ITEM_MANAGE_METHOD"/>
+            <a:dataSet id="inv2010_sys_item_quota_type_list_ds" lookupCode="INV_ITEM_QUOTA_TYPE"/>
+            <a:dataSet id="inv2010_sys_item_basics_create_ds" autoCreate="true" model="inv.INV2010.inv_sys_item_maintain">
+                <!-- 获取init-procedure执行过程后返回的信息 -->
+                <a:datas dataSource="/model/sys_item"/>
+                <a:fields>
+                    <a:field name="version_num" readOnly="true"/>
+                    <a:field name="enabled_flag" defaultValue="Y"/>
+                    <a:field name="item_type_code_desc" autoComplete="true" autoCompleteField="item_type_code" lovGridHeight="300" lovHeight="450" lovService="public.inv_sys_item_type_lov" lovWidth="570" prompt="INV_SYS_ITEMS.ITEM_TYPE_CODE" required="true" title="INV_SYS_ITEMS.ITEM_TYPE">
+                        <a:mapping>
+                            <a:map from="item_type_code_desc" to="item_type_code_desc"/>
+                            <a:map from="item_type_code" to="item_type_code"/>
+                            <a:map from="item_type_desc" to="item_type_desc"/>
+                            <a:map from="item_type_id" to="item_type_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_type_desc" readOnly="true"/>
+                    <a:field name="item_code" readOnly="true"/>
+                    <a:field name="item_name" maxLength="2000" prompt="INV_SYSTEM_ITEMS.DESCRIPTION" required="true"/>
+                    <a:field name="primary_uom_desc" autoComplete="true" autoCompleteField="uom_desc" lovGridHeight="300" lovHeight="450" lovService="public.fnd_uom_codes_lov" lovWidth="550" prompt="FND_UOM_CONVERSIONS.PRIMARY_UOM_CODE" required="true" title="INV_SYS_ITEMS.PRIMARY_UOM">
+                        <a:mapping>
+                            <a:map from="uom_desc" to="primary_uom_desc"/>
+                            <a:map from="uom_code" to="primary_uom"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_manage_method_display" displayField="code_value_name" options="inv2010_sys_item_manage_method_list_ds" prompt="INV_SYSTEM_ITEMS.ITEM_MANAGE_METHOD" required="true" returnField="item_manage_method" valueField="code_value"/>
+                    <a:field name="quota_manage_type_display" displayField="code_value_name" options="inv2010_sys_item_quota_type_list_ds" prompt="INV_SYS_ITEMS.QUOTA_MANAGE_TYPE" returnField="quota_manage_type" valueField="code_value"/>
+                    <a:field name="secondary_uom_enabled"/>
+                    <a:field name="secondary_uom_enabled_display" displayField="code_value_name" options="inv2010_yes_or_no_ds" prompt="INV_SYS_ITEMS.SECONDARY_UOM_ENABLED" returnField="secondary_uom_enabled" valueField="code_value"/>
+                    <a:field name="secondary_uom_desc" autoComplete="true" autoCompleteField="uom_desc" lovGridHeight="300" lovHeight="450" lovService="public.fnd_uom_codes_lov" lovWidth="550" prompt="INV_SYS_ITEMS.SECONDARY_UOM" readOnly="true" title="INV_SYS_ITEMS.SECONDARY_UOM">
+                        <a:mapping>
+                            <a:map from="uom_desc" to="secondary_uom_desc"/>
+                            <a:map from="uom_code" to="secondary_uom"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="item_specs" maxLength="1000"/>
+                    <a:field name="item_model" maxLength="1000"/>
+                    <a:field name="conversion" readOnly="true"/>
+                    <a:field name="lot_numbering_rule" autoComplete="true" autoCompleteField="uom_desc" lovGridHeight="300" lovHeight="450" lovWidth="550" prompt="INV_SYSTEM_ITEMS.LOT_NUMBERING_RULE" title="INV_SYSTEM_ITEMS.LOT_NUMBERING_RULE"/>
+                    <a:field name="note" maxLength="2000"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="inv2010_invSysItemUpdate"/>
+                    <a:event name="load" handler="inv2010_invSysItemLoad"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="inv2010_sys_item_inventory_maintain_ds" model="inv.INV2010.inv_sys_item_inventory" selectable="true">
+                <a:fields>
+                    <a:field name="inventory_organization_code" autoComplete="true" autoCompleteField="organization_code" lovHeight="510" lovLabelWidth="110" lovService="public.inv_organizations_lov" lovWidth="550" prompt="INV_SYS_ITEMS.ITEM_INVENTORY_CODE" required="true" title="INV_SYS_ITEMS.ITEM_INVENTORY">
+                        <a:mapping>
+                            <a:map from="organization_name" to="inventory_organization_name"/>
+                            <a:map from="organization_code" to="inventory_organization_code"/>
+                            <a:map from="organization_id" to="inventory_organization_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="inventory_organization_name" prompt="INV_SYS_ITEMS.ITEM_INVENTORY_NAME" readOnly="true"/>
+                    <a:field name="inventoryOrganizationDetail" prompt="INV_SYS_ITEMS.INVENTORY_INFOMATION"/>
+                    <a:field name="qualified_vendors_required" checkedValue="Y" defaultValue="N" prompt="INV_SYS_ITEM_INVENTORY.QUALIFIED_VENDORS_REQUIRED" uncheckedValue="N"/>
+                    <a:field name="lot_required_flag" checkedValue="Y" defaultValue="N" prompt="INV_SYS_ITEM_INVENTORY.LOT_REQUIRED_FLAG" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="SYS_CODE.ENABLED_FLAG" uncheckedValue="N"/>
+                    <a:field name="default_purchasing_group" prompt="INV_SYS_ITEM_INVENTORY.DEFAULT_PURCHASING_GROUP_ID"/>
+                    <a:field name="default_buyer" prompt="INV_SYS_ITEM_INVENTORY.DEFAULT_BUYER_ID"/>
+                    <a:field name="uom_of_purchasing_desc" autoComplete="true" autoCompleteField="uom_desc" lovGridHeight="300" lovHeight="450" lovService="public.fnd_uom_codes_lov" lovWidth="550" prompt="INV_SYS_ITEM_INVENTORY.UOM_OF_PURCHASING" title="INV_SYS_ITEM_INVENTORY.UOM_OF_PURCHASING">
+                        <a:mapping>
+                            <a:map from="uom_desc" to="uom_of_purchasing_desc"/>
+                            <a:map from="uom_code" to="uom_of_purchasing"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="default_tax_type_desc" autoComplete="true" autoCompleteField="tax_type_code" lovGridHeight="300" lovHeight="450" lovService="public.fnd_tax_type_code_lov" lovWidth="550" prompt="INV_SYS_ITEMS.DEFAULT_TAX_TYPE_CODE" title="FND_TAX_TYPE_CODES.TAX_TYPE_CODE">
+                        <a:mapping>
+                            <a:map from="tax_type_code" to="default_tax_type_code"/>
+                            <a:map from="tax_type_rate" to="default_tax_type_rate"/>
+                            <a:map from="description" to="default_tax_type_desc"/>
+                            <a:map from="tax_type_id" to="default_tax_type_id"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="inv2010_invItemInventoryUpdate"/>
+                    <a:event name="add" handler="inv2010_invItemInventoryAdd"/>
+                    <a:event name="beforesubmit" handler="inv2010_invItemInventoryBeforeSubmit"/>
+                    <a:event name="submitsuccess" handler="inv2010_invItemInventorySubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="inv2010_sys_item_categories_maintain_ds" model="inv.INV2010.inv_sys_item_categories" selectable="true">
+                <a:fields>
+                    <a:field name="total_category_code" prompt="INV_SYS_ITEMS.PURCHASE_CATEGORY_CODE"/>
+                    <a:field name="total_category_name" prompt="INV_SYS_ITEMS.PURCHASE_CATEGORY_DESC"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="SYS_CODE.ENABLED_FLAG" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="beforesubmit" handler="inv2010_invItemCategoryBeforeSubmit"/>
+                    <a:event name="submitsuccess" handler="inv2010_invItemCategorySubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="inv2010_sys_item_attachment_maintain_ds" model="inv.INV2010.inv_sys_item_attachment" selectable="true">
+                <a:fields>
+                    <a:field name="file_name" prompt="INV_SYS_ITEMS.ATTACHMENT_NAME"/>
+                    <a:field name="file_size" prompt="INV_SYS_ITEMS.ATTACHMENT_SIZE"/>
+                    <a:field name="note" prompt="INV_SYS_ITEMS.ATTACHMENT_COMMENT"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" prompt="SYS_CODE.ENABLED_FLAG" uncheckedValue="N"/>
+                    <a:field name="note" maxLength="2000"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="beforesubmit" handler="inv2010_invItemAttachmentBeforeSubmit"/>
+                    <a:event name="submitsuccess" handler="inv2010_invItemAttachmentSubmitSuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton id="inv2010_saveSysItemBasic_btn" click="inv2010_saveSysItemBasic" style="margin-left:20px;" text="HAP_SAVE" width="100"/>
+                <a:toolbarButton click="inv2010_returnSysItemBasic" style="margin-left:20px;" text="HAP_BACK" width="100"/>
+                <a:toolbarButton id="inv2010_deleteSysItemBasic_btn" click="inv2010_deleteSysItemBasic" style="margin-left:20px;" text="HAP_REMOVE" width="100"/>
+            </a:screenTopToolbar>
+            <a:vBox>
+                <a:hBox labelWidth="120">
+                    <a:numberField name="version_num" bindTarget="inv2010_sys_item_basics_create_ds" decimalPrecision="1"/>
+                    <a:lov name="item_type_code_desc" bindTarget="inv2010_sys_item_basics_create_ds" width="428"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:textField name="item_code" bindTarget="inv2010_sys_item_basics_create_ds"/>
+                    <a:textField name="item_name" bindTarget="inv2010_sys_item_basics_create_ds" width="428"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:lov name="primary_uom_desc" bindTarget="inv2010_sys_item_basics_create_ds"/>
+                    <a:comboBox name="item_manage_method_display" bindTarget="inv2010_sys_item_basics_create_ds"/>
+                    <a:comboBox name="quota_manage_type_display" bindTarget="inv2010_sys_item_basics_create_ds"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:comboBox name="secondary_uom_enabled_display" bindTarget="inv2010_sys_item_basics_create_ds"/>
+                    <a:lov name="secondary_uom_desc" bindTarget="inv2010_sys_item_basics_create_ds"/>
+                    <a:numberField name="conversion" bindTarget="inv2010_sys_item_basics_create_ds"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:textField name="item_specs" bindTarget="inv2010_sys_item_basics_create_ds" width="150"/>
+                    <a:textField name="item_model" bindTarget="inv2010_sys_item_basics_create_ds"/>
+                    <a:lov name="lot_numbering_rule" bindTarget="inv2010_sys_item_basics_create_ds"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:radio name="enabled_flag" bindTarget="inv2010_sys_item_basics_create_ds" width="153">
+                        <a:items>
+                            <a:item label="HAP_ENABLE" value="Y"/>
+                            <a:item label="HAP_DISABLE" value="N"/>
+                        </a:items>
+                    </a:radio>
+                    <a:textArea name="note" bindTarget="inv2010_sys_item_basics_create_ds" height="50" width="425"/>
+                </a:hBox>
+            </a:vBox>
+            <a:tabPanel id="inv2010_inv_sys_item_tabPanel" height="340" width="1100">
+                <a:tabs>
+                    <a:tab disabled="true" prompt="INV_SYS_ITEMS.ITEM_INFOMATION" width="120"/>
+                    <a:tab disabled="true" prompt="INV_SYS_ITEMS.ITEM_INVENTORY_INFOMATION" width="120">
+                        <a:grid id="inv2010_sys_item_inventory_maintain_grid" bindTarget="inv2010_sys_item_inventory_maintain_ds" height="312" navBar="true" showRowNumber="true" style="border:0px solid;" width="1097">
+                            <a:toolBar>
+                                <a:button id="inv2010_sys_item_inventory_maintain_grid_add_btn" type="add"/>
+                                <a:button id="inv2010_sys_item_inventory_maintain_grid_save_btn" type="save"/>
+                                <a:button id="inv2010_sys_item_inventory_maintain_grid_clear_btn" type="clear"/>
+                                <a:button id="inv2010_sys_item_inventory_maintain_grid_batch_add_btn" click="inv2010_itemInventoryBatchAdd" icon="${/request/@context_path}/images/save.gif" text="FND.BULK_ADD"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="inventory_organization_code" align="center" editorFunction="inv2010_itemInventoryEditorFunction" sortable="true" width="100"/>
+                                <a:column name="inventory_organization_name" align="left" sortable="true" width="150"/>
+                                <a:column name="inventoryOrganizationDetail" align="center" renderer="inv2010_inventoryOrganizationDetailRenderer" width="80"/>
+                                <a:column name="enabled_flag" align="center" editor="inv2010_item_inventory_enabled_flag_cb" sortable="true" width="50"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:lov id="inv2010_item_inventory_organization_code_lov"/>
+                                <a:checkBox id="inv2010_item_inventory_enabled_flag_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab disabled="true" prompt="INV_SYS_ITEMS.PURCHASE_CATEGORY_INFOMATION" width="120">
+                        <a:grid id="inv2010_sys_item_categories_maintain_grid" bindTarget="inv2010_sys_item_categories_maintain_ds" height="312" navBar="true" showRowNumber="true" style="border:0px solid;" width="1097">
+                            <a:toolBar>
+                                <a:button id="inv2010_sys_item_categories_maintain_grid_add_btn" click="inv2010_itemCategoryAdd" icon="${/request/@context_path}/images/add.gif" text="PROMPT.NEW"/>
+                                <a:button id="inv2010_sys_item_categories_maintain_grid_save_btn" type="save"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="total_category_code" align="center" sortable="true" width="200"/>
+                                <a:column name="total_category_name" align="left" sortable="true" width="300"/>
+                                <a:column name="enabled_flag" align="center" editor="inv2010_item_categories_enabled_flag_cb" sortable="true" width="50"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:checkBox id="inv2010_item_categories_enabled_flag_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab disabled="true" prompt="INV_SYS_ITEMS.ATTACHMENT_INFO" width="120">
+                        <a:grid id="inv2010_sys_item_attachment_maintain_grid" bindTarget="inv2010_sys_item_attachment_maintain_ds" height="312" navBar="true" showRowNumber="true" style="border:0px solid;" width="1097">
+                            <a:toolBar>
+                                <a:button id="inv2010_sys_item_attachment_maintain_grid_add_btn" click="inv2010_attachmentFileAdd" icon="${/request/@context_path}/images/add.gif" text="PROMPT.NEW"/>
+                                <a:button id="inv2010_sys_item_attachment_maintain_grid_save_btn" type="save"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="file_name" align="center" renderer="inv2010_sysItemAttachmentFileNameRenderer" sortable="true" width="200"/>
+                                <a:column name="file_size" align="center" sortable="true" width="100"/>
+                                <a:column name="note" align="left" editor="inv2010_sys_item_attachment_note_tf" sortable="true" width="200"/>
+                                <a:column name="enabled_flag" align="center" editor="inv2010_sys_item_attachment_enabled_flag_cb" sortable="true" width="50"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="inv2010_sys_item_attachment_note_tf"/>
+                                <a:checkBox id="inv2010_sys_item_attachment_enabled_flag_cb"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+        <script><![CDATA[
+            inv2010_itemMaintainInit(); //页面加载完毕之后，初始方法（主要用于修改物料数据时的操作）
+        ]]></script>
+    </a:view>
+</a:screen>

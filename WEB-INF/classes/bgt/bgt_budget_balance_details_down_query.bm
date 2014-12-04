@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lixi  
+    $Date: 2011-7-28 下午03:55:27  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+select *
+  from (select br.reserve_flag,
+               erl.company_id,
+               br.business_type doc_type,
+               v2.company_short_name company_desc,
+               erl.unit_id,
+               v3.description unit_desc,
+               v4.name employee_desc,
+               v1.expense_requisition_type_id type_id,
+               v1.description type_desc,
+               erh.exp_requisition_header_id doc_id,
+               erh.exp_requisition_number doc_number,
+               to_char(erh.requisition_date, 'yyyy-mm-dd') doc_date,
+               erl.line_number,
+               v5.budget_item_id,
+               v5.description budget_item_desc,
+               br.amount doc_amount,
+               (select cv.code_value_name
+                  from sys_code_values_v cv
+                 where cv.code = 'EXP_EXPENSE_REPORT_STATUS'
+                   and cv.code_value = erh.requisition_status) status,
+               erh.description,
+               (select t.code_value_name
+                  from sys_code_values_v t
+                 where t.code_value =
+                       exp_report_util_pkg.get_exp_req_closed_status(erh.exp_requisition_header_id)
+                   and t.code = 'EXP_REQUISITION_CLOSE_STATUS') close_status
+          from bgt_balance_details_tmp  t,
+               bgt_budget_reserves      br,
+               exp_requisition_headers  erh,
+               exp_requisition_lines    erl,
+               exp_requisition_dists    erd,
+               exp_expense_req_types_vl v1,
+               fnd_companies_vl         v2,
+               exp_org_unit_vl          v3,
+               exp_employees            v4,
+               bgt_budget_items_vl      v5
+         where t.session_id = ${/session/@session_id}
+           and br.budget_reserve_line_id = t.budget_reserve_line_id
+           and br.business_type = 'EXP_REQUISITION'
+           and erh.exp_requisition_header_id = br.document_id
+           and erd.exp_requisition_dists_id = br.document_line_id
+           and erl.exp_requisition_header_id = erh.exp_requisition_header_id
+           and erl.exp_requisition_line_id = erd.exp_requisition_line_id
+           and v1.expense_requisition_type_id = erh.exp_requisition_type_id
+           and v2.company_id = erl.company_id
+           and v3.UNIT_ID = erl.unit_id
+           and v4.employee_id = erh.employee_id
+           and v5.budget_item_id = erl.budget_item_id
+           and 'R' = ${@reserve_flag}
+        union all
+		select br.reserve_flag,
+               erl.company_id,
+               br.business_type doc_type,
+               v2.company_short_name company_desc,
+               erl.unit_id,
+               v3.description unit_desc,
+               v4.name employee_desc,
+               v1.requisition_type_id type_id,
+               v1.description type_desc,
+               erh.pur_requisition_header_id doc_id,
+               erh.pur_requisition_number doc_number,
+               to_char(erh.requisition_date, 'yyyy-mm-dd') doc_date,
+               erl.line_number,
+               v5.budget_item_id,
+               v5.description budget_item_desc,
+               br.amount doc_amount,
+               (select cv.code_value_name
+                  from sys_code_values_v cv
+                 where cv.code = 'EXP_EXPENSE_REPORT_STATUS'
+                   and cv.code_value = erh.requisition_status) status,
+               erh.description,
+               erh.close_status close_status
+          from bgt_balance_details_tmp  t,
+               bgt_budget_reserves      br,
+               pur_requisition_headers  erh,
+               pur_requisition_lines    erl,
+               pur_requisition_dists    erd,
+               pur_requisition_types_vl v1,
+               fnd_companies_vl         v2,
+               exp_org_unit_vl          v3,
+               exp_employees            v4,
+               bgt_budget_items_vl      v5
+         where t.session_id = ${/session/@session_id}
+           and br.budget_reserve_line_id = t.budget_reserve_line_id
+           and br.business_type = 'PUR_REQUISITION'
+           and erh.pur_requisition_header_id = br.document_id
+           and erd.pur_requisition_dists_id = br.document_line_id
+           and erl.pur_requisition_header_id = erh.pur_requisition_header_id
+           and erl.pur_requisition_line_id = erd.pur_requisition_line_id
+           and v1.requisition_type_id = erh.pur_requisition_type_id
+           and v2.company_id = erl.company_id
+           and v3.UNIT_ID = erl.unit_id
+           and v4.employee_id = erh.employee_id
+           and v5.budget_item_id = erl.budget_item_id
+           and 'R' = ${@reserve_flag}
+        union all
+        select br.reserve_flag,
+		       erl.company_id,
+		       br.business_type doc_type,
+		       v2.company_short_name company_desc,
+		       erl.unit_id,
+		       v3.description unit_desc,
+		       v4.description employee_desc,
+		       v1.order_type_id type_id,
+		       v1.description type_desc,
+		       erh.pur_order_header_id doc_id,
+		       erh.pur_order_number doc_number,
+		       to_char(erh.document_date, 'yyyy-mm-dd') doc_date,
+		       erl.line_number,
+		       v5.budget_item_id,
+		       v5.description budget_item_desc,
+		       br.amount doc_amount,
+		       erh.receive_status status,
+		       erh.description,
+		       erh.close_status close_status
+		  from bgt_balance_details_tmp     t,
+		       bgt_budget_reserves         br,
+		       pur_order_headers           erh,
+		       pur_order_lines             erl,
+		       pur_order_dists             erd,
+		       pur_purchase_order_types_vl v1,
+		       fnd_companies_vl            v2,
+		       exp_org_unit_vl             v3,
+		       pur_buyers_vl               v4,
+		       bgt_budget_items_vl         v5
+		 where
+		 t.session_id = ${/session/@session_id}  and
+		 br.budget_reserve_line_id = t.budget_reserve_line_id and 
+		 br.business_type = 'PUR_ORDER'
+		 and erh.pur_order_header_id = br.document_id
+		 and erd.pur_order_dists_id = br.document_line_id
+		 and erl.pur_order_header_id = erh.pur_order_header_id
+		 and erl.pur_order_line_id = erd.pur_order_line_id
+		 and v1.order_type_id = erh.pur_order_type_id
+		 and ( v2.company_id = erl.company_id)
+		 and (v3.UNIT_ID = erl.unit_id )
+		 and (v4.buyer_id = erh.buyer_id ) 
+		 and (v5.budget_item_id = erl.budget_item_id )
+		 and 'R' = ${@reserve_flag} 
+        union all
+        select br.reserve_flag,
+               erl.company_id,
+               br.business_type doc_type,
+               v2.company_short_name company_desc,
+               erl.unit_id,
+               v3.description unit_desc,
+               v4.name employee_desc,
+               v1.expense_report_type_id type_id,
+               v1.description type_desc,
+               erh.exp_report_header_id doc_id,
+               erh.exp_report_number doc_number,
+               to_char(erh.report_date, 'yyyy-mm-dd') doc_date,
+               erl.line_number,
+               v5.budget_item_id,
+               v5.description budget_item_desc,
+               br.amount doc_amount,
+               (select cv.code_value_name
+                  from sys_code_values_v cv
+                 where cv.code = 'EXP_EXPENSE_REPORT_STATUS'
+                   and cv.code_value = erh.report_status) status,
+               erh.description,
+               decode(erh.reversed_flag,
+                      'R',
+                      '冲销' || (select h.exp_report_number
+                                 from exp_report_headers h
+                                where h.exp_report_header_id =
+                                      erh.source_exp_rep_header_id),
+                      'W',
+                      '已被' || (select h.exp_report_number
+                                 from exp_report_headers h
+                                where h.source_exp_rep_header_id =
+                                      erh.exp_report_header_id) || '冲销') close_status
+          from bgt_balance_details_tmp     t,
+               bgt_budget_reserves         br,
+               exp_report_headers          erh,
+               exp_report_lines            erl,
+               exp_report_dists            erd,
+               exp_expense_report_types_vl v1,
+               fnd_companies_vl            v2,
+               exp_org_unit_vl             v3,
+               exp_employees               v4,
+               bgt_budget_items_vl         v5
+         where t.session_id = ${/session/@session_id}
+           and br.budget_reserve_line_id = t.budget_reserve_line_id
+           and br.business_type = 'EXP_REPORT'
+           and br.document_id = erh.exp_report_header_id
+           and br.document_line_id = erd.exp_report_dists_id
+           and erl.exp_report_line_id = erd.exp_report_line_id
+           and erl.exp_report_header_id = erh.exp_report_header_id
+           and v1.expense_report_type_id = erh.exp_report_type_id
+           and v2.company_id = erl.company_id
+           and v3.unit_id = erl.unit_id
+           and v4.employee_id = erh.employee_id
+           and v5.budget_item_id = erl.budget_item_id
+           and 'U' = ${@reserve_flag})
+ order by doc_date, doc_number, line_number, doc_amount desc
+]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter inputPath="/session/@session_id"/>
+                <bm:parameter name="reserve_flag"/>
+            </bm:parameters>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

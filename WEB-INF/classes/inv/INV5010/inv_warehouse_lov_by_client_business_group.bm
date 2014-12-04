@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-10-8 15:03:14  
+    $Revision: 1.0  
+    $Purpose: 库房LOV，根据我的客户的BG筛选
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT *
+				  FROM (SELECT iwv.warehouse_id,
+				               iwv.warehouse_code,
+				               iwv.description AS warehouse_name,
+				               pcv.owner_business_group,
+				               pcv.coop_company_id
+				          FROM inv_warehouses_vl           iwv,
+				               fnd_coop_partner_clients_vl pcv
+				         WHERE iwv.business_group = pcv.coop_business_group
+				           AND iwv.enabled_flag = 'Y'
+               			   AND pcv.enabled_flag = 'Y') v 
+		         #WHERE_CLAUSE#
+				 ORDER BY v.warehouse_code
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="warehouse_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="WAREHOUSE_ID"/>
+        <bm:field name="warehouse_code" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="200" forDisplay="true" forQuery="true" physicalName="WAREHOUSE_CODE" prompt="INV_WAREHOUSES.WAREHOUSE_CODE"/>
+        <bm:field name="warehouse_name" databaseType="VARCHAR2" datatype="java.lang.String" displayWidth="200" forDisplay="true" forQuery="true" physicalName="WAREHOUSE_NAME" prompt="INV_WAREHOUSES.WAREHOUSE_NAME"/>
+    </bm:fields>
+    <bm:data-filters>
+        <bm:data-filter expression="v.owner_business_group = ${/session/@business_group}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="warehouse_code" queryExpression="v.warehouse_code like &apos;%&apos;||trim(${@warehouse_code})||&apos;%&apos;"/>
+        <bm:query-field name="warehouse_name" queryExpression="v.warehouse_name like &apos;%&apos;||trim(${@warehouse_name})||&apos;%&apos;"/>
+        <bm:query-field name="company_id" queryExpression="v.coop_company_id = ${@company_id}"/>
+    </bm:query-fields>
+</bm:model>

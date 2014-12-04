@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao
+    $Date: 2014-9-2 下午4:26:45  
+    $Revision: 1.0  
+    $Purpose: 角色权限管理-集团级,权限维护页面
+-->
+<a:screen xmlns:c="aurora.application.action" xmlns:a="http://www.aurora-framework.org/application" xmlns:p="uncertain.proc">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="cvv.code = &apos;FND_AUTHORITY_TYPE&apos; and cvv.code_value in (&apos;LIMIT_PERSONAL_USER&apos;,&apos;LIMIT_BUSINESS_AREA&apos;)" model="public.sys_code_part_list" rootPath="authority_type_list"/>
+        <a:model-query defaultWhereClause="cvv.code = &apos;FND_AUTHORITY_USER&apos; and cvv.code_value in (&apos;CREATER&apos;,&apos;RECEIVER&apos;)" model="public.sys_code_part_list" rootPath="authority_user_list"/>
+        <a:model-query model="sys.SYS8120.sys_role_authority_area_list" rootPath="authority_area_list"/>
+        <a:model-query defaultWhereClause="ra.role_id = ${/parameter/@role_id} and ra.business_group = ${/parameter/@business_group} and ra.foundation_code = ${/parameter/@foundation_code}" model="sys.SYS8120.sys_role_authority_maintain" rootPath="authority_maintain"/>
+        <a:model-query defaultWhereClause="aa.role_id = ${/parameter/@role_id} and aa.business_group = ${/parameter/@business_group} and aa.foundation_code = ${/parameter/@foundation_code}" model="sys.SYS8120.sys_role_authority_area_query" rootPath="authority_area_select"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="sys8120_sys_role_function_save_link" url="${/request/@context_path}/modules/sys/SYS8120/sys_role_authority_save.svc"/>
+        <div/>
+        <style><![CDATA[
+            .item-radio:focus {
+                outline:none;
+            }
+            .item-radio-img {
+                margin-left:10px;
+            }
+            .item-radio-lb {
+				text-align: left;
+				width: 180px;
+			}
+			.item-ckb {
+				float: left;
+				margin-top: 3px;
+				margin-right: 8px;
+				outline: none;
+			}
+			label {
+				display: block;
+				margin-bottom: 0px;
+			}
+        ]]></style>
+        <script><![CDATA[
+            function sys8129_onAuthorityTypeChange(div, value, oldvalue) {
+                var record = $('sys8120_fnd_bg_role_authority_ds').getCurrentRecord();
+                var area_list = $('sys8120_authority_area_list_ds').getAll();
+                if (value && value == 'LIMIT_BUSINESS_AREA') {
+                    record.set('authority_user', null);
+                    record.getField('authority_user').setReadOnly(true);
+                    for (var i = 1;i <= area_list.length;i++) {
+                        record.getField('checkbox_' + i).setReadOnly(false);
+                    }
+                } else if (value && value == 'LIMIT_PERSONAL_USER') {
+                    record.getField('authority_user').setReadOnly(false);
+                    for (var j = 1;j <= area_list.length;j++) {
+                        record.set('checkbox_' + j, 'NULL');
+                        record.getField('checkbox_' + j).setReadOnly(true);
+                    }
+                }
+            }
+            
+            function sys8210_saveRoleAuthority() {
+                var area_list = $('sys8120_authority_area_list_ds').getAll();
+                var record = $('sys8120_fnd_bg_role_authority_ds').getCurrentRecord();
+                if (Aurora.isEmpty(record) || Aurora.isEmpty(record.get('authority_type'))) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:SYS8120.PLEASE_CHOOSE_AUTHORITY_TYPE}');
+                    return false;
+                }
+                if (Aurora.isEmpty(record) || (record.get('authority_type') == 'LIMIT_PERSONAL_USER' && Aurora.isEmpty(record.get('authority_user')))) {
+                    Aurora.showMessage('${l:PROMPT}', '${l:SYS8120.YOU_PICK_LIMIT_PERSONAL_USER_BUT_NO_CHOOSE_THE_USER}');
+                    return false;
+                }
+            
+                var datas = {
+                    role_id: '${/parameter/@role_id}',
+                    business_group: '${/parameter/@business_group}',
+                    foundation_code: '${/parameter/@foundation_code}',
+                    authority_type: record.get('authority_type'),
+                    authority_user: record.get('authority_user'),
+                    shield_flag : record.get('shield_flag')
+                };
+                var authority_areas = [];
+                if (record.get('authority_type') == 'LIMIT_BUSINESS_AREA') {
+                    var at_least_count = 0;
+                    for (var i = 1;i <= area_list.length;i++) {
+                        if (!Aurora.isEmpty(record.get('checkbox_' + i)) && record.get('checkbox_' + i) != 'NULL') {
+                            authority_areas.push(area_list[i - 1].data);
+                            at_least_count++;
+                        }
+                    }
+                    if (at_least_count == 0) {
+                        Aurora.showMessage('${l:PROMPT}', '${l:SYS8120.YOU_PICK_LIMIT_BUSINESS_AREA_AND_SELECT_ONE_AT_LEAST}');
+                        return false;
+                    }
+                }
+                datas['authority_areas'] = authority_areas;
+                Aurora.request({
+                    url: $('sys8120_sys_role_function_save_link').getUrl(),
+                    para: datas,
+                    success: function() {
+                        Aurora.showMessage('${l:PROMPT}', '${l:PROMPT.SAVE_SUCCESS}');
+                    },
+                    failure: function() {},
+                    error: function() {},
+                    scope: this
+                });
+            }
+            
+            function sys8210_returnToRoleFoundationList(){
+                $('sys8120_sys_role_authority_maintain_link_window').close();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys8120_authority_area_list_ds">
+                <a:datas dataSource="/model/authority_area_list"/>
+            </a:dataSet>
+            <a:dataSet id="sys8120_authority_area_select_ds">
+                <a:datas dataSource="/model/authority_area_select"/>
+            </a:dataSet>
+            <a:dataSet id="sys8120_sys_role_bg_foundation_info_ds" loadData="true" model="sys.SYS8120.sys_role_bg_foundation_info"/>
+            <a:dataSet id="sys8120_fnd_bg_role_authority_ds" autoCreate="true">
+                <a:datas dataSource="/model/authority_maintain"/>
+                <a:fields>
+                    <a:placeHolder id="dynamicItemAttributeFields"/>
+                    <a:field name="authority_type"/>
+                    <a:field name="authority_user" readOnly="true"/>
+                    <a:field name="shield_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton click="sys8210_saveRoleAuthority" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton click="sys8210_returnToRoleFoundationList" text="PROMPT.RETURN" width="100"/>
+            </a:screenTopToolbar>
+            <a:fieldSet title="PROMPT.BASIC_INFOMATION">
+                <a:hBox>
+                    <a:label name="role_name" bindTarget="sys8120_sys_role_bg_foundation_info_ds" prompt="SYS_ROLE.ROLE_NAME" width="100"/>
+                    <a:label name="business_group_name" bindTarget="sys8120_sys_role_bg_foundation_info_ds" prompt="GROUP_NAME" width="100"/>
+                    <a:label name="foundation_name" bindTarget="sys8120_sys_role_bg_foundation_info_ds" prompt="SYS8120.DOCUMENT_NAME" width="100"/>
+                </a:hBox>
+            </a:fieldSet>
+            <a:fieldSet title="SYS8120.AUTHORITY_TYPE">
+                <a:hBox>
+                    <a:radio name="authority_type" bindTarget="sys8120_fnd_bg_role_authority_ds" labelField="code_value_name" layout="horizontal" options="/model/authority_type_list" valueField="code_value" width="400">
+                        <a:events>
+                            <a:event name="change" handler="sys8129_onAuthorityTypeChange"/>
+                        </a:events>
+                    </a:radio>
+                    <!-- <a:checkBox name="shield_flag" bindTarget="sys8120_fnd_bg_role_authority_ds" label="价格屏蔽" width="80"/> -->
+                </a:hBox>
+            </a:fieldSet>
+            <a:hBox padding="0">
+                <a:fieldSet title="SYS8120.BUSINESS_AREA">
+                    <a:vBox>
+                        <a:placeHolder id="dynamicItemAttribute"/>
+                    </a:vBox>
+                </a:fieldSet>
+                <a:label width="56"/>
+                <a:fieldSet title="SYS8120.PERSONAL_USER">
+                    <a:hBox>
+                        <a:radio name="authority_user" bindTarget="sys8120_fnd_bg_role_authority_ds" labelField="code_value_name" layout="horizontal" options="/model/authority_user_list" valueField="code_value" width="150"/>
+                    </a:hBox>
+                </a:fieldSet>
+            </a:hBox>
+        </a:screenBody>
+        <script><![CDATA[
+            Aurora.onReady(function() {
+                var area_list = $('sys8120_authority_area_list_ds').getAll();
+                var select_list = $('sys8120_authority_area_select_ds').getAll();
+                var record = $('sys8120_fnd_bg_role_authority_ds').getCurrentRecord();
+                if(record.get('authority_type') == 'LIMIT_PERSONAL_USER'){
+                    record.getField('authority_user').setReadOnly(false);
+                    for (var k = 1;k <= area_list.length;k++) {
+                        record.set('checkbox_' + k,'NULL');
+                        record.getField('checkbox_' + k).setReadOnly(true);
+                    }
+                }else if (record.get('authority_type') == 'LIMIT_BUSINESS_AREA') {
+                    record.getField('authority_user').setReadOnly(true);
+                    for (var i = 1;i <= area_list.length;i++) {
+                        record.getField('checkbox_' + i).setReadOnly(false);
+                        for (var j = 0;j < select_list.length;j++) {
+                            if (record.getField('checkbox_' + i).snap.checkedvalue == select_list[j].get('authority_type_code')) {
+                                record.set('checkbox_' + i, select_list[j].get('authority_type_code'));
+                            }
+                        }
+                    }
+                }
+            });
+        ]]></script>
+    </a:view>
+    <a:view-config>
+        <c:create-config targetId="dynamicItemAttributeFields">
+            <p:loop source="/model/authority_area_list">
+                <c:process-config>
+                    <a:field name="checkbox_${@line_num}" checkedValue="${@authority_type_code}" defaultValue="NULL" readOnly="true" uncheckedValue="NULL"/>
+                </c:process-config>
+            </p:loop>
+        </c:create-config>
+        <c:create-config targetId="dynamicItemAttribute">
+            <p:loop source="/model/authority_area_list">
+                <c:process-config>
+                    <a:checkBox name="checkbox_${@line_num}" bindTarget="sys8120_fnd_bg_role_authority_ds" label="${@authority_type_name}" style="margin-left:12px;" width="100"/>
+                </c:process-config>
+            </p:loop>
+        </c:create-config>
+    </a:view-config>
+</a:screen>

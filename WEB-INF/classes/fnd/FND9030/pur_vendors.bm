@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-7-1 下午1:48:23  
+    $Revision: 1.0  
+    $Purpose: 供应商查询
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT *
+  FROM (SELECT t.vendor_id,
+               t.vendor_code,
+               t.version,
+               t.short_name,
+               t.full_name,
+               t.vendor_category,
+                        (SELECT scv.code_value_name
+                  FROM sys_code_values_v scv
+                 WHERE scv.code_value = t.vendor_category
+                       AND scv.code = 'PUR_VENDOR_CATEGORY') vendor_category_desc,
+                t.national_organization_code,
+                t.business_license_number,
+                t.registered_country_code,
+                        (SELECT
+                            fc.description
+                        FROM
+                            fnd_country_code_vl fc
+                        WHERE
+                            fc.country_code=t.registered_country_code
+                        ) registered_country_name,
+                t.registered_province_id,
+                        (SELECT
+                            f.description
+                        FROM
+                            fnd_region_code_vl f
+                        WHERE
+                            f.region_id = t.registered_province_id
+                        ) registered_province_desc,
+                        t.registered_city_id,
+                        (SELECT
+                            f.description
+                        FROM
+                            fnd_region_code_vl f
+                        WHERE
+                            f.region_id = t.registered_city_id
+                        ) registered_city_desc,
+               fnd_vendor_system_pkg.check_init_vendors(t.vendor_id) check_init_vendors_flag,
+               (select s.user_name from pur_vendor_user s where s.vendor_id = t.vendor_id and rownum =1) vendor_admin_name
+          FROM pur_vendors_vl t
+         WHERE t.enabled_flag = 'Y')
+#WHERE_CLAUSE# #ORDER_BY_CLAUSE#]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:query-sql><![CDATA[
+               BEGIN
+  fnd_vendor_system_pkg.init_vendors(p_vendor_id => ${@vendor_id},
+                                     p_user_id   => ${/session/@user_id});
+END;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="vendor_code" queryExpression="vendor_code like &apos;%&apos;||upper(trim(${@vendor_code}))||&apos;%&apos;"/>
+        <bm:query-field name="short_name" queryExpression="short_name like &apos;%&apos;||trim(${@short_name})||&apos;%&apos;"/>
+        <bm:query-field name="full_name" queryExpression="full_name like &apos;%&apos;||trim(${@full_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

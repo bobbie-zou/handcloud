@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm" defaultOrderBy="t1.BUYER_CODE">
+    <bm:fields>
+        <bm:field name="buyer_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="buyer_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="description_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="buyer_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="user_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="user_name" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="business_group" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="data_source" databaseType="VARCHAR2" datatype="java.lang.String"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field field="buyer_code" queryExpression="t1.buyer_code like &apos;%&apos;||${@buyer_code}||&apos;%&apos;"/>
+        <bm:query-field field="buyer_name" queryExpression="t1.buyer_name like &apos;%&apos;||${@buyer_name}||&apos;%&apos;"/>
+        <bm:query-field name="buyer_code_name" queryExpression="(t1.buyer_code like &apos;%&apos;||upper(${@buyer_code_name})||&apos;%&apos; or t1.buyer_name like &apos;%&apos;||${@buyer_code_name}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter name="filter" enforceOperations="query" expression="business_group = ${/session/@business_group}"/>
+    </bm:data-filters>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        pb.BUYER_ID,
+                        pb.BUYER_CODE,
+                        pb.description_id,
+                        pb.buyer_desc AS buyer_name,
+                        pb.USER_ID,
+                        (SELECT su.user_name FROM sys_user su WHERE su.user_id = pb.user_id
+                        ) user_name,
+                        pb.enabled_flag,
+                        pb.business_group,
+                        pb.data_source
+                    FROM
+                        pur_buyers_vl pb
+                    ) t1 #WHERE_CLAUSE# #ORDER_BY_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="buyer_id" dataType="java.lang.Long" input="false" output="true" outputPath="/parameter/@buyer_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+              BEGIN
+                pur_buyers_pkg.create_pur_buyers
+                (
+                  p_description=>${@buyer_name},
+                  p_user_id=>${@user_id},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_business_group=>${@business_group},
+                  p_data_source=>${@data_source},
+                  p_session_user_id=>${/session/@user_id},
+                  x_buyer_id=>${@buyer_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+              BEGIN
+                pur_buyers_pkg.moidfy_pur_buyers
+                (
+                  p_buyer_id=>${@buyer_id},
+                  p_user_id=>${@user_id},
+                  p_enabled_flag=>${@enabled_flag},
+                  p_session_user_id=>${/session/@user_id}
+                );
+              END;
+		      ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-8-27 下午1:11:33  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT vt.ve_template_id,
+                       msa.sub_criterion_id AS kpi_id,
+                       sc.sub_criterion_code AS kpi_code,
+                       (SELECT fd.description_text
+                          FROM fnd_descriptions fd
+                         WHERE fd.description_id = sc.description_id
+                           AND fd.language = ${/session/@lang}) AS kpi_desc,
+                       msa.graph_comparison_weight AS weight
+                  FROM xc_ve_template         vt,
+                       xc_ve_template_mc_asgn mca,
+                       xc_ve_template_sc_asgn msa,
+                       xc_ve_sub_criteria     sc
+                 WHERE vt.ve_template_code = 'ADEO_DEMO10'
+                   AND vt.ve_template_id = mca.ve_template_id
+                   AND mca.main_criteria_asgn_id = msa.main_criteria_asgn_id
+                   AND msa.sub_criterion_id = sc.sub_criterion_id(+)
+                 ORDER BY mca.sequence_num ASC,
+                          msa.sequence_num ASC
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+        	BEGIN
+			  -- Call the procedure
+			  demo_adeo_pkg.save_kpi_data(p_item_category_id => ${@item_category_id},
+			                              p_vendor_id        => ${@vendor_id},
+			                              p_kpi_id           => ${@kpi_id},
+			                              p_data             => ${@data},
+			                              p_user_id          => ${/session/@user_id});
+			END;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="ve_template_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="kpi_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="kpi_code" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="kpi_desc" databaseType="VARCHAR2" datatype="java.lang.String"/>
+        <bm:field name="weight" databaseType="NUMBER" datatype="java.lang.Double"/>
+    </bm:fields>
+</bm:model>

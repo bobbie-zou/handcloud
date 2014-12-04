@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2013-4-7 下午7:18:18  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        FV.FLEX_VALUE_ID,
+                        FV.FLEX_DESC,
+                        FV.FLEX_VALUE,
+                        NVL(FV.PARENT_FLEX_VALUE_ID, 0) PARENT_FLEX_VALUE_ID,
+                        L.ASSIGN_ID,
+                        L.ENABLE_FLAG,
+                        L.NOTE,
+                        DECODE(L.ASSIGN_ID, NULL, 'N', 'Y') AS CHECKED,
+                        nvl(L.DEFAULT_FLAG,'N') as DEFAULT_FLAG
+                    FROM
+                        (${:/model/sql_text/record/@value_source_sql}) FV,
+                        (SELECT
+                            *
+                        FROM
+                            FND_CONFIG_AUTHORITY_LNS FCAL
+                        WHERE
+                            FCAL.CONFIG_HD_ID = ${@config_hd_id} AND
+                            FCAL.ENABLE_FLAG  = 'Y' AND
+                            FCAL.ASSIGN_TYPE  = ${@dimension_line_code}
+                        ) L
+                    WHERE
+                        1                = 1 AND
+                        FV.FLEX_VALUE_ID = L.ASSIGN_ID(+)
+                    )
+                ORDER BY
+                    CHECKED DESC,
+                    FLEX_VALUE ASC
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

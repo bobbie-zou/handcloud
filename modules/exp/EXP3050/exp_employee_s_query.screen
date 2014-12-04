@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: likun1919 $
+    $Date: 2013/01/09 01:47:16 $
+    $Revision: 1.1.1.1 $
+    $Purpose: 员工查询
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+
+            function queryEmployeeType() {
+                $('exp_employees_query_result_ds1').query();
+                // $('exp_employees_query_result_ds2').query();
+            }
+            
+            function expenseCodeEdit(record, name) {
+                if (record.isNew) {
+                    return 'common_tf';
+                }
+                return '';
+            }
+            
+            function onCompanyCommit(lov, r1, r2) {
+                var company_id = r1.get('company_id');
+                if (!company_id) {
+                    Aurora.showMessage("${l:PROMPT}", "${l:CHOOSE_COMPANY_FIRST}");
+                } else {
+                    var unit = r1.getMeta().getField('unit_desc');
+                    unit.setLovPara('company_id', company_id);
+                }
+            }
+            
+            function onUnitCommit(lov, r1, r2) {
+                var unit_id = r1.get('unit_id');
+                if (!unit_id) {
+                    Aurora.showMessage("${l:PROMPT}", "${l:CHOOSE_UNIT_FIRST}");
+                } else {
+                    var position = r1.getMeta().getField('position_desc');
+                    position.setLovPara('unit_id', unit_id);
+                }
+            }
+            
+            function selectChange(ds,rownum, record) {
+                // debugger;
+                var employee_id = record.get('employee_id');
+                var ds = $('exp_employees_query_result_ds2');
+                ds.setQueryParameter('employee_id', employee_id);
+                ds.query();
+            }
+            
+            function reset() {
+                $('exp_employees_query_ds').reset();
+            }
+            
+            function EXP3050_onEmpHeadQueryUpdate(dataSet, record, name, value, oldValue) {
+                if (name == 'company_desc') {
+                    if (value == '') {
+                        record.set('unit_desc', '');
+                        record.set('position_desc', '');
+            
+                        record.set('unit_id', '');
+                        record.set('position_id', '');
+            
+                        record.set('unit_code', '');
+                        record.set('position_code', '');
+            
+                        record.getMeta().getField('unit_desc').setReadOnly(true);
+                        record.getMeta().getField('position_desc').setReadOnly(true);
+                    } else {
+                        record.getMeta().getField('unit_desc').setReadOnly(false);
+                    }
+                } else if (name == 'unit_desc') {
+                    if (value == '') {
+                        record.set('position_desc', '');
+                        record.set('position_id', '');
+                        record.set('position_code', '');
+            
+                        record.getMeta().getField('position_desc').setReadOnly(true);
+                    } else {
+                        record.getMeta().getField('position_desc').setReadOnly(false);
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="exp_employees_query_ds" model="exp.EXP3050.exp_amortization_accounts_query">
+                <a:fields>
+                    <a:field name="company_desc" lovGridHeight="340" lovHeight="460" lovService="exp.EXP3050.exp_employee_s_query_company_lov" lovWidth="540" title="FND_COMPANIES.QUERY">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_code" to="company_code"/>
+                            <a:map from="comp_desc" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="unit_desc" lovGridHeight="340" lovHeight="460" lovService="exp.EXP3050.exp_employee_s_query_unit_lov" lovWidth="540" readOnly="true" title="BGT_BUDGET_ITEM_MAPPING.ORG_UNIT_CODE_SEARCH">
+                        <a:mapping>
+                            <a:map from="unit_id" to="unit_id"/>
+                            <a:map from="unit_code" to="unit_code"/>
+                            <a:map from="unit_desc" to="unit_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="position_desc" lovGridHeight="340" lovHeight="460" lovService="exp.EXP3050.exp_employee_s_query_position_lov" lovWidth="540" readOnly="true" title="EXP_ORG_POSITION.QUERY">
+                        <a:mapping>
+                            <a:map from="position_id" to="position_id"/>
+                            <a:map from="position_code" to="position_code"/>
+                            <a:map from="pos_desc" to="position_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="EXP3050_onEmpHeadQueryUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="exp_employees_query_result_ds1" autoQuery="false" fetchAll="false" model="exp.EXP3050.exp_employee_s_query" queryDataSet="exp_employees_query_ds">
+                <a:events>
+                    <!-- <a:event name="indexchange" handler="indexChangeFunction"/> --><![CDATA[
+                    
+                    
+                    
+                    
+                ]]></a:events>
+            </a:dataSet>
+            <a:dataSet id="exp_employees_query_result_ds2" bindName="head" bindTarget="exp_employees_query_result_ds1" fetchAll="true" queryUrl="${/request/@context_path}/autocrud/exp.EXP3050.exp_employee_s_query_info/query">
+                <a:fields>
+                    <a:field name="primary_position_flag" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="exp_employees_query_ds" resultTarget="exp_employees_query_result_ds1" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField style="width:100%;display:none;"/>
+                    <a:box column="2">
+                        <a:textField name="employee_code" bindTarget="exp_employees_query_ds" prompt="EXP_EMPLOYEES_VL.EMPLOYEE_CODE" typeCase="upper" width="150">
+                            <a:events>
+                                <a:event name="enterdown" handler="queryEmployeeType"/>
+                            </a:events>
+                        </a:textField>
+                        <a:textField name="name" bindTarget="exp_employees_query_ds" prompt="EXP_EMPLOYEES_VL.DESC" width="150">
+                            <a:events>
+                                <a:event name="enterdown" handler="queryEmployeeType"/>
+                            </a:events>
+                        </a:textField>
+                    </a:box>
+                </a:formToolBar>
+                <a:formBody style="margin-left:8px">
+                    <a:box column="3">
+                        <a:lov name="company_desc" bindTarget="exp_employees_query_ds" prompt="FND_COMPANIES.COMPANY" width="150">
+                            <a:events>
+                                <a:event name="commit" handler="onCompanyCommit"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="unit_desc" bindTarget="exp_employees_query_ds" prompt="EXP_ORG_UNIT.UNIT" width="150">
+                            <a:events>
+                                <a:event name="commit" handler="onUnitCommit"/>
+                            </a:events>
+                        </a:lov>
+                        <a:lov name="position_desc" bindTarget="exp_employees_query_ds" prompt="EXP_ORG_POSITION.POSITIONS" width="150"/>
+                    </a:box>
+                </a:formBody>
+            </a:queryForm>
+            <a:form padding="0" showMargin="false" title="">
+                <a:grid bindTarget="exp_employees_query_result_ds1" marginHeight="380" marginWidth="80" navBar="true">
+                    <a:columns>
+                        <a:column name="employee_code" align="center" sortable="true" width="250"/>
+                        <a:column name="name" sortable="true" width="350"/>
+                    </a:columns>
+                    <a:events>
+                        <a:event name="rowclick" handler="selectChange"/>
+                    </a:events>
+                </a:grid>
+            </a:form>
+            <a:form padding="0" showMargin="false" title="" width="">
+                <a:grid autoFocus="false" bindTarget="exp_employees_query_result_ds2" marginHeight="450" marginWidth="80" navBar="true">
+                    <a:columns>
+                        <a:column name="company_code" align="center" prompt="FND_COMPANIES.COMPANY_CODE" sortable="true" width="80"/>
+                        <a:column name="company_name" align="center" prompt="FND_COMPANIES.COMPANY_NAME" width="120"/>
+                        <a:column name="unit_code" align="center" prompt="EXP_ORG_UNIT.UNIT_CODE" sortable="false" width="80"/>
+                        <a:column name="unit_name" align="center" prompt="EXP_ORG_UNIT.DESC" sortable="false" width="120"/>
+                        <a:column name="position_code" align="center" prompt="EXP_ORG_POSITION.POSITION_CODE" width="80"/>
+                        <a:column name="position_name" align="center" prompt="EXP_EMPLOYEE_ASSIGN.POSITION_NAME" width="120"/>
+                        <a:column name="job_code" align="center" prompt="EXP_EMPLOYEE_ASSIGN.JOB_CODE" width="80"/>
+                        <a:column name="job_name" align="center" prompt="EXP_EMPLOYEE_ASSIGN.JOB_NAME" width="120"/>
+                        <a:column name="levels_code" align="center" prompt="EXP_EMPLOYEE_ASSIGN.LEVELS_CODE" width="80"/>
+                        <a:column name="levels_name" align="center" prompt="EXP_EMPLOYEE_ASSIGN.LEVELS_DESC" width="120"/>
+                        <a:column name="primary_position_flag" align="center" prompt="EXP_EMPLOYEE_ASSIGN.PRIMARY_POSITION_FLAG" width="50"/>
+                        <a:column name="enabled_flag" align="center" prompt="EXP_COMPANY_EMPLOYEES_V.EMPLOYEE_ENABLED_FLAG" width="50"/>
+                    </a:columns>
+                </a:grid>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

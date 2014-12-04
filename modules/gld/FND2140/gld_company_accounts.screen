@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wushuang3816 $
+    $Date: 2013/06/19 07:08:54 $
+    $Revision: 1.2 $
+    $Purpose: 科目定义 - 指定公司
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query autocount="true" defaultWhereClause="enabled_flag = &apos;Y&apos; and account_set_id = ${/parameter/@account_set_id}" fetchall="true" model="gld.gld_set_of_books" rootpath="fnd2140_set_of_books_list"/>
+        <a:model-query autocount="true" defaultWhereClause="t1.company_id=${/session/@company_id}" fetchAll="true" model="fnd.fnd_companies_vl" rootPath="fnd2140_get_set_bookid"/>
+        <a:model-query autoCount="true" defaultWhereClause="sob.set_of_books_id=${/model/get_set_bookid/record/@set_of_books_id}" fetchAll="true" model="gld.gld_set_of_books" rootPath="fnd2140_book_name"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+            function fnd2140_queryCompanyAccounts(){
+            	if(!$('fnd2140_gld_company_accounts_query_ds').validate()){
+            		return;
+            	}
+                $('fnd2140_gld_company_accounts_result_ds').query();
+            }
+
+
+            function fnd2140_onUpdate(ds,record,name,value){
+                if(name=='set_of_books_id'){
+                    if(value == null || value == '' || value == undefined){
+                        $('fnd2140_add_btn').disable();
+                        $('fnd2140_save_btn').disable();
+                        $('fnd2140_clear_btn').disable();
+                    }else{
+                        $('fnd2140_add_btn').enable();
+                        $('fnd2140_save_btn').enable();
+                        $('fnd2140_clear_btn').enable();
+                    }
+                }
+            }
+            
+            function fnd2140_gridCellClick(grid, row, name, record){
+                if(name =='company_code'){
+                    var re = $('fnd2140_gld_company_accounts_query_ds').getCurrentRecord();
+                    var id = re.get('set_of_books_id');
+                    record.getMeta().getField(name).setLovPara('set_of_books_id',id);
+                
+                    record.set('set_of_books_id',id);
+                }
+            }
+            
+            function fnd2140_company_code_lov_fun(record,name){
+            	if(record.isNew){
+            		return 'fnd2140_company_code_lov';
+            	}
+            	return '';
+            }
+            
+            function fnd2140_submitSuccess(){
+            	$('fnd2140_gld_company_accounts_result_ds').query();
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2140_gld_accounts_info_ds" loadData="true" model="gld.FND2140.gld_accounts">
+                <a:fields>
+                    <a:field name="account_code" readOnly="true"/>
+                    <a:field name="account_description" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd2140_set_of_books_list_ds">
+                <a:datas dataSource="/model/fnd2140_set_of_books_list"/>
+            </a:dataSet>
+            <a:dataSet id="fnd2140_gld_company_accounts_query_ds" model="gld.FND2140.gld_company_accounts_query">
+                <a:fields>
+                    <a:field name="account_id" defaultValue="${/parameter/@account_id}"/>
+                    <a:field name="account_set_id" defaultValue="${/parameter/@account_set_id}"/>
+                    <a:field name="set_of_books_id" displayField="${/model/get_set_bookid/record/@set_of_books_id}"/>
+                    <a:field name="set_of_books_name_display" displayField="set_of_books_name_display" options="fnd2140_set_of_books_list_ds" prompt="GLD_ACCOUNT_COMPANY_ASSIGNED_BATCH.SET_OF_BOOKS" required="true" returnField="set_of_books_id" valueField="set_of_books_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fnd2140_onUpdate"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd2140_gld_company_accounts_result_ds" fetchAll="false" model="gld.FND2140.gld_company_accounts_query" queryDataSet="fnd2140_gld_company_accounts_query_ds" queryUrl="${/request/@context_path}/autocrud/gld.FND2140.gld_company_accounts_query/query?ORDER_FIELD=cpy.company_code" selectable="true" submitUrl="${/request/@context_path}/autocrud/gld.FND2140.gld_company_accounts/batch_update">
+                <a:fields>
+                    <a:field name="rowid"/>
+                    <a:field name="account_id" defaultValue="${/parameter/@account_id}"/>
+                    <a:field name="account_set_id" defaultValue="${/parameter/@account_set_id}"/>
+                    <a:field name="company_code" lovGridHeight="300" lovHeight="430" lovService="gld.FND2140.gld_company_accounts_company_lov?ORDER_FIELD=company_code" lovWidth="500" required="true" title="BGT_BALANCE_QUREY_CONDS_H.COMPANY_ID">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_code" to="company_code"/>
+                            <a:map from="company_short_name" to="company_short_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="subsystem_flag" defaultValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="fnd2140_submitSuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="2" title="GLD_ACCOUNTS.APPOINT_COMPANY">
+                <a:textField name="account_code" bindTarget="fnd2140_gld_accounts_info_ds"/>
+                <a:textField name="account_description" bindTarget="fnd2140_gld_accounts_info_ds"/>
+                <a:comboBox name="set_of_books_name_display" bindTarget="fnd2140_gld_company_accounts_query_ds">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd2140_queryCompanyAccounts"/>
+                    </a:events>
+                </a:comboBox>
+            </a:form>
+            <a:hBox>
+                <a:button click="fnd2140_queryCompanyAccounts" text="HAP_QUERY"/>
+            </a:hBox>
+            <a:grid bindTarget="fnd2140_gld_company_accounts_result_ds" height="300" navBar="true" width="480">
+                <a:toolBar>
+                    <a:button id="fnd2140_add_btn" type="add"/>
+                    <a:button id="fnd2140_save_btn" type="save"/>
+                    <a:button id="fnd2140_clear_btn" type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="company_code" editorFunction="fnd2140_company_code_lov_fun" sortable="true" width="150"/>
+                    <a:column name="company_short_name" width="203"/>
+                    <a:column name="enabled_flag" editor="fnd2140_enabled_flag_grid_checkbox"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="fnd2140_company_code_lov"/>
+                    <a:checkBox id="fnd2140_enabled_flag_grid_checkbox"/>
+                </a:editors>
+                <a:events>
+                    <a:event name="cellclick" handler="fnd2140_gridCellClick"/>
+                </a:events>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: WangQiaosen  
+    $Date: 2014年1月17日 下午2:55:17  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="acp5150_consign_web_invoice_create_temp_link" url="${/request/@context_path}/modules/acp/ACP5150/acp_consign_web_invoice_create_temp.svc"/>
+        <a:link id="acp5150_consign_web_invoice_create_preview_link" url="${/request/@context_path}/modules/acp/ACP5150/acp_consign_web_invoice_create_preview.screen"/>
+        <script><![CDATA[
+            function acp5150Query() {
+                $('acp5150_consign_web_invoice_source_result_ds').query();
+            }
+            
+            function acp5150CreatePreview() {
+                var result_ds = $('acp5150_consign_web_invoice_source_result_ds');
+                var records = result_ds.getSelected();
+            
+                if (records.length > 0 && result_ds.validate()) {
+                    var datas = [];
+                    for (var i = 0;i < records.length;i++) {
+                        datas.push(records[i].data);
+                    }
+            
+                    Aurora.Masker.mask(Ext.getBody(), '正在加载');
+            
+                    Aurora.request({
+                        url: $('acp5150_consign_web_invoice_create_temp_link').getUrl(),
+                        para: datas,
+                        success: function() {
+                            new Aurora.Window({
+                                id: 'acp5150_consign_web_invoice_create_preview_window',
+                                title: '寄销网上发票预览',
+                                url: $('acp5150_consign_web_invoice_create_preview_link').getUrl(),
+                                fullScreen: true
+                            }).on('beforeclose', function() {
+                                acp5150Query();
+                            });
+                        },
+                        failure: function() {
+                            return;
+                        },
+                        error: function() {
+                            return;
+                        }
+                    });
+            
+                    Aurora.Masker.unmask(Ext.getBody());
+                }
+            }
+            
+            function acp5150ConsignWebInvoiceSourceResultRender(value, rec, name) {
+                if (name == 'invoice_list') {
+                    //TODO
+                    return value;
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="acp5150_consign_web_invoice_source_query_ds">
+                <a:fields>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="company_full_name" lovGridHeight="320" lovHeight="500" lovService="public.fnd_companies_lov" lovWidth="500" title="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_full_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="acp5150_consign_web_invoice_source_result_ds" autoCount="true" autoPageSize="true" model="acp.ACP5150.acp_consign_web_invoice_source_query" queryDataSet="acp5150_consign_web_invoice_source_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="invoice_quantity" required="true"/>
+                    <a:field name="invoice_price" required="true"/>
+                    <a:field name="tax_type_code" autoComplete="true" autoCompleteField="tax_type_code" lovGridHeight="350" lovHeight="500" lovService="public.fnd_tax_type_code_lov" lovWidth="500" required="true" title="税率">
+                        <a:mapping>
+                            <a:map from="tax_type_id" to="tax_type_id"/>
+                            <a:map from="tax_type_code" to="tax_type_code"/>
+                            <a:map from="tax_type_rate" to="tax_type_rate"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:defaultScreen>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:toolbarButton click="acp5150CreatePreview" text="预览" width="100"/>
+                <a:gridButton bind="acp5150_consign_web_invoice_source_result_grid" type="excel" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="acp5150_consign_web_invoice_source_query_ds" resultTarget="acp5150_consign_web_invoice_source_result_ds" style="width:100%;border:none">
+                <a:formToolBar labelWidth="100">
+                    <a:textField name="bill_number_from" bindTarget="acp5150_consign_web_invoice_source_query_ds" prompt="开票单编号从">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5150Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="bill_number_to" bindTarget="acp5150_consign_web_invoice_source_query_ds" prompt="开票单编号至">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5150Query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:lov name="company_desc" bindTarget="acp5150_consign_web_invoice_source_query_ds" prompt="公司">
+                        <a:events>
+                            <a:event name="enterdown" handler="acp5150Query"/>
+                        </a:events>
+                    </a:lov>
+                </a:formToolBar>
+                <a:formBody>
+                    <a:hBox labelWidth="100">
+                        <a:vBox labelWidth="100">
+                            <a:textField name="po_num_from" bindTarget="acp5150_consign_web_invoice_source_query_ds" prompt="订单号从">
+                                <a:events>
+                                    <a:event name="enterdown" handler="acp5150Query"/>
+                                </a:events>
+                            </a:textField>
+                        </a:vBox>
+                        <a:vBox labelWidth="100">
+                            <a:textField name="po_num_to" bindTarget="acp5150_consign_web_invoice_source_query_ds" prompt="订单号至">
+                                <a:events>
+                                    <a:event name="enterdown" handler="acp5150Query"/>
+                                </a:events>
+                            </a:textField>
+                        </a:vBox>
+                    </a:hBox>
+                </a:formBody>
+            </a:queryForm>
+            <a:grid id="acp5150_consign_web_invoice_source_result_grid" bindTarget="acp5150_consign_web_invoice_source_result_ds" marginHeight="130" marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="bill_number" align="left" prompt="开票单编号" sortable="true" width="80"/>
+                    <a:column name="company_code" align="left" prompt="公司编码" sortable="true" width="60"/>
+                    <a:column name="po_num" align="left" prompt="采购订单号" sortable="true" width="60"/>
+                    <a:column name="release_num" align="left" prompt="发放号" sortable="true" width="50"/>
+                    <a:column name="item_code" align="left" prompt="物料编码" sortable="true" width="60"/>
+                    <a:column name="item_desc" align="left" prompt="物料描述" sortable="true" width="150"/>
+                    <a:column name="unit_price" align="right" prompt="订单单价" sortable="true" width="80"/>
+                    <a:column name="uom" align="left" prompt="单位" sortable="true" width="60"/>
+                    <a:column name="quantity_left" align="right" prompt="剩余可开票数量" sortable="true" width="80"/>
+                    <a:column name="invoice_quantity" align="right" editor="acp5150_consign_web_invoice_source_result_nf" prompt="本次开票数量" sortable="true" width="80"/>
+                    <a:column name="invoice_price" align="right" editor="acp5150_consign_web_invoice_source_result_nf" prompt="本次开票单价" sortable="true" width="80"/>
+                    <a:column name="invoice_amount" align="right" prompt="本次开票金额" sortable="true" width="80"/>
+                    <a:column name="tax_type_code" align="left" editor="acp5150_consign_web_invoice_source_result_lov" prompt="税率" sortable="true" width="60"/>
+                    <a:column name="currency_code" align="left" prompt="币种" sortable="true" width="60"/>
+                    <a:column name="quantity" align="right" prompt="行数量" sortable="true" width="80"/>
+                    <a:column name="amount" align="right" prompt="行金额" sortable="true" width="80"/>
+                    <a:column name="invoiced_quantity" align="right" prompt="已开票数量" sortable="true" width="80"/>
+                    <a:column name="invoice_list" align="left" prompt="网上发票" renderer="acp5150ConsignWebInvoiceSourceResultRender" sortable="true" width="80"/>
+                    <a:column name="confirmed_date" align="center" prompt="确认日期" renderer="Aurora.formatDate" sortable="true" width="60"/>
+                    <a:column name="company_desc" align="left" prompt="公司名称" sortable="true" width="100"/>
+                    <a:column name="vendor_site_desc" align="left" prompt="供应商地点" sortable="true" width="60"/>
+                    <a:column name="line_num" align="left" prompt="开票单行" sortable="true" width="60"/>
+                    <a:column name="po_line_num" align="left" prompt="订单行" sortable="true" width="60"/>
+                    <a:column name="shipment_num" align="left" prompt="发运行" sortable="true" width="60"/>
+                    <a:column name="data_source" align="left" prompt="数据来源" sortable="true" width="60"/>
+                </a:columns>
+                <a:editors>
+                    <a:numberField id="acp5150_consign_web_invoice_source_result_nf" allowDecimals="true" allowNegative="false" decimalPrecision="2"/>
+                    <a:lov id="acp5150_consign_web_invoice_source_result_lov"/>
+                </a:editors>
+            </a:grid>
+        </a:defaultScreen>
+    </a:view>
+</a:screen>

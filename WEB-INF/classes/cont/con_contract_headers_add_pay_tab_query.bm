@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[SELECT T.*
+		  FROM (SELECT V.TRANSACTION_HEADER_ID,
+					   V.TRANSACTION_HEADER_ID PAYMENT_HEADER_ID,
+					   V.TRANSACTION_NUM,
+					   V.TRANSACTION_DATE,
+					   TO_CHAR(V.TRANSACTION_DATE, 'YYYY-MM-DD') P_TRANSACTION_DATE,
+					   V.CURRENCY_CODE,
+					   (select nvl(sum(b.amount), 0)
+					  from con_cash_trx_pmt_schedule_lns b
+					 where b.contract_header_id = ${/parameter/@contract_header_id}
+					 and l.transaction_line_id=b.csh_transaction_line_id) TRANSACTION_AMOUNT,
+					   V.BANK_ACCOUNT_CODE,
+					   V.BANK_ACCOUNT_NAME,
+					   V.PARTNER_CATEGORY,
+					   (SELECT B.CODE_VALUE_NAME
+						  FROM SYS_CODES_VL A, SYS_CODE_VALUES_VL B
+						 WHERE A.CODE_ID = B.CODE_ID
+						   AND A.CODE = 'PAYMENT_OBJECT'
+						   AND B.CODE_VALUE = V.PARTNER_CATEGORY) P_PARTNER_CATEGORY,
+					   V.PARTNER_ID,
+					   DECODE(V.PARTNER_CATEGORY,
+							  'EMPLOYEE',
+							  (SELECT EE.EMPLOYEE_CODE || '-' || EE.NAME
+								 FROM EXP_EMPLOYEES EE
+								WHERE EE.EMPLOYEE_ID = V.PARTNER_ID),
+							  'VENDER',
+							  (SELECT SVV.VENDER_CODE || '-' || SVV.DESCRIPTION
+								 FROM PUR_SYSTEM_VENDERS_VL SVV
+								WHERE SVV.VENDER_ID = V.PARTNER_ID),
+							  'CUSTOMER',
+							  (SELECT SCV.CUSTOMER_CODE || '-' || SCV.DESCRIPTION
+								 FROM ORD_SYSTEM_CUSTOMERS_VL SCV
+								WHERE SCV.CUSTOMER_ID = V.PARTNER_ID)) PARENER_CODE_NAME,
+					   V.DOCUMENT_NUM,
+					   V.USER_NAME,
+					   V.USER_DESC,
+					   V.PAYMENT_METHOD_ID,
+					   V.AGENT_NAME,
+					   V.POSTED_FLAG,
+					   ( select  b.code_value_name
+                           from sys_codes_vl a, sys_code_values_vl b
+                          where a.code_id = b.code_id
+                            and a.code='CSH_REVERSE_SELECT'
+                            and b.code_value= v.REVERSED_FLAG )  REVERSED,
+                       ( select  b.code_value_name
+                           from sys_codes_vl a, sys_code_values_vl b
+                          where a.code_id = b.code_id
+                            and a.code='CSH_RETURN_SELECT'
+                            and b.code_value=v.RETURNED_FLAG )  RETURNED
+				      from CSH_TRANSACTION_V V,csh_transaction_headers h,csh_transaction_lines l
+					 where h.transaction_header_id = v.transaction_header_id
+					   AND (h.transaction_header_id = l.transaction_header_id 
+					   or h.source_header_id = l.transaction_header_id )
+					  AND exists
+						 (select 1
+						  from con_cash_trx_pmt_schedule_lns a
+						  where a.contract_header_id = ${/parameter/@contract_header_id}
+						  and l.transaction_line_id = a.csh_transaction_line_id)) T
+]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="transaction_header_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="TRANSACTION_HEADER_ID" required="true"/>
+        <bm:field name="payment_header_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="PAYMENT_HEADER_ID" required="true"/>
+        <bm:field name="transaction_num" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="TRANSACTION_NUM"/>
+        <bm:field name="transaction_date" databaseType="DATE" datatype="java.util.Date" physicalName="TRANSACTION_DATE"/>
+        <bm:field name="p_transaction_date" databaseType="DATE" datatype="java.util.Date" physicalName="P_TRANSACTION_DATE"/>
+        <bm:field name="currency_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CURRENCY_CODE"/>
+        <bm:field name="transaction_amount" databaseType="NUMBER" datatype="java.lang.Double" physicalName="TRANSACTION_AMOUNT"/>
+        <bm:field name="bank_account_code" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BANK_ACCOUNT_CODE"/>
+        <bm:field name="bank_account_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="BANK_ACCOUNT_NAME"/>
+        <bm:field name="partner_category" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARTNER_CATEGORY"/>
+        <bm:field name="p_partner_category" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="P_PARTNER_CATEGORY"/>
+        <bm:field name="partner_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="PARTNER_ID"/>
+        <bm:field name="parener_code_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="PARENER_CODE_NAME"/>
+        <bm:field name="document_num" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="DOCUMENT_NUM"/>
+        <bm:field name="user_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="USER_NAME"/>
+        <bm:field name="user_desc" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="USER_DESC"/>
+        <bm:field name="payment_method_id" databaseType="NUMBER" datatype="java.lang.Double" physicalName="PAYMENT_METHOD_ID"/>
+        <bm:field name="agent_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="AGENT_NAME"/>
+        <bm:field name="posted_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="POSTED_FLAG"/>
+        <bm:field name="reversed" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="REVERSED"/>
+        <bm:field name="returned" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="RETURNED"/>
+    </bm:fields>
+</bm:model>

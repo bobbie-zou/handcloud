@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaofu du  
+    $Date: 2013-3-13 下午01:37:06  
+    $Revision: 1.0  
+    $Purpose: 招标委托评标专家表
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[select  rownum * 10 line_serial_num,
+									       bee.expert_id entrustment_expert_id,
+									       ee.employee_id original_expert_emp_id,
+									       ee.employee_code original_expert_emp_code,
+									       ee.name original_expert_emp_name,
+									       bee.entrustment_header_id,
+									       bee.leader_flag,
+									       bee.created_by,
+									       bee.creation_date,
+									       bee.last_updated_by,
+									       bee.last_update_date,
+									       bee.flex_appl_relevance_id
+									 from bid_entrustment_ln_experts bee, exp_employees ee, bid_experts be
+									 #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:query-sql><![CDATA[
+            begin
+                bid_expr_alt_apply_pkg.insert_alteration_line(p_alteration_header_id  =>${../../@alteration_header_id},
+                                                              p_original_expert_id    =>${@original_expert_emp_id},
+                                                              p_replaced_by_expert_id =>${@new_expert_emp_id},
+                                                              p_leader_flag		      =>${@leader_flag},
+                                                              p_alter_mode            =>${@alter_mode},
+                                                              p_node                  =>${@comments},
+                                                              p_user_id               =>${/session/@user_id},
+                                                              x_alteration_line_id    =>${@alteration_line_id});
+            end;                               
+            ]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter name="alteration_line_id" dataType="java.lang.Long" input="false" output="true" outputPath="@alteration_line_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+            begin
+                bid_expr_alt_apply_pkg.update_alteration_line(p_alteration_line_id    =>${@alteration_line_id},
+                                                              p_original_expert_id    =>${@original_expert_emp_id},
+                                                              p_replaced_by_expert_id =>${@new_expert_emp_id},
+                                                              p_leader_flag		      =>${@leader_flag},
+                                                              p_alter_mode            =>${@alter_mode},
+                                                              p_node                  =>${@comments},
+                                                              p_user_id               =>${/session/@user_id});
+            end;
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:data-filters>
+        <bm:data-filter expression="bee.expert_id = be.expert_id"/>
+        <bm:data-filter expression="ee.employee_id = be.employee_id"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field name="entrustment_header_id" queryExpression="bee.entrustment_header_id=${@entrustment_header_id}"/>
+    </bm:query-fields>
+</bm:model>

@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: FelixDru  
+    $Date: 2014-05-06 下午6:24:37  
+    $Revision: 1.0  
+    $Purpose: 供应商填写邀请码
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="fnd.FND9100.fnd_company_registed_query" rootPath="company_data"/>
+    </a:init-procedure>
+    <a:view template="default">
+        <a:link id="fnd_enterprise_resiter_legal_a_link" url="${/request/@context_path}/modules/fnd/FND9100/fnd_enterprise_register_legal_representative_a.screen"/>
+        <a:link id="fnd_enterprise_register_agent_save_link" model="fnd.FND9100.fnd_company_registed_agent_info_modify" modelaction="update"/>
+        <a:link id="fnd_enterprise_register_confirm_link" url="${/request/@context_path}/modules/fnd/FND9100/fnd_enterprise_register_confirm_a.screen"/>
+        <a:link id="fnd_enterprise_register_attachment_link" url="${/request/@context_path}/modules/fnd/FND9100/attachment_file_upload.screen"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/boostrapv3/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/boostrapv3/css/bootstrap-theme.min.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/mainpage_facility/plugins/font-awesome/css/font-awesome.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/style.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/main.css" rel="stylesheet" type="text/css"/>
+        <link href="${/request/@context_path}/index/css/login.css" rel="stylesheet" type="text/css"/>
+        <script><![CDATA[
+         
+            //自动查询处理
+            
+            Aurora.onReady(function() {
+                var company_registed_id= '${/model/company_data/record/@company_registed_id}';
+                if (Ext.isEmpty(company_registed_id)) {
+                    var win = Aurora.showMessage('${l:PROMPT.ERROR}', '${l:PUR5610.ILLEGAL_VISIT_GO_TO_INDEX}', function() {
+                        window.location.href = '${/request/@context_path}';
+                    });
+                    setTimeout(function() {
+                        win.close();
+                        window.location.href = '${/request/@context_path}';
+                    }, 3000);
+                }
+                if (company_registed_id) {
+                    Aurora.request({
+                        url: '${/request/@context_path}/autocrud/fnd.FND9100.fnd_company_registed/execute',
+                        para: {
+                            company_registed_id:company_registed_id
+                        },
+                        success: function(res) {
+                            var visit_feedback = res.result.visit_feedback;
+                            if (visit_feedback == 'SUCCESS') {
+                                return '';
+                            } else if (visit_feedback == 'ERROR') {
+                                var win = Aurora.showMessage('${l:PROMPT.ERROR}', '${l:PUR5610.ILLEGAL_VISIT_GO_TO_INDEX}', function() {
+                                    window.location.href = '${/request/@context_path}';
+                                });
+                                setTimeout(function() {
+                                    win.close();
+                                    window.location.href = '${/request/@context_path}';
+                                }, 3000);
+                            }
+                        },
+                        scope: this
+                    });
+                }
+            });
+            
+            //上一步
+            
+            function fnd9100_enterpriseRegister_last_page() {
+                var param = {};
+                param['company_registed_id'] = '${/parameter/@company_registed_id}';
+                Aurora.post($('fnd_enterprise_resiter_legal_a_link').getUrl(), param);
+            }
+            
+            //下一步
+            
+            function fnd9100_enterpriseRegister_save() {
+                var ds = $('fnd_enterprise_ds');
+                if (ds.validate()) {
+                    var record = ds.getCurrentRecord();
+                    Aurora.request({
+                        url: $('fnd_enterprise_register_agent_save_link').getUrl(),
+                        para: record.data,
+                        success: function(res) {
+                            var param = {};
+                            param['company_registed_id'] = '${/parameter/@company_registed_id}';
+                            Aurora.post($('fnd_enterprise_register_confirm_link').getUrl(), param);
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            //上传附件
+            
+            function fnd9100_uploadIdentityFrontFun() {
+                var url = $('fnd_enterprise_register_attachment_link').getUrl()+"?table_name=FND_COPANY_REGISTED.AGENT_IDENTITY_FRONT&pkvalue=" + $('fnd_enterprise_ds').getAt(0).get('company_registed_id');
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:HAP_UPLOAD_TITLE}',
+                    id: 'fnd_enterprise_register',
+                    width: 610,
+                    height: 500
+                });
+            }
+            
+            //上传附件
+            
+            function fnd9100_uploadIdentityBackFun() {
+                var url = $('fnd_enterprise_register_attachment_link').getUrl()+"?table_name=FND_COPANY_REGISTED.AGENT_IDENTITY_BACK&pkvalue=" + $('fnd_enterprise_ds').getAt(0).get('company_registed_id');
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:HAP_UPLOAD_TITLE}',
+                    id: 'fnd_enterprise_register',
+                    width: 610,
+                    height: 500
+                });
+            }
+            
+             //上传附件
+            
+            function fnd9100_uploadProxyOfEnterpriseFun() {
+                var url = $('fnd_enterprise_register_attachment_link').getUrl()+"?table_name=FND_COPANY_REGISTED.PROXY_OF_ENTERPRISE&pkvalue=" + $('fnd_enterprise_ds').getAt(0).get('company_registed_id');
+                new Aurora.Window({
+                    url: url,
+                    title: '${l:HAP_UPLOAD_TITLE}',
+                    id: 'fnd_enterprise_register',
+                    width: 610,
+                    height: 500
+                });
+            }
+            
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd_identity_card_types_ds" lookupCode="SYS_IDENTITY_CARD_TYPES"/>
+            <a:dataSet id="fnd_enterprise_ds" model="fnd.FND9100.fnd_company_registed">
+                <a:datas dataSource="/model/company_data"/>
+                <a:fields>
+                    <a:field name="company_registed_id"/>
+                    <a:field name="agent_name" prompt="FND_COMPANY_REGISTED.AGENT_NAME" required="true"/>
+                    <a:field name="agent_identity_num" prompt="FND_COMPANY_REGISTED.IDENTITY_NUM" required="true"/>
+                    <a:field name="agent_phone" prompt="FND_COMPANY_REGISTED.PHONE" required="true"/>
+                    <a:field name="agent_identity_type_desc" displayField="code_value_name" options="fnd_identity_card_types_ds" prompt="FND_COMPANY_REGISTED.IDENTITY_CARD_TYPE" required="true" returnField="agent_identity_type" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <div class="login-header">
+            <ul class="main-menu">
+                <div class="container">
+                    <div id="logo">
+                        <a href="${/request/@context_path}/" style="cursor:hand">
+                            <img src="${/request/@context_path}/index/images/HandIcon.png" style="height: 50px;"/>
+                        </a>
+                    </div>
+                </div>
+            </ul>
+        </div>
+        <div class="container">
+            <div class="row login-row-tp">
+                <center>
+                    <ul id="progress-bar" class="progress-bar-mini">
+                        <li>
+                            <div class="step finished"><![CDATA[1]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.EMAIL}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step finished"><![CDATA[2]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.READ_REG_INSTRUCTIONS}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step finished"><![CDATA[3]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.CHOOSE}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step finished"><![CDATA[4]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.ENTERPRISE_INPUT}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step finished"><![CDATA[5]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.LEGAL_REPRESENTATIVE}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step active"><![CDATA[6]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.AGENT}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step unfinished"><![CDATA[7]]></div>
+                            <div class="after"/>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.CONFIRM}]]></div>
+                        </li>
+                        <li>
+                            <div class="before"/>
+                            <div class="step unfinished"><![CDATA[8]]></div>
+                            <div class="desc"><![CDATA[${l:FND_COMPANY_REGISTED.PENDING_APPROVAL}]]></div>
+                        </li>
+                    </ul>
+                </center>
+            </div>
+            <div class="row">
+                <h3><![CDATA[${l:FND_COMPANY_REGISTED.AGENT}]]></h3>
+                <a:vBox className="main_vbox">
+                    <a:hBox labelWidth="120">
+                        <a:textField name="agent_name" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="agent_identity_num" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:comboBox name="agent_identity_type_desc" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:button click="fnd9100_uploadIdentityFrontFun" prompt="FND_COMPANY_REGISTED.IDENTITY_CARD_FRONT" text="PROMPT.CLICK_UPLOAD"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:button click="fnd9100_uploadIdentityBackFun" prompt="FND_COMPANY_REGISTED.IDENTITY_CARD_BACK" text="PROMPT.CLICK_UPLOAD"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:button click="fnd9100_uploadProxyOfEnterpriseFun" prompt="FND_COMPANY_REGISTED.PROXY_OF_ENTERPRISE" text="PROMPT.CLICK_UPLOAD"/>
+                    </a:hBox>
+                    <a:hBox labelWidth="120">
+                        <a:textField name="agent_phone" bindTarget="fnd_enterprise_ds"/>
+                    </a:hBox>
+                </a:vBox>
+            </div>
+            <div class="row content-bottom">
+                <a:button className="item-btn-default" click="fnd9100_enterpriseRegister_save" style="float: right; margin-right: 5px;" text="PROMPT.NEXT_STEP" width="60"/>
+                <a:button className="item-btn-default" click="fnd9100_enterpriseRegister_last_page" style="float: right; margin-right: 5px;" text="PROMPT.LAST_STEP" width="60"/>
+            </div>
+        </div>
+        <div class="register-bottom text-center">
+            <p><![CDATA[${l:HAND_COMPANY_SITE_INFO} ${l:HAND_COMPANY_CONTACT_INFO} ${l:HAND_COMPANY_ICP_INFO} Copyright Hand China Co.,Ltd.]]></p>
+        </div>
+    </a:view>
+</a:screen>

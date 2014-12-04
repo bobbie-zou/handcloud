@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-4-23 上午10:30:57  
+    $Revision: 1.0  
+    $Purpose: 角色定义（CLIENT级），角色分配功能
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="v.flex_value_set_code = &apos;ROLE_TYPE&apos;" fetchAll="true" model="public.fnd_flex_value_v_lov" rootPath="role_type_list"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fnd2840_fnd_role_authority_function_save_link" url="${/request/@context_path}/modules/sys/public/sys_role_function_auth.svc"/>
+        <script><![CDATA[
+        
+            function fnd2840_fndRoleAuthorityFunctionClose() {
+                $('fnd2840_fnd_role_authority_assign_client_function_link_window').close();
+            }
+            
+            function fnd2840_fndRoleAuthorityFunctionSave() {
+                //var record = $('role_ds').getCurrentRecord();
+                var ds = $('fnd2840_fnd_role_authority_function_tree_ds');
+                //var role_id = record.get('role_id');
+                var role_id = '${/parameter/@role_id}';
+                var data = {
+                    role_id: role_id
+                };
+                var functions = [];
+                var items = ds.getAll();
+                var count = items.length;
+                if (count == 0) {
+                    Aurora.showMessage('${l:PROMPT.HINT}', '${l:NO_MENU_INFO}');
+                } else {
+                    var d = items[0].data;
+                    var dr = d['role_id'];
+                    if (dr && dr != role_id) {
+                        Aurora.showMessage('${l:PROMPT.HINT}', '${l:CHECK_MENU_DATA}');
+                        return;
+                    }
+                    for (var i = 0,
+                        l = count;i < l;i++) {
+                        if(items[i].dirty){
+	                        var d2 = items[i].data;
+	                        d2['role_id'] = role_id;
+	                        functions[functions.length] = d2;
+                        }
+                    }
+                    data['functions'] = functions;
+                    //锁屏
+                    Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+                    $('fnd2840_fndRoleAuthorityFunctionSave_btn').disable();
+                    Aurora.request({
+                        url: $('fnd2840_fnd_role_authority_function_save_link').getUrl(),
+                        para: data,
+                        success: function(){
+                            //解锁
+                            Aurora.Masker.unmask(Ext.getBody());
+                            Aurora.showMessage('${l:PROMPT}', '${l:SUCCESSFUL_OPERATION}', function() {
+                                $('fnd2840_fnd_role_authority_function_tree_ds').query();
+                                $('fnd2840_fndRoleAuthorityFunctionSave_btn').enable();
+                            });
+                        },
+                        failure: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            $('fnd2840_fndRoleAuthorityFunctionSave_btn').enable();
+                        },
+                        error: function() {
+                            Aurora.Masker.unmask(Ext.getBody());
+                            $('fnd2840_fndRoleAuthorityFunctionSave_btn').enable();
+                        },
+                        scope: this
+                    });
+                }
+            }
+            
+            function fnd2840_clientRoleFunctionTreeDsGridRenderer(value, record, name) {
+                if (record.get('function_level') == 'F') {
+                    return '';
+                }
+            }
+            
+            function fnd2840_fndRoleAuthorityFunctionTreeDsGridEditorFunction(record, name){
+                if(name == 'role_type_display'){
+                    if(record.get('function_level') == 'G' && !Aurora.isEmpty(record.get('parent_function_id'))){
+                        return 'fnd2840_fnd_role_authority_function_tree_ds_grid_cb';
+                    }else{
+                        return '';
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd2840_role_type_list_ds">
+                <a:datas dataSource="/model/role_type_list"/>
+            </a:dataSet>
+            <a:dataSet id="fnd2840_fnd_role_authority_function_tree_ds" autoCount="false" autoQuery="true" fetchAll="true" model="fnd.FND2840.fnd_role_authority_function_assign" queryUrl="${/request/@context_path}/autocrud/fnd.FND2840.fnd_role_authority_function_assign/query?role_id=${/parameter/@role_id}">
+                <a:fields>
+                    <a:field name="function_code" readOnly="true"/>
+                    <a:field name="function_name" readOnly="true"/>
+                    <a:field name="expanded" checkedValue="Y" uncheckedValue="N"/>
+                    <a:field name="role_type_display" displayField="flex_desc" options="fnd2840_role_type_list_ds" returnField="role_type" valueField="flex_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:toolbarButton id="fnd2840_fndRoleAuthorityFunctionSave_btn" click="fnd2840_fndRoleAuthorityFunctionSave" text="PROMPT.SAVE" width="100"/>
+            <a:toolbarButton id="fnd2840_fndRoleAuthorityFunctionClose_btn" click="fnd2840_fndRoleAuthorityFunctionClose" style="margin-left:20px;" text="PROMPT.CLOSE" width="100"/>
+        </a:screenTopToolbar>
+        <a:treeGrid id="fnd2840_fnd_role_authority_function_tree_ds_grid" bindTarget="fnd2840_fnd_role_authority_function_tree_ds" expandField="_expanded" height="400" idField="function_id" parentField="parent_function_id" showCheckBox="false" width="580">
+            <a:columns>
+                <a:column name="function_name" prompt="FND_FUNCTION.FUNCTION_NAME" width="250"/>
+                <a:column name="function_code" prompt="FND_FUNCTION.FUNCTION_CODE" width="190"/>
+                <a:column name="role_type_display" editorFunction="fnd2840_fndRoleAuthorityFunctionTreeDsGridEditorFunction" prompt="角色权限类型" width="120"/>
+            </a:columns>
+            <a:editors>
+                <a:comboBox id="fnd2840_fnd_role_authority_function_tree_ds_grid_cb"/>
+            </a:editors>
+        </a:treeGrid>
+    </a:view>
+</a:screen>

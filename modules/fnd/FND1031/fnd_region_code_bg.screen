@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Tu Guanghui6743  
+    $Date: 2014/09/22 11:25:26
+    $Revision: 1.0 $
+    $Purpose: 地区定义
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:view>
+        <a:link id="fnd1031_load_cloud_link" model="fnd.FND1031.fnd_region_code_bg" modelaction="execute"/>
+        <script><![CDATA[
+            var max_level = 3; //最多定义的层数
+            
+            //验证地区表字段的有效性
+            
+            function fnd1031_regionValidator(record, name, value) {
+                if (name == 'bg_region_code') {
+                    //验证地区代码的长度不能超过30
+                    if (fnd1031_getLength(value) >= 30) {
+                        return '${l:fnd1031.REGION_CODE_OVERLENGTH}';
+                    }
+                } else if (name == 'bg_region_name') {
+                    //验证地区名称的长度不能超过1000
+                    if (fnd1031_getLength(value) >= 1000) {
+                        return '${l:fnd1031.REGION_NAME_OVERLENGTH}';
+                    }
+                }
+                return true;
+            }
+            
+            //返回字符串真实长度
+            
+            function fnd1031_getLength(str) {
+                var realLength = 0,
+                    len = 0,
+                    charCode = -1;
+                if (!Aurora.isEmpty(str)) {
+                    len = str.length;
+                }
+                for (var i = 0;i < len;i++) {
+                    charCode = str.charCodeAt(i);
+                    if (charCode >= 0 && charCode <= 128) {
+                        realLength += 1;
+                    } else {
+                        realLength += 3;
+                    }
+                }
+                return realLength;
+            }
+            
+            function fnd1031_region_code_result_onQuery(ds) {
+                //触发查询事件时，锁住按钮
+                $('fnd1031_region_code_grid_saveButton').disable();
+                $('fnd1031_region_code_grid_loadCloud').disable();
+            }
+            
+            function fnd1031_region_code_result_onLoad(ds) {
+                //触发加载数据事件时，解锁按钮
+                $('fnd1031_region_code_grid_saveButton').enable();
+                $('fnd1031_region_code_grid_loadCloud').enable();
+            }
+            
+            /****************************************************************/
+            
+            //导入云级数据
+            
+            function fnd1031_loadCloud() {
+                Aurora.showConfirm('${l:PROMPT}', '${l:PROMPT.LOAD_CLOUD_CONFIRM}', function() {
+                    Aurora.request({
+                        url: $('fnd1031_load_cloud_link').getUrl(),
+                        success: function(result) {
+                            Aurora.SideBar.enable = true;
+                            Aurora.SideBar.show({
+                                msg: '${l:PROMPT.LOAD_SUCCESS}'
+                            });
+                            $('fnd1031_region_code_result_ds').query();
+                        },
+                        scopo: this,
+                        sync: true
+                    });
+                });
+            }
+            //保存
+            
+            function fnd1031_region_code_save() {
+                var ds = $('fnd1031_region_code_result_ds');
+                ds.submit();
+            }
+            
+            //保存成功的操作
+            
+            function fnd1031_region_code_submitsuccess(ds, res) {
+                Aurora.SideBar.enable = true;
+                Aurora.SideBar.show({
+                    msg: '${l:PROMPT.SAVE_SUCCESS}'
+                });
+                ds.query();
+            }
+            
+            function fnd1031_regionTreegridRenderer(value, record, name) {
+                var region_id = record.get('region_id');
+                var level_num = record.get('level_num');
+                var parent_id = record.get('parent_id');
+                var bg_enabled_flag = record.get('bg_enabled_flag');
+                var records = $('fnd1031_region_code_result_ds').getAll();
+            
+                if (name == 'enabledRegion') {
+                    if (!Aurora.isEmpty(region_id) && bg_enabled_flag == 'Y') {
+                        if (level_num < max_level) {
+                            return '<a href="javascript:fnd1031_regionTreegridRendererDisable()">${l:FND_REGION_CODE.REMOVE_REGION}</a>';
+                        } else {
+                            return '<a href="javascript:fnd1031_regionTreegridRendererDisable()">${l:FND_REGION_CODE.REMOVE_THIS_REGION}</a>';
+                        }
+                    } else if (bg_enabled_flag == 'N') {
+                        if (Aurora.isEmpty(parent_id) || parent_id == -1) {
+                            //根级地区
+                            return '<a href="javascript:fnd1031_regionTreegridRendererEnable()" style="background:red">${l:FND_REGION_CODE.ENABLE_REGION}</a>';
+                        } else {
+                            for (var i = 0;i < records.length;i++) {
+                                //判断上级地区是否启用，启用则显示，禁用则不显示
+                                if (parent_id == records[i].get('region_id') && records[i].get('bg_enabled_flag') == 'Y') {
+                                    return '<a href="javascript:fnd1031_regionTreegridRendererEnable()" style="background:red">${l:FND_REGION_CODE.ENABLE_REGION}</a>';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            
+            
+            function fnd1031_regionTreegridRendererDisable() {
+                var ds = $('fnd1031_region_code_result_ds');
+                var records = ds.getAll();
+                var record = ds.getCurrentRecord();
+                var index = ds.indexOf(record);
+                record.set('bg_enabled_flag', 'N');
+                for (var i = index + 1;i < records.length;i++) {
+                    if (records[i].get('level_num') < record.get('level_num') + 1) {
+                        break;
+                    }
+                    //将所有下级地区设置为disable
+                    //为避免发生下级地区被禁用后，再禁用上级地区时，下级地区任有启用选项
+                    //先将bg_enabled_flag设置为Y再设置为N则所有下级地区都会触发renderer
+                    records[i].set('bg_enabled_flag', 'Y');
+                    records[i].set('bg_enabled_flag', 'N');
+                }
+            }
+            
+            function fnd1031_regionTreegridRendererEnable() {
+                var ds = $('fnd1031_region_code_result_ds');
+                var records = ds.getAll();
+                var record = ds.getCurrentRecord();
+                var index = ds.indexOf(record);
+                record.set('bg_enabled_flag', 'Y');
+                for (var i = index + 1;i < records.length;i++) {
+                    if (records[i].get('level_num') < record.get('level_num') + 1) {
+                        break;
+                    }
+                    //将所有下级地区设置为enable
+                    records[i].set('bg_enabled_flag', 'Y');
+                }
+            }
+            
+            /*
+             ***************************************************************
+             * tree型数据查询说明：
+             * 	每组树形数据查询所需多个全局变量(多个tree多组变量，分别以_01,_02...表示)
+             *	参数1：显示位置（初始为0）
+             *	参数2：匹配结果数组
+             *	参数3：是否初始化匹配结果数组标识
+             ***************************************************************
+             */
+            var show_index_01 = 0; //显示位置
+            var row_list_01 = []; //匹配结果数组
+            var init_flag_01 = false; //初始化标识
+            //初始全局变量
+            
+            function fnd1031_initGlobalPara() {
+                show_index_01 = 0;
+                row_list_01 = [];
+                init_flag_01 = false;
+            }
+            
+            //初始化定位数组
+            
+            function fnd1031_initRowList(para) {
+            
+                //获取树形结果数据
+                var records = $('fnd1031_region_code_result_ds').getAll();
+            
+                //对数据进行遍历
+                for (var i = 0;i < records.length;i++) {
+            
+                    //判断是否包含当前查询字符，包含则将其位置放入匹配结果数组
+                    if (records[i].get('region_code').indexOf(para) != -1 || records[i].get('region_name').indexOf(para) != -1 || records[i].get('country_name').indexOf(para) != -1) {
+                        row_list_01.push($('fnd1031_region_code_result_ds').indexOf(records[i]));
+                    }
+                }
+            
+                //改变初始化标识
+                init_flag_01 = true;
+            }
+            
+            //采购品类tree查询按钮执行方法
+            
+            function fnd1031_region_code_treeQuery() {
+            
+                //获取查询条件字符串
+                var record = $('fnd1031_region_code_query_ds').getCurrentRecord();
+            
+                //判断查询条件的值是否为空，为空不做查询操作
+                if (!Aurora.isEmpty(record.get('region_code_name_or_country_name'))) {
+            
+                    //判断是否初始化定位数组
+                    if (!init_flag_01) {
+                        fnd1031_initRowList(record.get('region_code_name_or_country_name'));
+                    }
+            
+                    //结果匹配数组有值时
+                    if (row_list_01.length > 0) {
+            
+                        //显示匹配数组里的位置
+                        $('fnd1031_region_code_grid').selectRow(row_list_01[show_index_01]);
+            
+                        //判断显示位置是否越界,没有则++，有责回到初始0
+                        if (show_index_01 < row_list_01.length - 1) {
+                            show_index_01++;
+                        } else {
+                            show_index_01 = 0;
+                        }
+                    }
+                }
+            }
+            
+            //查询dataset更新事件
+            
+            function fnd1031_region_code_treeQuery_onUpdate(ds, record, name, value, oldvalue) {
+                $('fnd1031_region_code_query_ds').getCurrentRecord().dirty = false;
+                //查询条件改变，重置全局定位变量
+                fnd1031_initGlobalPara();
+            }
+            /*
+             ***************************************************************
+             * 树形数据查询结束
+             ***************************************************************
+             */
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd1031_region_code_query_ds" model="fnd.FND1031.fnd_region_code_bg">
+                <a:events>
+                    <a:event name="update" handler="fnd1031_region_code_treeQuery_onUpdate"/>
+                    <a:event name="enterdown" handler="fnd1031_region_code_treeQuery"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd1031_region_code_result_ds" autoQuery="true" fetchAll="true" model="fnd.FND1031.fnd_region_code_bg">
+                <a:fields>
+                    <a:field name="region_id"/>
+                    <a:field name="parent_id"/>
+                    <a:field name="level_num"/>
+                    <a:field name="country_code"/>
+                    <a:field name="region_code"/>
+                    <a:field name="region_name"/>
+                    <a:field name="bg_region_code" validator="fnd1031_regionValidator"/>
+                    <a:field name="bg_region_name" validator="fnd1031_regionValidator"/>
+                    <a:field name="country_name"/>
+                    <a:field name="bg_enabled_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="fnd1031_region_code_result_onQuery"/>
+                    <a:event name="load" handler="fnd1031_region_code_result_onLoad"/>
+                    <a:event name="submitsuccess" handler="fnd1031_region_code_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton id="fnd1031_region_code_grid_saveButton" click="fnd1031_region_code_save" style="margin-left:20px;" text="PROMPT.SAVE" width="100"/>
+                <a:toolbarButton id="fnd1031_region_code_grid_loadCloud" click="fnd1031_loadCloud" style="margin-left:20px;" text="PROMPT.LOAD_CLOUD_DATA" width="100"/>
+            </a:screenTopToolbar>
+            <a:queryForm bindTarget="fnd1031_region_code_query_ds" createSearchButton="false" style="width:100%;border:none">
+                <a:formToolBar>
+                    <a:textField name="region_code_name_or_country_name" bindTarget="fnd1031_region_code_query_ds" emptyText="FND1030.REGION_CODE_QUERY_HINT" marginWidth="220"/>
+                    <a:toolbarButton className="item-rbtn-gray" click="fnd1031_region_code_treeQuery" style="margin-left:20px;" text="HAP_QUERY" width="100"/>
+                </a:formToolBar>
+            </a:queryForm>
+            <a:treeGrid id="fnd1031_region_code_grid" bindTarget="fnd1031_region_code_result_ds" idField="region_id" marginHeight="160" marginWidth="60" parentField="parent_id" showCheckBox="false">
+                <a:columns>
+                    <a:column name="region_name" align="left" sortable="true" width="150"/>
+                    <a:column name="region_code" align="left" sortable="true" width="100"/>
+                    <a:column name="bg_region_name" align="left" editor="fnd1031_tf" width="150"/>
+                    <a:column name="bg_region_code" align="left" editor="fnd1031_upper_tf" width="100"/>
+                    <a:column name="country_name" align="left" width="150"/>
+                    <a:column prompt="HAP_OPERATION">
+                        <a:column name="enabledRegion" align="center" renderer="fnd1031_regionTreegridRenderer" width="90"/>
+                    </a:column>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd1031_upper_tf" typeCase="upper"/>
+                    <a:textField id="fnd1031_tf"/>
+                </a:editors>
+            </a:treeGrid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: IsaacF  
+    $Date: 2013-6-28 下午3:10:34  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure>
+        <a:model-query fetchAll="true" model="public.pur_rfx_types_list" rootPath="sacpur5210_rfx_types_source"/>
+        <a:model-query fetchAll="true" model="public.csh_payment_methods_list" rootPath="sacpur5210_payment_methods_source"/>
+        <a:model-query fetchAll="true" model="public.currency_list" rootPath="sacpur5210_currency_source"/>
+        <a:model-query fetchAll="true" model="public.fnd_tax_type_code_lov" rootPath="sacpur5210_tax_type_code_source"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="sacpur5210_rfx_detail_link" url="${/request/@context_path}/modules/pur/SACPUR5210/pur_rfx_detail.screen"/>
+        <a:link id="sacpur5210_rfx_feedback_rfq_link" url="${/request/@context_path}/modules/pur/SACPUR5210/pur_rfx_feedback_rfq.screen"/>
+        <a:link id="sacpur5210_rfx_feedback_rfa_link" url="${/request/@context_path}/modules/pur/SACPUR5210/pur_rfx_feedback_rfa.screen"/>
+        <a:link id="sacpur5210_rfx_feedback_batch_participate_link" url="${/request/@context_path}/modules/pur/SACPUR5210/pur_rfx_feedback_participate.svc"/>
+        <a:link id="sacpur5210_rfx_feedback_batch_abandon_link" url="${/request/@context_path}/modules/pur/SACPUR5210/pur_rfx_feedback_abandon.svc"/>
+        <a:link id="sacpur5210_rfx_feedback_create_link" model="pur.SACPUR5210.pur_rfx_feedback_create" modelaction="execute"/>
+        <script><![CDATA[
+            function sacpur5210RfxDetail(id) {
+                new Aurora.Window({
+                    url: $('sacpur5210_rfx_detail_link').getUrl() + '?rfx_header_id=' + id,
+                    title: '${l:MODULES/PUR/SACPUR5210/PUR_RFX_DETAIL.SCREEN.TITLE}',
+                    id: 'sacpur52102_rfx_detail_window',
+                    fullScreen: true
+                }).on('beforeclose', sacpur5210RfxFeedbackQuery);
+            }
+            
+            function sacpur5210RfxFeedbackRFQ(feedback_header_id, rfx_header_id, rfx_round, rfx_version, rfx_line_vendor_id) {
+                Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+            
+                var data = {
+                    'feedback_header_id': feedback_header_id,
+                    'rfx_header_id': rfx_header_id,
+                    'rfx_round': rfx_round,
+                    'rfx_version': rfx_version,
+                    'rfx_line_vendor_id': rfx_line_vendor_id
+                };
+                Aurora.request({
+                    url: $('sacpur5210_rfx_feedback_create_link').getUrl(),
+                    para: data,
+                    success: function(rec) {
+                        var feedback_header_id = rec.result.feedback_header_id;
+                        new Aurora.Window({
+                            url: $('sacpur5210_rfx_feedback_rfq_link').getUrl() + '?feedback_header_id=' + feedback_header_id,
+                            title: '${l:MODULES/PUR/SACPUR5210/PUR_RFX_FEEDBACK_RFQ.SCREEN.TITLE}',
+                            id: 'sacpur52101_rfx_feedback_rfq_window',
+                            fullScreen: true
+                        }).on('beforeclose', sacpur5210RfxFeedbackQuery);
+                    },
+                    failure: function() {
+                        return;
+                    },
+                    error: function() {
+                        return;
+                    }
+                });
+            
+                Aurora.Masker.unmask(Ext.getBody());
+            }
+            
+            function sacpur5210RfxFeedbackRFA(feedback_header_id, rfx_header_id, rfx_round, rfx_version, rfx_line_vendor_id) {
+                Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+            
+                var data = {
+                    'feedback_header_id': feedback_header_id,
+                    'rfx_header_id': rfx_header_id,
+                    'rfx_round': rfx_round,
+                    'rfx_version': rfx_version,
+                    'rfx_line_vendor_id': rfx_line_vendor_id
+                };
+                Aurora.request({
+                    url: $('sacpur5210_rfx_feedback_create_link').getUrl(),
+                    para: data,
+                    success: function(rec) {
+                        var feedback_header_id = rec.result.feedback_header_id;
+                        new Aurora.Window({
+                            url: $('sacpur5210_rfx_feedback_rfa_link').getUrl() + '?feedback_header_id=' + feedback_header_id,
+                            title: '${l:MODULES/PUR/SACPUR5210/PUR_RFX_FEEDBACK_RFA.SCREEN.TITLE}',
+                            id: 'sacpur52105_rfx_feedback_rfa_window',
+                            fullScreen: true
+                        }).on('beforeclose', sacpur5210RfxFeedbackQuery);
+                    },
+                    failure: function() {
+                        return;
+                    },
+                    error: function() {
+                        return;
+                    }
+                });
+            
+                Aurora.Masker.unmask(Ext.getBody());
+            }
+            
+            function sacpur5210RfxRender(value, rec, name) {
+                var rfx_header_id = rec.get('rfx_header_id');
+                var rfx_round = rec.get('round');
+                var rfx_version = rec.get('version');
+                var rfx_category = rec.get('rfx_category');
+                var rfx_line_vendor_id = rec.get('rfx_line_vendor_id');
+                var feedback_header_id = rec.get('feedback_header_id');
+                var feedback_status = rec.get('feedback_status');
+            
+                if (name == 'feedback_header_id') {
+                    if (feedback_status == 'PARTICIPATED') {
+                        if (rfx_category == 'RFQ') {
+                            return '<a href="javascript:sacpur5210RfxFeedbackRFQ(' + feedback_header_id + ',' + rfx_header_id + ',' + rfx_round + ',' + rfx_version + ',' + rfx_line_vendor_id + ')">${l:MODULES/PUR/SACPUR5210/PUR_RFX_FEEDBACK_RFQ.SCREEN.TITLE}</a>';
+                        } else if (rfx_category == 'RFA') {
+                            return '<a href="javascript:sacpur5210RfxFeedbackRFA(' + feedback_header_id + ',' + rfx_header_id + ',' + rfx_round + ',' + rfx_version + ',' + rfx_line_vendor_id + ')">${l:MODULES/PUR/SACPUR5210/PUR_RFX_FEEDBACK_RFA.SCREEN.TITLE}</a>';
+                        }
+                    } else {
+                        return '${l:SACPUR5210.NOT_IN}';
+                    }
+                } else if (name == 'rfx_number') {
+                    return '<a href="javascript:sacpur5210RfxDetail(' + rfx_header_id + ')">' + value + '</a>';
+                }
+            }
+            
+            function sacpur5210RfxFeedbackQuery() {
+                $('sacpur5210_rfx_feedback_result_ds').query();
+            }
+            
+            function sacpur5210RfxFeedbackParticipate() {
+                var maintain_ds = $('sacpur5210_rfx_feedback_result_ds');
+                var maintain_recs = maintain_ds.getSelected();
+            
+                if (maintain_recs.length > 0) {
+                    if (maintain_ds.validate()) {
+                        Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+            
+                        var data = [];
+                        for (var i = 0;i < maintain_recs.length;i++) {
+                            data.push({
+                                'rfx_header_id': maintain_recs[i].get('rfx_header_id'),
+                                'rfx_round': maintain_recs[i].get('round'),
+                                'rfx_version': maintain_recs[i].get('version'),
+                                'rfx_line_vendor_id': maintain_recs[i].get('rfx_line_vendor_id')
+                            });
+                        }
+            
+                        Aurora.showConfirm("${l:PROMPT}", "${l:SACPUR5210.JOIN_CONFIRM}", function() {
+                            Aurora.request({
+                                url: $('sacpur5210_rfx_feedback_batch_participate_link').getUrl(),
+                                para: data,
+                                success: function() {
+                                    Aurora.showMessage('${l:PROMPT}', '${l:SACPUR5210.JOIN_SUCCESSFULLY}', function() {
+                                        sacpur5210RfxFeedbackQuery();
+                                    });
+                                },
+                                failure: function() {
+                                    return;
+                                },
+                                error: function() {
+                                    return;
+                                }
+                            });
+                        }, function() {});
+            
+                        Aurora.Masker.unmask(Ext.getBody());
+                    }
+                }
+            }
+            
+            function sacpur5210RfxFeedbackAbandon() {
+                var maintain_ds = $('sacpur5210_rfx_feedback_result_ds');
+                var maintain_recs = maintain_ds.getSelected();
+            
+                if (maintain_recs.length > 0) {
+                    if (maintain_ds.validate()) {
+                        Aurora.Masker.mask(Ext.getBody(), '${l:LOADING}');
+            
+                        var data = [];
+                        for (var i = 0;i < maintain_recs.length;i++) {
+                            data.push({
+                                'rfx_header_id': maintain_recs[i].get('rfx_header_id'),
+                                'rfx_round': maintain_recs[i].get('round'),
+                                'rfx_version': maintain_recs[i].get('version'),
+                                'rfx_line_vendor_id': maintain_recs[i].get('rfx_line_vendor_id')
+                            });
+                        }
+            
+                        Aurora.showConfirm("${l:PROMPT}", "${l:SACPUR5210.ABANDON_CONFIRM}", function() {
+                            Aurora.request({
+                                url: $('sacpur5210_rfx_feedback_batch_abandon_link').getUrl(),
+                                para: data,
+                                success: function() {
+                                    Aurora.showMessage('${l:PROMPT}', '${l:SACPUR5210.ABANDON_SUCCESSFULLY}', function() {
+                                        sacpur5210RfxFeedbackQuery();
+                                    });
+                                },
+                                failure: function() {
+                                    return;
+                                },
+                                error: function() {
+                                    return;
+                                }
+                            });
+                        }, function() {});
+            
+                        Aurora.Masker.unmask(Ext.getBody());
+                    }
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sacpur5210_rfx_category_ds" lookupCode="PUR_RFX_CATEGORY"/>
+            <a:dataSet id="sacpur5210_rfx_method_ds" lookupCode="PUR_RFX_METHOD"/>
+            <a:dataSet id="sacpur5210_rfx_auction_direction_ds" lookupCode="PUR_RFX_AUCTION_DIRECTION"/>
+            <a:dataSet id="sacpur5210_rfx_auction_rule_ds" lookupCode="PUR_RFX_AUCTION_RULE"/>
+            <a:dataSet id="sacpur5210_rfx_open_rule_ds" lookupCode="PUR_RFX_OPEN_RULE"/>
+            <a:dataSet id="sacpur5210_rfx_ranking_rule_ds" lookupCode="PUR_RFX_RANKING_RULE"/>
+            <a:dataSet id="sacpur5210_rfx_auction_ranking_ds" lookupCode="PUR_RFX_AUCTION_RANKING"/>
+            <a:dataSet id="sacpur5210_rfx_status_ds" lookupCode="PUR_RFX_STATUS"/>
+            <a:dataSet id="sacpur5210_rfx_types_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/sacpur5210_rfx_types_source"/>
+            </a:dataSet>
+            <a:dataSet id="sacpur5210_payment_method_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/sacpur5210_payment_methods_source"/>
+            </a:dataSet>
+            <a:dataSet id="sacpur5210_currency_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/sacpur5210_currency_source"/>
+            </a:dataSet>
+            <a:dataSet id="sacpur5210_tax_type_code_ds" autoCreate="true" loadData="true">
+                <a:datas dataSource="/model/sacpur5210_tax_type_code_source"/>
+            </a:dataSet>
+            <a:dataSet id="sacpur5210_rfx_feedback_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_id"/>
+                    <a:field name="company_desc" autoComplete="true" autoCompleteField="code_name" lovGridHeight="320" lovHeight="450" lovService="public.fnd_companies_lov" lovWidth="500" title="PUR_RFX_HEADERS.COMPANY_ID">
+                        <a:mapping>
+                            <a:map from="company_id" to="company_id"/>
+                            <a:map from="company_short_name" to="company_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="rfx_type_id"/>
+                    <a:field name="rfx_type_desc" displayField="rfx_type_desc" options="sacpur5210_rfx_types_ds" returnField="rfx_type_id" valueField="rfx_type_id">
+                        <a:mapping>
+                            <a:map from="rfx_type_id" to="rfx_type_id"/>
+                            <a:map from="rfx_type_desc" to="rfx_type_desc"/>
+                            <a:map from="rfx_category" to="rfx_category"/>
+                            <a:map from="rfx_category_desc" to="rfx_category_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="rfx_category_desc" displayField="code_value_name" options="sacpur5210_rfx_category_ds" returnField="rfx_category" valueField="code_value"/>
+                    <a:field name="status_desc" displayField="code_value_name" options="sacpur5210_rfx_status_ds" returnField="status" valueField="code_value"/>
+                    <a:field name="rfx_method"/>
+                    <a:field name="rfx_method_desc" displayField="code_value_name" options="sacpur5210_rfx_method_ds" returnField="rfx_method" valueField="code_value"/>
+                    <a:field name="auction_direction"/>
+                    <a:field name="auction_direction_desc" displayField="code_value_name" options="sacpur5210_rfx_auction_direction_ds" returnField="auction_direction" valueField="code_value"/>
+                    <a:field name="auction_rule"/>
+                    <a:field name="auction_rule_desc" displayField="code_value_name" options="sacpur5210_rfx_auction_rule_ds" returnField="auction_rule" valueField="code_value"/>
+                    <a:field name="open_rule"/>
+                    <a:field name="open_rule_desc" displayField="code_value_name" options="sacpur5210_rfx_open_rule_ds" returnField="open_rule" valueField="code_value"/>
+                    <a:field name="ranking_rule"/>
+                    <a:field name="ranking_rule_desc" displayField="code_value_name" options="sacpur5210_rfx_ranking_rule_ds" returnField="ranking_rule" valueField="code_value"/>
+                    <a:field name="auction_ranking"/>
+                    <a:field name="auction_ranking_desc" displayField="code_value_name" options="sacpur5210_rfx_auction_ranking_ds" returnField="auction_ranking" valueField="code_value"/>
+                    <a:field name="payment_method_id"/>
+                    <a:field name="payment_method_desc" displayField="payment_method_desc" options="sacpur5210_payment_method_ds" returnField="payment_method_id" valueField="payment_method_id"/>
+                    <a:field name="currency_code"/>
+                    <a:field name="currency_desc" displayField="currency_name" options="sacpur5210_currency_ds" returnField="currency_code" valueField="currency_code">
+                        <a:mapping>
+                            <a:map from="currency_name" to="currency_desc"/>
+                            <a:map from="currency_code" to="currency_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="tax_type_id"/>
+                    <a:field name="tax_type_desc" displayField="description" options="sacpur5210_tax_type_code_ds" prompt="SACPUR5210.TAX_TYPE" valueField="tax_type_id">
+                        <a:mapping>
+                            <a:map from="tax_type_id" to="tax_type_id"/>
+                            <a:map from="description" to="tax_type_desc"/>
+                            <a:map from="tax_type_rate" to="tax_type_rate"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="created_by_desc" autoComplete="true" autoCompleteField="user_desc" lovGridHeight="320" lovHeight="450" lovService="public.sys_user_lov" lovWidth="500" title="PUR_RFX_HEADERS.CREATED_BY">
+                        <a:mapping>
+                            <a:map from="user_id" to="created_by"/>
+                            <a:map from="user_desc" to="created_by_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sacpur5210_rfx_feedback_result_ds" autoCount="true" autoPageSize="true" model="pur.SACPUR5210.pur_rfx_feedback_query" queryDataSet="sacpur5210_rfx_feedback_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="tax_included_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <!-- <a:defaultScreen> -->
+        <a:screenTopToolbar>
+            <a:screenTitle/>
+            <!-- <a:toolbarButton click="sacpur5210RfxFeedbackParticipate" text="参与" width="100"/> -->
+            <a:toolbarButton click="sacpur5210RfxFeedbackAbandon" text="SACPUR5210.ABANDON" width="100"/>
+        </a:screenTopToolbar>
+        <a:queryForm bindTarget="sacpur5210_rfx_feedback_query_ds" resultTarget="sacpur5210_rfx_feedback_result_ds" style="width:100%;border:none">
+            <a:formToolBar>
+                <a:textField name="rfx_number_from" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="SACPUR5210.RFX_CODE_FROM">
+                    <a:events>
+                        <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="rfx_number_to" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="SACPUR5210.RFX_CODE_TO">
+                    <a:events>
+                        <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                    </a:events>
+                </a:textField>
+                <a:lov name="company_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.COMPANY_ID">
+                    <a:events>
+                        <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                    </a:events>
+                </a:lov>
+            </a:formToolBar>
+            <a:formBody>
+                <a:hBox labelWidth="100">
+                    <a:textField name="title" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.TITLE">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="rfx_type_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.RFX_TYPE_ID">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="rfx_category_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.RFX_CATEGORY">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="rfx_method_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.RFX_METHOD">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:comboBox name="auction_direction_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.AUCTION_DIRECTION">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="auction_rule_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.AUCTION_RULE">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="open_rule_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.OPEN_RULE">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="ranking_rule_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.RANKING_RULE">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:comboBox name="auction_ranking_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.AUCTION_RANKING">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="status_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.STATUS">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="currency_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.CURRENCY_CODE">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:lov name="created_by_desc" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="PUR_RFX_HEADERS.CREATED_BY">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:lov>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:datePicker name="creation_date_from" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="SACPUR5210.CREATION_DATE_FROM">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="creation_date_to" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="SACPUR5210.CREATION_DATE_TO">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="issued_date_from" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="SACPUR5210.ISSUED_DATE_FROM">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="issued_date_to" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="SACPUR5210.ISSUED_DATE_TO">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:hBox>
+                <a:hBox labelWidth="100">
+                    <a:datePicker name="feedback_start_time_from" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="SACPUR5210.FEEDBACK_START_TIME_FROM">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="feedback_start_time_to" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="SACPUR5210.FEEDBACK_START_TIME_TO">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="feedback_end_time_from" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="SACPUR5210.FEEDBACK_END_TIME_FROM">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="feedback_end_time_to" bindTarget="sacpur5210_rfx_feedback_query_ds" prompt="SACPUR5210.FEEDBACK_END_TIME_TO">
+                        <a:events>
+                            <a:event name="enterdown" handler="sacpur5210RfxFeedbackQuery"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:hBox>
+            </a:formBody>
+        </a:queryForm>
+        <a:grid id="sacpur5210_rfx_feedback_result_grid" bindTarget="sacpur5210_rfx_feedback_result_ds" marginHeight="180" marginWidth="70" navBar="true">
+            <a:columns>
+                <a:column name="feedback_header_id" align="center" lock="true" prompt="MODULES/PUR/SACPUR5210/PUR_RFX_FEEDBACK_RFQ.SCREEN.TITLE" renderer="sacpur5210RfxRender" width="50"/>
+                <a:column name="feedback_start_time_desc" align="left" lock="true" prompt="PUR_RFX_HEADERS.FEEDBACK_START_TIME" width="80"/>
+                <a:column name="feedback_end_time_desc" align="left" lock="true" prompt="PUR_RFX_HEADERS.FEEDBACK_END_TIME" width="80"/>
+                <a:column name="rfx_number" align="left" lock="true" prompt="PUR_RFX_HEADERS.RFX_NUMBER" renderer="sacpur5210RfxRender" width="80"/>
+                <a:column name="title" align="left" lock="true" prompt="PUR_RFX_HEADERS.TITLE" width="100"/>
+                <a:column name="company_desc" align="left" prompt="PUR_RFX_HEADERS.COMPANY_ID" width="80"/>
+                <a:column name="rfx_type_desc" align="left" prompt="PUR_RFX_HEADERS.RFX_TYPE_ID" width="80"/>
+                <a:column name="rfx_category_desc" align="left" prompt="PUR_RFX_HEADERS.RFX_CATEGORY" width="60"/>
+                <a:column name="rfx_method_desc" align="left" prompt="PUR_RFX_HEADERS.RFX_METHOD" width="40"/>
+                <a:column name="auction_direction_desc" align="left" prompt="PUR_RFX_HEADERS.AUCTION_DIRECTION" width="40"/>
+                <a:column name="auction_rule_desc" align="left" prompt="PUR_RFX_HEADERS.AUCTION_RULE" width="80"/>
+                <a:column name="open_rule_desc" align="left" prompt="PUR_RFX_HEADERS.OPEN_RULE" width="80"/>
+                <a:column name="ranking_rule_desc" align="left" prompt="PUR_RFX_HEADERS.RANKING_RULE" width="80"/>
+                <a:column name="auction_ranking_desc" align="left" prompt="PUR_RFX_HEADERS.AUCTION_RANKING" width="80"/>
+                <a:column name="status_desc" align="left" prompt="PUR_RFX_HEADERS.STATUS" width="40"/>
+                <a:column name="round" align="left" prompt="PUR_RFX_HEADERS.ROUND" width="30"/>
+                <a:column name="currency_desc" align="left" prompt="PUR_RFX_HEADERS.CURRENCY_CODE" width="40"/>
+                <a:column name="tax_included_flag" align="left" prompt="PUR_RFX_HEADERS.TAX_INCLUDED_FLAG" width="30"/>
+                <a:column name="tax_type_desc" align="left" prompt="PUR_RFX_HEADERS.TAX_TYPE_RATE" width="60"/>
+                <a:column name="created_by_desc" align="left" prompt="PUR_RFX_HEADERS.CREATED_BY" width="60"/>
+                <a:column name="creation_date_desc" align="left" prompt="PUR_RFX_HEADERS.CREATION_DATE" width="60"/>
+                <a:column name="issued_date_desc" align="left" prompt="PUR_RFX_HEADERS.ISSUED_DATE" width="60"/>
+            </a:columns>
+        </a:grid>
+        <!-- </a:defaultScreen> -->
+    </a:view>
+</a:screen>

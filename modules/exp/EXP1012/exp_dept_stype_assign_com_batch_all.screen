@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application">
+    <a:init-procedure><![CDATA[
+    
+	]]></a:init-procedure>
+    <a:view>
+        <a:link id="ORG1012_exp_com_obj_companies_link" url="${/request/@context_path}/modules/exp/EXP1012/exp_com_obj_batch_assign_all.svc"/>
+        <script><![CDATA[
+            
+            function EXP1012_assignCom() {
+                var typeRecordsData = $('exp_org_unit_types_result_ds').getJsonData(true);
+                var companyRecordsData = $('EXP1012_system_company_assign_com_ds').getJsonData(true);
+                var param = {};
+                if (companyRecordsData.length == 0) {
+                    Aurora.showInfoMessage('${l:PROMPT}', '${l:PROMPT.PLEASE_SELECT}', null, 250, 100);
+                    return;
+                }
+                for(var i = 0 ; i < typeRecordsData.length ; i ++){
+                    var rs = typeRecordsData[i];
+                    rs['detail2'] = companyRecordsData;
+                }
+                
+    			param['detail1'] = typeRecordsData;
+    			
+    			
+                Aurora.request({
+                    url: $('ORG1012_exp_com_obj_companies_link').getUrl(),
+                    para: param,
+                    success: backFunction,
+                    scope: this
+                });
+            }
+            
+             function backFunction() {
+                $('exp_org_unit_types_result_ds').query();
+                $('EXP1012_csh_sob_payment_company_batch_id').close();
+            }
+            
+            
+            function queryCompany() {
+                $('EXP1012_system_company_assign_com_ds').query();
+            }
+            
+            //重置查询条件
+            
+            function resetRequisition() {
+                $('EXP1012_batch_query_ds').reset();
+            }
+            
+            
+            function back() {
+                $('EXP1012_csh_sob_payment_company_batch_id').close();
+            }
+            
+            function updateFunction(ds, record, name, value, old) {
+                if (name == 'company_code_from_display') {
+                    record.set(record.get('company_code_to_display'), '');
+                    record.set(record.get('company_code_to'), '');
+                }
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="EXP1012_batch_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="company_code_from_display" autoComplete="true" lovGridHeight="300" lovHeight="450" lovService="exp.EXP1012.exp_org_assign_batch_lov?set_of_books_id=${/parameter/@set_of_books_id}" lovWidth="500" prompt="FND_COMPANIES.COMPANY_FROM" title="FND_COMPANIES.COMPANY_FROM">
+                        <a:mapping>
+                            <a:map from="company_code" to="company_code_from"/>
+                            <a:map from="code_name" to="company_code_from_display"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_code_to_display" autoComplete="true" lovGridHeight="300" lovHeight="450" lovService="exp.EXP1012.exp_org_assign_batch_lov?set_of_books_id=${/parameter/@set_of_books_id}" lovWidth="500" prompt="FND_COMPANIES.COMPANY_TO" title="FND_COMPANIES.COMPANY_TO">
+                        <a:mapping>
+                            <a:map from="company_code" to="company_code_to"/>
+                            <a:map from="code_name" to="company_code_to_display"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_code_from"/>
+                    <a:field name="company_code_to"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="EXP1012_system_company_assign_com_ds" autoQuery="true" model="exp.EXP1012.exp_org_assign_batch_lov" pageSize="11" queryDataSet="EXP1012_batch_query_ds" queryUrl="${/request/@context_path}/autocrud/exp.EXP1012.exp_org_assign_batch_lov/query?set_of_books_id=${/parameter/@set_of_books_id}" selectable="true">
+                <a:fields>
+                    <a:field name="company_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form title="ORD_SYSTEM_CUSTOMERS_ASSIGN_COM_BATCH_HCT" width="520">
+                <a:vBox>
+                    <a:hBox>
+                        <a:lov name="company_code_from_display" bindTarget="EXP1012_batch_query_ds" prompt="FND_COMPANIES.COMPANY_FROM"/>
+                        <a:lov name="company_code_to_display" bindTarget="EXP1012_batch_query_ds" prompt="FND_COMPANIES.COMPANY_TO"/>
+                    </a:hBox>
+                </a:vBox>
+            </a:form>
+            <a:hBox>
+                <a:button click="queryCompany" text="HAP_QUERY"/>
+                <a:button click="resetRequisition" text="HAP_RESET"/>
+            </a:hBox>
+            <a:hBox>
+                <a:button click="EXP1012_assignCom" text="CSH2011_ADD"/>
+                <a:button click="back" text="HAP_BACK"/>
+            </a:hBox>
+            <a:grid bindTarget="EXP1012_system_company_assign_com_ds" height="330" navBar="true" width="520">
+                <a:columns>
+                    <a:column name="company_code" Width="130" align="center" prompt="FND_COMPANIES.COMPANY_CODE"/>
+                    <a:column name="company_short_name" Width="200" prompt="FND_COMPANIES_VL.COMPANY_SHORT_NAME"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

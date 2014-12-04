@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wangshihua
+    $Date: 2013-12-17 上午10:31:04  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:s="aurora.plugin.script" xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        p.vendor_class_id,
+                        p.vendor_class_code,
+                        p.vendor_class_desc_id,
+                        (SELECT
+                            fd.description_text
+                        FROM
+                            fnd_descriptions fd
+                        WHERE
+                            fd.description_id=p.vendor_class_desc_id AND
+                            fd.language      =userenv('LANG')
+                        ) AS vendor_class_desc,
+                        p.parent_class_id,
+                        (SELECT
+                            fd.description_text
+                        FROM
+                            fnd_descriptions fd
+                        WHERE
+                            fd.description_id=p.parent_class_id AND
+                            fd.language      =userenv('LANG')
+                        ) AS parent_class_desc,
+                        p.LEVEL_ID,
+                        'N' AS expanded,
+                        p.ENABLED_FLAG,
+                        p.industry_field,
+                        (SELECT
+                            fv.flex_desc
+                        FROM
+                            fnd_flex_values_v fv
+                        WHERE
+                            fv.value_set_enabled_flag = 'Y' AND
+                            fv.values_enabled_flag    = 'Y' AND
+                            fv.flex_value_set_code    = 'VENDOR_INDUSTRY_FIELDS'
+                            AND fv.flex_value = p.industry_field
+                        ) industry_field_desc
+                    FROM
+                        PUR_VENDOR_CLASSES p #AUTHORIY_FROM# #WHERE_CLAUSE# #AUTHORIY_WHERE# #ORDER_BY_CLAUSE#
+                    ) t
+                WHERE
+                    NVL(t.parent_class_id,-1) = NVL(${@vendor_class_id},-1)
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:parameters>
+                <bm:parameter name="vendor_class_id" input="false" output="true"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+    			begin
+    				pur_vendor_pkg.create_pur_vendor_classes(
+    								  x_vendor_class_id   => ${@vendor_class_id},
+                                      p_vendor_class_code => ${@vendor_class_code},
+                                      p_vendor_class_desc => ${@vendor_class_desc},
+                                      p_level_id          => ${@level_id},
+                                      p_parent_class_id   => ${@parent_class_id},
+                                      p_enabled_flag      => ${@enabled_flag},
+                                      p_user_id           => ${/session/@user_id},
+                                      p_industry_field    => ${@industry_field});
+    			end;
+    		]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+        		begin
+        			pur_vendor_pkg.modify_pur_vendor_classes(
+        							  p_vendor_class_id   => ${@vendor_class_id},
+                                      p_vendor_class_code => ${@vendor_class_code},
+                                      p_vendor_class_desc => ${@vendor_class_desc},
+                                      p_level_id          => ${@level_id},
+                                      p_parent_class_id   => ${@parent_class_id},
+                                      p_enabled_flag      => ${@enabled_flag},
+                                      p_user_id           => ${/session/@user_id},
+                                      p_industry_field    => ${@industry_field});
+        		end;
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:query-fields>
+        <bm:query-field name="parent_class_id" queryExpression="p.parent_class_id=${@parent_class_id}"/>
+        <bm:query-field name="class_code_name" queryExpression="(vendor_class_code like &apos;%&apos; || ${@class_code_name} || &apos;%&apos;) or exists (select 1 from fnd_descriptions fd where fd.description_id=p.vendor_class_desc_id and fd.language=userenv(&apos;LANG&apos;) and fd.description_text like &apos;%&apos;||${@class_code_name}||&apos;%&apos;)"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="1=1"/>
+    </bm:data-filters>
+    <authority client_alias="p" client_name="client"/>
+    <bm:features>
+        <s:bm-script><![CDATA[
+        	var cx = Packages.aurora.javascript.Context.getCurrentContext();
+			Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_flex_dynamic_tools.js");
+        	Packages.aurora.plugin.script.engine.ScriptImportor.defineExternScript(cx, this, $ctx.getData(), "fnd_dynamic_authority.js");
+        ]]></s:bm-script>
+    </bm:features>
+</bm:model>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: qhw  
+    $Date: 2013-2-28 下午04:20:23  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="insert">
+            <bm:query-sql><![CDATA[
+            begin
+				fnd_flex_appl_parameters_pkg.ins_fnd_flex_appl_columns(
+				    x_assign_id =>${@assign_id},  
+				    p_appl_table_id =>${@appl_table_id},  
+				    p_field_id =>${@field_id}, 
+				    p_parameter_id =>${@parameter_id}, 
+				    p_description_id =>${@description_id},
+				    p_description =>${@description},
+				    p_enabled_flag =>${@enabled_flag},
+				    p_user_id =>${/session/@user_id}
+				  );
+			end;	  
+			]]></bm:query-sql>
+            <bm:parameters>
+                <bm:parameter name="assign_id" dataType="java.lang.Long" input="false" output="true" outputPath="@assign_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:query-sql><![CDATA[
+			begin
+				fnd_flex_appl_parameters_pkg.update_fnd_flex_appl_columns(
+				    p_assign_id =>${@assign_id},  
+				    p_appl_table_id =>${@appl_table_id},  
+				    p_field_id =>${@field_id}, 
+				    p_parameter_id =>${@parameter_id}, 
+				    p_description_id =>${@description_id},
+				    p_description =>${@description},
+				    p_enabled_flag =>${@enabled_flag},
+				    p_user_id =>${/session/@user_id}
+				  );	
+			end;	
+			]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                	t1.assign_id,
+				    t1.field_id,
+				    t2.appl_table_id,
+				    t2.field_name,
+				    t2.description_id,
+				    t1.parameter_id,
+				    ffap.parameter_code,
+				    ffap.enabled_flag,
+				    (SELECT
+				        description_text
+				    FROM
+				        fnd_descriptions
+				    WHERE
+				        description_id=t2.description_id AND
+				        language      =${/session/@lang}
+				    ) AS description,
+				    (SELECT
+				        description_text
+				    FROM
+				        fnd_descriptions
+				    WHERE
+				        description_id=ffap.description_id AND
+				        language      =${/session/@lang}
+				    ) AS parameter_desc
+				FROM
+				    fnd_flex_appl_param_assign t1,
+				    fnd_flex_appl_table_fields t2,
+				    fnd_flex_appl_parameters ffap
+                #WHERE_CLAUSE#
+            ]]></bm:query-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="assign_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="field_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="appl_table_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="field_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="字段名称"/>
+        <bm:field name="description_id" databaseType="NUMBER" datatype="java.lang.Long" multiLanguage="true" multiLanguageDescField="description" physicalName="DESCRIPTION_ID" prompt="FND_FLEX_APPL_COLUMNS.DESCRIPTION_ID"/>
+        <bm:field name="parameter_id" databaseType="NUMBER" datatype="java.lang.Long" prompt="FND_FLEX_APPL_COLUMNS.PARAMETER_ID"/>
+        <bm:field name="parameter_code" databaseType="VARCHAR" datatype="java.lang.String" prompt="参数代码"/>
+        <bm:field name="parameter_desc" databaseType="VARCHAR" datatype="java.lang.String" prompt="参数名称"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR" datatype="java.lang.String" prompt="启用"/>
+        <bm:field name="description" databaseType="VARCHAR" datatype="java.lang.String" prompt="字段描述"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="appl_table_id" queryExpression="T1.appl_table_id=${@appl_table_id}"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter expression="t1.parameter_id=ffap.parameter_id(+)"/>
+        <bm:data-filter expression="t1.field_id=t2.field_id(+)"/>
+    </bm:data-filters>
+</bm:model>

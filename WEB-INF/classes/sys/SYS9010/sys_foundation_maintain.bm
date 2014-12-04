@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wanghaitao2658
+    $Date: 2014-8-25 上午10:52:07  
+    $Revision: 1.0  
+    $Purpose: 基础数据定义，维护BM 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:fields>
+        <bm:field name="foundation_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="foundation_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="SYS_FOUNDATIONS.FOUNDATION_CODE"/>
+        <bm:field name="module_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="SYS_MODULES.MODULE_CODE"/>
+        <bm:field name="module_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="SYS_MODULES.MODULE_NAME"/>
+        <bm:field name="foundation_type" databaseType="VARCHAR2" datatype="java.lang.String" prompt="SYS_FOUNDATIONS.FOUNDATION_TYPE"/>
+        <bm:field name="foundation_type_desc" databaseType="VARCHAR2" datatype="java.lang.String" prompt="SYS_FOUNDATIONS.FOUNDATION_TYPE"/>
+        <bm:field name="foundation_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="SYS_FOUNDATIONS.FOUNDATION_NAME"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="SYS_FOUNDATIONS.ENABLED_FLAG"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="foundation_code_name" queryExpression="mv.foundation_code like &apos;%&apos;||trim(UPPER(${@foundation_code_name}))||&apos;%&apos; or mv.foundation_name like &apos;%&apos;||trim(${@foundation_code_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+            	select fv.foundation_id,
+				       fv.foundation_code,
+				       fv.module_code,
+				       (SELECT mv.module_name FROM sys_modules_vl mv WHERE mv.module_code = fv.module_code) AS module_name,
+				       fv.foundation_type,
+				       (SELECT cvv.code_value_name
+				          FROM sys_code_values_v cvv
+				         WHERE cvv.code = 'SYS_FOUNDATION_TYPE'
+				           AND cvv.code_value = fv.foundation_type) AS foundation_type_desc,
+				       fv.foundation_name,
+				       fv.enabled_flag
+				  from sys_foundations_vl fv
+				 #WHERE_CLAUSE#
+				 order by fv.foundation_code
+			 ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+            	begin
+	            	sys_foundation_pkg.create_foundation(
+	            		p_foundation_code => ${@foundation_code},
+						p_module_code 	  => ${@module_code},
+						p_foundation_type => ${@foundation_type},
+						p_foundation_name => ${@foundation_name},
+						p_enabled_flag	  => ${@enabled_flag},
+						p_session_user_id => ${/session/@user_id});
+				end;            								 
+        	]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+            	begin
+	            	sys_foundation_pkg.modify_foundation(
+	            		p_foundation_code => ${@foundation_code},
+						p_foundation_name => ${@foundation_name},
+						p_enabled_flag	  => ${@enabled_flag},
+						p_session_user_id => ${/session/@user_id});
+				end;            								 
+        	]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

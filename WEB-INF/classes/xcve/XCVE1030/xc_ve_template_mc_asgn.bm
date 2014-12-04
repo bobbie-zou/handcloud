@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lichenguang  
+    $Date: 2011-11-16 下午02:56:02  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:e="aurora.service.exception" xmlns:o="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t1" baseTable="XC_VE_TEMPLATE_MC_ASGN" defaultOrderBy="t1.sequence_num">
+    <bm:fields>
+        <bm:field name="main_criteria_asgn_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="MAIN_CRITERIA_ASGN_ID" prompt="XC_VE_TEMPLATE_MC_ASGN.MAIN_CRITERIA_ASGN_ID"/>
+        <bm:field name="ve_template_id" databaseType="NUMBER" datatype="java.lang.Long" insertExpression="${../../@ve_template_id}" physicalName="VE_TEMPLATE_ID" prompt="XC_VE_TEMPLATE_MC_ASGN.VE_TEMPLATE_ID"/>
+        <bm:field name="sequence_num" databaseType="NUMBER" datatype="java.lang.Long" physicalName="SEQUENCE_NUM" prompt="XC_VE_TEMPLATE_MC_ASGN.SEQUENCE_NUM"/>
+        <bm:field name="main_criterion_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="MAIN_CRITERION_ID" prompt="XC_VE_TEMPLATE_MC_ASGN.MAIN_CRITERION_ID"/>
+        <bm:field name="graph_comparison_weight" databaseType="NUMBER" datatype="java.lang.Double" physicalName="GRAPH_COMPARISON_WEIGHT" prompt="XC_VE_TEMPLATE_MC_ASGN.GRAPH_COMPARISON_WEIGHT"/>
+    </bm:fields>
+    <bm:features>
+        <f:standard-who/>
+        <f:multi-language-storage/>
+        <o:sequence-pk/>
+    </bm:features>
+    <bm:primary-key>
+        <bm:pk-field name="main_criteria_asgn_id"/>
+    </bm:primary-key>
+    <bm:ref-fields>
+        <bm:ref-field name="main_criterion_code" forInsert="false" forUpdate="false" prompt="XC_VE_MAIN_CRITERIA.MAIN_CRITERION_CODE" relationName="d" sourceField="main_criterion_code"/>
+        <bm:ref-field name="description_id" forInsert="false" forUpdate="false" multiLanguage="true" multiLanguageDescField="description" relationName="d" sourceField="description_id"/>
+    </bm:ref-fields>
+    <bm:data-filters>
+        <bm:data-filter name="ve_template_id" enforceOperations="query" expression="t1.ve_template_id=${@ve_template_id}"/>
+    </bm:data-filters>
+    <bm:query-fields>
+        <bm:query-field field="main_criteria_asgn_id" queryOperator="="/>
+    </bm:query-fields>
+    <bm:relations>
+        <bm:relation name="d" joinType="INNER" refModel="xcve.XCVE1020.xc_ve_main_criteria">
+            <bm:reference foreignField="main_criterion_id" localField="main_criterion_id"/>
+        </bm:relation>
+    </bm:relations>
+    <bm:operations>
+        <bm:operation name="delete">
+            <bm:parameters>
+                <bm:parameter name="main_criteria_asgn_id"/>
+            </bm:parameters>
+            <bm:update-sql><![CDATA[
+            	begin
+            	    delete from XC_VE_TEMPLATE_CD_ASGN t where exists (select 1 from XC_VE_TEMPLATE_SC_ASGN a where a.sub_criteria_asgn_id = t.sub_criteria_asgn_id and a.main_criteria_asgn_id = ${@main_criteria_asgn_id});
+            	    delete from XC_VE_TEMPLATE_SC_ASGN t where t.main_criteria_asgn_id = ${@main_criteria_asgn_id};
+            	    delete from XC_VE_TEMPLATE_MC_ASGN t where t.main_criteria_asgn_id = ${@main_criteria_asgn_id};
+                end;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <e:exception-descriptor-config>
+        <e:exception-descriptor exception="java.sql.SQLException" handleClass="aurora.database.SQLExceptionDescriptor">
+            <e:error-message code="1" message="初级分配指标不能重复！"/>
+        </e:exception-descriptor>
+    </e:exception-descriptor-config>
+</bm:model>

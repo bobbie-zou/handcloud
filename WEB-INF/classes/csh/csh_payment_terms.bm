@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: duxiaofu4653 $
+    $Date: 2013/01/17 11:29:28 $
+    $Revision: 1.3 $
+    $Purpose: 
+-->
+<bm:model xmlns:e="aurora.service.exception" xmlns:ns2="aurora.database.local.oracle" xmlns:bm="http://www.aurora-framework.org/schema/bm" xmlns:f="aurora.database.features" alias="t" baseTable="csh_payment_terms" defaultorderby="payment_term_code">
+    <bm:fields>
+        <bm:field name="payment_term_id" databaseType="NUMBER" datatype="java.lang.Long"/>
+        <bm:field name="payment_term_code" databaseType="VARCHAR2" datatype="java.lang.String" forDisplay="true" forQuery="true" prompt="CSH_PAYMENT_TERMS.PAYMENT_TERM_CODE"/>
+        <bm:field name="description_id" databaseType="BIGINT" datatype="java.lang.Long" multiLanguage="true" multiLanguageDescField="description"/>
+        <bm:field name="description" databaseType="VARCHAR" datatype="java.lang.String" forDisplay="true" forInsert="false" forQuery="true" forUpdate="false" prompt="CSH_PAYMENT_TERMS.DESCRIPTION"/>
+        <bm:field name="due_dates" databaseType="NUMBER" datatype="java.lang.Long" prompt="CSH_PAYMENT_TERMS.DUE_DATES"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" prompt="CSH_PAYMENT_TERMS.ENABLED_FLAG"/>
+        <bm:field name="source_term_code" databaseType="VARCHAR2" datatype="java.lang.String" prompt="CSH_PAYMENT_TERMS.SOURCE_CODE"/>
+        <bm:field name="source_term_name" databaseType="VARCHAR2" datatype="java.lang.String" prompt="CSH_PAYMENT_TERMS.TERMS_DESCRIBED"/>
+    </bm:fields>
+    <bm:primary-key>
+        <bm:pk-field name="payment_term_id"/>
+    </bm:primary-key>
+    <bm:query-fields>
+        <bm:query-field name="payment_term_code" queryExpression="t.payment_term_code like &apos;%&apos;||${@payment_term_code}||&apos;%&apos;"/>
+        <bm:query-field field="due_dates" queryOperator="like"/>
+        <bm:query-field field="description" queryExpression="exists (select 1 from fnd_descriptions fd where t.description_id=fd.description_id and fd.description_text like &apos;%&apos;||${@description}||&apos;%&apos; and fd.language = ${/session/@lang})"/>
+    </bm:query-fields>
+    <bm:data-filters>
+        <bm:data-filter name="client" enforceOperations="query" expression="client = ${/session/@client}"/>
+    </bm:data-filters>
+    <bm:features>
+        <ns2:sequence-pk/>
+        <f:standard-who/>
+        <f:multi-language-storage/>
+    </bm:features>
+    <e:exception-descriptor-config>
+        <e:exception-descriptor exception="java.sql.SQLException" handleClass="aurora.database.SQLExceptionDescriptor">
+            <e:error-message code="1" message="CSH_PAYMENT_TERMS.PAYMENT_TERM_CODE_DISTINCT"/>
+        </e:exception-descriptor>
+    </e:exception-descriptor-config>
+    <bm:operations>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+BEGIN
+  csh_payment_terms_pkg.insert_csh_payment_terms(p_payment_term_code => ${@payment_term_code},
+                                                 p_description       => ${@description},
+                                                 p_due_dates         => ${@due_dates},
+                                                 p_enabled_flag      => ${@enabled_flag},
+                                                 p_created_by        => ${/session/@user_id},
+                                                 p_payment_term_id   => ${@payment_term_id},
+                                                 p_source_term_id    => ${@source_term_id},
+                                                 p_source_term_code  => ${@source_term_code},
+                                                 p_source_term_name  => ${@source_term_name});
+END;
+        ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+BEGIN
+  csh_payment_terms_pkg.update_csh_payment_terms(p_payment_term_code => ${@payment_term_code},
+                                                 p_description       => ${@description},
+                                                 p_due_dates         => ${@due_dates},
+                                                 p_enabled_flag      => ${@enabled_flag},
+                                                 p_last_updated_by        => ${/session/@user_id},
+                                                 p_payment_term_id   => ${@payment_term_id},
+                                                 p_source_term_id    => ${@source_term_id},
+                                                 p_source_term_code  => ${@source_term_code},
+                                                 p_source_term_name  => ${@source_term_name});
+END;
+        ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+</bm:model>

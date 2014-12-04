@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Dru  
+    $Date: 2014-4-24 下午1:40:44  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<bm:model xmlns:bm="http://www.aurora-framework.org/schema/bm">
+    <bm:operations>
+        <bm:operation name="query">
+            <bm:query-sql><![CDATA[
+                SELECT
+                    *
+                FROM
+                    (SELECT
+                        f.*,
+                        (SELECT s.user_name FROM sys_user s WHERE s.user_id = f.default_admin_id
+                        ) client_admin_name,
+                        (select c.enterprise_name from fnd_client_infos c where c.information_id = f.information_id) enterprise_name
+                    FROM
+                        fnd_clients_vl f
+                    ) v #WHERE_CLAUSE#
+                ORDER BY
+                    client
+            ]]></bm:query-sql>
+        </bm:operation>
+        <bm:operation name="insert">
+            <bm:update-sql><![CDATA[
+               BEGIN
+  fnd_clients_pkg.create_fnd_clients(x_client_id         => ${@client_id},
+                                     p_client            => ${@client},
+                                     p_client_full_name  => ${@client_full_name},
+                                     p_client_short_name => ${@client_short_name},
+                                     p_enabled_flag      => ${@enabled_flag},
+                                     p_comments          => ${@comments},
+                                     p_contact_email     => ${@contact_email},
+                                     p_information_id    => ${@information_id},
+                                     p_user_id           => ${/session/@user_id});
+END;
+            ]]></bm:update-sql>
+            <bm:parameters>
+                <bm:parameter name="client_id" datatype="java.lang.Long" input="false" output="true" outputPath="@client_id"/>
+            </bm:parameters>
+        </bm:operation>
+        <bm:operation name="update">
+            <bm:update-sql><![CDATA[
+                 BEGIN
+   fnd_clients_pkg.modify_fnd_clients(p_client_id         => ${@client_id},
+                                      p_client_full_name  => ${@client_full_name},
+                                      p_client_short_name => ${@client_short_name},
+                                      p_enabled_flag      => ${@enabled_flag},
+                                      p_comments          => ${@comments},
+                                      p_contact_email     => ${@contact_email},
+                                      p_information_id    => ${@information_id},
+                                      p_language_code     => userenv('LANG'),
+                                      p_user_id           => ${/session/@user_id});
+ END;
+            ]]></bm:update-sql>
+        </bm:operation>
+        <bm:operation name="execute">
+            <bm:update-sql><![CDATA[
+                 BEGIN
+  fnd_clients_pkg.init_client_admin(p_client_id => ${@client_id},
+                                    p_user_id   => ${/session/@user_id},
+                                    p_ip_address => ${/request/@address});
+END;
+            ]]></bm:update-sql>
+        </bm:operation>
+    </bm:operations>
+    <bm:fields>
+        <bm:field name="client_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="CLIENT_ID"/>
+        <bm:field name="client" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CLIENT"/>
+        <bm:field name="client_full_name_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="CLIENT_FULL_NAME_ID"/>
+        <bm:field name="client_short_name_id" databaseType="NUMBER" datatype="java.lang.Long" physicalName="CLIENT_SHORT_NAME_ID"/>
+        <bm:field name="enabled_flag" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="ENABLED_FLAG"/>
+        <bm:field name="comments" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="COMMENTS"/>
+        <bm:field name="client_full_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CLIENT_FULL_NAME"/>
+        <bm:field name="client_short_name" databaseType="VARCHAR2" datatype="java.lang.String" physicalName="CLIENT_SHORT_NAME"/>
+        <bm:field name="client_admin_name"/>
+        <bm:field name="contact_email"/>
+    </bm:fields>
+    <bm:query-fields>
+        <bm:query-field name="client" queryExpression="client like &apos;%&apos;||upper(trim(${@client}))||&apos;%&apos;"/>
+        <bm:query-field name="client_full_name" queryExpression="client_full_name like &apos;%&apos;||trim(${@client_full_name})||&apos;%&apos;"/>
+        <bm:query-field name="client_short_name" queryExpression="client_short_name like &apos;%&apos;||trim(${@client_short_name})||&apos;%&apos;"/>
+    </bm:query-fields>
+</bm:model>

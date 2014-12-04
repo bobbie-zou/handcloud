@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query model="wfl.WFL2012.syscode_workflow_end_procedure" rootPath="wfl_syscode_end_procedure"/>
+    </a:init-procedure>
+    <a:view>
+        <div/>
+        <script><![CDATA[
+            function onCloseWorkflowNode() {
+                $('wfl_workflow_Procedure').close();
+            }
+            
+            function defineNodeProcedurePara(value, record, name) {
+                if (!record.isNew) {
+                    var id = record.get('workflow_procedure_id');
+                    var pid = record.get('procedure_id');
+                    var wid = '${/parameter/@workflow_id}';
+                    return '<a href="javascript:openNodeProcedureParaPage(' + id + ',' + pid + ',' + wid + ')">结束过程参数定义</a>';
+                }
+                return '';
+            }
+            
+            function openNodeProcedureParaPage(id, pid, wid) {
+                new Aurora.Window({
+                    id: 'wfl_workflow_node_proc_para_window',
+                    url: '${/request/@context_path}/modules/wfl/WFL2012/wfl_workflow_node_proc_para_end.screen?workflow_procedure_id=' + id + '&procedure_id=' + pid + '&workflow_id=' + wid,
+                    title: '结束过程参数定义',
+                    //width: 850,
+                    //height: 520,
+                    fullScreen: true
+                });
+            
+            }
+            
+            
+            function onSaveWorkNode() {
+                var result_ds = $('wfl_workflow_node_result_ds');
+                if (result_ds.validate) {
+                    var records = result_ds.getAll();
+                    if (records.length < 1) {
+                        Aurora.showMessage('提示', '请添加一条数据!');
+                    } else {
+                        var workflow_id = ${/parameter/@workflow_id};
+                        if (!workflow_id) {
+                            Aurora.showMessage('提示', '工作流定义数据ID缺失，请查看源程序!');
+                        } else {
+                            for (var i = 0;i < records.length;i++) {
+                                var record = records[i];
+                                record.set('workflow_id', workflow_id);
+                            }
+                            result_ds.submit();
+                        }
+                    }
+                }
+            }
+            
+            
+            
+            function grid_editor_nump_ercent_type(record, name) {
+                var workflow_type_para_code = record.get("approval_type");
+            
+            
+                //选择一定比例的人数 和 一定人数 时可编辑
+                if (workflow_type_para_code == 'PROPORTION_PERSON' || workflow_type_para_code == 'FEW_PERSON') {
+                    //设置必输
+                    record.getMeta().getField('approval_type_factor').setRequired(true);
+                    return 'numberField_sn';
+                } else {
+                    record.getMeta().getField('approval_type_factor').setRequired(false);
+                    record.set('approval_type_factor', '');
+                    return '';
+                }
+            }
+            
+            
+            
+            
+            function onDeleteWorkNode() {
+                var ds = $('wfl_workflow_node_result_ds');
+                var selectedRecords = ds.getSelected();
+                if (selectedRecords.length < 1) {
+                    Aurora.showMessage('提示', '请选择一条数据!');
+                } else {
+                    for (var i = 0;i < selectedRecords.length;i++) {
+                        selectedRecords[i].set('_status', 'delete');
+                    }
+                    var confirm = new Aurora.showConfirm("提示", "确认删除数据？", function() {
+                        confirm.close();
+                        ds.remove(selectedRecords);
+                    });
+                }
+            }
+            
+            function editNode(value, record, name) {
+                if (!record.isNew) {
+                    var id = record.get('node_id');
+                    var wid = ${/parameter/@workflow_id};
+                    var node_type = record.get('node_type');
+                    if (node_type == "NORMAL_NODE" || node_type == "BRANCH_NODE" || node_type == "VIRTUAL_NODE") { //普通节点、分支节点、虚拟节点，都可编辑节点
+                        return '<a href="javascript:openEditNodePage(' + id + ',' + wid + ',\'' + node_type + '\')">编辑节点</a>'
+                    } else {
+                        return '';
+                    }
+            
+                }
+                return '';
+            }
+            
+            function openEditNodePage(id, wid, node_type) {
+                new Aurora.Window({
+                    id: 'wfl_workflow_node_edit_window',
+                    url: 'wfl_workflow_node_edit.screen?node_id=' + id + '&workflow_id=' + wid + '&node_type=' + node_type,
+                    title: '编辑节点',
+                    fullScreen: true
+                });
+            }
+            
+            function defineBranchNode(value, record, name) {
+                if (!record.isNew) {
+                    var id = record.get('node_id');
+                    var wid = ${/parameter/@workflow_id};
+                    var node_type = record.get('node_type');
+                    var pid = record.get('branch_procedure'); //分支节点判断过程ID
+                    if (node_type == "BRANCH_NODE") { //分支节点
+                        return '<a href="javascript:openDefineBranchNodePage(' + id + ',' + wid + ',' + pid + ')">分支定义</a>'
+                    } else {
+                        return '';
+                    }
+            
+                }
+                return '';
+            }
+            
+            function openDefineBranchNodePage(id, wid, pid) {
+                new Aurora.Window({
+                    id: 'wfl_workflow_branch_node_window',
+                    url: 'wfl_workflow_branch_node.screen?node_id=' + id + '&workflow_id=' + wid + '&procedure_id=' + pid,
+                    title: '分支定义',
+                    fullScreen: true
+                });
+            }
+            
+            function editorFunction_node(record, name) {
+                var node_type = record.get('node_type');
+                var mail_flag = record.get('mail_flag');
+                var link_workflow_code = record.getMeta().getField('link_workflow_code');
+                var notify_template_code = record.getMeta().getField('notify_template_code');
+                var approval_type_desc = record.getMeta().getField('approval_type_desc');
+                var branch_procedure_desc = record.getMeta().getField('branch_procedure_desc');
+            
+                //获取工作流前一页面的结果集dataset
+                var workflow_ds = $('wfl_workflow_result_ds');
+                if (workflow_ds) {
+                    var workflow_record = workflow_ds.getCurrentRecord();
+                    var workflow_type_id = workflow_record.get('workflow_type_id');
+                } else {
+                    workflow_type_id = -1; //如果从前面的工作流页面没有获取的工作流类型id，则赋值-1，使得查询不出数据
+                }
+            
+                if (record.isNew) {
+            
+                    if (name == 'notify_template_code') {
+                        if (node_type == 'SUB_PROCESS') { //节点类型是链接流程,不显示此控件
+                            notify_template_code.setRequired(false);
+                            return '';
+                        } else {
+                            if (mail_flag == 'Y') {
+                                notify_template_code.setRequired(true);
+                                return 'lov_lw';
+                            } else {
+                                notify_template_code.setRequired(false);
+                                return '';
+                            }
+                        }
+                    }
+            
+                    if (name == 'node_type_desc') {
+                        return 'comboBox_nt';
+                    }
+            
+                    if (name == 'link_workflow_code') {
+                        if (node_type == 'SUB_PROCESS') { //节点类型是链接流程，添加lov参数为工作流主从属性为子流程
+                            link_workflow_code.setLovPara('workflow_type_id', workflow_type_id);
+                            link_workflow_code.setLovPara('sub_category', 'SUB_PROCESS');
+                            link_workflow_code.setRequired(true);
+                            return 'lov_lw';
+                        } else {
+                            link_workflow_code.setLovPara('workflow_type_id', null);
+                            link_workflow_code.setLovPara('sub_category', null);
+                            link_workflow_code.setRequired(false);
+                            return '';
+                        }
+                    }
+            
+                    if (name == 'approval_type_desc') {
+                        if (node_type == "NORMAL_NODE" || node_type == "BRANCH_NODE" || node_type == "VIRTUAL_NODE") {
+                            approval_type_desc.setRequired(true);
+                            return 'comboBox_nt';
+                        } else {
+                            approval_type_desc.setRequired(false);
+                            return '';
+                        }
+                    }
+            
+                    if (name == 'branch_procedure_desc') {
+                        if (node_type == 'BRANCH_NODE') {
+                            branch_procedure_desc.setRequired(true);
+                            return 'lov_lw';
+                        } else {
+                            branch_procedure_desc.setRequired(false);
+                            return '';
+                        }
+                    }
+            
+                    if (name == 'can_no_approver_flag' || name == 'mail_flag') {
+                        if (node_type == 'SUB_PROCESS') { //节点类型是链接流程,不显示此控件
+                            return '';
+                        } else {
+                            return 'checkBox_mf';
+                        }
+                    }
+            
+                } else {
+                    if (name == 'link_workflow_code') {
+                        if (node_type == 'SUB_PROCESS') { //节点类型是链接流程，添加lov参数为工作流主从属性为子流程
+                            link_workflow_code.setLovPara('workflow_type_id', workflow_type_id);
+                            link_workflow_code.setLovPara('sub_category', 'SUB_PROCESS');
+                            link_workflow_code.setRequired(true);
+                            return 'lov_lw';
+                        } else {
+                            link_workflow_code.setLovPara('workflow_type_id', null);
+                            link_workflow_code.setLovPara('sub_category', null);
+                            link_workflow_code.setRequired(false);
+                            return '';
+                        }
+                    }
+            
+                    if (name == 'notify_template_code') {
+                        if (node_type == 'SUB_PROCESS') { //节点类型是链接流程,不显示此控件
+                            notify_template_code.setRequired(false);
+                            return '';
+                        } else {
+                            if (mail_flag == 'Y') {
+                                notify_template_code.setRequired(true);
+                                return 'lov_lw';
+                            } else {
+                                notify_template_code.setRequired(false);
+                                return '';
+                            }
+                        }
+                    }
+            
+                    if (name == 'approval_type_desc') {
+                        if (node_type == "NORMAL_NODE" || node_type == "BRANCH_NODE" || node_type == "VIRTUAL_NODE") {
+                            approval_type_desc.setRequired(true);
+                            return 'comboBox_nt';
+                        } else {
+                            approval_type_desc.setRequired(false);
+                            return '';
+                        }
+                    }
+            
+                    if (name == 'branch_procedure_desc') {
+                        if (node_type == 'BRANCH_NODE') {
+                            branch_procedure_desc.setRequired(true);
+                            return 'lov_lw';
+                        } else {
+                            branch_procedure_desc.setRequired(false);
+                            return '';
+                        }
+                    }
+            
+                    if (name == 'can_no_approver_flag' || name == 'mail_flag') {
+                        if (node_type == 'SUB_PROCESS') { //节点类型是链接流程,不显示此控件
+                            return '';
+                        } else {
+                            return 'checkBox_mf';
+                        }
+                    }
+            
+                    return '';
+                }
+            }
+            
+            function onUpdateWorkNode(ds, record, name, value, oldvalue) {
+            
+                var approval_type_factor_ds = record.get("approval_type_factor");
+                //如果"节点类型"的值发生改变，则将"链接流程","分支判断过程","审批规则"的值清空
+                if (name == "node_type_desc") {
+                    record.set('link_workflow_id', null);
+                    record.set('link_workflow_code', null);
+                    record.set('link_workflow_desc', null);
+                    record.set('branch_procedure', null);
+                    record.set('branch_procedure_code', null);
+                    record.set('branch_procedure_desc', null);
+                    record.set('approval_type', null);
+                    record.set('approval_type_desc', null);
+                }
+            
+                //如果"是否发送邮件"的值发生改变，则将"模板代码"的值清空
+                if (name == "mail_flag") {
+                    record.set('notify_template_id', null);
+                    record.set('notify_template_code', null);
+                    record.set('notify_template_desc', null);
+                }
+            
+                //如果输入的值 >100 or >0
+            
+                if (approval_type_factor_ds > 100 || approval_type_factor_ds < 0) {
+            
+                    Aurora.showErrorMessage('错误信息', '输入的值不允许大于100或小于0!', function() {});
+                    record.set("approval_type_factor", "");
+                }
+            
+            }
+            
+            // function onSubmitWorkNode (dataSet,url,datas)
+            // {
+            // var record = dataSet.getCurrentRecord();
+            // var approval_type_factor_ds =record.get("approval_type_factor");
+            // //如果输入的值 >100 or >0
+            // if(approval_type_factor_ds>100||approval_type_factor_ds<0)
+            // {
+            
+            // Aurora.showErrorMessage('错误信息','输入的值不允许大于100或小于0!',function(){});
+            // record.set("approval_type_factor","");
+            // }
+            // }
+            
+            function submitSuccess_fun(ds, res) {
+            
+                $('wfl_workflow_node_procedure_result_ds').query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl_syscode_end_procedure_ds">
+                <a:datas dataSource="/model/wfl_syscode_end_procedure"/>
+            </a:dataSet>
+            <a:dataSet id="node_type_ds" loadData="true" model="wfl.WFL1040.wfl_workflow_node_type_combox"/>
+            <a:dataSet id="approval_type_ds" lookupCode="APPROVAL_TYPE"/>
+            <a:dataSet id="wfl_workflow_one_ds" loadData="true" model="wfl.WFL1040.wfl_workflow">
+                <a:fields>
+                    <a:field name="workflow_code" readOnly="true"/>
+                    <a:field name="workflow_desc" readOnly="true"/>
+                    <a:field name="workflow_type_code" readOnly="true"/>
+                    <a:field name="sub_category_desc" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl_workflow_node_procedure_result_ds" autoPageSize="true" autoQuery="true" model="wfl.WFL2012.wfl_workflow_end_procedure" queryUrl="${/request/@context_path}/autocrud/wfl.WFL2012.wfl_workflow_end_procedure/query?workflow_id=${/parameter/@workflow_id}" selectable="true" submitUrl="${/request/@context_path}/autocrud/wfl.WFL2012.wfl_workflow_end_procedure/batch_update?workflow_id=${/parameter/@workflow_id}">
+                <a:fields>
+                    <a:field name="sequence_num" required="true"/>
+                    <a:field name="workflow_status_des" displayField="code_value_name" options="wfl_syscode_end_procedure_ds" required="true" returnField="workflow_status" valueField="code_value"/>
+                    <a:field name="procedure_code" lovGridHeight="310" lovHeight="455" lovService="wfl.wfl_workflow_procedure_lov?procedure_type_code=PROCEDURE" lovWidth="490" required="true" title="过程选择">
+                        <a:mapping>
+                            <a:map from="procedure_id" to="procedure_id"/>
+                            <a:map from="procedure_code" to="procedure_code"/>
+                            <a:map from="procedure_desc" to="procedure_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="procedure_desc"/>
+                    <a:field name="procedure_id"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="submitSuccess_fun"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenTopToolbar>
+            <a:gridButton bind="wfl_workflow_node_procedure_result_grid" type="add" width="100"/>
+            <a:gridButton bind="wfl_workflow_node_procedure_result_grid" type="save" width="100"/>
+            <a:gridButton bind="wfl_workflow_node_procedure_result_grid" type="clear" width="100"/>
+            <a:gridButton bind="wfl_workflow_node_procedure_result_grid" type="delete" width="100"/>
+            <a:toolbarButton click="onCloseWorkflowNode" text="返回" width="100"/>
+        </a:screenTopToolbar>
+        <a:form column="4" marginWidth="40">
+            <a:textField name="workflow_type_code" bindTarget="wfl_workflow_one_ds" prompt="工作流类型"/>
+            <a:textField name="workflow_code" bindTarget="wfl_workflow_one_ds" prompt="工作流代码"/>
+            <a:textField name="workflow_desc" bindTarget="wfl_workflow_one_ds" prompt="工作流描述"/>
+            <a:textField name="sub_category_desc" bindTarget="wfl_workflow_one_ds" prompt="主从属性"/>
+        </a:form>
+        <a:grid id="wfl_workflow_node_procedure_result_grid" bindTarget="wfl_workflow_node_procedure_result_ds" marginHeight="130" marginWidth="40" navBar="true">
+            <a:columns>
+                <a:column name="sequence_num" align="center" editor="numberField_seq" prompt="过程执行顺序" width="50"/>
+                <a:column name="workflow_status_des" editor="com_status_edit" prompt="结束状态" width="80"/>
+                <a:column name="procedure_code" editor="lov_pro" prompt="过程代码" width="200"/>
+                <a:column name="procedure_desc" prompt="过程描述" width="200"/>
+                <a:column name="node_procedure_parameter" align="center" prompt="结束过程参数定义" renderer="defineNodeProcedurePara" width="80"/>
+            </a:columns>
+            <a:editors>
+                <a:numberField id="numberField_seq" allowDecimals="false" allowNegative="false"/>
+                <a:lov id="lov_pro"/>
+                <a:comboBox id="com_status_edit"/>
+            </a:editors>
+        </a:grid>
+    </a:view>
+</a:screen>

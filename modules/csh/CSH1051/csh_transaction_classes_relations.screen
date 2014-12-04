@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Lichen  
+    $Date: 2012-2-8 下午02:04:15  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.aurora-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="CSH1051_csh_companies_assign_batch_link" url="${/request/@context_path}/modules/csh/CSH1051/csh_transaction_batch_classes.screen"/>
+        <script><![CDATA[
+            function companyCodeEdit(record,name){
+                if (!record.isNew){
+                    return '';
+                }else{
+                    return 'company_code_lov';
+                }
+            }
+            
+            function CSH1051_saveAssignCom() {
+                new Aurora.Window({
+                    id: 'CSH1051_csh_companies_batch_screen',
+                    url: $('CSH1051_csh_companies_assign_batch_link').getUrl()+'?csh_transaction_class_code='+'${/parameter/@csh_transaction_class_code}',
+                    title: '${l:FND_SYS_VENDERS.BATCH_DISP_COMPANY}',
+                    width: 550,
+                    height: 458
+                });
+            }
+            
+          function loadFunction(){
+                var enabled_flag='${/parameter/@enabled_flag}';
+                var ds = $('csh1051_company_group_relations_ds');
+				if (enabled_flag=='N'){
+				    for(var i=0;i<ds.getAll().length;i++){
+				        var record = ds.getAt(i);
+				        record.getMeta().getField("enabled_flag").setReadOnly(true);
+				    }
+				}
+				}
+        
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="CSH1051_transaction_classes_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="csh_transaction_type_code_desc" defaultValue="${/parameter/@csh_transaction_type_code_desc}" prompt="CSH_TRANSACTION_CLASSES.CSH_TRANSACTION_TYPE_CODE" readOnly="true"/>
+                    <a:field name="csh_transaction_class_code" defaultValue="${/parameter/@csh_transaction_class_code}" prompt="CSH_TRANSACTION_CLASSES.CSH_TRANSACTION_CLASS_CODE" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh1051_company_group_relations_ds" autoCount="true" autoQuery="true" fetchAll="false" model="csh.CSH1051.csh_com_transaction_classes" queryUrl="${/request/@context_path}/autocrud/csh.CSH1051.csh_com_transaction_classes/query?ORDER_FIELD=company_code&amp;csh_transaction_class_code=${/parameter/@csh_transaction_class_code}" selectable="true" submitUrl="${/request/@context_path}/autocrud/csh.CSH1051.csh_com_transaction_classes/batch_update">
+                <a:fields>
+                    <a:field name="company_code" lovGridHeight="300" lovHeight="460" lovService="csh.CSH1051.csh_batch_assign_company_lov?csh_transaction_class_code=${/parameter/@csh_transaction_class_code}" lovWidth="500" required="true">
+                        <a:mapping>
+                            <a:map from="company_code" to="company_code"/>
+                            <a:map from="company_short_name" to="company_short_name"/>
+                            <a:map from="company_id" to="company_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_id"/>
+                    <a:field name="csh_transaction_class_code" defaultValue="${/parameter/@csh_transaction_class_code}"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" unCheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="loadFunction"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:fieldSet column="2" title="CSH_TRANSACTION_CLASSES.CSH_TRANSACTION_TYPE_CODE" width="520">
+                <a:box column="2" labelWidth="120">
+                    <a:textField name="csh_transaction_type_code_desc" bindTarget="CSH1051_transaction_classes_ds" width="120"/>
+                    <a:textField name="csh_transaction_class_code" bindTarget="CSH1051_transaction_classes_ds" width="120"/>
+                </a:box>
+            </a:fieldSet>
+            <a:hBox>
+                <a:button click="CSH1051_saveAssignCom" text="BUDGET_ITEM_COMPANY_ASSIGNED_BATCH" width="90"/>
+            </a:hBox>
+            <a:grid bindTarget="csh1051_company_group_relations_ds" height="330" navBar="true" width="520">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="save"/>
+                    <a:button type="clear"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="company_code" align="center" editorFunction="companyCodeEdit" prompt="COMPANY_CODE" sortable="true" width="200"/>
+                    <a:column name="company_short_name" align="center" prompt="COMPANY_SHORT_NAME" width="200"/>
+                    <a:column name="enabled_flag" align="center" editor="enabled_flag_cb" prompt="CSH_TRANSACTION_CLASSES.ENABLED_FLAG" width="80"/>
+                    <!--<a:column name="code_value_name" align="center" prompt="CSH_TRANSACTION_CLASSES.CSH_TRANSACTION_TYPE_CODE"/>
+                    <a:column name="csh_transaction_class_code" align="center" prompt="CSH_TRANSACTION_CLASSES.CSH_TRANSACTION_CLASS_CODE"/>
+                    <a:column name="description" align="center" prompt="CSH_TRANSACTION_CLASSES.DESCRIPTION"/>-->
+                </a:columns>
+                <a:editors>
+                    <a:lov id="company_code_lov"/>
+                    <a:checkBox id="enabled_flag_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>
